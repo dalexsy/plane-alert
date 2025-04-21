@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
+import { APP_BASE_HREF } from '@angular/common';
 
 @Injectable({
   providedIn: 'root',
@@ -16,7 +17,7 @@ export class HelicopterListService {
   public readonly helicopterListUpdated$: Observable<void> =
     this.listUpdated.asObservable();
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {
     this.loadHelicopterList();
   }
 
@@ -28,7 +29,7 @@ export class HelicopterListService {
     const cacheBuster = new Date().getTime();
 
     return this.http
-      .get(`/assets/helicopter-icaos.json?_=${cacheBuster}`, {
+      .get(`${this.baseHref}assets/helicopter-icaos.json?_=${cacheBuster}`, {
         responseType: 'text',
       })
       .toPromise()

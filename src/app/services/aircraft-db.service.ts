@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { APP_BASE_HREF } from '@angular/common';
 
 export interface AircraftRecord {
   icao: string;
@@ -21,13 +22,13 @@ export interface AircraftRecord {
 export class AircraftDbService {
   private db: Map<string, AircraftRecord> = new Map();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {}
 
   load(): Promise<void> {
     // Load split database files and merge
     return Promise.all([
-      this.http.get('/assets/basic-ac-db1.json', { responseType: 'text' }).toPromise(),
-      this.http.get('/assets/basic-ac-db2.json', { responseType: 'text' }).toPromise(),
+      this.http.get(`${this.baseHref}assets/basic-ac-db1.json`, { responseType: 'text' }).toPromise(),
+      this.http.get(`${this.baseHref}assets/basic-ac-db2.json`, { responseType: 'text' }).toPromise(),
     ])
       .then((texts) => {
         const records: AircraftRecord[] = [];

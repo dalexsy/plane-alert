@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
+import { APP_BASE_HREF } from '@angular/common';
 
 // Define an interface matching your JSON structure.
 export interface Aircraft {
@@ -25,7 +26,7 @@ export class MappingService {
   private mappingUrl = 'assets/basic-ac-db.json';
   private mapping$!: Observable<Aircraft[]>;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {}
 
   // getMapping loads the JSON file from the assets folder
   // and caches it using shareReplay.
@@ -33,8 +34,8 @@ export class MappingService {
     if (!this.mapping$) {
       // Load split DB fragments and merge newline-delimited JSON lines
       this.mapping$ = forkJoin([
-        this.http.get('assets/basic-ac-db1.json', { responseType: 'text' }),
-        this.http.get('assets/basic-ac-db2.json', { responseType: 'text' }),
+        this.http.get(`${this.baseHref}assets/basic-ac-db1.json`, { responseType: 'text' }),
+        this.http.get(`${this.baseHref}assets/basic-ac-db2.json`, { responseType: 'text' }),
       ]).pipe(
         map((texts) => {
           const all: Aircraft[] = [];
