@@ -1,0 +1,26 @@
+<div id="map"></div>
+
+<app-radius
+  [map]="map"
+  [lat]="currentLat"
+  [lon]="currentLon"
+  [radiusKm]="radiusKm"
+></app-radius>
+<app-cone
+  [map]="map"
+  [lat]="currentLat"
+  [lon]="currentLon"
+  [distanceKm]="radiusKm"
+  [opacity]="coneVisible ? 1 : 0"
+></app-cone>
+
+<app-input-overlay
+  (resolveAndUpdate)="resolveAndUpdateFromAddress()"
+  (excludeDiscountChange)="onExcludeDiscountChange()"
+  (useCurrentLocation)="useCurrentLocation()"
+  (goToAirport)="goToAirport()"
+  (coneVisibilityChange)="toggleConeVisibility($event)"
+  (setHome)="setCurrentAsHome()"
+  (goToHome)="goToHome()"
+></app-input-overlay>
+<app-results-overlay></app-results-overlay>

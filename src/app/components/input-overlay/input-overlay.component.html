@@ -1,0 +1,84 @@
+<!-- src/app/components/input-overlay/input-overlay.component.html -->
+<div class="options-overlay">
+  <form (submit)="onResolveAndUpdate()" autocomplete="off">
+    <h1>Precious Little Lifeforms</h1>
+    <div class="form-group">
+      <label for="address">Address</label>
+      <input
+        #addressInput
+        type="text"
+        autocomplete="street-address"
+        id="address"
+        placeholder="Enter address"
+        (keydown.enter)="onResolveAndUpdate()"
+      />
+    </div>
+    <div class="form-group">
+      <label for="searchRadius">Search Radius (km):</label>
+      <input
+        #searchRadiusInput
+        type="number"
+        id="searchRadius"
+        placeholder="Enter search radius (km)"
+        step="any"
+        [value]="settings.radius || 5"
+        (keydown.enter)="onResolveAndUpdate()"
+      />
+    </div>
+    <div class="form-group">
+      <label for="checkInterval">Check Interval (minutes):</label>
+      <input
+        #checkIntervalInput
+        type="number"
+        id="checkInterval"
+        placeholder="Enter check interval (minutes)"
+        step="any"
+        [value]="settings.interval / 60"
+        (change)="onIntervalChange()"
+        (keydown.enter)="onResolveAndUpdate()"
+      />
+    </div>
+    <div class="form-group">
+      <label class="checkbox-inline" for="showCone">
+        <input
+          type="checkbox"
+          id="showCone"
+          (change)="onShowConeChange($event)"
+        />
+        Show view axes
+      </label>
+    </div>
+    <div class="button-group">
+      <app-button
+        id="findButton"
+        [text]="scanButtonText"
+        type="primary"
+        [nativeType]="'submit'"
+      ></app-button>
+      <app-button
+        id="useLocationButton"
+        [text]="'Use My Current Location'"
+        type="secondary"
+        (click)="onUseCurrentLocation()"
+      ></app-button>
+      <app-button
+        id="berButton"
+        [text]="'Search near BER'"
+        type="secondary"
+        (click)="onGoToAirport()"
+      ></app-button>
+      <app-button
+        id="setHomeButton"
+        [text]="'Set Current Location as Home'"
+        type="secondary"
+        (click)="onSetHome()"
+      ></app-button>
+      <app-button
+        id="goHomeButton"
+        [text]="'Go to Home'"
+        type="secondary"
+        (click)="onGoToHome()"
+      ></app-button>
+    </div>
+  </form>
+</div>

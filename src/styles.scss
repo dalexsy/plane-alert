@@ -1,0 +1,142 @@
+@import url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/6.6.6/css/flag-icons.min.css");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  color: white;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-family: "Instrument Sans", sans-serif;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+/* Consolidated anchor overrides */
+html a,
+body a,
+a,
+a:link,
+a:visited,
+a:hover,
+a:active {
+  color: inherit;
+}
+
+// Font family variables
+$font-body: "Instrument Sans", sans-serif;
+$font-header: "Instrument Sans", sans-serif;
+$font-mono: "JetBrains Mono", monospace;
+
+// Mixins using variables
+@mixin instrument-sans-regular {
+  font-family: $font-body;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+@mixin instrument-sans-bold {
+  font-family: $font-header;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+@mixin jetbrains-mono-regular {
+  font-family: $font-mono;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+body {
+  @include instrument-sans-regular;
+}
+
+h1,
+h2 {
+  @include instrument-sans-bold;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  @include instrument-sans-bold;
+}
+
+h1 {
+  line-height: 1.2;
+}
+
+h3 {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
+  border-bottom: 1px solid white;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.leaflet-container {
+  text {
+    font-family: $font-body !important;
+    font-weight: 600;
+    letter-spacing: 2px;
+  }
+}
+
+label,
+input {
+  font-size: 0.875rem;
+}
+
+.fi {
+  border: 1px solid rgb(255 255 255 / 40%);
+  width: 1.3em;
+  line-height: 0.9em;
+}
+
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}

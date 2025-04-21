@@ -1,0 +1,284 @@
+<!-- src/app/components/results-overlay/results-overlay.component.html -->
+<div class="results-overlay">
+  <!-- Options buttons - moved to the top -->
+  <div class="button-group">
+    <!-- Hide Export Filter List button for now -->
+    <!--
+    <app-button
+      [text]="'Export Filter List'"
+      type="secondary"
+      (click)="onExportList()"
+    ></app-button>
+    -->
+    <!-- Group the commercial toggle buttons -->
+    <div class="commercial-toggle-group">
+      <span class="label">Commercial</span>
+      <div class="buttons">
+        <app-button
+          [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
+          [type]="'secondary'"
+          [size]="'small'"
+          (click)="onToggleCommercialFilter()"
+          [ariaLabel]="
+            settings.excludeDiscount
+              ? 'Show commercial planes'
+              : 'Hide commercial planes'
+          "
+        ></app-button>
+        <app-button
+          [icon]="commercialMute ? 'volume_off' : 'volume_up'"
+          [type]="'secondary'"
+          [size]="'small'"
+          (click)="onToggleCommercialMute()"
+          [ariaLabel]="
+            commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+          "
+        ></app-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Planes in the Sky section - always show -->
+  <div class="plane-section">
+    <h3>Planes in the Sky ({{ filteredSkyPlaneLog.length }})</h3>
+    <div
+      class="plane-list"
+      *ngIf="
+        filteredSkyPlaneLog && filteredSkyPlaneLog.length;
+        else noSkyPlanes
+      "
+    >
+      <div
+        class="plane-item"
+        *ngFor="let plane of filteredSkyPlaneLog"
+        [class.new-plane]="plane.isNew === true"
+        [class.military-plane]="plane.isMilitary"
+        [class.filtered-out]="plane.filteredOut"
+        [class.hide-commercial]="
+          settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
+        "
+      >
+        <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
+        <span class="top">
+          <span class="flag-callsign">
+            <app-button
+              [icon]="
+                planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+                  ? 'visibility_off'
+                  : 'visibility'
+              "
+              type="tertiary"
+              [size]="'small'"
+              (click)="onFilter(plane)"
+            ></app-button>
+            <span [innerHTML]="countryService.getFlagHTML(plane.origin)"></span>
+            <ng-container
+              *ngIf="
+                plane.callsign && plane.callsign.trim().length >= 3;
+                else noLink
+              "
+            >
+              <a
+                href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ plane.callsign }}
+              </a>
+            </ng-container>
+            <ng-template #noLink>
+              <span class="none-callsign">Pending</span>
+            </ng-template>
+          </span>
+          <span class="direction-info">
+            <span>{{ plane.cardinal }}</span>
+            <span
+              class="material-symbols-sharp direction-icon"
+              [style.transform]="'rotate(' + (plane?.bearing ?? 0) + 'deg)'"
+            >
+              navigation
+            </span>
+            <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
+          </span>
+        </span>
+        <span class="top">
+          <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
+          <span class="operator" *ngIf="plane.operator">{{
+            plane.operator
+          }}</span>
+        </span>
+      </div>
+    </div>
+    <ng-template #noSkyPlanes>
+      <p>No planes worth peeping.</p>
+    </ng-template>
+  </div>
+
+  <!-- Planes at the Airport section - only show if there are planes -->
+  <div class="plane-section">
+    <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
+    <div
+      class="plane-list"
+      *ngIf="
+        filteredAirportPlaneLog && filteredAirportPlaneLog.length;
+        else noAirportPlanes
+      "
+    >
+      <div
+        class="plane-item"
+        *ngFor="let plane of filteredAirportPlaneLog"
+        [class.new-plane]="plane.isNew === true"
+        [class.military-plane]="plane.isMilitary"
+        [class.filtered-out]="plane.filteredOut"
+        [class.hide-commercial]="
+          settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
+        "
+      >
+        <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
+        <span class="top">
+          <span class="flag-callsign">
+            <app-button
+              [icon]="
+                planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+                  ? 'visibility_off'
+                  : 'visibility'
+              "
+              type="tertiary"
+              [size]="'small'"
+              (click)="onFilter(plane)"
+            ></app-button>
+            <span [innerHTML]="countryService.getFlagHTML(plane.origin)"></span>
+            <ng-container
+              *ngIf="
+                plane.callsign && plane.callsign.trim().length >= 3;
+                else noLink
+              "
+            >
+              <a
+                href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ plane.callsign }}
+              </a>
+            </ng-container>
+            <ng-template #noLink>
+              <span class="none-callsign">Pending</span>
+            </ng-template>
+          </span>
+          <span class="direction-info">
+            <span>{{ plane.cardinal }}</span>
+            <span
+              class="material-symbols-sharp direction-icon"
+              [style.transform]="'rotate(' + (plane?.bearing ?? 0) + 'deg)'"
+            >
+              navigation
+            </span>
+            <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
+          </span>
+        </span>
+        <span class="top">
+          <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
+          <span class="operator" *ngIf="plane.operator">{{
+            plane.operator
+          }}</span>
+        </span>
+      </div>
+    </div>
+    <ng-template #noAirportPlanes>
+      <p>No planes worth peeping.</p>
+    </ng-template>
+  </div>
+
+  <div id="seenResults">
+    <h3 class="top">
+      All Planes Peeped ({{ seenPlaneLog.length }})<span>
+        <!-- Collapse toggle button -->
+        <app-button
+          id="collapseSeenButton"
+          [icon]="seenCollapsed ? 'expand_less' : 'expand_more'"
+          type="tertiary"
+          [size]="'medium'"
+          (click)="toggleSeenCollapsed()"
+          [ariaLabel]="
+            seenCollapsed ? 'Expand seen list' : 'Collapse seen list'
+          "
+        ></app-button>
+        <!-- Clear historical list button -->
+        <app-button
+          [icon]="'refresh'"
+          type="tertiary"
+          [size]="'medium'"
+          (click)="onClearHistoricalList()"
+          class="clear-seen"
+        ></app-button
+      ></span>
+    </h3>
+    <!-- Wrap seen list in collapse container -->
+    <ng-container *ngIf="!seenCollapsed">
+      <div
+        class="seen-list plane-list"
+        *ngIf="seenPlaneLog && seenPlaneLog.length; else noSeen"
+      >
+        <div
+          class="plane-item"
+          *ngFor="let plane of seenPlaneLog"
+          [class.new-plane]="plane.isNew === true"
+          [class.military-plane]="plane.isMilitary"
+          [class.filtered-out]="plane.filteredOut"
+          [class.hide-commercial]="
+            settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
+          "
+        >
+          <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
+          <span class="top">
+            <span class="flag-callsign">
+              <app-button
+                [icon]="
+                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+                    ? 'visibility_off'
+                    : 'visibility'
+                "
+                type="tertiary"
+                [size]="'small'"
+                (click)="onFilter(plane)"
+              ></app-button>
+              <span
+                [innerHTML]="countryService.getFlagHTML(plane.origin)"
+              ></span>
+              <ng-container
+                *ngIf="
+                  plane.callsign && plane.callsign.trim().length >= 3;
+                  else noLink
+                "
+              >
+                <a
+                  href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ plane.callsign }}
+                </a>
+              </ng-container>
+              <ng-template #noLink>
+                <span class="none-callsign">Pending</span>
+              </ng-template>
+            </span>
+            <span>
+              {{ getTimeAgo(plane.firstSeen) }}
+            </span>
+          </span>
+          <span class="top">
+            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
+            <span class="operator" *ngIf="plane.operator">{{
+              plane.operator
+            }}</span>
+          </span>
+        </div>
+      </div>
+      <ng-template #noSeen>
+        <p>No planes peeped.</p>
+      </ng-template>
+    </ng-container>
+  </div>
+</div>

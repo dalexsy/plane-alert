@@ -1,0 +1,225 @@
+@use "../../../styles.scss" as *; // Import for global variables
+
+.results-overlay {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1.5rem;
+  border: 1px solid rgb(255 255 255 / 40%);
+  width: 22rem;
+  max-height: calc(100% - 0.5rem);
+  display: grid;
+  grid-auto-rows: auto auto 1fr auto;
+  gap: 1.5rem;
+  border-radius: 0.5rem;
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+
+    .clear-seen {
+      margin-right: -0.5rem;
+    }
+  }
+
+  .plane-section {
+    position: relative;
+    // make sure the scroll container handles overflow, not the section
+  }
+
+  .plane-list-wrapper {
+    position: relative;
+  }
+
+  .plane-list-wrapper .plane-list {
+    // ensure scroll container is beneath fade
+    z-index: 1;
+  }
+
+  .plane-list-wrapper .plane-list-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2.5rem;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 1) 100%
+    );
+    mix-blend-mode: destination-out;
+    z-index: 2;
+  }
+
+  .plane-section-fade {
+    display: none !important;
+  }
+
+  .plane-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    padding-bottom: 0; // remove fade space, handled by section
+    max-height: 40vh;
+    overflow-y: auto;
+    min-height: 10vh;
+
+    a {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .plane-item {
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid rgb(255 255 255 / 40%);
+      padding-bottom: 0.5rem;
+
+      &:last-of-type {
+        border-bottom: none;
+      }
+
+      .top {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      &.military-plane {
+        color: #89d138;
+      }
+    }
+
+    // mask bottom of the overlay to reveal content underneath
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 1) 80%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  }
+
+  #seenResults {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .seen-list {
+      overflow-y: auto;
+      max-height: 100%;
+    }
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+
+    .commercial-toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .label {
+        font-size: 0.8rem;
+        margin-right: 0.25rem;
+      }
+
+      .buttons {
+        app-button {
+          ::ng-deep button {
+            min-width: auto;
+            border-radius: 0;
+          }
+
+          &:first-child {
+            ::ng-deep button {
+              border-top-left-radius: 2rem;
+              border-bottom-left-radius: 2rem;
+              padding-left: 1rem;
+              padding-right: 0.75rem;
+
+              border-right: transparent;
+            }
+          }
+
+          &:last-child {
+            ::ng-deep button {
+              border-top-right-radius: 2rem;
+              border-bottom-right-radius: 2rem;
+              padding-right: 1rem;
+              padding-left: 0.75rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.new-plane {
+  color: #ff6161;
+
+  a {
+    font-weight: bold;
+  }
+}
+
+.plane-item {
+  align-items: center;
+  font-family: $font-mono;
+
+  .flag-callsign,
+  .direction-info {
+    display: grid;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .direction-info {
+    grid-template-columns: 1fr 1.75rem 3.5rem;
+    justify-items: end;
+    text-align: right;
+    font-variation-settings: "FILL" 0, "wght" 320, "GRAD" 0, "opsz" 20;
+    transform-origin: center center;
+
+    .direction-icon {
+      width: 1.75rem;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+    }
+  }
+
+  .flag-callsign {
+    grid-template-columns: 2rem 1.75rem 5rem;
+    margin-left: -0.5rem;
+  }
+
+  &.filtered-out {
+    display: none !important; // Add !important
+  }
+
+  // Add rule to hide commercial planes when filter is active
+  &.hide-commercial {
+    display: none !important; // Add !important
+  }
+}
+
+.none-callsign {
+  color: gray;
+}
+
+@media (max-width: 600px) {
+  .results-overlay {
+    display: none !important;
+  }
+}

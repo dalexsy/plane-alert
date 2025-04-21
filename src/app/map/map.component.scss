@@ -1,0 +1,41 @@
+@use "../../styles.scss" as *; // Import for global variables
+@use "../styles/plane-tooltip.scss" as *;
+@use "../styles/plane-marker.scss" as *;
+@import url("https://unpkg.com/leaflet@1.9.3/dist/leaflet.css");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
+
+#map {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.home-marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .material-symbols-outlined {
+    color: #4caf50; // Green color for home icon
+    font-size: 2rem;
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 48;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+      1px 1px 0 #000;
+  }
+}
+
+.current-location-marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .material-symbols-outlined {
+    color: #2196f3; // Blue color for location icon
+    font-size: 2rem;
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 48;
+    filter: drop-shadow(0px 0px 2px #000);
+  }
+}
