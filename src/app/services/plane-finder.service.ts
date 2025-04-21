@@ -597,8 +597,8 @@ export class PlaneFinderService {
       }
 
       // Create/Update Marker
-      const speedText = velocity ? (velocity * 3.6).toFixed(0) + ' km/h' : '';
-      const altText = altitude ? altitude.toFixed(0) + ' m' : '';
+      const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
+      const altText = altitude ? altitude.toFixed(0) + 'm' : '';
       const verticalRate = state[11] ?? null;
       const tooltip = planeTooltip(
         id,

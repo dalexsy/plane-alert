@@ -38,11 +38,19 @@ export function planeTooltip(
       ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
       : ''
   }</strong>
-    ${model ? `<span class="aircraft-model">${model}</span>` : ''}
-    ${speedText ? `<span class="velocity">${speedText}</span>` : ''}
+    ${
+      model
+        ? ` <span class="altitude"><span class="divider">•</span> <span class="aircraft-model">${model}</span>`
+        : ''
+    }
+    ${
+      speedText
+        ? `<span class="velocity"><span class="divider">•</span> ${speedText}</span>`
+        : ''
+    }
     ${
       altText || verticalRateSpan
-        ? `<span class="altitude">${altText}${verticalRateSpan}</span>`
+        ? `<span class="altitude"><span class="divider">•</span> ${altText}${verticalRateSpan}</span>`
         : ''
     }
     ${operator ? `<span class="aircraft-operator">${operator}</span>` : ''}

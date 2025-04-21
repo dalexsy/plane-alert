@@ -32,7 +32,7 @@ export class CountryService {
     }
     const code = this.inverseCountryMapping[origin.toLowerCase()];
     return code
-      ? `<span class="fi fi-${code.toLowerCase()}"></span>`
+      ? `<span class="fi fi-${code.toLowerCase()}" title="${origin}"></span>`
       : `<span>${origin}</span>`;
   }
 
