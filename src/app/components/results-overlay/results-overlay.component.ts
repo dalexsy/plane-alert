@@ -449,7 +449,8 @@ export class ResultsOverlayComponent
 
       // Add country code before the callsign/model if available
       if (topPlane.origin) {
-        displayText = `[${topPlane.origin}] ${displayText}`;
+        const code = this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() || topPlane.origin;
+        displayText = `[${code}] ${displayText}`;
       }
 
       // Create a hash for comparison to detect changes

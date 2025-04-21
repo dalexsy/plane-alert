@@ -35,4 +35,11 @@ export class CountryService {
       ? `<span class="fi fi-${code.toLowerCase()}"></span>`
       : `<span>${origin}</span>`;
   }
+
+  /**
+   * Returns the two-letter country code for a given country name if available.
+   */
+  getCountryCode(origin: string): string | undefined {
+    return this.inverseCountryMapping[origin.toLowerCase()];
+  }
 }
