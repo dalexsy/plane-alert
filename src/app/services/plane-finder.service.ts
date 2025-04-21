@@ -53,7 +53,6 @@ export class PlaneFinderService {
 
   setInitialLoad(value: boolean): void {
     this.isInitialLoad = value;
-    console.log(`[PlaneFinderService] Initial load flag set to ${value}`);
   }
 
   constructor(
@@ -193,7 +192,9 @@ export class PlaneFinderService {
         return dist <= maxDistanceKm;
       });
       // Only draw non-degenerate predicted paths (at least two unique points after capping)
-      const uniquePoints = Array.from(new Set(pathPoints.map(p => p.join(','))));
+      const uniquePoints = Array.from(
+        new Set(pathPoints.map((p) => p.join(',')))
+      );
       if (uniquePoints.length >= 2) {
         // Update existing or create new polyline
         if (plane.path) {
@@ -500,11 +501,7 @@ export class PlaneFinderService {
       if (isNew && !isFiltered) {
         // Simplified new plane logic
         anyNew = true;
-        console.log(
-          `[PlaneFinderService] New non-filtered plane detected: ${id} (${
-            callsign || 'no callsign'
-          })`
-        );
+
         onNewPlane();
       }
 
@@ -539,7 +536,6 @@ export class PlaneFinderService {
         };
         planeModelInstance = new PlaneModel(initialPlaneData);
         previousLog.set(id, planeModelInstance);
-        console.log(`[PlaneFinderService] Created new PlaneModel for ${id}`);
       } else {
         // If instance exists, update its core properties before visual updates
         planeModelInstance.callsign = callsign;
@@ -601,23 +597,22 @@ export class PlaneFinderService {
       }
 
       // Create/Update Marker
-      const speedText = velocity ? (velocity * 3.6).toFixed(0) + ' km/h' : '';
-      const altText = altitude ? altitude.toFixed(0) + ' m' : '';
-      const combined =
-        speedText && altText
-          ? `${speedText} | ${altText}`
-          : speedText || altText || '';
+      const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
+      const altText = altitude ? altitude.toFixed(0) + 'm' : '';
+      const verticalRate = state[11] ?? null;
       const tooltip = planeTooltip(
         id,
         callsign,
         origin,
         model,
         operator,
-        combined,
+        speedText,
+        altText,
         getFlagHTML,
         isNew,
         onGround,
-        isMilitary
+        isMilitary,
+        verticalRate
       );
       const extraStyle = this.computeExtraStyle(altitude, onGround);
 
@@ -659,7 +654,6 @@ export class PlaneFinderService {
         // Check against the set of IDs found in this scan
         this.removePlaneVisuals(plane, map); // Use helper
         previousLog.delete(id);
-        console.log(`[PlaneFinderService] Removed stale plane ${id}`);
       }
     }
 

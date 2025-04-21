@@ -73,8 +73,22 @@ export class ConeComponent implements OnChanges {
       svg.insertBefore(defs, svg.firstChild);
     }
 
-    const cone1 = this.createCone(this.lat, this.lon, 75, 190, 12);
-    const cone2 = this.createCone(this.lat, this.lon, 245, 345, 12);
+    // define and use cone shape radius for both polygons and labels
+    const coneRadiusKm = 12;
+    const cone1 = this.createCone(
+      this.lat,
+      this.lon,
+      75,
+      190,
+      /*shape*/ coneRadiusKm
+    );
+    const cone2 = this.createCone(
+      this.lat,
+      this.lon,
+      245,
+      345,
+      /*shape*/ coneRadiusKm
+    );
 
     cone1.addTo(this.map);
     cone2.addTo(this.map);
@@ -87,7 +101,7 @@ export class ConeComponent implements OnChanges {
       this.lon,
       75,
       190,
-      this.distanceKm,
+      coneRadiusKm,
       'white'
     );
     this.addTextArc(
@@ -97,7 +111,7 @@ export class ConeComponent implements OnChanges {
       this.lon,
       245,
       345,
-      this.distanceKm,
+      coneRadiusKm,
       'white'
     );
 
@@ -184,7 +198,8 @@ export class ConeComponent implements OnChanges {
     color: string
   ): void {
     const zoom = this.map.getZoom();
-    const radiusKm = coneRadiusKm * 0.2 * Math.pow(8 / zoom, 2);
+    // position text slightly beyond the cone boundary
+    const radiusKm = coneRadiusKm * 1.05 * Math.pow(8 / zoom, 2);
     const points: L.LatLng[] = [];
     const step = 5;
     for (let angle = startAngle; angle <= endAngle; angle += step) {

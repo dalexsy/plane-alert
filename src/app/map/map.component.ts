@@ -395,7 +395,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number,
     zoomLevel?: number
   ): void {
-    const radius = radiusKm ?? this.settings.radius ?? 5;
+    console.log('[MapComponent] updateMap called with:', { lat, lon, radiusKm, zoomLevel });
+    // Clamp radius to a maximum of 500km
+    let radius = radiusKm ?? this.settings.radius ?? 5;
+    if (radius > 500) {
+      radius = 500;
+    }
     this.settings.setLat(lat);
     this.settings.setLon(lon);
     this.settings.setRadius(radius);
@@ -415,6 +420,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       radius.toString();
 
     this.removeOutOfRangePlanes(lat, lon, radius);
+    console.log('[MapComponent] Calling scanService.forceScan()');
     this.scanService.forceScan();
   }
 
@@ -764,6 +770,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   resolveAndUpdateFromAddress(): void {
+    console.log('[MapComponent] resolveAndUpdateFromAddress called');
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
     const radius =
@@ -804,6 +811,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     )
       .then((res) => res.json())
       .then((data) => {
+        console.log('[MapComponent] Geocoding fetch successful:', data);
         if (data.length) {
           const currentZoom = this.map.getZoom(); // Preserve current zoom level
           this.updateMap(
@@ -813,6 +821,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             currentZoom
           );
         }
+      })
+      .catch(error => {
+        console.error('[MapComponent] Geocoding fetch failed:', error);
       });
   }
 

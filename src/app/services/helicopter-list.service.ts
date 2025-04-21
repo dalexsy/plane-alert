@@ -46,9 +46,7 @@ export class HelicopterListService {
           );
           this.customListLoaded = true;
           this.lastLoadTime = Date.now();
-          console.log(
-            `[HelicopterListService] Loaded ${this.helicopterIcaos.size} custom helicopter ICAOs`
-          );
+
           this.listUpdated.next();
         } catch (e) {
           console.error('Error parsing helicopter-icaos.json:', e);
@@ -71,12 +69,8 @@ export class HelicopterListService {
     const now = Date.now();
     // Only refresh if it's been at least 30 seconds since the last load, unless forced
     if (force || now - this.lastLoadTime > 30000) {
-      console.log('[HelicopterListService] Refreshing helicopter ICAO list');
       return this.loadHelicopterList().then(() => true);
     } else {
-      console.log(
-        '[HelicopterListService] Skipping refresh, last load too recent'
-      );
       return Promise.resolve(false);
     }
   }
