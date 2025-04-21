@@ -20,6 +20,15 @@
     border-right-color: inherit;
     left: -2px;
   }
+  .altitude {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+
+    .vertical-rate {
+      font-size: 1rem;
+    }
+  }
 
   .plane-tooltip-link {
     text-decoration: none;

@@ -603,21 +603,20 @@ export class PlaneFinderService {
       // Create/Update Marker
       const speedText = velocity ? (velocity * 3.6).toFixed(0) + ' km/h' : '';
       const altText = altitude ? altitude.toFixed(0) + ' m' : '';
-      const combined =
-        speedText && altText
-          ? `${speedText} | ${altText}`
-          : speedText || altText || '';
+      const verticalRate = state[11] ?? null;
       const tooltip = planeTooltip(
         id,
         callsign,
         origin,
         model,
         operator,
-        combined,
+        speedText,
+        altText,
         getFlagHTML,
         isNew,
         onGround,
-        isMilitary
+        isMilitary,
+        verticalRate
       );
       const extraStyle = this.computeExtraStyle(altitude, onGround);
 
