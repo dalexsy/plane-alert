@@ -1,6 +1,6 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
 <div class="options-overlay">
-  <form (submit)="onResolveAndUpdate()" autocomplete="off">
+  <form (submit)="onResolveAndUpdate($event)" autocomplete="off">
     <h1>Precious Little Lifeforms</h1>
     <div class="form-group">
       <label for="address">Address</label>
@@ -54,7 +54,8 @@
         [text]="scanButtonText"
         type="primary"
         [nativeType]="'submit'"
-      ></app-button>
+        (click)="onResolveAndUpdate($event)" > // Add explicit click handler and closing bracket
+      </app-button>
       <app-button
         id="useLocationButton"
         [text]="'Use My Current Location'"

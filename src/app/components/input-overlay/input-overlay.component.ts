@@ -69,6 +69,7 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
   }
 
   onResolveAndUpdate(event?: Event): void {
+    console.log('[InputOverlayComponent] onResolveAndUpdate called');
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
     this.resolveAndUpdate.emit();
