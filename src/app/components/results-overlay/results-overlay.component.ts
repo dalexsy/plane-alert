@@ -9,6 +9,9 @@ import {
   OnChanges,
   SimpleChanges,
   AfterViewInit,
+  AfterViewChecked,
+  ViewChild,
+  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CountryService } from '../../services/country.service';
@@ -44,7 +47,7 @@ export interface PlaneLogEntry {
   styleUrls: ['./results-overlay.component.scss'],
 })
 export class ResultsOverlayComponent
-  implements OnInit, OnChanges, OnDestroy, AfterViewInit
+  implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
 {
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
@@ -52,8 +55,19 @@ export class ResultsOverlayComponent
   }
 
   @Input() skyPlaneLog: PlaneLogEntry[] = [];
+  // refs to scrollable lists for fade handling
+  @ViewChild('skyList') skyListRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('airportList') airportListRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('seenList') seenListRef!: ElementRef<HTMLDivElement>;
   @Input() airportPlaneLog: PlaneLogEntry[] = [];
   @Input() seenPlaneLog: PlaneLogEntry[] = [];
+  // scroll state flags
+  skyListScrollable = false;
+  skyListAtBottom = false;
+  airportListScrollable = false;
+  airportListAtBottom = false;
+  seenListScrollable = false;
+  seenListAtBottom = false;
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() exportFilterList = new EventEmitter<void>();
   @Output() clearHistoricalList = new EventEmitter<void>();
@@ -144,6 +158,12 @@ export class ResultsOverlayComponent
     // Update logs and title immediately on initial page load
     this.updateFilteredLogs();
     this.updatePageTitle();
+    // ensure fade states set after view init
+    setTimeout(() => this.updateScrollFadeStates(), 0);
+  }
+  
+  ngAfterViewChecked(): void {
+    this.updateScrollFadeStates();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -250,6 +270,8 @@ export class ResultsOverlayComponent
   /** Toggle collapse/expand of the seen planes list */
   toggleSeenCollapsed(): void {
     this.settings.setSeenCollapsed(!this.settings.seenCollapsed);
+    // recalc fade overlay once seen list panel toggles
+    setTimeout(() => this.updateScrollFadeStates(), 0);
   }
 
   // Updates the filtered versions of the plane logs
@@ -278,6 +300,8 @@ export class ResultsOverlayComponent
         plane.isNew = false;
       }
     }
+    // recalc fade state: hide gradient if not scrollable or already at bottom
+    setTimeout(() => this.updateScrollFadeStates(), 0);
   }
 
   private setMilitaryFlag(planes: PlaneLogEntry[]): void {
@@ -478,5 +502,44 @@ export class ResultsOverlayComponent
 
     // Fallback: just return the first plane
     return allPlanes[0];
+  }
+
+  /** Scroll handlers to update fade state */
+  onSkyScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    // treat near-bottom (within 2px) as bottom to hide fade reliably
+    this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.updateScrollFadeStates();
+  }
+
+  onAirportScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.updateScrollFadeStates();
+  }
+
+  onSeenScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.updateScrollFadeStates();
+  }
+
+  /** Determine if each list needs a fade overlay or not */
+  private updateScrollFadeStates(): void {
+    if (this.skyListRef) {
+      const el = this.skyListRef.nativeElement;
+      this.skyListScrollable = el.scrollHeight > el.clientHeight + 2;
+      this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    }
+    if (this.airportListRef) {
+      const el = this.airportListRef.nativeElement;
+      this.airportListScrollable = el.scrollHeight > el.clientHeight + 2;
+      this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    }
+    if (this.seenListRef) {
+      const el = this.seenListRef.nativeElement;
+      this.seenListScrollable = el.scrollHeight > el.clientHeight + 2;
+      this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    }
   }
 }

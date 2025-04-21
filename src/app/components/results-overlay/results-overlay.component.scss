@@ -35,12 +35,11 @@
 
   .plane-list-wrapper {
     position: relative;
+    overflow: hidden;
 
-    .plane-list {
-      z-index: 1;
-    }
-
-    &-fade {
+    // use pseudo-element with mix-blend-mode for a true mask fade
+    &::after {
+      content: "";
       position: absolute;
       bottom: 0;
       left: 0;
@@ -53,48 +52,54 @@
         rgba(0, 0, 0, 1) 100%
       );
       mix-blend-mode: destination-out;
-      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
-  }
-
-  .plane-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    position: relative;
-    padding-bottom: 0;
-    max-height: 30vh;
-    min-height: 10vh;
-    overflow-y: auto;
-
-    a {
-      display: flex;
-      gap: 0.25rem;
+    // show fade when enabled
+    &.fade-enabled::after {
+      opacity: 1;
+    }
+    // hide fade when disabled
+    &.no-fade::after {
+      opacity: 0;
     }
 
-    .plane-item {
+    .plane-list {
       display: flex;
       flex-direction: column;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-      padding-bottom: 0.5rem;
+      gap: 0.5rem;
+      position: relative;
+      padding-bottom: 0;
+      max-height: 30vh;
+      min-height: 10vh;
+      overflow-y: auto;
 
-      &:last-of-type {
-        border-bottom: none;
-      }
-
-      .top {
+      a {
         display: flex;
-        justify-content: space-between;
-        width: 100%;
+        gap: 0.25rem;
       }
 
-      &.military-plane {
-        color: #89d138;
+      .plane-item {
+        display: flex;
+        flex-direction: column;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        padding-bottom: 0.5rem;
+
+        &:last-of-type {
+          border-bottom: none;
+        }
+
+        .top {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+        }
+
+        &.military-plane {
+          color: #89d138;
+        }
       }
     }
-
-    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
   }
 
   #seenResults {
