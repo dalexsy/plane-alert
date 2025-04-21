@@ -49,10 +49,14 @@ export function planeTooltip(
         : ''
     }
     ${
-      altText || verticalRateSpan
+      altText || verticalRateSpan || verticalRate
         ? `<span class="altitude"><span class="divider">•</span> ${altText}${verticalRateSpan}</span>`
         : ''
     }
-    ${operator ? `<span class="aircraft-operator">${operator}</span>` : ''}
+    ${
+      operator
+        ? `<span class="aircraft-operator"><span class="divider">•</span> ${operator}</span>`
+        : ''
+    }
   </a>`;
 }

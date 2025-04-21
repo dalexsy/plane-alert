@@ -396,7 +396,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     zoomLevel?: number
   ): void {
     console.log('[MapComponent] updateMap called with:', { lat, lon, radiusKm, zoomLevel });
-    const radius = radiusKm ?? this.settings.radius ?? 5;
+    // Clamp radius to a maximum of 500km
+    let radius = radiusKm ?? this.settings.radius ?? 5;
+    if (radius > 500) {
+      radius = 500;
+    }
     this.settings.setLat(lat);
     this.settings.setLon(lon);
     this.settings.setRadius(radius);
