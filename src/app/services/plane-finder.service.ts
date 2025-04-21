@@ -95,6 +95,7 @@ export class PlaneFinderService {
     lon: number,
     track: number | null,
     velocity: number | null,
+    altitude: number | null,
     isGrounded: boolean
   ): L.Polyline | undefined {
     // Return type is only for the predicted path
@@ -260,8 +261,18 @@ export class PlaneFinderService {
       plane.positionHistory.length > 1 &&
       !isGrounded
     ) {
-      const rawPoints = plane.positionHistory.map((p) => [p.lat, p.lon]);
-      rawPoints.push([lat, lon]);
+      const maxAltitude = 12000; // same scale as marker coloring
+      // Build history with altitude
+      const rawHistory = plane.positionHistory.map((p) => ({
+        lat: p.lat,
+        lon: p.lon,
+        alt: p.altitude ?? 0,
+      }));
+      rawHistory.push({ lat, lon, alt: altitude ?? 0 });
+      const rawPoints: [number, number][] = rawHistory.map((p) => [
+        p.lat,
+        p.lon,
+      ]);
 
       const smoothPoints: [number, number][] = [];
       for (let i = 0; i < rawPoints.length; i++) {
@@ -315,9 +326,13 @@ export class PlaneFinderService {
             minOpacity +
             (maxOpacity - minOpacity) *
               (i / (numSegments > 1 ? numSegments - 1 : 1));
+          // Determine color by altitude at this segment (use rawHistory)
+          const segAlt = rawHistory[i + 1]?.alt ?? 0;
+          const hue = Math.min(segAlt / maxAltitude, 1) * 300;
+          const segColor = `hsl(${hue},100%,50%)`;
 
           const segment = L.polyline(interpolatedPoints, {
-            color: 'white',
+            color: segColor,
             weight: 4,
             opacity: opacity,
             interactive: false,
@@ -573,7 +588,13 @@ export class PlaneFinderService {
         typeof lat === 'number' &&
         typeof lon === 'number'
       ) {
-        planeModelInstance.addPositionToHistory(lat, lon, track, velocity);
+        planeModelInstance.addPositionToHistory(
+          lat,
+          lon,
+          track,
+          velocity,
+          altitude
+        );
       } else if (
         !isExistingPlane &&
         (typeof lat !== 'number' || typeof lon !== 'number')
@@ -641,6 +662,7 @@ export class PlaneFinderService {
         lon,
         track,
         velocity,
+        altitude,
         onGround
       );
       // Note: updatePlanePath now modifies planeModelInstance.path and planeModelInstance.historyTrailSegments directly
