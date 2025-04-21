@@ -8,6 +8,7 @@ export interface PositionHistory {
   timestamp: number;
   track?: number | null;
   velocity?: number | null;
+  altitude?: number | null;
 }
 
 export class PlaneModel implements Plane {
@@ -70,7 +71,8 @@ export class PlaneModel implements Plane {
     lat: number,
     lon: number,
     track?: number | null,
-    velocity?: number | null
+    velocity?: number | null,
+    altitude?: number | null
   ): void {
     // Log adding position
     // console.log(`[PlaneModel ${this.icao}] Adding position: lat=${lat}, lon=${lon}, track=${track}, velocity=${velocity}`);
@@ -80,6 +82,7 @@ export class PlaneModel implements Plane {
       timestamp: Date.now(),
       track,
       velocity,
+      altitude,
     });
 
     // Limit the history size
