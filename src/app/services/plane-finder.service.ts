@@ -643,22 +643,8 @@ export class PlaneFinderService {
       );
       const extraStyle = this.computeExtraStyle(altitude, onGround);
 
-      // Load custom icon mapping (keys are lowercase ICAOs)
-      const customIconMap: Record<
-        string,
-        { icon: string; color?: string; size?: string }
-      > = {
-        a13435: { icon: 'star', color: '#FFD700', size: '2.5rem' },
-        // Add more ICAO codes and icon configs here
-      };
-      const idLower = id.toLowerCase();
-      let customPlaneIcon = '';
-      if (customIconMap[idLower]) {
-        const { icon, color, size } = customIconMap[idLower];
-        customPlaneIcon = `<span class="material-symbols-sharp" style="color:${
-          color ?? 'inherit'
-        };font-size:${size ?? '2rem'};vertical-align:middle;">${icon}</span>`;
-      }
+      // Custom icon mapping removed, always use default icon
+      const customPlaneIcon = '';
 
       const { marker } = createOrUpdatePlaneMarker(
         planeModelInstance.marker, // Pass existing marker from model

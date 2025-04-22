@@ -6,6 +6,7 @@ import {
   ChangeDetectorRef,
   ViewChild,
   ViewEncapsulation,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
@@ -28,6 +29,7 @@ import { Plane } from '../types/plane';
 import { PlaneModel } from '../models/plane-model';
 import { ensureStripedPattern } from '../utils/svg-utils';
 import { SpecialListService } from '../services/special-list.service';
+import { MapPanService } from '../services/map-pan.service';
 
 @Component({
   selector: 'app-map',
@@ -76,6 +78,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private settings: SettingsService,
     private scanService: ScanService,
     private specialListService: SpecialListService,
+    private mapPanService: MapPanService,
     private cdr: ChangeDetectorRef
   ) {
     // Update tooltip classes on special list changes
@@ -224,10 +227,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
       this.removeOutOfRangePlanes(lat, lon, newRadius);
     });
+
+    // Initialize map panning service
+    this.mapPanService.init(this.map);
   }
 
   ngOnDestroy(): void {
     this.scanService.stop();
+    this.mapPanService.destroy();
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
