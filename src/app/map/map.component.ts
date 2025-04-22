@@ -194,6 +194,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     this.scanService.start(this.settings.interval, () => this.findPlanes());
     this.scanService.forceScan();
+
+    // Subscribe to radius changes: clear markers and paths outside new radius
+    this.settings.radiusChanged.subscribe((newRadius) => {
+      const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+      const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+      this.removeOutOfRangePlanes(lat, lon, newRadius);
+    });
   }
 
   ngOnDestroy(): void {
@@ -395,7 +402,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number,
     zoomLevel?: number
   ): void {
-    console.log('[MapComponent] updateMap called with:', { lat, lon, radiusKm, zoomLevel });
+    console.log('[MapComponent] updateMap called with:', {
+      lat,
+      lon,
+      radiusKm,
+      zoomLevel,
+    });
     // Clamp radius to a maximum of 500km
     let radius = radiusKm ?? this.settings.radius ?? 5;
     if (radius > 500) {
@@ -822,7 +834,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('[MapComponent] Geocoding fetch failed:', error);
       });
   }

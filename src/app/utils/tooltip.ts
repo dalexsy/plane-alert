@@ -10,6 +10,7 @@ export function planeTooltip(
   isNew: boolean,
   isGrounded: boolean,
   isMilitary: boolean,
+  isSpecial: boolean,
   verticalRate: number | null
 ): string {
   // Display 'Pending' when no valid callsign provided
@@ -36,6 +37,10 @@ export function planeTooltip(
     ${getFlagHTML(origin)} <strong>${displayCallsign}${
     isMilitary
       ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
+      : ''
+  }${
+    isSpecial
+      ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
   }</strong>
     ${

@@ -40,6 +40,9 @@ export class SettingsService {
   // Event emitted when exclude discount setting changes
   excludeDiscountChanged = new EventEmitter<boolean>();
 
+  // Event emitted when search radius changes
+  radiusChanged = new EventEmitter<number>();
+
   get lat(): number | null {
     return this._lat;
   }
@@ -65,6 +68,7 @@ export class SettingsService {
   setRadius(value: number): void {
     this._radius = value;
     localStorage.setItem('lastSearchRadius', value.toString());
+    this.radiusChanged.emit(value);
   }
 
   get interval(): number {

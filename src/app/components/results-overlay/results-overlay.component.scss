@@ -93,15 +93,33 @@
           border-bottom: none;
         }
 
+        // group icon layout for military and special
+        &.military-plane,
+        &.special-plane {
+          .flag-callsign {
+            display: flex;
+            align-items: center;
+          }
+          .icon.small {
+            margin-left: 0.25rem;
+          }
+        }
+
+        &.military-plane {
+          color: #89d138;
+        }
+        &.special-plane {
+          color: gold;
+          .favorite-icon {
+            color: #ff6161;
+          }
+        }
+
         .top {
           display: flex;
           justify-content: space-between;
           width: 100%;
           gap: 0.5rem;
-        }
-
-        &.military-plane {
-          color: #89d138;
         }
       }
     }
@@ -213,6 +231,12 @@
   &.filtered-out,
   &.hide-commercial {
     display: none !important;
+  }
+
+  .icon.small {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
   }
 }
 

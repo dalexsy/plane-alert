@@ -74,6 +74,11 @@
     z-index: 10;
   }
 
+  &.special-plane-tooltip {
+    border-color: gold;
+    z-index: 10;
+  }
+
   &:hover {
     z-index: 1000;
     border-color: white;
@@ -82,6 +87,12 @@
   .material-symbols-sharp.military-star-tooltip {
     font-size: 0.75rem;
     color: #89d138;
+    font-variation-settings: "FILL" 0, "wght" 700, "GRAD" 0, "opsz" 20;
+  }
+
+  .material-symbols-sharp.special-star-tooltip {
+    font-size: 0.75rem;
+    color: gold;
     font-variation-settings: "FILL" 0, "wght" 700, "GRAD" 0, "opsz" 20;
   }
 }

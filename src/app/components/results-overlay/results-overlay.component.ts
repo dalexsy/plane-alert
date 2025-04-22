@@ -18,6 +18,7 @@ import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { ButtonComponent } from '../ui/button.component';
+import { IconComponent } from '../ui/icon.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
@@ -37,12 +38,13 @@ export interface PlaneLogEntry {
   filteredOut?: boolean;
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
+  isSpecial?: boolean; // Add special plane flag
 }
 
 @Component({
   selector: 'app-results-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, IconComponent],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
 })
@@ -161,7 +163,7 @@ export class ResultsOverlayComponent
     // ensure fade states set after view init
     setTimeout(() => this.updateScrollFadeStates(), 0);
   }
-  
+
   ngAfterViewChecked(): void {
     this.updateScrollFadeStates();
   }
@@ -337,6 +339,10 @@ export class ResultsOverlayComponent
       if (a.isMilitary !== b.isMilitary) {
         return a.isMilitary ? -1 : 1;
       }
+      // Special planes always next
+      if (a.isSpecial !== b.isSpecial) {
+        return a.isSpecial ? -1 : 1;
+      }
 
       // Calculate time buckets (in minutes) for better comparison
       const aMinutes = Math.floor((this.now - a.firstSeen) / (60 * 1000));
@@ -449,7 +455,9 @@ export class ResultsOverlayComponent
 
       // Add country code before the callsign/model if available
       if (topPlane.origin) {
-        const code = this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() || topPlane.origin;
+        const code =
+          this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
+          topPlane.origin;
         displayText = `[${code}] ${displayText}`;
       }
 
@@ -509,19 +517,22 @@ export class ResultsOverlayComponent
   onSkyScroll(event: Event): void {
     const el = event.target as HTMLElement;
     // treat near-bottom (within 2px) as bottom to hide fade reliably
-    this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.skyListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
   onAirportScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.airportListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
   onSeenScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.seenListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
@@ -530,17 +541,20 @@ export class ResultsOverlayComponent
     if (this.skyListRef) {
       const el = this.skyListRef.nativeElement;
       this.skyListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.skyListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
     if (this.airportListRef) {
       const el = this.airportListRef.nativeElement;
       this.airportListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.airportListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
     if (this.seenListRef) {
       const el = this.seenListRef.nativeElement;
       this.seenListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.seenListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
   }
 }
