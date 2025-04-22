@@ -62,9 +62,12 @@
             settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
           "
         >
-          <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
           <span class="top">
-            <span class="flag-callsign">
+            <span
+              class="flag-callsign"
+              (mouseenter)="hoveredPlaneIcao = plane.icao"
+              (mouseleave)="hoveredPlaneIcao = null"
+            >
               <app-button
                 [icon]="
                   planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
@@ -95,20 +98,18 @@
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
               </ng-template>
-              <app-icon
-                *ngIf="plane.isMilitary"
-                icon="star"
-                size="small"
-                class="military-icon"
-                ariaLabel="Military plane"
-              ></app-icon>
-              <app-icon
-                *ngIf="plane.isSpecial"
-                icon="favorite"
-                size="small"
+              <!-- Special marker toggle button -->
+              <app-button
+                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                type="tertiary"
+                [size]="'small'"
                 class="special-icon"
-                ariaLabel="Special plane"
-              ></app-icon>
+                [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                (click)="onToggleSpecial(plane, $event)"
+                [ariaLabel]="
+                  plane.isSpecial ? 'Unmark special' : 'Mark special'
+                "
+              ></app-button>
             </span>
             <span class="direction-info">
               <span>{{ plane.cardinal }}</span>
@@ -160,7 +161,11 @@
         >
           <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
           <span class="top">
-            <span class="flag-callsign">
+            <span
+              class="flag-callsign"
+              (mouseenter)="hoveredPlaneIcao = plane.icao"
+              (mouseleave)="hoveredPlaneIcao = null"
+            >
               <app-button
                 [icon]="
                   planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
@@ -191,20 +196,17 @@
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
               </ng-template>
-              <app-icon
-                *ngIf="plane.isMilitary"
-                icon="star"
-                size="small"
-                class="military-icon"
-                ariaLabel="Military plane"
-              ></app-icon>
-              <app-icon
-                *ngIf="plane.isSpecial"
-                icon="favorite"
-                size="small"
-                class="special-icon"
-                ariaLabel="Special plane"
-              ></app-icon>
+              <!-- Special marker toggle button -->
+              <app-button
+                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                type="tertiary"
+                [size]="'small'"
+                [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                (click)="onToggleSpecial(plane, $event)"
+                [ariaLabel]="
+                  plane.isSpecial ? 'Unmark special' : 'Mark special'
+                "
+              ></app-button>
             </span>
             <span class="direction-info">
               <span>{{ plane.cardinal }}</span>
@@ -278,7 +280,11 @@
           >
             <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
             <span class="top">
-              <span class="flag-callsign">
+              <span
+                class="flag-callsign"
+                (mouseenter)="hoveredPlaneIcao = plane.icao"
+                (mouseleave)="hoveredPlaneIcao = null"
+              >
                 <app-button
                   [icon]="
                     planeFilter.isPlaneFiltered(
@@ -312,20 +318,17 @@
                 <ng-template #noLink>
                   <span class="none-callsign">Pending</span>
                 </ng-template>
-                <app-icon
-                  *ngIf="plane.isMilitary"
-                  icon="star"
-                  size="small"
-                  class="military-icon"
-                  ariaLabel="Military plane"
-                ></app-icon>
-                <app-icon
-                  *ngIf="plane.isSpecial"
-                  icon="favorite"
-                  size="small"
-                  class="special-icon"
-                  ariaLabel="Special plane"
-                ></app-icon>
+                <!-- Special marker toggle button -->
+                <app-button
+                  *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                  type="tertiary"
+                  [size]="'small'"
+                  [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                  (click)="onToggleSpecial(plane, $event)"
+                  [ariaLabel]="
+                    plane.isSpecial ? 'Unmark special' : 'Mark special'
+                  "
+                ></app-button>
               </span>
               <span>
                 {{ getTimeAgo(plane.firstSeen) }}
