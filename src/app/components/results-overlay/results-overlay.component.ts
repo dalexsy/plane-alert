@@ -21,6 +21,7 @@ import { ButtonComponent } from '../ui/button.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
+import { SpecialListService } from '../../services/special-list.service';
 
 export interface PlaneLogEntry {
   callsign: string;
@@ -37,6 +38,7 @@ export interface PlaneLogEntry {
   filteredOut?: boolean;
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
+  isSpecial?: boolean; // Add special plane flag
 }
 
 @Component({
@@ -49,6 +51,8 @@ export interface PlaneLogEntry {
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
 {
+  // track hover state for special toggle
+  hoveredPlaneIcao: string | null = null;
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
     return this.settings.seenCollapsed;
@@ -106,8 +110,14 @@ export class ResultsOverlayComponent
     public planeFilter: PlaneFilterService,
     public settings: SettingsService,
     private aircraftDb: AircraftDbService,
-    private scanService: ScanService
-  ) {}
+    private scanService: ScanService,
+    private specialListService: SpecialListService
+  ) {
+    // react to custom special list changes
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.resultsUpdated = true;
+    });
+  }
 
   ngOnInit(): void {
     // commercialMute is loaded by SettingsService.load()
@@ -122,22 +132,20 @@ export class ResultsOverlayComponent
       this.checkForResultsUpdates();
     });
 
-    // Listen for scan countdown to detect when scans happen
+    // Listen for scan countdown (no debug logs)
     let previousCount = 0;
     this.scanSub = this.scanService.countdown$.subscribe((count) => {
-      // If count just reset to max, a scan just happened
       if (count > previousCount && previousCount !== 0) {
         this.resultsUpdated = true;
-        // Log mute button state and onlyCommercial when a scan starts
-        console.log(
-          '[ResultsOverlay] Scan started. Mute:',
-          this.commercialMute,
-          'onlyCommercial:',
-          this.onlyCommercial
-        );
       }
       previousCount = count;
     });
+
+    // Log initial special list loaded from service
+    console.log(
+      '[ResultsOverlay] initial specials:',
+      this.specialListService.getAllSpecialIcaos()
+    );
 
     // Listen for commercial filter changes via the settings service
     this.settings.excludeDiscountChanged.subscribe(() => {
@@ -161,7 +169,7 @@ export class ResultsOverlayComponent
     // ensure fade states set after view init
     setTimeout(() => this.updateScrollFadeStates(), 0);
   }
-  
+
   ngAfterViewChecked(): void {
     this.updateScrollFadeStates();
   }
@@ -190,12 +198,6 @@ export class ResultsOverlayComponent
   }
 
   onFilter(plane: PlaneLogEntry): void {
-    console.log(
-      '[ResultsOverlay] onFilter called for:',
-      plane.icao,
-      'Current filteredOut:',
-      plane.filteredOut
-    );
     this.filterPrefix.emit(plane);
     // Update title after filter changes
     // No longer immediately updating filtered logs here, relying on parent component update
@@ -326,6 +328,10 @@ export class ResultsOverlayComponent
     this.setMilitaryFlag(this.skyPlaneLog);
     this.setMilitaryFlag(this.airportPlaneLog);
     this.setMilitaryFlag(this.seenPlaneLog);
+    // set special flags from persistent service
+    this.setSpecialFlag(this.skyPlaneLog);
+    this.setSpecialFlag(this.airportPlaneLog);
+    this.setSpecialFlag(this.seenPlaneLog);
 
     // More comprehensive sorting function that:
     // 1. Military planes always at the top
@@ -336,6 +342,10 @@ export class ResultsOverlayComponent
       // Military planes always first (ONLY military planes, not helicopters)
       if (a.isMilitary !== b.isMilitary) {
         return a.isMilitary ? -1 : 1;
+      }
+      // Special planes always next
+      if (a.isSpecial !== b.isSpecial) {
+        return a.isSpecial ? -1 : 1;
       }
 
       // Calculate time buckets (in minutes) for better comparison
@@ -449,7 +459,9 @@ export class ResultsOverlayComponent
 
       // Add country code before the callsign/model if available
       if (topPlane.origin) {
-        const code = this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() || topPlane.origin;
+        const code =
+          this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
+          topPlane.origin;
         displayText = `[${code}] ${displayText}`;
       }
 
@@ -509,19 +521,22 @@ export class ResultsOverlayComponent
   onSkyScroll(event: Event): void {
     const el = event.target as HTMLElement;
     // treat near-bottom (within 2px) as bottom to hide fade reliably
-    this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.skyListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
   onAirportScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.airportListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
   onSeenScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.seenListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
@@ -530,17 +545,39 @@ export class ResultsOverlayComponent
     if (this.skyListRef) {
       const el = this.skyListRef.nativeElement;
       this.skyListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.skyListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
     if (this.airportListRef) {
       const el = this.airportListRef.nativeElement;
       this.airportListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.airportListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
     if (this.seenListRef) {
       const el = this.seenListRef.nativeElement;
       this.seenListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.seenListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
+  }
+
+  /** Toggle special flag on click */
+  onToggleSpecial(plane: PlaneLogEntry, event: Event): void {
+    event.stopPropagation();
+    plane.isSpecial = !plane.isSpecial;
+    this.specialListService.toggleSpecial(plane.icao);
+    // Log updated list to confirm persistence
+    console.log(
+      '[ResultsOverlay] specials now:',
+      this.specialListService.getAllSpecialIcaos()
+    );
+  }
+
+  /** Assign special flags from service */
+  private setSpecialFlag(planes: PlaneLogEntry[]): void {
+    planes.forEach((plane) => {
+      plane.isSpecial = this.specialListService.isSpecial(plane.icao);
+    });
   }
 }

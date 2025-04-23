@@ -15,6 +15,7 @@ import { PlaneModel } from '../models/plane-model';
 import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
+import { SpecialListService } from './special-list.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -58,7 +59,8 @@ export class PlaneFinderService {
   constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
-    private helicopterListService: HelicopterListService
+    private helicopterListService: HelicopterListService,
+    private specialListService: SpecialListService
   ) {}
 
   private randomizeBrightness(): string {
@@ -439,9 +441,9 @@ export class PlaneFinderService {
     currentIDs: string[];
     updatedLog: PlaneModel[]; // Use PlaneModel here
   }> {
-    // Refresh the helicopter list before scanning
-    // Use the force parameter if this is a manual scan
+    // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
+    await this.specialListService.refreshSpecialList(manualUpdate);
 
     if (!this.mapInitialized) {
       map.setView(
@@ -484,6 +486,7 @@ export class PlaneFinderService {
       const velocity = state[9];
       const altitude = state[13];
       const onGround = Boolean(state[8]); // Use descriptive variable
+      const isSpecial = this.specialListService.isSpecial(id);
 
       // Define isFiltered early after getting necessary info
       const aircraft = getAircraftInfo(id);
@@ -548,6 +551,7 @@ export class PlaneFinderService {
           // Add track and velocity if available during creation
           track: track,
           velocity: velocity,
+          isSpecial: isSpecial,
         };
         planeModelInstance = new PlaneModel(initialPlaneData);
         previousLog.set(id, planeModelInstance);
@@ -560,6 +564,7 @@ export class PlaneFinderService {
         planeModelInstance.filteredOut = isFiltered;
         planeModelInstance.onGround = onGround;
         planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
+        planeModelInstance.isSpecial = isSpecial;
       }
 
       // Update PlaneModel with potentially fetched aircraft data
@@ -633,9 +638,27 @@ export class PlaneFinderService {
         isNew,
         onGround,
         isMilitary,
+        isSpecial,
         verticalRate
       );
       const extraStyle = this.computeExtraStyle(altitude, onGround);
+
+      // Load custom icon mapping (keys are lowercase ICAOs)
+      const customIconMap: Record<
+        string,
+        { icon: string; color?: string; size?: string }
+      > = {
+        a13435: { icon: 'star', color: '#FFD700', size: '2.5rem' },
+        // Add more ICAO codes and icon configs here
+      };
+      const idLower = id.toLowerCase();
+      let customPlaneIcon = '';
+      if (customIconMap[idLower]) {
+        const { icon, color, size } = customIconMap[idLower];
+        customPlaneIcon = `<span class="material-symbols-sharp" style="color:${
+          color ?? 'inherit'
+        };font-size:${size ?? '2rem'};vertical-align:middle;">${icon}</span>`;
+      }
 
       const { marker } = createOrUpdatePlaneMarker(
         planeModelInstance.marker, // Pass existing marker from model
@@ -647,7 +670,7 @@ export class PlaneFinderService {
         isNew,
         onGround,
         tooltip,
-        '',
+        customPlaneIcon, // Pass custom icon HTML if ICAO matches
         isMilitary,
         model,
         this.helicopterListService.isHelicopter(id)
@@ -696,6 +719,7 @@ export class PlaneFinderService {
         if (element) {
           element.classList.toggle('grounded-plane', plane.onGround);
           element.classList.toggle('new-plane', !plane.onGround && stillNew);
+          element.classList.toggle('special-plane', plane.isSpecial || false);
         }
         if (tooltipElement) {
           tooltipElement.classList.toggle('new-plane-tooltip', stillNew);
@@ -703,6 +727,10 @@ export class PlaneFinderService {
           tooltipElement.classList.toggle(
             'grounded-plane-tooltip',
             plane.onGround
+          );
+          tooltipElement.classList.toggle(
+            'special-plane-tooltip',
+            plane.isSpecial || false
           );
         }
       }

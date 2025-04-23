@@ -27,6 +27,7 @@ import { playAlertSound } from '../utils/alert-sound';
 import { Plane } from '../types/plane';
 import { PlaneModel } from '../models/plane-model';
 import { ensureStripedPattern } from '../utils/svg-utils';
+import { SpecialListService } from '../services/special-list.service';
 
 @Component({
   selector: 'app-map',
@@ -74,8 +75,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private aircraftDb: AircraftDbService,
     private settings: SettingsService,
     private scanService: ScanService,
+    private specialListService: SpecialListService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    // Update tooltip classes on special list changes
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.planeLog.forEach((plane) => {
+        const tooltipEl = plane.marker?.getTooltip()?.getElement();
+        if (tooltipEl) {
+          tooltipEl.classList.toggle(
+            'special-plane-tooltip',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+        // Also update marker icon class
+        const markerEl = plane.marker?.getElement();
+        if (markerEl) {
+          markerEl.classList.toggle(
+            'special-plane',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+      });
+    });
+  }
 
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
@@ -194,6 +217,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     this.scanService.start(this.settings.interval, () => this.findPlanes());
     this.scanService.forceScan();
+
+    // Subscribe to radius changes: clear markers and paths outside new radius
+    this.settings.radiusChanged.subscribe((newRadius) => {
+      const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+      const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+      this.removeOutOfRangePlanes(lat, lon, newRadius);
+    });
   }
 
   ngOnDestroy(): void {
@@ -395,7 +425,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number,
     zoomLevel?: number
   ): void {
-    console.log('[MapComponent] updateMap called with:', { lat, lon, radiusKm, zoomLevel });
+    console.log('[MapComponent] updateMap called with:', {
+      lat,
+      lon,
+      radiusKm,
+      zoomLevel,
+    });
     // Clamp radius to a maximum of 500km
     let radius = radiusKm ?? this.settings.radius ?? 5;
     if (radius > 500) {
@@ -533,7 +568,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
           // Handle visuals based on filter status
           if (planeModel.filteredOut) {
-            // Use the helper method to remove all visuals for filtered planes
+            // Use the new helper method to remove all visuals for filtered planes
             planeModel.removeVisuals(this.map);
           } else {
             // If not filtered, proceed with marker/tooltip updates if marker exists
@@ -822,7 +857,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('[MapComponent] Geocoding fetch failed:', error);
       });
   }

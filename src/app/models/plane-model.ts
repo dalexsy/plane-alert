@@ -29,6 +29,7 @@ export class PlaneModel implements Plane {
   predictedPathArrowhead?: L.Marker; // Add arrowhead marker property
   filteredOut!: boolean;
   onGround?: boolean;
+  isSpecial?: boolean;
   isMilitary?: boolean;
 
   // Store position history for path prediction (limited to last 5 positions)

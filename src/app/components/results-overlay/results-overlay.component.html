@@ -56,14 +56,18 @@
           *ngFor="let plane of filteredSkyPlaneLog"
           [class.new-plane]="plane.isNew === true"
           [class.military-plane]="plane.isMilitary"
+          [class.special-plane]="plane.isSpecial"
           [class.filtered-out]="plane.filteredOut"
           [class.hide-commercial]="
             settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
           "
         >
-          <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
           <span class="top">
-            <span class="flag-callsign">
+            <span
+              class="flag-callsign"
+              (mouseenter)="hoveredPlaneIcao = plane.icao"
+              (mouseleave)="hoveredPlaneIcao = null"
+            >
               <app-button
                 [icon]="
                   planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
@@ -94,6 +98,18 @@
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
               </ng-template>
+              <!-- Special marker toggle button -->
+              <app-button
+                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                type="tertiary"
+                [size]="'small'"
+                class="special-icon"
+                [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                (click)="onToggleSpecial(plane, $event)"
+                [ariaLabel]="
+                  plane.isSpecial ? 'Unmark special' : 'Mark special'
+                "
+              ></app-button>
             </span>
             <span class="direction-info">
               <span>{{ plane.cardinal }}</span>
@@ -121,16 +137,15 @@
   </div>
 
   <!-- Planes at the Airport section - only show if there are planes -->
-  <div class="plane-section">
+  <div
+    class="plane-section"
+    *ngIf="filteredAirportPlaneLog && filteredAirportPlaneLog.length"
+  >
     <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
     <div
       class="plane-list-wrapper"
       [class.fade-enabled]="airportListScrollable"
       [class.no-fade]="!airportListScrollable || airportListAtBottom"
-      *ngIf="
-        filteredAirportPlaneLog && filteredAirportPlaneLog.length;
-        else noAirportPlanes
-      "
     >
       <div class="plane-list" #airportList (scroll)="onAirportScroll($event)">
         <div
@@ -138,6 +153,7 @@
           *ngFor="let plane of filteredAirportPlaneLog"
           [class.new-plane]="plane.isNew === true"
           [class.military-plane]="plane.isMilitary"
+          [class.special-plane]="plane.isSpecial"
           [class.filtered-out]="plane.filteredOut"
           [class.hide-commercial]="
             settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
@@ -145,7 +161,11 @@
         >
           <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
           <span class="top">
-            <span class="flag-callsign">
+            <span
+              class="flag-callsign"
+              (mouseenter)="hoveredPlaneIcao = plane.icao"
+              (mouseleave)="hoveredPlaneIcao = null"
+            >
               <app-button
                 [icon]="
                   planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
@@ -176,6 +196,17 @@
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
               </ng-template>
+              <!-- Special marker toggle button -->
+              <app-button
+                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                type="tertiary"
+                [size]="'small'"
+                [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                (click)="onToggleSpecial(plane, $event)"
+                [ariaLabel]="
+                  plane.isSpecial ? 'Unmark special' : 'Mark special'
+                "
+              ></app-button>
             </span>
             <span class="direction-info">
               <span>{{ plane.cardinal }}</span>
@@ -197,9 +228,6 @@
         </div>
       </div>
     </div>
-    <ng-template #noAirportPlanes>
-      <p>No planes worth peeping.</p>
-    </ng-template>
   </div>
 
   <div id="seenResults">
@@ -244,6 +272,7 @@
             *ngFor="let plane of seenPlaneLog"
             [class.new-plane]="plane.isNew === true"
             [class.military-plane]="plane.isMilitary"
+            [class.special-plane]="plane.isSpecial"
             [class.filtered-out]="plane.filteredOut"
             [class.hide-commercial]="
               settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
@@ -251,7 +280,11 @@
           >
             <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
             <span class="top">
-              <span class="flag-callsign">
+              <span
+                class="flag-callsign"
+                (mouseenter)="hoveredPlaneIcao = plane.icao"
+                (mouseleave)="hoveredPlaneIcao = null"
+              >
                 <app-button
                   [icon]="
                     planeFilter.isPlaneFiltered(
@@ -285,6 +318,17 @@
                 <ng-template #noLink>
                   <span class="none-callsign">Pending</span>
                 </ng-template>
+                <!-- Special marker toggle button -->
+                <app-button
+                  *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                  type="tertiary"
+                  [size]="'small'"
+                  [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                  (click)="onToggleSpecial(plane, $event)"
+                  [ariaLabel]="
+                    plane.isSpecial ? 'Unmark special' : 'Mark special'
+                  "
+                ></app-button>
               </span>
               <span>
                 {{ getTimeAgo(plane.firstSeen) }}

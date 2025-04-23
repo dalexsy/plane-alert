@@ -15,7 +15,8 @@ export function createOrUpdatePlaneMarker(
   planeIcon: string = '',
   isMilitary: boolean = false,
   model: string = '',
-  isCustomHelicopter: boolean = false
+  isCustomHelicopter: boolean = false,
+  isSpecial: boolean = false
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Check if this is a helicopter based on model name or our custom list
   const modelLower = model.toLowerCase();
@@ -54,7 +55,9 @@ export function createOrUpdatePlaneMarker(
     offset: isGrounded ? L.point(-10, 0) : L.point(10, 0),
     className: `plane-tooltip ${isGrounded ? 'grounded-plane-tooltip' : ''} ${
       isNew ? 'new-plane-tooltip' : ''
-    } ${isMilitary ? 'military-plane-tooltip' : ''}`,
+    } ${isMilitary ? 'military-plane-tooltip' : ''} ${
+      isSpecial ? 'special-plane-tooltip' : ''
+    }`,
     pane: 'tooltipPane', // Ensure tooltip is in the tooltipPane (typically above markerPane)
   };
 
