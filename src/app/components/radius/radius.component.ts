@@ -21,10 +21,21 @@ export class RadiusComponent implements OnChanges {
   }
 
   private drawRadius(): void {
-    // Use the overlayPane SVG container for gradient defs
-    const svg = this.map
-      .getPanes()
-      .overlayPane.querySelector('svg') as SVGSVGElement;
+    // Ensure svg exists in overlayPane for defs
+    const overlayPane = this.map.getPanes().overlayPane;
+    let svg = overlayPane.querySelector('svg') as SVGSVGElement | null;
+    if (!svg) {
+      // Add SVG renderer layer if missing
+      L.svg().addTo(this.map);
+      svg = overlayPane.querySelector('svg') as SVGSVGElement | null;
+      if (!svg) {
+        console.error(
+          '[RadiusComponent] drawRadius: SVG element still not found after adding SVG layer. Aborting.'
+        );
+        return;
+      }
+    }
+
     const gradientId = 'circleGradient';
     if (!svg.querySelector(`#${gradientId}`)) {
       const defs = document.createElementNS(

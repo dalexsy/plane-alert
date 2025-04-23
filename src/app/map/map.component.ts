@@ -751,49 +751,50 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   updatePlaneLog(planes: PlaneModel[]): void {
-    const sortByMilitary = (a: PlaneModel, b: PlaneModel) => {
-      const aIsMilitary = this.aircraftDb.lookup(a.icao)?.mil || false;
-      const bIsMilitary = this.aircraftDb.lookup(b.icao)?.mil || false;
-      if (aIsMilitary !== bIsMilitary) return aIsMilitary ? -1 : 1;
-      return b.firstSeen - a.firstSeen || a.icao.localeCompare(b.icao);
+    // Define the sortByMilitary function
+    const sortByMilitary = (a: PlaneModel, b: PlaneModel): number => {
+      const aIsMil = this.aircraftDb.lookup(a.icao)?.mil || false;
+      const bIsMil = this.aircraftDb.lookup(b.icao)?.mil || false;
+      if (aIsMil !== bIsMil) {
+        return aIsMil ? -1 : 1;
+      }
+      // Then sort by first seen descending
+      if (a.firstSeen !== b.firstSeen) {
+        return b.firstSeen - a.firstSeen;
+      }
+      return a.icao.localeCompare(b.icao);
     };
 
-    // Use the original 'planes' array here
-    const currentLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-    const currentLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+    // Gather centers and radii of dynamic airport circles
+    const airportCircles = Array.from(this.airportCircles.values());
 
+    const isInAnyAirport = (entry: PlaneModel) => {
+      if (entry.lat == null || entry.lon == null) return false;
+      return airportCircles.some((circle) => {
+        const center = circle.getLatLng();
+        const radiusKm = circle.getRadius() / 1000;
+        return (
+          haversineDistance(center.lat, center.lng, entry.lat!, entry.lon!) <=
+          radiusKm
+        );
+      });
+    };
+
+    // Sky planes: those not in any airport circle
     const sky = planes.filter(
       (entry) =>
-        entry.lat != null &&
-        entry.lon != null &&
-        haversineDistance(
-          currentLat, // Use current center lat
-          currentLon, // Use current center lon
-          entry.lat!,
-          entry.lon!
-        ) > this.airportRadiusKm // Use the defined airport radius for separation
+        !isInAnyAirport(entry) && entry.lat != null && entry.lon != null
     );
     sky.sort(sortByMilitary);
 
-    // Use the original 'planes' array here
-    const airport = planes.filter(
-      (entry) =>
-        entry.lat != null &&
-        entry.lon != null &&
-        haversineDistance(
-          currentLat, // Use current center lat
-          currentLon, // Use current center lon
-          entry.lat!,
-          entry.lon!
-        ) <= this.airportRadiusKm // Use the defined airport radius for separation
-    );
+    // Airport planes: those in any airport circle
+    const airport = planes.filter((entry) => isInAnyAirport(entry));
     airport.sort(sortByMilitary);
 
-    // Assign the potentially unfiltered lists to the overlay component
     this.resultsOverlayComponent.skyPlaneLog = sky;
     this.resultsOverlayComponent.airportPlaneLog = airport;
 
-    // Update the historical log (merge and keep all planes, filtering happens in overlay)
+    // Merge into historical log
     const mergedMap = new Map<string, PlaneModel>();
     // Add existing historical planes first
     for (const plane of this.planeHistoricalLog) {
