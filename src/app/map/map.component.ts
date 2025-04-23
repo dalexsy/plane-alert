@@ -31,6 +31,16 @@ import { ensureStripedPattern } from '../utils/svg-utils';
 import { SpecialListService } from '../services/special-list.service';
 import { MapPanService } from '../services/map-pan.service';
 
+// Interface for Overpass API airport results
+interface OverpassElement {
+  type: 'node' | 'way' | 'relation';
+  id: number;
+  lat?: number; // For nodes
+  lon?: number; // For nodes
+  center?: { lat: number; lon: number }; // For ways/relations
+  tags?: { [key: string]: string };
+}
+
 @Component({
   selector: 'app-map',
   standalone: true,
@@ -59,16 +69,20 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   planeHistoricalLog: PlaneModel[] = [];
 
   currentLocationMarker!: L.Marker;
-  airportCircle!: L.Circle;
+  // airportCircle!: L.Circle; // REMOVED - Replaced by dynamic airport circles
   homeMarker: L.Marker | null = null;
 
-  airportCoords: [number, number] = this.DEFAULT_COORDS;
-  airportRadiusKm = 3;
+  // airportCoords: [number, number] = this.DEFAULT_COORDS; // REMOVED - No longer needed for single airport
+  airportRadiusKm = 3; // Radius for individual airport circles
   manualUpdate = false;
   private toggling = false;
   private locationErrorShown = false;
 
   coneVisible = false; // Default to hidden
+
+  // Store found airports and their circles
+  private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
+  private svgPatternRetryTimeout: any = null;
 
   constructor(
     public countryService: CountryService,
@@ -117,8 +131,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.settings.excludeDiscount = storedExclude === 'true';
     }
 
-    this.initMap(lat, lon, radius);
-    this.updateMap(lat, lon, radius);
+    this.initMap(lat, lon, radius); // Pass main radius
+    // updateMap is called within initMap now via findAndDisplayAirports
+    // this.updateMap(lat, lon, radius); // REMOVED - initMap handles initial load
 
     // Initialize home marker if home location exists
     this.initHomeMarker();
@@ -219,13 +234,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
 
     this.scanService.start(this.settings.interval, () => this.findPlanes());
-    this.scanService.forceScan();
+    // Don't force scan here, updateMap will trigger it after airport search
+    // this.scanService.forceScan(); // REMOVED
 
     // Subscribe to radius changes: clear markers and paths outside new radius
     this.settings.radiusChanged.subscribe((newRadius) => {
       const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
       const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
       this.removeOutOfRangePlanes(lat, lon, newRadius);
+      // Also update airports when main radius changes
+      this.findAndDisplayAirports(lat, lon, newRadius);
     });
 
     // Initialize map panning service
@@ -235,10 +253,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.scanService.stop();
     this.mapPanService.destroy();
+    // Clean up airport circles
+    this.airportCircles.forEach((circle) => circle.remove());
+    this.airportCircles.clear();
+    if (this.svgPatternRetryTimeout) {
+      clearTimeout(this.svgPatternRetryTimeout);
+    }
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
-    this.map = L.map('map', { doubleClickZoom: false }).setView([lat, lon], 12); // Disable double-click zoom
+    this.map = L.map('map', {
+      doubleClickZoom: false,
+      // renderer: L.svg() // REMOVED Explicitly use SVG renderer
+    }).setView([lat, lon], 12); // Disable double-click zoom
 
     // Create a custom pane for hovered items with a high z-index
     this.map.createPane('hoverPane');
@@ -265,6 +292,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
 
+    // Ensure an SVG root exists on overlayPane for vector layers (radius, cones)
+    L.svg({ pane: 'overlayPane' }).addTo(this.map);
+
     // Create custom marker for current location
     const locationIcon = L.divIcon({
       className: 'current-location-marker',
@@ -282,39 +312,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
     // const mainRadiusCircle = L.circle([lat, lon], { ... }).addTo(this.map);
-    // Add the airport radius (foreground)
-    this.airportCircle = L.circle(this.airportCoords, {
-      pane: 'overlayPane',
-      radius: this.airportRadiusKm * 1000,
-      color: 'cyan',
-      weight: 2,
-      fill: true,
-      fillColor: 'url(#airportStripedPattern)',
-      fillOpacity: 0.8,
-      className: 'airport-radius', // Add a unique class for airport radius
-      interactive: false, // Not clickable
-    }).addTo(this.map);
+    // Ensure the pattern definition exists for dynamic airport circles
+    this.attemptAddSvgPattern();
 
-    const svg = this.map
-      .getPanes()
-      .overlayPane.querySelector('svg') as SVGSVGElement;
-    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
     L.tileLayer(
       'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
 
+    // Ensure an SVG layer exists for vector overlays (radius, cones)
+    L.svg({ pane: 'overlayPane' }).addTo(this.map);
+
+    // Call updateMap which now includes airport search
+    this.updateMap(lat, lon, radius);
+
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
       const { lat, lng } = event.latlng;
-      this.settings.setLat(lat); // Persist the new latitude
-      this.settings.setLon(lng); // Persist the new longitude
-
-      // Update marker position and ensure it's added to the map
-      this.currentLocationMarker.setLatLng([lat, lng]);
-
-      // Make sure marker is visible on the map
-      if (!this.map.hasLayer(this.currentLocationMarker)) {
-        this.currentLocationMarker.addTo(this.map);
-      }
+      // Use the current main radius for the update
+      const currentMainRadius = this.settings.radius ?? 5;
+      this.updateMap(lat, lng, currentMainRadius); // This will trigger airport search
 
       // Hide the cone when double-clicking to a new location
       this.coneVisible = false;
@@ -333,6 +348,54 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       });
       this.scanService.forceScan(); // Restart the scan
     });
+  }
+
+  private attemptAddSvgPattern(): void {
+    const overlayPane = this.map?.getPanes()?.overlayPane;
+    const svg = overlayPane?.querySelector('svg') as SVGSVGElement | null;
+
+    if (svg) {
+      // SVG is ready, add the pattern definition
+      const defs =
+        svg.querySelector('defs') ||
+        document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const patternId = 'diagonalHatch';
+      if (!defs.querySelector(`#${patternId}`)) {
+        const pattern = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'pattern'
+        );
+        pattern.setAttribute('id', patternId);
+        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        pattern.setAttribute('width', '8');
+        pattern.setAttribute('height', '8');
+        pattern.innerHTML = `<path d="M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4" style="stroke:rgba(255,0,0,0.5); stroke-width:1"/>`;
+        defs.appendChild(pattern);
+
+        // Ensure defs is part of the SVG
+        if (!svg.contains(defs)) {
+          svg.insertBefore(defs, svg.firstChild);
+        }
+        console.log('[MapComponent] SVG pattern definition added.');
+      }
+      // Clear any pending retry timeout if we succeeded
+      if (this.svgPatternRetryTimeout) {
+        clearTimeout(this.svgPatternRetryTimeout);
+        this.svgPatternRetryTimeout = null;
+      }
+    } else {
+      // SVG not ready, schedule a retry
+      console.warn(
+        '[MapComponent] SVG element not found for pattern definition, scheduling retry...'
+      );
+      // Clear existing timeout before setting a new one
+      if (this.svgPatternRetryTimeout) {
+        clearTimeout(this.svgPatternRetryTimeout);
+      }
+      this.svgPatternRetryTimeout = setTimeout(() => {
+        this.attemptAddSvgPattern();
+      }, 150); // Retry after 150ms
+    }
   }
 
   // Initialize home marker if home location exists
@@ -426,10 +489,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // Central update function
   updateMap(
     lat: number,
     lon: number,
-    radiusKm?: number,
+    radiusKm?: number, // This is the MAIN search radius
     zoomLevel?: number
   ): void {
     console.log('[MapComponent] updateMap called with:', {
@@ -439,13 +503,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       zoomLevel,
     });
     // Clamp radius to a maximum of 500km
-    let radius = radiusKm ?? this.settings.radius ?? 5;
-    if (radius > 500) {
-      radius = 500;
+    let mainRadius = radiusKm ?? this.settings.radius ?? 5;
+    if (mainRadius > 500) {
+      mainRadius = 500;
     }
     this.settings.setLat(lat);
     this.settings.setLon(lon);
-    this.settings.setRadius(radius);
+    this.settings.setRadius(mainRadius); // Set the MAIN radius
     this.manualUpdate = true;
     this.map.setView([lat, lon], zoomLevel ?? 12); // Use provided zoom level if available
 
@@ -459,11 +523,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.inputOverlayComponent.addressInputRef.nativeElement.value = address;
     });
     this.inputOverlayComponent.searchRadiusInputRef.nativeElement.value =
-      radius.toString();
+      mainRadius.toString();
 
-    this.removeOutOfRangePlanes(lat, lon, radius);
-    console.log('[MapComponent] Calling scanService.forceScan()');
-    this.scanService.forceScan();
+    // Find airports within the new MAIN radius
+    this.findAndDisplayAirports(lat, lon, mainRadius).then(() => {
+      // Only after airports are potentially updated, remove out-of-range planes
+      // and force a plane scan.
+      this.removeOutOfRangePlanes(lat, lon, mainRadius);
+      console.log(
+        '[MapComponent] Calling scanService.forceScan() after airport update'
+      );
+      this.scanService.forceScan();
+    });
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
@@ -475,6 +546,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       ) {
         plane.marker?.remove();
         plane.path?.remove();
+        // Ensure history trails and predicted paths are also removed
+        plane.removeVisuals(this.map); // Use the comprehensive removal method
         this.planeLog.delete(icao);
       }
     }
@@ -686,16 +759,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     };
 
     // Use the original 'planes' array here
+    const currentLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const currentLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
     const sky = planes.filter(
       (entry) =>
         entry.lat != null &&
         entry.lon != null &&
         haversineDistance(
-          this.DEFAULT_COORDS[0],
-          this.DEFAULT_COORDS[1],
+          currentLat, // Use current center lat
+          currentLon, // Use current center lon
           entry.lat!,
           entry.lon!
-        ) > this.airportRadiusKm
+        ) > this.airportRadiusKm // Use the defined airport radius for separation
     );
     sky.sort(sortByMilitary);
 
@@ -705,11 +781,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         entry.lat != null &&
         entry.lon != null &&
         haversineDistance(
-          this.DEFAULT_COORDS[0],
-          this.DEFAULT_COORDS[1],
+          currentLat, // Use current center lat
+          currentLon, // Use current center lon
           entry.lat!,
           entry.lon!
-        ) <= this.airportRadiusKm
+        ) <= this.airportRadiusKm // Use the defined airport radius for separation
     );
     airport.sort(sortByMilitary);
 
@@ -778,12 +854,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         (position) => {
           // reset error flag on success and update map
           this.locationErrorShown = false;
-          this.updateMap(position.coords.latitude, position.coords.longitude);
+          // Use current main radius for update
+          const currentMainRadius = this.settings.radius ?? 5;
+          this.updateMap(
+            position.coords.latitude,
+            position.coords.longitude,
+            currentMainRadius // Pass main radius
+          ); // Triggers airport search
         },
         (error) => {
           if (!this.locationErrorShown) {
             // Fallback to default coordinates
-            this.updateMap(this.DEFAULT_COORDS[0], this.DEFAULT_COORDS[1]);
+            // Use current main radius for fallback update
+            const currentMainRadius = this.settings.radius ?? 5;
+            this.updateMap(
+              this.DEFAULT_COORDS[0],
+              this.DEFAULT_COORDS[1],
+              currentMainRadius // Pass main radius
+            ); // Triggers airport search
             this.inputOverlayComponent.addressInputRef.nativeElement.value =
               'Unable to fetch location; using default';
             this.locationErrorShown = true;
@@ -797,6 +885,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   goToAirport(): void {
+    // This now goes to the *default* coordinates, as there's no single "the airport"
     // Hide the cone when navigating to airport
     this.coneVisible = false;
 
@@ -808,14 +897,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       coneCheckbox.checked = false;
     }
 
-    this.updateMap(this.DEFAULT_COORDS[0], this.DEFAULT_COORDS[1]);
+    // Use current main radius for update
+    const currentMainRadius = this.settings.radius ?? 5;
+    this.updateMap(
+      this.DEFAULT_COORDS[0],
+      this.DEFAULT_COORDS[1],
+      currentMainRadius // Pass main radius
+    ); // Triggers airport search
   }
 
   resolveAndUpdateFromAddress(): void {
     console.log('[MapComponent] resolveAndUpdateFromAddress called');
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
-    const radius =
+    // Get the MAIN radius from the input
+    const mainRadius =
       this.inputOverlayComponent.searchRadiusInputRef.nativeElement
         .valueAsNumber;
 
@@ -843,9 +939,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     }
 
-    if (!isNaN(radius)) {
-      this.settings.setRadius(radius);
+    // Set the MAIN radius setting if valid
+    if (!isNaN(mainRadius)) {
+      this.settings.setRadius(mainRadius);
+    } else {
+      // Use the current setting if input is invalid
+      // mainRadius = this.settings.radius ?? 5; // No need, updateMap handles undefined radiusKm
     }
+
     fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
         address
@@ -856,12 +957,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         console.log('[MapComponent] Geocoding fetch successful:', data);
         if (data.length) {
           const currentZoom = this.map.getZoom(); // Preserve current zoom level
+          // Pass the mainRadius obtained from the input (or current setting if invalid)
           this.updateMap(
             parseFloat(data[0].lat),
             parseFloat(data[0].lon),
-            radius,
+            mainRadius, // Pass the potentially updated main radius
             currentZoom
-          );
+          ); // Triggers airport search
         }
       })
       .catch((error) => {
@@ -962,10 +1064,125 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   get radiusKm(): number {
+    // This getter now returns the MAIN search radius
     return this.settings.radius ?? 5;
   }
 
   toggleConeVisibility(show: boolean): void {
     this.coneVisible = show;
+  }
+
+  // New function to find and display airports
+  async findAndDisplayAirports(
+    lat: number,
+    lon: number,
+    radiusKm: number
+  ): Promise<void> {
+    console.log(
+      `[MapComponent] Searching for airports within ${radiusKm}km of ${lat}, ${lon}`
+    );
+    const radiusMeters = radiusKm * 1000;
+    const overpassUrl = 'https://overpass-api.de/api/interpreter';
+    // Query for nodes, ways, and relations tagged as aerodromes within the radius
+    const query = `
+      [out:json][timeout:25];
+      (
+        node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+        way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+        relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+      );
+      out center;
+    `;
+
+    try {
+      const response = await fetch(overpassUrl, {
+        method: 'POST',
+        body: query,
+      });
+      if (!response.ok) {
+        throw new Error(`Overpass API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log('[MapComponent] Overpass API response:', data);
+
+      const foundAirportIds = new Set<number>();
+
+      // Ensure the SVG pattern definition exists before adding circles
+      const svg = this.map
+        .getPanes()
+        .overlayPane.querySelector('svg') as SVGSVGElement;
+      if (svg) {
+        ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
+      } else {
+        console.warn(
+          '[MapComponent] SVG overlay pane not found for pattern definition during airport update.'
+        );
+        // Attempt to ensure pattern again, maybe it becomes available later
+        setTimeout(() => {
+          const svgLater = this.map
+            .getPanes()
+            .overlayPane.querySelector('svg') as SVGSVGElement;
+          if (svgLater)
+            ensureStripedPattern(
+              svgLater,
+              'airportStripedPattern',
+              'cyan',
+              0.5
+            );
+        }, 200);
+      }
+
+      data.elements.forEach((element: OverpassElement) => {
+        if (element.type === 'node' || element.center) {
+          const airportLat = element.lat ?? element.center?.lat;
+          const airportLon = element.lon ?? element.center?.lon;
+          const airportId = element.id;
+
+          if (airportLat !== undefined && airportLon !== undefined) {
+            foundAirportIds.add(airportId);
+
+            // Check if circle already exists
+            if (!this.airportCircles.has(airportId)) {
+              console.log(
+                `[MapComponent] Adding airport circle for ID: ${airportId} at ${airportLat}, ${airportLon}`
+              );
+              const circle = L.circle([airportLat, airportLon], {
+                pane: 'overlayPane', // Same pane as original
+                radius: this.airportRadiusKm * 1000, // Use the defined airport radius
+                color: 'cyan',
+                weight: 2,
+                fill: true,
+                fillColor: 'url(#airportStripedPattern)', // Use the ensured pattern
+                fillOpacity: 0.8,
+                className: 'airport-radius', // Keep the class
+                interactive: false,
+              }).addTo(this.map);
+              this.airportCircles.set(airportId, circle);
+            } else {
+              // Optional: Update position if needed, though unlikely for fixed airports
+              // this.airportCircles.get(airportId)?.setLatLng([airportLat, airportLon]);
+            }
+          }
+        }
+      });
+
+      // Remove circles for airports no longer in the result set
+      this.airportCircles.forEach((circle, id) => {
+        if (!foundAirportIds.has(id)) {
+          console.log(
+            `[MapComponent] Removing stale airport circle for ID: ${id}`
+          );
+          circle.remove();
+          this.airportCircles.delete(id);
+        }
+      });
+    } catch (error) {
+      console.error(
+        '[MapComponent] Failed to fetch or process airport data:',
+        error
+      );
+      // Optionally clear existing circles if the fetch fails? Or leave them?
+      // For now, leave them, maybe it's a temporary network issue.
+    }
   }
 }
