@@ -75,20 +75,8 @@ export class ConeComponent implements OnChanges {
 
     // define and use cone shape radius for both polygons and labels
     const coneRadiusKm = 12;
-    const cone1 = this.createCone(
-      this.lat,
-      this.lon,
-      75,
-      190,
-      /*shape*/ coneRadiusKm
-    );
-    const cone2 = this.createCone(
-      this.lat,
-      this.lon,
-      245,
-      345,
-      /*shape*/ coneRadiusKm
-    );
+    const cone1 = this.createCone(this.lat, this.lon, 75, 190, coneRadiusKm);
+    const cone2 = this.createCone(this.lat, this.lon, 245, 345, coneRadiusKm);
 
     cone1.addTo(this.map);
     cone2.addTo(this.map);
@@ -120,14 +108,12 @@ export class ConeComponent implements OnChanges {
   }
 
   private updateOpacity(): void {
-    // Set opacity for all cone polygons
     this.visualCones.forEach((cone) => {
       const path = (cone as any)._path as SVGElement;
       if (path) {
         path.style.opacity = String(this.opacity);
       }
     });
-    // Set opacity for arc/text SVG elements
     this.arcElements.forEach(({ path, textGroup }) => {
       path.style.opacity = String(this.opacity);
       textGroup.style.opacity = String(this.opacity);
@@ -198,7 +184,6 @@ export class ConeComponent implements OnChanges {
     color: string
   ): void {
     const zoom = this.map.getZoom();
-    // position text slightly beyond the cone boundary
     const radiusKm = coneRadiusKm * 1.05 * Math.pow(8 / zoom, 2);
     const points: L.LatLng[] = [];
     const step = 5;
@@ -220,16 +205,16 @@ export class ConeComponent implements OnChanges {
       .replace(/\s+/g, '-')}-${Date.now()}`;
     arcPath.setAttribute('id', arcId);
     const pathD = points
-      .map((point, index) => {
-        const { x, y } = this.map.latLngToLayerPoint(point);
-        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      .map((point, i) => {
+        const p = this.map.latLngToLayerPoint(point);
+        return `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`;
       })
       .join(' ');
     arcPath.setAttribute('d', pathD);
     arcPath.setAttribute('fill', 'none');
     arcPath.setAttribute('stroke', 'none');
     svg.appendChild(arcPath);
-    const textElement = document.createElementNS(
+    const textEl = document.createElementNS(
       'http://www.w3.org/2000/svg',
       'text'
     );
@@ -243,13 +228,11 @@ export class ConeComponent implements OnChanges {
     textPath.setAttribute('fill', color);
     textPath.setAttribute('font-size', '1rem');
     textPath.textContent = text;
-    const textGroup = document.createElementNS(
-      'http://www.w3.org/2000/svg',
-      'text'
-    );
-    textGroup.appendChild(textPath);
-    svg.appendChild(arcPath);
-    svg.appendChild(textGroup);
-    this.arcElements.push({ path: arcPath, textGroup });
+    textEl.appendChild(textPath);
+    svg.appendChild(textEl);
+    this.arcElements.push({
+      path: arcPath as SVGPathElement,
+      textGroup: textEl,
+    });
   }
 }

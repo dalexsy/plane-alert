@@ -245,10 +245,10 @@ export class PlaneFinderService {
           plane.predictedPathArrowhead.setLatLng(endPoint);
           plane.predictedPathArrowhead.setIcon(arrowheadIcon);
         } else {
+          // Use default pane for marker so Leaflet places it correctly
           plane.predictedPathArrowhead = L.marker(endPoint, {
             icon: arrowheadIcon,
             interactive: false,
-            pane: 'pathArrowheadPane',
           }).addTo(map);
         }
       } else if (plane.predictedPathArrowhead) {

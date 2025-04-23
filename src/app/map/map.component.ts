@@ -27,7 +27,7 @@ import { ScanService } from '../services/scan.service';
 import { playAlertSound } from '../utils/alert-sound';
 import { Plane } from '../types/plane';
 import { PlaneModel } from '../models/plane-model';
-import { ensureStripedPattern } from '../utils/svg-utils';
+import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused later
 import { SpecialListService } from '../services/special-list.service';
 import { MapPanService } from '../services/map-pan.service';
 
@@ -83,6 +83,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Store found airports and their circles
   private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
   private svgPatternRetryTimeout: any = null;
+  private mainRadiusCircle?: L.Circle;
+  private coneLayers: L.Polygon[] = [];
 
   constructor(
     public countryService: CountryService,
@@ -132,6 +134,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
 
     this.initMap(lat, lon, radius); // Pass main radius
+    // Force Angular to detect view changes so radius and cone components render
+    this.cdr.detectChanges();
+    // Initial map update to draw radius, airports, and planes
+    this.updateMap(lat, lon, radius);
     // updateMap is called within initMap now via findAndDisplayAirports
     // this.updateMap(lat, lon, radius); // REMOVED - initMap handles initial load
 
@@ -262,38 +268,26 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
-    this.map = L.map('map', {
-      doubleClickZoom: false,
-      // renderer: L.svg() // REMOVED Explicitly use SVG renderer
-    }).setView([lat, lon], 12); // Disable double-click zoom
-
-    // Create a custom pane for hovered items with a high z-index
-    this.map.createPane('hoverPane');
-    const hoverPane = this.map.getPane('hoverPane');
-    if (hoverPane) {
-      hoverPane.style.zIndex = '9999'; // Higher than default panes (popupPane is often 700)
-    }
-
-    // Create a custom pane for path arrowheads below overlayPane
-    this.map.createPane('pathArrowheadPane');
-    const pathArrowheadPane = this.map.getPane('pathArrowheadPane');
-    if (pathArrowheadPane) {
-      pathArrowheadPane.style.zIndex = '410'; // Above overlayPane (400)
-    }
-
-    // Create a custom pane for the main radius circle, below tiles
-    this.map.createPane('radiusPane');
-    const radiusPane = this.map.getPane('radiusPane');
-    if (radiusPane) {
-      radiusPane.style.zIndex = '250'; // Above tilePane (200) but below overlayPane (400)
+    this.map = L.map('map', { doubleClickZoom: false }).setView([lat, lon], 12);
+    // Add SVG renderer for vector overlays
+    L.svg().addTo(this.map);
+    // Define airport striped pattern in overlayPane's SVG
+    const overlaySvg = this.map
+      .getPanes()
+      .overlayPane.querySelector('svg') as SVGSVGElement | null;
+    if (overlaySvg) {
+      ensureStripedPattern(overlaySvg, 'airportStripedPattern', 'cyan', 0.5);
     }
 
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
 
-    // Ensure an SVG root exists on overlayPane for vector layers (radius, cones)
-    L.svg({ pane: 'overlayPane' }).addTo(this.map);
+    L.tileLayer(
+      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+    ).addTo(this.map);
+
+    // Remove pattern definitions; airport circles use simple styling
 
     // Create custom marker for current location
     const locationIcon = L.divIcon({
@@ -312,18 +306,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
     // const mainRadiusCircle = L.circle([lat, lon], { ... }).addTo(this.map);
-    // Ensure the pattern definition exists for dynamic airport circles
-    this.attemptAddSvgPattern();
-
-    L.tileLayer(
-      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
-    ).addTo(this.map);
-
-    // Ensure an SVG layer exists for vector overlays (radius, cones)
-    L.svg({ pane: 'overlayPane' }).addTo(this.map);
-
-    // Call updateMap which now includes airport search
-    this.updateMap(lat, lon, radius);
 
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
       const { lat, lng } = event.latlng;
@@ -696,7 +678,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                   planeModel.marker
                     .getElement()
                     ?.classList.add('military-plane');
-                  planeModel.marker.getElement()?.classList.remove('new-plane');
+                  planeModel.marker
+                    ?.getElement()
+                    ?.classList.remove('new-plane');
                   // Tooltip handled above
                   planeModel.marker
                     .getTooltip()
@@ -1108,31 +1092,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       const foundAirportIds = new Set<number>();
 
-      // Ensure the SVG pattern definition exists before adding circles
-      const svg = this.map
-        .getPanes()
-        .overlayPane.querySelector('svg') as SVGSVGElement;
-      if (svg) {
-        ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
-      } else {
-        console.warn(
-          '[MapComponent] SVG overlay pane not found for pattern definition during airport update.'
-        );
-        // Attempt to ensure pattern again, maybe it becomes available later
-        setTimeout(() => {
-          const svgLater = this.map
-            .getPanes()
-            .overlayPane.querySelector('svg') as SVGSVGElement;
-          if (svgLater)
-            ensureStripedPattern(
-              svgLater,
-              'airportStripedPattern',
-              'cyan',
-              0.5
-            );
-        }, 200);
-      }
-
       data.elements.forEach((element: OverpassElement) => {
         if (element.type === 'node' || element.center) {
           const airportLat = element.lat ?? element.center?.lat;
@@ -1148,14 +1107,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 `[MapComponent] Adding airport circle for ID: ${airportId} at ${airportLat}, ${airportLon}`
               );
               const circle = L.circle([airportLat, airportLon], {
-                pane: 'overlayPane', // Same pane as original
-                radius: this.airportRadiusKm * 1000, // Use the defined airport radius
+                radius: this.airportRadiusKm * 1000,
                 color: 'cyan',
                 weight: 2,
                 fill: true,
-                fillColor: 'url(#airportStripedPattern)', // Use the ensured pattern
-                fillOpacity: 0.8,
-                className: 'airport-radius', // Keep the class
+                fillColor: 'url(#airportStripedPattern)',
+                fillOpacity: 0.6,
+                className: 'airport-radius',
                 interactive: false,
               }).addTo(this.map);
               this.airportCircles.set(airportId, circle);
