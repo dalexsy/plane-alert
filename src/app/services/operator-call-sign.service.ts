@@ -1,30 +1,22 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OperatorCallSignService {
-  constructor() {}
+  private operatorMap: Record<string, string> = {};
 
-  // mapping of 3-letter call-sign prefixes to operator names
-  private operatorMap: Record<string, string> = {
-    CTN: 'Croatia Airlines',
-    DLH: 'Deutsche Lufthansa',
-    KLM: 'KLM Royal Dutch Airlines',
-    RYR: 'Ryanair',
-    XXX: 'Ryanair',
-    LHX: 'Lufthansa City',
-    EIN: 'Aer Lingus',
-    NOZ: 'Norwegian Air',
-    EJU: 'easyjet',
-    ASL: 'GetJet Airlines',
-    WUK: 'Wizz Air UK',
-    AUA: 'Austrian Airlines',
-    BTI: 'air Baltic',
-    FHY: 'Freebird Airlines',
-    AHY: 'Azerbaijan Airlines',
-    IBS: 'Iberia Express',
-  };
+  constructor(private http: HttpClient) {
+    this.loadMappings();
+  }
+
+  /** Load mappings from JSON asset */
+  private loadMappings(): void {
+    this.http
+      .get<Record<string, string>>('assets/operator-call-signs.json')
+      .subscribe((data) => (this.operatorMap = data));
+  }
 
   /**
    * Returns the operator name for a given callsign (first 3 letters), or undefined if not found.

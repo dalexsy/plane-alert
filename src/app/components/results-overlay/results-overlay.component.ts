@@ -347,6 +347,23 @@ export class ResultsOverlayComponent
       if (a.isSpecial !== b.isSpecial) {
         return a.isSpecial ? -1 : 1;
       }
+      // Then prioritize new planes over older ones
+      if (a.isNew !== b.isNew) {
+        return a.isNew ? -1 : 1;
+      }
+
+      // Next prioritize planes that have an operator
+      const aHasOperator = !!a.operator;
+      const bHasOperator = !!b.operator;
+      if (aHasOperator !== bHasOperator) {
+        return aHasOperator ? -1 : 1;
+      }
+      // Then prioritize planes that have a model
+      const aHasModel = !!a.model;
+      const bHasModel = !!b.model;
+      if (aHasModel !== bHasModel) {
+        return aHasModel ? -1 : 1;
+      }
 
       // Calculate time buckets (in minutes) for better comparison
       const aMinutes = Math.floor((this.now - a.firstSeen) / (60 * 1000));
@@ -355,11 +372,6 @@ export class ResultsOverlayComponent
       // Sort by time bucket first (most recent first)
       if (aMinutes !== bMinutes) {
         return aMinutes - bMinutes;
-      }
-
-      // Within the same time bucket, prioritize new planes
-      if (a.isNew !== b.isNew) {
-        return a.isNew ? -1 : 1;
       }
 
       // For planes with identical time buckets and newness, sort by exact timestamp
@@ -442,46 +454,42 @@ export class ResultsOverlayComponent
    * 4. Commercial filter is toggled
    */
   private updatePageTitle(): void {
-    // Make sure filtered logs are updated
     this.updateFilteredLogs();
-
-    // Find the top plane - prioritize military planes which should be at the top after sorting
     const topPlane = this.getTopPriorityPlane();
 
     if (topPlane) {
-      // Get the most meaningful display text for the plane
-      let displayText = topPlane.model || topPlane.callsign;
-
-      // If it's a military plane without a model, try to make it more informative
-      if (topPlane.isMilitary && !topPlane.model) {
-        displayText = `Military ${topPlane.callsign}`;
-      }
-
-      // Add country code before the callsign/model if available
-      if (topPlane.origin) {
+      // For military planes, show [MIL] [<country>] <model or callsign>
+      if (topPlane.isMilitary) {
         const code =
           this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
           topPlane.origin;
-        displayText = `[${code}] ${displayText}`;
-      }
-
-      // Create a hash for comparison to detect changes
-      const militaryPrefix = topPlane.isMilitary ? 'MIL ' : '';
-      const newTitleContent = `${militaryPrefix}${displayText}`;
-
-      // Only update if the content changed
-      if (newTitleContent !== this.lastTitleUpdateHash) {
-        this.lastTitleUpdateHash = newTitleContent;
-        // Remove square brackets, just use "Model peeped! | Plane Alert"
-        document.title = `${newTitleContent} peeped! | ${this.baseTitle}`;
+        const display =
+          topPlane.model?.trim() || '' ? topPlane.model : topPlane.callsign;
+        const titleContent = `[MIL] [${code}] ${display}`;
+        if (titleContent !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = titleContent;
+          document.title = `${titleContent} peeped! | ${this.baseTitle}`;
+        }
+      } else {
+        // Priority: operator → callsign → model
+        let titleContent = '';
+        if (topPlane.operator) {
+          titleContent = topPlane.operator;
+        } else if (topPlane.callsign && topPlane.callsign.trim().length >= 3) {
+          titleContent = topPlane.callsign;
+        } else if (topPlane.model) {
+          titleContent = topPlane.model;
+        }
+        if (titleContent && titleContent !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = titleContent;
+          document.title = `${titleContent} peeped! | ${this.baseTitle}`;
+        }
       }
     } else if (this.lastTitleUpdateHash !== '') {
-      // Reset to custom empty state title when no planes are found
       this.lastTitleUpdateHash = '';
       document.title = this.emptyTitle;
     }
 
-    // Update the hashes for future comparison
     this.lastSkyPlaneHash = this.getPlaneListHash(this.skyPlaneLog);
     this.lastAirportPlaneHash = this.getPlaneListHash(this.airportPlaneLog);
   }

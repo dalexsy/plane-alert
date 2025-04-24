@@ -1,13 +1,41 @@
 import { TestBed } from '@angular/core/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 
 import { OperatorCallSignService } from './operator-call-sign.service';
 
 describe('OperatorCallSignService', () => {
   let service: OperatorCallSignService;
+  let httpMock: HttpTestingController;
+  const mockMapping = {
+    CTN: 'Croatia Airlines',
+    DLH: 'Deutsche Lufthansa',
+    KLM: 'KLM Royal Dutch Airlines',
+    RYR: 'Ryanair',
+    XXX: 'Ryanair',
+    LHX: 'Lufthansa City',
+    EIN: 'Aer Lingus',
+    NOZ: 'Norwegian Air',
+    EJU: 'easyjet',
+    ASL: 'GetJet Airlines',
+    WUK: 'Wizz Air UK',
+    AUA: 'Austrian Airlines',
+    BTI: 'air Baltic',
+    FHY: 'Freebird Airlines',
+    AHY: 'Azerbaijan Airlines',
+  };
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [OperatorCallSignService],
+    });
     service = TestBed.inject(OperatorCallSignService);
+    httpMock = TestBed.inject(HttpTestingController);
+    // Flush the JSON asset request
+    httpMock.expectOne('assets/operator-call-signs.json').flush(mockMapping);
   });
 
   it('should be created', () => {
