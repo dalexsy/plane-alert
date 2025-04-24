@@ -16,6 +16,7 @@ import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
+import { OperatorCallSignService } from './operator-call-sign.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -60,7 +61,8 @@ export class PlaneFinderService {
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
-    private specialListService: SpecialListService
+    private specialListService: SpecialListService,
+    private operatorCallSignService: OperatorCallSignService // inject our service
   ) {}
 
   private randomizeBrightness(): string {
@@ -568,9 +570,10 @@ export class PlaneFinderService {
       }
 
       // Update PlaneModel with potentially fetched aircraft data
-      // Note: aircraft was already fetched above for filtering logic
+      // Determine operator via prefix mapping or fallback to ownop from aircraft info
+      const prefixOperator = this.operatorCallSignService.getOperator(callsign);
+      const operator = prefixOperator ?? (aircraft?.ownop || '');
       const model = aircraft?.model || '';
-      const operator = aircraft?.ownop || '';
       // isMilitary already defined above
 
       planeModelInstance.model = model;
