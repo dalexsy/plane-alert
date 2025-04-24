@@ -77,7 +77,7 @@ export function planeTooltip(
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
     if (speedText) infoItems.push(`<span class="velocity">${speedText}</span>`);
     if (isGrounded) {
-      infoItems.push(`<span class="altitude">Grounded</span>`);
+      infoItems.push(`<span class="altitude">On ground</span>`);
     } else if (altText || verticalRateSpan) {
       infoItems.push(
         `<span class="altitude">${altText}${verticalRateSpan}</span>`
