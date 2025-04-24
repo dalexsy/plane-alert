@@ -8,7 +8,7 @@
   background: rgba(0, 0, 0, 0.7);
   padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  width: 22rem;
+  width: 25rem;
   max-height: calc(100% - 0.5rem);
   display: grid;
   grid-auto-rows: auto auto 1fr auto;
@@ -74,7 +74,7 @@
       min-height: 10vh;
       overflow-y: auto;
 
-      .operator {
+      .model {
         text-align: right;
       }
 
@@ -168,7 +168,7 @@
 
   .button-group {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
 
@@ -214,6 +214,28 @@
 
   @media (max-width: 600px) {
     display: none !important;
+  }
+}
+
+.loading-airports {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.loading-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

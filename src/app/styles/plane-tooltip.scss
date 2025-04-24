@@ -38,8 +38,16 @@
     text-decoration: none;
     color: white;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: flex-start;
+    gap: 0.25rem;
+    flex-direction: column;
+
+    .tooltip-row {
+      display: flex;
+      gap: 0.25rem;
+      flex-direction: row;
+      align-items: center;
+    }
 
     .none-callsign {
       color: rgb(255 255 255 / 50%);
@@ -48,6 +56,7 @@
     .fi {
       width: 1.3rem;
       height: 1rem;
+      margin-right: 0.25rem;
     }
 
     strong {

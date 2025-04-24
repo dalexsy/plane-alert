@@ -4,19 +4,24 @@ import { ensureStripedPattern } from '../utils/svg-utils';
 
 @Injectable({ providedIn: 'root' })
 export class MapService {
+  // mainRadiusCircle drawn directly into overlayPane
   private map!: L.Map;
   private currentLocationMarker!: L.Marker;
-  private airportCircle!: L.Circle;
+  // Manage radii centrally
+  private mainRadiusCircle?: L.Circle;
+  private airportCircles: Map<number, L.Circle> = new Map();
+  private radiusLayerLocked: boolean = false;
 
   initializeMap(
     mapId: string,
     lat: number,
     lon: number,
-    airportCoords: [number, number],
-    airportRadiusKm: number,
+    // initial radii can be added after initialization via service methods
     onDblClick: (lat: number, lon: number) => void
   ): L.Map {
     this.map = L.map(mapId, { doubleClickZoom: false }).setView([lat, lon], 12);
+    // SVG renderer is managed by MapComponent
+
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
@@ -31,14 +36,7 @@ export class MapService {
       icon: materialIcon,
     }).addTo(this.map);
 
-    this.airportCircle = L.circle(airportCoords, {
-      radius: airportRadiusKm * 1000,
-      color: 'cyan',
-      weight: 2,
-      fill: true,
-      fillColor: 'url(#airportStripedPattern)',
-      fillOpacity: 0.8,
-    }).addTo(this.map);
+    // No special pane needed: main radius will draw in overlayPane
 
     const svg = this.map
       .getPanes()
@@ -53,6 +51,108 @@ export class MapService {
     });
 
     return this.map;
+  }
+
+  /**
+   * Set MapService map when created externally
+   */
+  setMapInstance(map: L.Map): void {
+    this.map = map;
+    // SVG renderer is managed by MapComponent
+  }
+
+  // Main search radius
+  setMainRadius(lat: number, lon: number, radiusKm: number): void {
+    // Draw main radius in overlayPane for proper map transforms
+    if (this.mainRadiusCircle) {
+      this.map.removeLayer(this.mainRadiusCircle);
+    }
+    this.mainRadiusCircle = L.circle([lat, lon], {
+      // render in default overlayPane
+      pane: 'overlayPane',
+      radius: radiusKm * 1000,
+      color: 'white',
+      weight: 2,
+      className: 'main-radius-circle',
+      fill: true,
+      fillColor: 'rgba(0, 0, 0, 1)',
+      fillOpacity: 0.3,
+    }).addTo(this.map);
+    // Bring to back so other overlays render above
+    this.mainRadiusCircle.bringToBack();
+    // Insert the circle's group at the bottom of overlayPane SVG to ensure it is behind all other paths
+    try {
+      const pathEl = (this.mainRadiusCircle as any)._path as SVGElement;
+      const group = pathEl.parentNode as SVGGElement;
+      const svg = this.map
+        .getPanes()
+        .overlayPane.querySelector('svg') as SVGSVGElement;
+      if (svg && group) {
+        svg.insertBefore(group, svg.firstChild);
+        console.log(
+          '[MapService] main radius group prepended to overlayPane SVG'
+        );
+      }
+    } catch (e) {
+      console.warn('[MapService] failed to prepend main radius group', e);
+    }
+
+    // Optional: re-draw on view changes to stay centered
+    this.map.on('moveend viewreset zoomend', () => {
+      this.mainRadiusCircle?.bringToBack();
+    });
+  }
+
+  removeMainRadius(): void {
+    if (this.mainRadiusCircle) {
+      this.map.removeLayer(this.mainRadiusCircle);
+      this.mainRadiusCircle = undefined;
+    }
+  }
+
+  // Airport circles management
+  addAirportCircle(
+    id: number,
+    coords: [number, number],
+    radiusKm: number
+  ): void {
+    // avoid duplicates
+    if (this.airportCircles.has(id)) {
+      return;
+    }
+    const circle = L.circle(coords, {
+      radius: radiusKm * 1000,
+      color: 'cyan',
+      weight: 2,
+      fill: true,
+      fillColor: 'url(#airportStripedPattern)',
+      fillOpacity: 0.8,
+      interactive: false,
+    }).addTo(this.map);
+    // ensure pattern
+    const svg = this.map
+      .getPanes()
+      .overlayPane.querySelector('svg') as SVGSVGElement;
+    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
+    this.airportCircles.set(id, circle);
+  }
+
+  removeAirportCircle(id: number): void {
+    const circle = this.airportCircles.get(id);
+    if (circle) {
+      this.map.removeLayer(circle);
+      this.airportCircles.delete(id);
+    }
+  }
+
+  clearAirportCircles(): void {
+    this.airportCircles.forEach((circle) => this.map.removeLayer(circle));
+    this.airportCircles.clear();
+  }
+
+  // Retrieve all airport circles
+  getAirportCircles(): L.Circle[] {
+    return Array.from(this.airportCircles.values());
   }
 
   setCurrentLocationMarker(lat: number, lon: number) {

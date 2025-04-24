@@ -2,6 +2,11 @@
 <div class="results-overlay">
   <!-- Options buttons - moved to the top -->
   <div class="button-group">
+    <span class="map-status">
+      <span *ngIf="loadingAirports" class="loading-airports">
+        <span class="loading-spinner"></span>Loading airports
+      </span></span
+    >
     <!-- Hide Export Filter List button for now -->
     <!--
     <app-button
@@ -123,10 +128,10 @@
             </span>
           </span>
           <span class="top">
-            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
             <span class="operator" *ngIf="plane.operator">{{
               plane.operator
             }}</span>
+            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
           </span>
         </div>
       </div>
@@ -220,10 +225,10 @@
             </span>
           </span>
           <span class="top">
-            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
             <span class="operator" *ngIf="plane.operator">{{
               plane.operator
             }}</span>
+            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
           </span>
         </div>
       </div>

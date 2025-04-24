@@ -16,6 +16,7 @@ import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
+import { OperatorCallSignService } from './operator-call-sign.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -60,7 +61,8 @@ export class PlaneFinderService {
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
-    private specialListService: SpecialListService
+    private specialListService: SpecialListService,
+    private operatorCallSignService: OperatorCallSignService // inject our service
   ) {}
 
   private randomizeBrightness(): string {
@@ -245,10 +247,10 @@ export class PlaneFinderService {
           plane.predictedPathArrowhead.setLatLng(endPoint);
           plane.predictedPathArrowhead.setIcon(arrowheadIcon);
         } else {
+          // Use default pane for marker so Leaflet places it correctly
           plane.predictedPathArrowhead = L.marker(endPoint, {
             icon: arrowheadIcon,
             interactive: false,
-            pane: 'pathArrowheadPane',
           }).addTo(map);
         }
       } else if (plane.predictedPathArrowhead) {
@@ -568,9 +570,10 @@ export class PlaneFinderService {
       }
 
       // Update PlaneModel with potentially fetched aircraft data
-      // Note: aircraft was already fetched above for filtering logic
+      // Determine operator via prefix mapping or fallback to ownop from aircraft info
+      const prefixOperator = this.operatorCallSignService.getOperator(callsign);
+      const operator = prefixOperator ?? (aircraft?.ownop || '');
       const model = aircraft?.model || '';
-      const operator = aircraft?.ownop || '';
       // isMilitary already defined above
 
       planeModelInstance.model = model;
@@ -643,22 +646,8 @@ export class PlaneFinderService {
       );
       const extraStyle = this.computeExtraStyle(altitude, onGround);
 
-      // Load custom icon mapping (keys are lowercase ICAOs)
-      const customIconMap: Record<
-        string,
-        { icon: string; color?: string; size?: string }
-      > = {
-        a13435: { icon: 'star', color: '#FFD700', size: '2.5rem' },
-        // Add more ICAO codes and icon configs here
-      };
-      const idLower = id.toLowerCase();
-      let customPlaneIcon = '';
-      if (customIconMap[idLower]) {
-        const { icon, color, size } = customIconMap[idLower];
-        customPlaneIcon = `<span class="material-symbols-sharp" style="color:${
-          color ?? 'inherit'
-        };font-size:${size ?? '2rem'};vertical-align:middle;">${icon}</span>`;
-      }
+      // Custom icon mapping removed, always use default icon
+      const customPlaneIcon = '';
 
       const { marker } = createOrUpdatePlaneMarker(
         planeModelInstance.marker, // Pass existing marker from model
