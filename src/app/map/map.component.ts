@@ -30,6 +30,7 @@ import { PlaneModel } from '../models/plane-model';
 import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused later
 import { SpecialListService } from '../services/special-list.service';
 import { MapPanService } from '../services/map-pan.service';
+import { MapService } from '../services/map.service';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -46,7 +47,6 @@ interface OverpassElement {
   standalone: true,
   imports: [
     CommonModule,
-    RadiusComponent,
     ConeComponent,
     InputOverlayComponent,
     ResultsOverlayComponent,
@@ -88,6 +88,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     public countryService: CountryService,
+    private mapService: MapService,
     private planeFinder: PlaneFinderService,
     private planeFilter: PlaneFilterService,
     private aircraftDb: AircraftDbService,
@@ -134,6 +135,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
 
     this.initMap(lat, lon, radius); // Pass main radius
+    // Provide the created map instance to the service
+    this.mapService.setMapInstance(this.map);
+    // Draw main radius via service
+    this.mapService.setMainRadius(lat, lon, radius);
     // Force Angular to detect view changes so radius and cone components render
     this.cdr.detectChanges();
     // Initial map update to draw radius, airports, and planes
@@ -269,8 +274,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   private initMap(lat: number, lon: number, radius: number): void {
     this.map = L.map('map', { doubleClickZoom: false }).setView([lat, lon], 12);
-    // Add SVG renderer for vector overlays
+    // Add SVG renderer for vector overlays (draws into overlayPane)
     L.svg().addTo(this.map);
+
     // Define airport striped pattern in overlayPane's SVG
     const overlaySvg = this.map
       .getPanes()
@@ -493,7 +499,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.settings.setLon(lon);
     this.settings.setRadius(mainRadius); // Set the MAIN radius
     this.manualUpdate = true;
-    this.map.setView([lat, lon], zoomLevel ?? 12); // Use provided zoom level if available
+    // Update view first to recalc internal transforms
+    this.map.setView([lat, lon], zoomLevel ?? 12);
+    // Then draw main radius so it projects correctly
+    this.mapService.setMainRadius(lat, lon, mainRadius);
 
     // Update current marker position (but keep it removed if at home)
     this.currentLocationMarker.setLatLng([lat, lon]);

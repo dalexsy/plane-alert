@@ -29,12 +29,20 @@ export class ConeComponent implements OnChanges {
   }
 
   private drawVisualCones(): void {
-    this.visualCones.forEach((cone) => this.map.removeLayer(cone));
-    this.visualCones = [];
-
+    // Debug overlayPane and SVG children for stacking order
+    console.log(
+      '[ConeComponent] overlayPane children:',
+      this.map.getPanes().overlayPane.children
+    );
     const svg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
+    console.log(
+      '[ConeComponent] overlayPane SVG child count:',
+      svg?.childNodes.length
+    );
+    this.visualCones.forEach((cone) => this.map.removeLayer(cone));
+    this.visualCones = [];
 
     // Remove old arcs
     this.arcElements.forEach(({ path, textGroup }) => {

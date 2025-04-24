@@ -43,7 +43,11 @@ export function planeTooltip(
       ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
   }</strong>
-    ${model ? ` <span class="aircraft-model">${model}</span>` : ''}
+    ${model ? ` <span class="aircraft-model">${model}</span>` : ''}    ${
+    operator
+      ? `<span class="aircraft-operator"><span class="divider">•</span> ${operator}</span>`
+      : ''
+  }
     ${
       speedText
         ? `<span class="velocity"><span class="divider">•</span> ${speedText}</span>`
@@ -54,10 +58,6 @@ export function planeTooltip(
         ? `<span class="altitude"><span class="divider">•</span> ${altText}${verticalRateSpan}</span>`
         : ''
     }
-    ${
-      operator
-        ? `<span class="aircraft-operator"><span class="divider">•</span> ${operator}</span>`
-        : ''
-    }
+
   </a>`;
 }
