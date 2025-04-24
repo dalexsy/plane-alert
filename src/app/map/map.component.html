@@ -18,4 +18,6 @@
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
 ></app-input-overlay>
-<app-results-overlay></app-results-overlay>
+<app-results-overlay
+  [loadingAirports]="loadingAirports || isResizing"
+></app-results-overlay>

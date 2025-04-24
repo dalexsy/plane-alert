@@ -66,6 +66,7 @@ export class ResultsOverlayComponent
   @ViewChild('seenList') seenListRef!: ElementRef<HTMLDivElement>;
   @Input() airportPlaneLog: PlaneLogEntry[] = [];
   @Input() seenPlaneLog: PlaneLogEntry[] = [];
+  @Input() loadingAirports: boolean = false;
   // scroll state flags
   skyListScrollable = false;
   skyListAtBottom = false;

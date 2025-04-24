@@ -55,7 +55,7 @@ export function planeTooltip(
               parts.push(`<span class="velocity">${speedText}</span>`);
             }
             if (isGrounded) {
-              parts.push(`<span class="altitude">Grounded</span>`);
+              parts.push(`<span class="altitude">On ground</span>`);
             } else if (altText || verticalRateSpan) {
               parts.push(
                 `<span class="altitude">${altText}${verticalRateSpan}</span>`

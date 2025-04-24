@@ -7,6 +7,7 @@ import {
   ViewChild,
   ViewEncapsulation,
   HostListener,
+  NgZone,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
@@ -41,6 +42,9 @@ interface OverpassElement {
   center?: { lat: number; lon: number }; // For ways/relations
   tags?: { [key: string]: string };
 }
+
+const MAJOR_AIRPORT_RADIUS_KM = 5;
+const MINOR_AIRPORT_RADIUS_KM = 1;
 
 @Component({
   selector: 'app-map',
@@ -85,6 +89,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private svgPatternRetryTimeout: any = null;
   private mainRadiusCircle?: L.Circle;
   private coneLayers: L.Polygon[] = [];
+  // Cache computed radii (km) per airport ID to avoid repeat Overpass calls
+  private airportRadiusCache = new Map<number, number>();
+
+  // Flag for airport fetching (loading) to show loading indicator
+  loadingAirports = false;
+  // Flag for viewport resizing (legacy) if needed
+  isResizing = false;
+  private resizeTimeout: any;
 
   constructor(
     public countryService: CountryService,
@@ -96,7 +108,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private scanService: ScanService,
     private specialListService: SpecialListService,
     private mapPanService: MapPanService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -336,6 +349,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       });
       this.scanService.forceScan(); // Restart the scan
     });
+
+    // Show loading indicator when map is moving or zooming
+    this.map.on('movestart zoomstart', () => {
+      this.ngZone.run(() => {
+        this.loadingAirports = true;
+      });
+    });
+    this.map.on('moveend zoomend', () => {
+      this.ngZone.run(() => {
+        this.loadingAirports = false;
+      });
+    });
   }
 
   private attemptAddSvgPattern(): void {
@@ -509,6 +534,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Update markers visibility based on new location
     this.updateMarkersVisibility(lat, lon);
+
+    // Load planes immediately for faster UX
+    this.findPlanes();
 
     this.reverseGeocode(lat, lon).then((address) => {
       this.inputOverlayComponent.addressInputRef.nativeElement.value = address;
@@ -1072,6 +1100,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     lon: number,
     radiusKm: number
   ): Promise<void> {
+    this.ngZone.run(() => (this.loadingAirports = true));
+    // Track runway radius promises to delay spinner hiding
+    const radiusPromises: Promise<void>[] = [];
+
     console.log(
       `[MapComponent] Searching for airports within ${radiusKm}km of ${lat}, ${lon}`
     );
@@ -1101,7 +1133,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       const foundAirportIds = new Set<number>();
 
-      data.elements.forEach((element: OverpassElement) => {
+      for (const element of data.elements || []) {
         if (element.type === 'node' || element.center) {
           const airportLat = element.lat ?? element.center?.lat;
           const airportLon = element.lon ?? element.center?.lon;
@@ -1110,29 +1142,53 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           if (airportLat !== undefined && airportLon !== undefined) {
             foundAirportIds.add(airportId);
 
+            // Determine radius: use runway lengths if available, fallback to IATA presence
+            const hasIata = !!element.tags?.['iata'];
+            // Fallback or cached radius
+            const defaultKm = hasIata
+              ? MAJOR_AIRPORT_RADIUS_KM
+              : MINOR_AIRPORT_RADIUS_KM;
+            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;
+
             // Check if circle already exists
             if (!this.airportCircles.has(airportId)) {
               console.log(
-                `[MapComponent] Adding airport circle for ID: ${airportId} at ${airportLat}, ${airportLon}`
+                `[MapComponent] Adding airport circle for ID: ${airportId} (${
+                  hasIata ? 'commercial' : 'other'
+                }) at ${airportLat}, ${airportLon} with radius ${useKm}km`
               );
               const circle = L.circle([airportLat, airportLon], {
-                radius: this.airportRadiusKm * 1000,
+                radius: useKm * 1000,
                 color: 'cyan',
                 weight: 2,
                 fill: true,
                 fillColor: 'url(#airportStripedPattern)',
-                fillOpacity: 0.6,
+                fillOpacity: 0.3, // initial low opacity
                 className: 'airport-radius',
                 interactive: false,
               }).addTo(this.map);
               this.airportCircles.set(airportId, circle);
-            } else {
-              // Optional: Update position if needed, though unlikely for fixed airports
-              // this.airportCircles.get(airportId)?.setLatLng([airportLat, airportLon]);
+
+              // Kick off async radius calculation if not cached
+              if (!this.airportRadiusCache.has(airportId)) {
+                // queue radius update promise
+                const p = this.computeAirportRadiusKm(
+                  airportLat,
+                  airportLon,
+                  hasIata
+                )
+                  .then((radius) => {
+                    this.airportRadiusCache.set(airportId, radius);
+                    const c = this.airportCircles.get(airportId);
+                    if (c) c.setRadius(radius * 1000);
+                  })
+                  .catch(() => {});
+                radiusPromises.push(p);
+              }
             }
           }
         }
-      });
+      }
 
       // Remove circles for airports no longer in the result set
       this.airportCircles.forEach((circle, id) => {
@@ -1152,5 +1208,71 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Optionally clear existing circles if the fetch fails? Or leave them?
       // For now, leave them, maybe it's a temporary network issue.
     }
+    // wait for all runway radius updates before hiding spinner
+    await Promise.all(radiusPromises);
+    // Increase opacity of all airport circles after resizing
+    this.airportCircles.forEach((circle) =>
+      circle.setStyle({ fillOpacity: 0.6 })
+    );
+    // hide loading indicator inside Angular zone
+    this.ngZone.run(() => (this.loadingAirports = false));
+  }
+
+  /**
+   * Fetch runway ways around an airport and compute radius as half the longest runway (in km) plus 0.5km buffer.
+   */
+  private async computeAirportRadiusKm(
+    lat: number,
+    lon: number,
+    hasIata: boolean
+  ): Promise<number> {
+    const overpassUrl = 'https://overpass-api.de/api/interpreter';
+    const query = `
+      [out:json][timeout:25];
+      way["aeroway"="runway"](around:10000,${lat},${lon});
+      out geom;
+    `;
+    try {
+      const res = await fetch(overpassUrl, { method: 'POST', body: query });
+      if (!res.ok)
+        return hasIata ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
+      const data = await res.json();
+      let maxLen = 0;
+      for (const w of data.elements || []) {
+        const coords = w.geometry as Array<{ lat: number; lon: number }>;
+        if (coords.length < 2) continue;
+        // approximate runway length by first-to-last node
+        const start = coords[0];
+        const end = coords[coords.length - 1];
+        const distKm = haversineDistance(
+          start.lat,
+          start.lon,
+          end.lat,
+          end.lon
+        );
+        maxLen = Math.max(maxLen, distKm);
+      }
+      if (maxLen > 0) {
+        return maxLen / 2 + 0.5; // half runway plus buffer
+      }
+    } catch {
+      // fallback silently
+    }
+    return hasIata ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    // Show loading indicator and inform Angular to update view
+    this.isResizing = true;
+    this.cdr.detectChanges();
+    // Debounce end of resizing
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    this.resizeTimeout = setTimeout(() => {
+      this.isResizing = false;
+      this.cdr.detectChanges();
+    }, 500);
   }
 }
