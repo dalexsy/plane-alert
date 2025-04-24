@@ -30,6 +30,14 @@ export class MapPanService implements OnDestroy {
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
+    const target = e.target as HTMLElement;
+    // Do not pan when typing in inputs, textareas, selects or contentEditable elements
+    if (
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
+      target.isContentEditable
+    ) {
+      return;
+    }
     const k = e.key;
     if (
       [
@@ -53,6 +61,13 @@ export class MapPanService implements OnDestroy {
   };
 
   private onKeyUp = (e: KeyboardEvent): void => {
+    const target = e.target as HTMLElement;
+    if (
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
+      target.isContentEditable
+    ) {
+      return;
+    }
     const k = e.key;
     if (this.keyState.has(k)) {
       this.keyState.set(k, false);

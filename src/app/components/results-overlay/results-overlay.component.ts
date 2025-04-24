@@ -22,6 +22,7 @@ import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
 import { SpecialListService } from '../../services/special-list.service';
+import { haversineDistance } from '../../utils/geo-utils';
 
 export interface PlaneLogEntry {
   callsign: string;
@@ -281,8 +282,15 @@ export class ResultsOverlayComponent
     this.filteredSkyPlaneLog = this.skyPlaneLog.filter(
       (plane) => !plane.filteredOut
     );
+    // Exclude airport planes over 300km from settings center
+    const centerLat = this.settings.lat ?? 0;
+    const centerLon = this.settings.lon ?? 0;
     this.filteredAirportPlaneLog = this.airportPlaneLog.filter(
-      (plane) => !plane.filteredOut
+      (plane) =>
+        !plane.filteredOut &&
+        plane.lat != null &&
+        plane.lon != null &&
+        haversineDistance(centerLat, centerLon, plane.lat, plane.lon) <= 300
     );
     this.filteredSeenPlaneLog = this.seenPlaneLog.filter(
       (plane) => !plane.filteredOut

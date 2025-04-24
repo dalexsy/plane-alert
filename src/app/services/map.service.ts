@@ -75,7 +75,7 @@ export class MapService {
       weight: 2,
       className: 'main-radius-circle',
       fill: true,
-      fillColor: 'rgba(0, 0, 0, 1)', // white semi-transparent for visibility
+      fillColor: 'rgba(0, 0, 0, 1)',
       fillOpacity: 0.3,
     }).addTo(this.map);
     // Bring to back so other overlays render above

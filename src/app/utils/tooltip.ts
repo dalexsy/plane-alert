@@ -32,9 +32,11 @@ export function planeTooltip(
       1
     )} m/s" style=";transform:rotate(${angle}deg);">${iconName}</span>`;
   }
-  // Remove the status classes from the inner link as they should only be on the parent
-  return `<a href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" rel="noopener noreferrer" class="plane-tooltip-link">
-    ${getFlagHTML(origin)} <strong>${displayCallsign}${
+  // Main row: callsign with flag and either operator or speed/alt
+  const mainRow = `
+  <span class="tooltip-row">
+    ${getFlagHTML(origin)}
+    <strong>${displayCallsign}${
     isMilitary
       ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
       : ''
@@ -43,21 +45,57 @@ export function planeTooltip(
       ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
   }</strong>
-    ${model ? ` <span class="aircraft-model">${model}</span>` : ''}    ${
-    operator
-      ? `<span class="aircraft-operator"><span class="divider">•</span> ${operator}</span>`
-      : ''
-  }
     ${
-      speedText
-        ? `<span class="velocity"><span class="divider">•</span> ${speedText}</span>`
+      operator
+        ? `<span class="divider">•</span> <span class="aircraft-operator">${operator}</span>`
+        : speedText || altText || verticalRateSpan || isGrounded
+        ? ((): string => {
+            const parts: string[] = [];
+            if (speedText) {
+              parts.push(`<span class="velocity">${speedText}</span>`);
+            }
+            if (isGrounded) {
+              parts.push(`<span class="altitude">Grounded</span>`);
+            } else if (altText || verticalRateSpan) {
+              parts.push(
+                `<span class="altitude">${altText}${verticalRateSpan}</span>`
+              );
+            }
+            // Join with dividers
+            return `<span class="divider">•</span>${parts.join(
+              '<span class="divider">•</span>'
+            )}`;
+          })()
         : ''
     }
-    ${
-      altText || verticalRateSpan || verticalRate
-        ? `<span class="altitude"><span class="divider">•</span> ${altText}${verticalRateSpan}</span>`
-        : ''
-    }
+  </span>`;
 
-  </a>`;
+  // Info row: include speed/alt/model when operator present, else only model
+  const infoItems: string[] = [];
+  if (operator) {
+    // Show model first, then speed, then altitude+arrow
+    if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
+    if (speedText) infoItems.push(`<span class="velocity">${speedText}</span>`);
+    if (isGrounded) {
+      infoItems.push(`<span class="altitude">Grounded</span>`);
+    } else if (altText || verticalRateSpan) {
+      infoItems.push(
+        `<span class="altitude">${altText}${verticalRateSpan}</span>`
+      );
+    }
+  } else {
+    // No operator: only show model
+    if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
+  }
+  const infoRow = infoItems.length
+    ? `
+  <span class="tooltip-row">
+    ${infoItems
+      .map((item, i) => (i > 0 ? '<span class="divider">•</span>' : '') + item)
+      .join('')}
+  </span>`
+    : '';
+
+  // Combine rows
+  return `<a href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" rel="noopener noreferrer" class="plane-tooltip-link">${mainRow}${infoRow}</a>`;
 }
