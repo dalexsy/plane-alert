@@ -31,7 +31,8 @@ export class PlaneModel implements Plane {
   onGround?: boolean;
   isSpecial?: boolean;
   isMilitary?: boolean;
-  airportName?: string;  // Optional airport name assigned in MapComponent
+  airportName?: string; // Optional airport name assigned in MapComponent
+  airportCode?: string; // Optional short code (IATA) for airport
 
   // Store position history for path prediction (limited to last 5 positions)
   positionHistory: PositionHistory[] = [];

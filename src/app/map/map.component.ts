@@ -32,6 +32,7 @@ import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused l
 import { SpecialListService } from '../services/special-list.service';
 import { MapPanService } from '../services/map-pan.service';
 import { MapService } from '../services/map.service';
+import { MilitaryPrefixService } from '../services/military-prefix.service';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -91,8 +92,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private coneLayers: L.Polygon[] = [];
   // Cache computed radii (km) per airport ID to avoid repeat Overpass calls
   private airportRadiusCache = new Map<number, number>();
-  // Store metadata for each airport: name and IATA flag
-  private airportData = new Map<number, { name: string; hasIata: boolean }>();
+  // Store metadata for each airport: name and IATA code
+  private airportData = new Map<number, { name: string; code?: string }>();
 
   // Flag for airport fetching (loading) to show loading indicator
   loadingAirports = false;
@@ -111,7 +112,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private specialListService: SpecialListService,
     private mapPanService: MapPanService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private militaryPrefixService: MilitaryPrefixService
   ) {
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -138,6 +140,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
     await this.aircraftDb.load();
+    // Load configured military prefix list for overlay flags
+    await this.militaryPrefixService.loadPrefixes();
     this.settings.load();
 
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
@@ -352,17 +356,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.scanService.forceScan(); // Restart the scan
     });
 
-    // Show loading indicator when map is moving or zooming
-    this.map.on('movestart zoomstart', () => {
-      this.ngZone.run(() => {
-        this.loadingAirports = true;
-      });
-    });
-    this.map.on('moveend zoomend', () => {
-      this.ngZone.run(() => {
-        this.loadingAirports = false;
-      });
-    });
+    // NOTE: disabling auto-loading indicator on map move/zoom to avoid overriding airport loading
+    // this.map.on('movestart zoomstart', () => this.ngZone.run(() => (this.loadingAirports = true)));
+    // this.map.on('moveend zoomend', () => this.ngZone.run(() => (this.loadingAirports = false)));
   }
 
   private attemptAddSvgPattern(): void {
@@ -658,11 +654,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           // If it's in planeLog from the previous scan, it's not new now
           planeModel.isNew = !previousPlaneKeys.has(planeModel.icao);
 
-          // Determine filter status first
-          const isMilitary = this.aircraftDb.lookup(planeModel.icao)?.mil;
+          // Determine military status via DB or configured prefixes
+          const dbMil = this.aircraftDb.lookup(planeModel.icao)?.mil || false;
+          const prefixMil = this.militaryPrefixService.isMilitaryCallsign(
+            planeModel.callsign
+          );
+          const isMilitary = dbMil || prefixMil;
+          // propagate to model
+          planeModel.isMilitary = isMilitary;
           planeModel.filteredOut = !this.planeFilter.shouldIncludeCallsign(
             planeModel.callsign,
-            exclude, // Use the 'exclude' variable from the outer scope
+            exclude,
             this.planeFilter.getFilterPrefixes(),
             isMilitary
           );
@@ -674,22 +676,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           } else {
             // If not filtered, proceed with marker/tooltip updates if marker exists
             if (planeModel.marker) {
-              // First, check if this is a military plane and apply the military-plane-tooltip class
-              // regardless of other states
-              if (isMilitary) {
-                // Use the isMilitary variable determined above
-                planeModel.marker
-                  .getTooltip()
-                  ?.getElement()
-                  ?.classList.add('military-plane-tooltip');
-              } else {
-                planeModel.marker
-                  .getTooltip()
-                  ?.getElement()
-                  ?.classList.remove('military-plane-tooltip');
-              }
-
-              // Then proceed with the other class handling
               if (planeModel.onGround) {
                 planeModel.marker.getElement()?.classList.add('grounded-plane');
                 planeModel.marker
@@ -705,36 +691,32 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                   ?.getElement()
                   ?.classList.remove('new-plane-tooltip');
               } else if (planeModel.isNew) {
-                planeModel.marker
-                  ?.getElement()
-                  ?.classList.remove('grounded-plane'); // Ensure grounded removed
-                planeModel.marker
-                  ?.getTooltip()
-                  ?.getElement()
-                  ?.classList.remove('grounded-plane-tooltip'); // Ensure grounded tooltip removed
-
+                // Marker and tooltip for military override new-plane
                 if (isMilitary) {
+                  planeModel.marker?.getElement()?.classList.add('military-plane');
+                  planeModel.marker?.getElement()?.classList.remove('new-plane');
+                  // Add military tooltip class, remove new-plane-tooltip if present
                   planeModel.marker
-                    .getElement()
-                    ?.classList.add('military-plane');
-                  planeModel.marker
+                    .getTooltip()
                     ?.getElement()
-                    ?.classList.remove('new-plane');
-                  // Tooltip handled above
+                    ?.classList.add('military-plane-tooltip');
                   planeModel.marker
                     .getTooltip()
                     ?.getElement()
                     ?.classList.remove('new-plane-tooltip');
                 } else {
-                  planeModel.marker.getElement()?.classList.add('new-plane');
-                  planeModel.marker
-                    .getElement()
-                    ?.classList.remove('military-plane');
+                  // Non-military new plane
+                  planeModel.marker?.getElement()?.classList.add('new-plane');
+                  planeModel.marker?.getElement()?.classList.remove('military-plane');
+                  // Tooltip classes
                   planeModel.marker
                     .getTooltip()
                     ?.getElement()
                     ?.classList.add('new-plane-tooltip');
-                  // Tooltip handled above (military removed)
+                  planeModel.marker
+                    .getTooltip()
+                    ?.getElement()
+                    ?.classList.remove('military-plane-tooltip');
                 }
               } else {
                 // Not new and not on ground
@@ -821,9 +803,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (
           plane.lat != null &&
           plane.lon != null &&
-          haversineDistance(center.lat, center.lng, plane.lat, plane.lon) <= radKm
+          haversineDistance(center.lat, center.lng, plane.lat, plane.lon) <=
+            radKm
         ) {
-          plane['airportName'] = this.airportData.get(id)?.name || '';
+          const md = this.airportData.get(id);
+          plane.airportName = md?.name || '';
+          plane.airportCode = md?.code || '';
           break;
         }
       }
@@ -1118,7 +1103,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     lon: number,
     radiusKm: number
   ): Promise<void> {
-    this.ngZone.run(() => (this.loadingAirports = true));
+    console.log('[MapComponent] findAndDisplayAirports: start');
+    this.ngZone.run(() => {
+      this.loadingAirports = true;
+      this.cdr.detectChanges();
+    });
+    console.log('[MapComponent] loadingAirports set to', this.loadingAirports);
     // Track runway radius promises to delay spinner hiding
     const radiusPromises: Promise<void>[] = [];
 
@@ -1159,13 +1149,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
           if (airportLat !== undefined && airportLon !== undefined) {
             const name = element.tags?.['name'] || 'Unknown Airport';
-            const hasIata = !!element.tags?.['iata'];
+            const code = element.tags?.['iata'] || ''; // airport IATA code
             // store metadata
-            this.airportData.set(airportId, { name, hasIata });
+            this.airportData.set(airportId, { name, code });
+
             foundAirportIds.add(airportId);
 
             // Determine radius: use runway lengths if available, fallback to IATA presence
-            const defaultKm = hasIata
+            const defaultKm = code
               ? MAJOR_AIRPORT_RADIUS_KM
               : MINOR_AIRPORT_RADIUS_KM;
             const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;
@@ -1174,7 +1165,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             if (!this.airportCircles.has(airportId)) {
               console.log(
                 `[MapComponent] Adding airport circle for ID: ${airportId} (${
-                  hasIata ? 'commercial' : 'other'
+                  code ? 'commercial' : 'other'
                 }) at ${airportLat}, ${airportLon} with radius ${useKm}km`
               );
               const circle = L.circle([airportLat, airportLon], {
@@ -1195,7 +1186,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 const p = this.computeAirportRadiusKm(
                   airportLat,
                   airportLon,
-                  hasIata
+                  !!code
                 )
                   .then((radius) => {
                     this.airportRadiusCache.set(airportId, radius);
@@ -1230,7 +1221,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             id,
             lat: circle.getLatLng().lat,
             lon: circle.getLatLng().lng,
-            hasIata: this.airportData.get(id)?.hasIata || false,
+            hasIata: !!this.airportData.get(id)?.code,
           })
         );
         // compute bbox covering all airports plus margin
@@ -1312,7 +1303,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         circle.setStyle({ fillOpacity: 0.6 })
       );
       // hide loading indicator inside Angular zone
-      this.ngZone.run(() => (this.loadingAirports = false));
+      this.ngZone.run(() => {
+        this.loadingAirports = false;
+        this.cdr.detectChanges();
+      });
+      console.log('[MapComponent] findAndDisplayAirports: complete, hiding loading indicator');
+      console.log('[MapComponent] loadingAirports set to', this.loadingAirports);
     } catch (error) {
       console.error(
         '[MapComponent] Failed to fetch or process airport data:',

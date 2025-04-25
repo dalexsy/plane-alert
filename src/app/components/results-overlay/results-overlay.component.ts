@@ -22,6 +22,7 @@ import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
 import { SpecialListService } from '../../services/special-list.service';
+import { MilitaryPrefixService } from '../../services/military-prefix.service';
 import { haversineDistance } from '../../utils/geo-utils';
 
 export interface PlaneLogEntry {
@@ -40,6 +41,8 @@ export interface PlaneLogEntry {
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
   isSpecial?: boolean; // Add special plane flag
+  airportName?: string; // Name of airport if plane is on ground near one
+  airportCode?: string; // IATA code for airport if available
 }
 
 @Component({
@@ -113,7 +116,8 @@ export class ResultsOverlayComponent
     public settings: SettingsService,
     private aircraftDb: AircraftDbService,
     private scanService: ScanService,
-    private specialListService: SpecialListService
+    private specialListService: SpecialListService,
+    private militaryPrefixService: MilitaryPrefixService
   ) {
     // react to custom special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -122,6 +126,10 @@ export class ResultsOverlayComponent
   }
 
   ngOnInit(): void {
+    // Load military prefix exceptions for overlay
+    this.militaryPrefixService.loadPrefixes().then(() => {
+      this.resultsUpdated = true; // trigger title and sort refresh
+    });
     // commercialMute is loaded by SettingsService.load()
     // Collapse state already loaded by SettingsService.load()
     // Just update the time every second
@@ -317,8 +325,11 @@ export class ResultsOverlayComponent
 
   private setMilitaryFlag(planes: PlaneLogEntry[]): void {
     planes.forEach((plane) => {
-      const record = this.aircraftDb.lookup(plane.icao);
-      plane.isMilitary = record?.mil || false; // Set isMilitary based on the database flag
+      const dbMil = this.aircraftDb.lookup(plane.icao)?.mil || false;
+      const prefixMil = this.militaryPrefixService.isMilitaryCallsign(
+        plane.callsign
+      );
+      plane.isMilitary = prefixMil || dbMil;
     });
   }
 
@@ -468,13 +479,16 @@ export class ResultsOverlayComponent
 
     if (topPlane) {
       if (topPlane.isMilitary) {
-        // For military planes, show [MIL] [<country>] <model or callsign>
+        // For military planes, show [MIL] [<country>/<callsign>] <model or callsign>
         const code =
           this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
           topPlane.origin;
+        const callsignPrefix = topPlane.callsign
+          ? topPlane.callsign.substring(0, 3).toUpperCase()
+          : 'N/A';
         const display =
           topPlane.model?.trim() || '' ? topPlane.model : topPlane.callsign;
-        const titleContent = `[MIL] [${code}] ${display}`;
+        const titleContent = `[MIL] [${code}/${callsignPrefix}] ${display}`;
         if (titleContent !== this.lastTitleUpdateHash) {
           this.lastTitleUpdateHash = titleContent;
           document.title = `${titleContent} peeped! | ${this.baseTitle}`;
