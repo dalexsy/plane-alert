@@ -66,7 +66,6 @@
 }
 
 .predicted-path-line {
-  stroke: white;
   stroke-width: 3px;
   stroke-opacity: 1;
   stroke-dasharray: 10, 5;
@@ -76,9 +75,9 @@
   > div {
     // Target the inner div containing the '▶'
     font-size: 1.2em;
-    color: white;
     opacity: 1;
     transform-origin: center; // Keep rotation centered
     pointer-events: none; // Prevent interaction
+    // color is set inline based on altitude
   }
 }

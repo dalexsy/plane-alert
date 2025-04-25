@@ -91,18 +91,26 @@
                   plane.callsign && plane.callsign.trim().length >= 3;
                   else noLink
                 "
-              >
-                <a
-                  href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                ><span class="call-sign">
+                  <a
+                    href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ plane.callsign }}
+                  </a>
+                  <span
+                    *ngIf="plane.isMilitary"
+                    class="material-symbols-sharp icon small military-star"
+                    title="Military plane"
+                    >star</span
+                  ></span
                 >
-                  {{ plane.callsign }}
-                </a>
               </ng-container>
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
               </ng-template>
+
               <!-- Special marker toggle button -->
               <app-button
                 *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
@@ -131,7 +139,15 @@
             <span class="operator" *ngIf="plane.operator">{{
               plane.operator
             }}</span>
-            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
+            <span class="model" *ngIf="plane.model">
+              <a
+                href="https://www.bing.com/search?q={{ plane.model }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ plane.model }}
+              </a>
+            </span>
           </span>
         </div>
       </div>
@@ -190,17 +206,26 @@
                   else noLink
                 "
               >
-                <a
-                  href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <span class="call-sign">
+                  <a
+                    href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ plane.callsign }}
+                  </a>
+                  <span
+                    *ngIf="plane.isMilitary"
+                    class="material-symbols-sharp icon small military-star"
+                    title="Military plane"
+                    >star</span
+                  ></span
                 >
-                  {{ plane.callsign }}
-                </a>
               </ng-container>
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
               </ng-template>
+
               <!-- Special marker toggle button -->
               <app-button
                 *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
@@ -228,7 +253,15 @@
             <span class="operator" *ngIf="plane.operator">{{
               plane.operator
             }}</span>
-            <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
+            <span class="model" *ngIf="plane.model">
+              <a
+                href="https://www.bing.com/search?q={{ plane.model }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ plane.model }}
+              </a>
+            </span>
           </span>
         </div>
       </div>
@@ -323,6 +356,12 @@
                 <ng-template #noLink>
                   <span class="none-callsign">Pending</span>
                 </ng-template>
+                <span
+                  *ngIf="plane.isMilitary"
+                  class="material-symbols-sharp icon small military-star"
+                  title="Military plane"
+                  >star</span
+                >
                 <!-- Special marker toggle button -->
                 <app-button
                   *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"

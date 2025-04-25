@@ -144,8 +144,8 @@ export class PlaneFinderService {
       }
       // Proceed with prediction, applying turnRate each step
       let weightedTrack = track;
-      // Prediction window: 0.5 minutes (30 seconds) to keep paths shorter
-      const minutesAhead = 0.5;
+      // Prediction window: 5 minutes for 10x longer prediction window
+      const minutesAhead = 2; // increased to 5 minutes for 10x longer prediction window
       const pointsCount = 15;
       let curLat = lat;
       let curLon = lon;
@@ -190,8 +190,8 @@ export class PlaneFinderService {
       }
       pathPoints = smoothed;
 
-      // Cap the path length to a maximum distance (e.g., 5 km) from the current position
-      const maxDistanceKm = 5;
+      // Cap the path length to a maximum distance (e.g., 50 km) from the current position
+      const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
       pathPoints = pathPoints.filter((pt) => {
         const dist = haversineDistance(lat, lon, pt[0], pt[1]);
         return dist <= maxDistanceKm;
@@ -201,13 +201,22 @@ export class PlaneFinderService {
         new Set(pathPoints.map((p) => p.join(',')))
       );
       if (uniquePoints.length >= 2) {
-        // Update existing or create new polyline
+        // Determine color based on predicted altitude
+        const maxPredAlt = 12000;
+        const predHue =
+          altitude != null ? Math.min(altitude / maxPredAlt, 1) * 300 : 0;
+        const predColor = `hsl(${predHue},100%,50%)`;
+        // Update existing or create new polyline with altitude-based color
         if (plane.path) {
           plane.path.setLatLngs(pathPoints);
-          plane.path.setStyle({ className: 'predicted-path-line' });
+          plane.path.setStyle({
+            className: 'predicted-path-line',
+            color: predColor,
+          });
         } else {
           plane.path = L.polyline(pathPoints, {
             className: 'predicted-path-line',
+            color: predColor,
             interactive: false,
             pane: 'overlayPane',
           }).addTo(map);
@@ -226,6 +235,11 @@ export class PlaneFinderService {
 
       // --- Add/Update Arrowhead ---
       if (pathPoints.length >= 2) {
+        // Compute arrow color based on predicted altitude
+        const maxPredAlt = 12000;
+        const arrowHue =
+          altitude != null ? Math.min(altitude / maxPredAlt, 1) * 300 : 0;
+        const arrowColor = `hsl(${arrowHue},100%,50%)`;
         const endPoint = pathPoints[pathPoints.length - 1];
         const prevPoint = pathPoints[pathPoints.length - 2];
         const bearing = computeBearing(
@@ -237,7 +251,7 @@ export class PlaneFinderService {
         const rotation = bearing - 90; // Adjust rotation for '▶' default orientation
 
         const arrowheadIcon = L.divIcon({
-          html: `<div style="transform: rotate(${rotation}deg);">▶</div>`,
+          html: `<div style="transform: rotate(${rotation}deg); color: ${arrowColor};">▶</div>`,
           className: 'predicted-path-arrowhead',
           iconSize: [20, 20],
           iconAnchor: [10, 10],
