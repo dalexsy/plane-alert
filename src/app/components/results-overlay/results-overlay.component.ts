@@ -467,8 +467,8 @@ export class ResultsOverlayComponent
     const topPlane = this.getTopPriorityPlane();
 
     if (topPlane) {
-      // For military planes, show [MIL] [<country>] <model or callsign>
       if (topPlane.isMilitary) {
+        // For military planes, show [MIL] [<country>] <model or callsign>
         const code =
           this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
           topPlane.origin;
@@ -480,18 +480,21 @@ export class ResultsOverlayComponent
           document.title = `${titleContent} peeped! | ${this.baseTitle}`;
         }
       } else {
-        // Priority: operator → callsign → model
-        let titleContent = '';
-        if (topPlane.operator) {
-          titleContent = topPlane.operator;
-        } else if (topPlane.callsign && topPlane.callsign.trim().length >= 3) {
-          titleContent = topPlane.callsign;
-        } else if (topPlane.model) {
-          titleContent = topPlane.model;
-        }
-        if (titleContent && titleContent !== this.lastTitleUpdateHash) {
-          this.lastTitleUpdateHash = titleContent;
-          document.title = `${titleContent} peeped! | ${this.baseTitle}`;
+        // Determine display text: operator → callsign → model
+        let display = '';
+        if (topPlane.operator) display = topPlane.operator;
+        else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
+          display = topPlane.callsign;
+        else if (topPlane.model) display = topPlane.model;
+        if (display && display !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = display;
+          if (topPlane.isSpecial) {
+            // Special plane: original peeped title
+            document.title = `${display} peeped! | ${this.baseTitle}`;
+          } else {
+            // Non-military, non-special: stinky title variant
+            document.title = `Just stinky ${display}. | ${this.baseTitle}`;
+          }
         }
       }
     } else if (this.lastTitleUpdateHash !== '') {
