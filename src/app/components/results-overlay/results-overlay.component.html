@@ -151,13 +151,16 @@
                 [size]="'small'"
                 (click)="onFilter(plane)"
               ></app-button>
-              <span class="operator" [class.none-callsign]="!plane.operator">{{
-                plane.operator || "Unknown operator"
-              }}</span>
+              <span
+                class="operator"
+                [class.none-callsign]="!plane.operator"
+                [title]="!plane.operator ? 'Unknown operator.' : ''"
+                >{{ plane.operator || "UNK" }}</span
+              >
             </span>
             <span class="model" *ngIf="plane.model">
               <a
-                href="https://www.bing.com/search?q={{ plane.model }}"
+                href="https://www.bing.com/search?q={{ plane.model }} aircraft"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -283,13 +286,16 @@
                 [size]="'small'"
                 (click)="onFilter(plane)"
               ></app-button>
-              <span class="operator" [class.none-callsign]="!plane.operator">{{
-                plane.operator || "Unknown operator"
-              }}</span>
+              <span
+                class="operator"
+                [class.none-callsign]="!plane.operator"
+                [title]="!plane.operator ? 'Unknown operator.' : ''"
+                >{{ plane.operator || "UNK" }}</span
+              >
             </span>
             <span class="model" *ngIf="plane.model">
               <a
-                href="https://www.bing.com/search?q={{ plane.model }}"
+                href="https://www.bing.com/search?q={{ plane.model }} aircraft"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -422,12 +428,15 @@
                 <span
                   class="operator"
                   [class.none-callsign]="!plane.operator"
-                  >{{ plane.operator || "Unknown operator" }}</span
+                  [title]="!plane.operator ? 'Unknown operator.' : ''"
+                  >{{ plane.operator || "UNK" }}</span
                 >
               </span>
               <span class="model" *ngIf="plane.model">
                 <a
-                  href="https://www.bing.com/search?q={{ plane.model }}"
+                  href="https://www.bing.com/search?q={{
+                    plane.model
+                  }} aircraft"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
