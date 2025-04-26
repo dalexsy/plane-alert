@@ -109,6 +109,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Set of ICAOs for planes currently active on the map
   activePlaneIcaos = new Set<string>();
 
+  private airportsLoading = false; // guard for Overpass fetches
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -502,6 +504,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number, // This is the MAIN search radius
     zoomLevel?: number
   ): void {
+    const t0 = performance.now();
+    console.debug(
+      `[MapComponent] updateMap start lat=${lat}, lon=${lon}, radiusKm=${radiusKm}`
+    );
     // Clamp radius to a maximum of 500km
     let mainRadius = radiusKm ?? this.settings.radius ?? 5;
     if (mainRadius > 500) {
@@ -543,6 +549,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Find airports within the new MAIN radius
     this.findAndDisplayAirports(lat, lon, mainRadius).then(() => {
+      const t1 = performance.now();
+      console.debug(
+        `[MapComponent] findAndDisplayAirports completed in ${(t1 - t0).toFixed(
+          1
+        )}ms`
+      );
       // Only after airports are potentially updated, remove out-of-range planes
       // and force a plane scan.
       this.removeOutOfRangePlanes(lat, lon, mainRadius);
@@ -624,15 +636,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const hasMil = updatedLog.some(
           (p) => !!this.aircraftDb.lookup(p.icao)?.mil
         );
-        console.log(
-          `[Favicon] findPlanes: hasSpecial=${hasSpecial}, hasMil=${hasMil}`
-        );
+        // console.debug(`[Favicon] findPlanes: hasSpecial=${hasSpecial}, hasMil=${hasMil}`);
         const iconToUse = hasSpecial
           ? 'assets/favicon/special/favicon.ico'
           : hasMil
           ? 'assets/favicon/military/favicon.ico'
           : 'assets/favicon/favicon.ico';
-        console.log('[Favicon] Selected icon to update:', iconToUse);
+        // console.debug('[Favicon] Selected icon to update:', iconToUse);
         this.updateFavicon(iconToUse);
 
         const newUnfiltered = updatedLog.filter(
@@ -1003,6 +1013,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   resolveAndUpdateFromAddress(): void {
+    console.debug(
+      `[MapComponent] resolveAndUpdateFromAddress called with address='${this.inputOverlayComponent.addressInputRef.nativeElement.value}'`
+    );
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
     // Get the MAIN radius from the input, fallback to settings.radius
@@ -1236,28 +1249,38 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     lon: number,
     radiusKm: number
   ): Promise<void> {
+    if (this.airportsLoading) {
+      console.debug(
+        '[MapComponent] findAndDisplayAirports skipped: already loading'
+      );
+      return;
+    }
+    this.airportsLoading = true;
+    console.debug(
+      `[MapComponent] findAndDisplayAirports start lat=${lat}, lon=${lon}, radiusKm=${radiusKm}`
+    );
     this.ngZone.run(() => {
       this.loadingAirports = true;
       this.cdr.detectChanges();
     });
 
-    // Track runway radius promises to delay spinner hiding
-    const radiusPromises: Promise<void>[] = [];
-
-    const radiusMeters = radiusKm * 1000;
-    const overpassUrl = 'https://overpass-api.de/api/interpreter';
-    // Query for nodes, ways, and relations tagged as aerodromes within the radius
-    const query = `
-      [out:json][timeout:25];
-      (
-        node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-        way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-        relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-      );
-      out center;
-    `;
-
     try {
+      // Track runway radius promises to delay spinner hiding
+      const radiusPromises: Promise<void>[] = [];
+
+      const radiusMeters = radiusKm * 1000;
+      const overpassUrl = 'https://overpass-api.de/api/interpreter';
+      // Query for nodes, ways, and relations tagged as aerodromes within the radius
+      const query = `
+        [out:json][timeout:25];
+        (
+          node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+          way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+          relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+        );
+        out center;
+      `;
+
       const response = await fetch(overpassUrl, {
         method: 'POST',
         body: query,
@@ -1423,8 +1446,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         '[MapComponent] Failed to fetch or process airport data:',
         error
       );
-      // Optionally clear existing circles if the fetch fails? Or leave them?
-      // For now, leave them, maybe it's a temporary network issue.
+      // Hide loading indicator on error
+      this.ngZone.run(() => {
+        this.loadingAirports = false;
+        this.cdr.detectChanges();
+      });
+    } finally {
+      this.airportsLoading = false;
     }
   }
 

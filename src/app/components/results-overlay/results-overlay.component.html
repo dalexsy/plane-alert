@@ -87,17 +87,12 @@
                 (mouseleave)="hoveredSkyPlaneIcao = null"
               >
                 <!-- Moved Location Button Here -->
-                <app-button
-                  [icon]="
-                    plane.icao === highlightedPlaneIcao
-                      ? 'my_location'
-                      : 'location_searching'
-                  "
-                  type="tertiary"
-                  [size]="'small'"
-                  (click)="onCenterPlane(plane, $event)"
-                  [ariaLabel]="'Center plane on map'"
-                ></app-button>
+                <app-location-button
+                  [plane]="plane"
+                  [highlightedPlaneIcao]="highlightedPlaneIcao"
+                  [activePlaneIcaos]="activePlaneIcaos"
+                  (centerPlane)="handleCenterPlane($event)"
+                ></app-location-button>
                 <span
                   [innerHTML]="countryService.getFlagHTML(plane.origin)"
                 ></span>
@@ -226,17 +221,12 @@
                 (mouseleave)="hoveredAirportPlaneIcao = null"
               >
                 <!-- Moved Location Button Here -->
-                <app-button
-                  [icon]="
-                    plane.icao === highlightedPlaneIcao
-                      ? 'my_location'
-                      : 'location_searching'
-                  "
-                  type="tertiary"
-                  [size]="'small'"
-                  (click)="onCenterPlane(plane, $event)"
-                  [ariaLabel]="'Center plane on map'"
-                ></app-button>
+                <app-location-button
+                  [plane]="plane"
+                  [highlightedPlaneIcao]="highlightedPlaneIcao"
+                  [activePlaneIcaos]="activePlaneIcaos"
+                  (centerPlane)="handleCenterPlane($event)"
+                ></app-location-button>
                 <span
                   [innerHTML]="countryService.getFlagHTML(plane.origin)"
                 ></span>
@@ -380,23 +370,12 @@
                   (mouseleave)="hoveredSeenPlaneIcao = null"
                 >
                   <!-- Location button for seen planes -->
-                  <app-button
-                    [icon]="
-                      plane.icao === highlightedPlaneIcao
-                        ? 'my_location'
-                        : 'location_searching'
-                    "
-                    type="tertiary"
-                    [size]="'small'"
-                    (click)="centerPlane.emit(plane)"
-                    [ariaLabel]="'Center plane on map'"
-                    [disabled]="
-                      !plane.lat ||
-                      !plane.lon ||
-                      !activePlaneIcaos.has(plane.icao)
-                    "
-                    title="No longer in range."
-                  ></app-button>
+                  <app-location-button
+                    [plane]="plane"
+                    [highlightedPlaneIcao]="highlightedPlaneIcao"
+                    [activePlaneIcaos]="activePlaneIcaos"
+                    (centerPlane)="handleCenterPlane($event)"
+                  ></app-location-button>
                   <span
                     [innerHTML]="countryService.getFlagHTML(plane.origin)"
                   ></span>

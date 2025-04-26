@@ -21,6 +21,7 @@ import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { SpecialListService } from '../../services/special-list.service';
 import { ButtonComponent } from '../ui/button.component';
+import { LocationButtonComponent } from '../ui/location-button.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
@@ -50,7 +51,7 @@ export interface PlaneLogEntry {
 @Component({
   selector: 'app-results-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, LocationButtonComponent],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
