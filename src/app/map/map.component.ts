@@ -591,15 +591,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.specialListService.isSpecial(p.icao)
         );
         const hasMil = updatedLog.some(
-          (p) => this.aircraftDb.lookup(p.icao)?.mil
+          (p) => !!this.aircraftDb.lookup(p.icao)?.mil
         );
-        if (hasSpecial) {
-          this.updateFavicon('assets/favicon/special-plane.ico');
-        } else if (hasMil) {
-          this.updateFavicon('assets/favicon/military-plane.ico');
-        } else {
-          this.updateFavicon('assets/favicon/favicon.ico');
-        }
+        console.log(
+          `[Favicon] findPlanes: hasSpecial=${hasSpecial}, hasMil=${hasMil}`
+        );
+        const iconToUse = hasSpecial
+          ? 'assets/favicon/special/favicon.ico'
+          : hasMil
+          ? 'assets/favicon/military/favicon.ico'
+          : 'assets/favicon/favicon.ico';
+        console.log('[Favicon] Selected icon to update:', iconToUse);
+        this.updateFavicon(iconToUse);
 
         const newUnfiltered = updatedLog.filter(
           (p) => p.isNew && !p.filteredOut
@@ -745,11 +748,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Replace favicon by updating the href of the <link rel="icon"> tag */
   private updateFavicon(iconUrl: string): void {
-    const link: HTMLLinkElement | null =
-      this.document.querySelector("link[rel*='icon']");
-    if (link) {
-      link.href = iconUrl;
+    const linkSelectors = [
+      "link[rel='icon']",
+      "link[rel='shortcut icon']",
+    ].join(',');
+    const links =
+      this.document.querySelectorAll<HTMLLinkElement>(linkSelectors);
+    if (!links.length) {
+      console.warn(
+        '[Favicon] No <link rel="icon"> or <link rel="shortcut icon"> tags found'
+      );
+      return;
     }
+    links.forEach((link) => {
+      console.log('[Favicon] Updating', link.rel, 'to', iconUrl);
+      link.href = iconUrl;
+    });
   }
 
   updatePlaneLog(planes: PlaneModel[]): void {

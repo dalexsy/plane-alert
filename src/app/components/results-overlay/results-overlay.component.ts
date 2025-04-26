@@ -481,7 +481,7 @@ export class ResultsOverlayComponent
 
     if (topPlane) {
       if (topPlane.isMilitary) {
-        // For military planes, show [MIL] [<country>/<callsign>] <model or callsign>
+        // For military planes, show [MIL] [...]
         const code =
           this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
           topPlane.origin;
@@ -496,19 +496,29 @@ export class ResultsOverlayComponent
           document.title = `${titleContent} peeped! | ${this.baseTitle}`;
         }
       } else {
-        // Determine display text: operator → callsign → model
-        let display = '';
-        if (topPlane.operator) display = topPlane.operator;
-        else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
-          display = topPlane.callsign;
-        else if (topPlane.model) display = topPlane.model;
-        if (display && display !== this.lastTitleUpdateHash) {
-          this.lastTitleUpdateHash = display;
-          if (topPlane.isSpecial) {
-            // Special plane: original peeped title
-            document.title = `${display} peeped! | ${this.baseTitle}`;
-          } else {
-            // Non-military, non-special: stinky title variant
+        // Special planes: same as military but without [MIL]
+        const code =
+          this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
+          topPlane.origin;
+        const callsignPrefix = topPlane.callsign
+          ? topPlane.callsign.substring(0, 3).toUpperCase()
+          : 'N/A';
+        const displayModel = topPlane.model?.trim() || topPlane.callsign;
+        if (topPlane.isSpecial) {
+          const specialTitle = `[${code}/${callsignPrefix}] ${displayModel} peeped!`;
+          if (specialTitle !== this.lastTitleUpdateHash) {
+            this.lastTitleUpdateHash = specialTitle;
+            document.title = `${specialTitle} | ${this.baseTitle}`;
+          }
+        } else {
+          // Non-military, non-special: stinky title variant
+          let display = '';
+          if (topPlane.operator) display = topPlane.operator;
+          else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
+            display = topPlane.callsign;
+          else if (topPlane.model) display = topPlane.model;
+          if (display && display !== this.lastTitleUpdateHash) {
+            this.lastTitleUpdateHash = display;
             document.title = `Just stinky ${display}. | ${this.baseTitle}`;
           }
         }
