@@ -1,5 +1,3 @@
-@use "../../../styles.scss" as *;
-
 .results-overlay {
   position: absolute;
   top: 0.25rem;
@@ -66,6 +64,7 @@
     .plane-list {
       display: flex;
       flex-direction: column;
+      padding-right: 0.25rem;
       gap: 0.5rem;
       position: relative;
       padding-bottom: 0;
@@ -74,6 +73,11 @@
       overflow-y: auto;
 
       .model {
+        text-align: right;
+        hyphens: auto;
+      }
+
+      .airport-name {
         text-align: right;
       }
 
@@ -90,7 +94,7 @@
 
         // merge common styles
         align-items: center;
-        font-family: $font-mono;
+        font-family: "JetBrains Mono", monospace;
 
         .flag-callsign,
         .direction-info {
@@ -116,7 +120,7 @@
           }
         }
         .flag-callsign {
-          grid-template-columns: 2rem 1.75rem auto auto;
+          grid-template-columns: 2rem 1.75rem auto auto auto;
           margin-left: -0.5rem;
         }
 
@@ -148,6 +152,7 @@
           display: flex;
           justify-content: space-between;
           width: 100%;
+          align-items: center;
         }
       }
     }

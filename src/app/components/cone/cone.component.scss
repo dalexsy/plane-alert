@@ -1,0 +1,20 @@
+// Scoped band segment styles
+:host ::ng-deep {
+  @for $i from 0 through 5 {
+    .band-#{$i} {
+      stroke: var(--band-color) !important;
+      fill: var(--band-color) !important;
+      stroke-opacity: 0.6;
+      fill-opacity: 0.2;
+      stroke-width: 1.5px;
+    }
+  }
+}
+
+/* Cone label styles */
+.cone-label span {
+  color: #fff !important;
+  font-weight: bold;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+}

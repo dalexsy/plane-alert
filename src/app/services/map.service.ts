@@ -89,9 +89,7 @@ export class MapService {
         .overlayPane.querySelector('svg') as SVGSVGElement;
       if (svg && group) {
         svg.insertBefore(group, svg.firstChild);
-        console.log(
-          '[MapService] main radius group prepended to overlayPane SVG'
-        );
+        // debug: main radius group prepended
       }
     } catch (e) {
       console.warn('[MapService] failed to prepend main radius group', e);

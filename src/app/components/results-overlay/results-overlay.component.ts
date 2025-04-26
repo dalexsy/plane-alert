@@ -22,6 +22,7 @@ import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
 import { SpecialListService } from '../../services/special-list.service';
+import { MilitaryPrefixService } from '../../services/military-prefix.service';
 import { haversineDistance } from '../../utils/geo-utils';
 
 export interface PlaneLogEntry {
@@ -40,6 +41,8 @@ export interface PlaneLogEntry {
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
   isSpecial?: boolean; // Add special plane flag
+  airportName?: string; // Name of airport if plane is on ground near one
+  airportCode?: string; // IATA code for airport if available
 }
 
 @Component({
@@ -52,8 +55,10 @@ export interface PlaneLogEntry {
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
 {
-  // track hover state for special toggle
-  hoveredPlaneIcao: string | null = null;
+  // track hover state separately for each list to avoid cross-list hover
+  hoveredSkyPlaneIcao: string | null = null;
+  hoveredAirportPlaneIcao: string | null = null;
+  hoveredSeenPlaneIcao: string | null = null;
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
     return this.settings.seenCollapsed;
@@ -113,7 +118,8 @@ export class ResultsOverlayComponent
     public settings: SettingsService,
     private aircraftDb: AircraftDbService,
     private scanService: ScanService,
-    private specialListService: SpecialListService
+    private specialListService: SpecialListService,
+    private militaryPrefixService: MilitaryPrefixService
   ) {
     // react to custom special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -122,6 +128,10 @@ export class ResultsOverlayComponent
   }
 
   ngOnInit(): void {
+    // Load military prefix exceptions for overlay
+    this.militaryPrefixService.loadPrefixes().then(() => {
+      this.resultsUpdated = true; // trigger title and sort refresh
+    });
     // commercialMute is loaded by SettingsService.load()
     // Collapse state already loaded by SettingsService.load()
     // Just update the time every second
@@ -317,8 +327,11 @@ export class ResultsOverlayComponent
 
   private setMilitaryFlag(planes: PlaneLogEntry[]): void {
     planes.forEach((plane) => {
-      const record = this.aircraftDb.lookup(plane.icao);
-      plane.isMilitary = record?.mil || false; // Set isMilitary based on the database flag
+      const dbMil = this.aircraftDb.lookup(plane.icao)?.mil || false;
+      const prefixMil = this.militaryPrefixService.isMilitaryCallsign(
+        plane.callsign
+      );
+      plane.isMilitary = prefixMil || dbMil;
     });
   }
 
@@ -468,31 +481,44 @@ export class ResultsOverlayComponent
 
     if (topPlane) {
       if (topPlane.isMilitary) {
-        // For military planes, show [MIL] [<country>] <model or callsign>
+        // For military planes, show [MIL] [...]
         const code =
           this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
           topPlane.origin;
+        const callsignPrefix = topPlane.callsign
+          ? topPlane.callsign.substring(0, 3).toUpperCase()
+          : 'N/A';
         const display =
           topPlane.model?.trim() || '' ? topPlane.model : topPlane.callsign;
-        const titleContent = `[MIL] [${code}] ${display}`;
+        const titleContent = `[MIL] [${code}/${callsignPrefix}] ${display}`;
         if (titleContent !== this.lastTitleUpdateHash) {
           this.lastTitleUpdateHash = titleContent;
           document.title = `${titleContent} peeped! | ${this.baseTitle}`;
         }
       } else {
-        // Determine display text: operator → callsign → model
-        let display = '';
-        if (topPlane.operator) display = topPlane.operator;
-        else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
-          display = topPlane.callsign;
-        else if (topPlane.model) display = topPlane.model;
-        if (display && display !== this.lastTitleUpdateHash) {
-          this.lastTitleUpdateHash = display;
-          if (topPlane.isSpecial) {
-            // Special plane: original peeped title
-            document.title = `${display} peeped! | ${this.baseTitle}`;
-          } else {
-            // Non-military, non-special: stinky title variant
+        // Special planes: same as military but without [MIL]
+        const code =
+          this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
+          topPlane.origin;
+        const callsignPrefix = topPlane.callsign
+          ? topPlane.callsign.substring(0, 3).toUpperCase()
+          : 'N/A';
+        const displayModel = topPlane.model?.trim() || topPlane.callsign;
+        if (topPlane.isSpecial) {
+          const specialTitle = `[${code}/${callsignPrefix}] ${displayModel} peeped!`;
+          if (specialTitle !== this.lastTitleUpdateHash) {
+            this.lastTitleUpdateHash = specialTitle;
+            document.title = `${specialTitle} | ${this.baseTitle}`;
+          }
+        } else {
+          // Non-military, non-special: stinky title variant
+          let display = '';
+          if (topPlane.operator) display = topPlane.operator;
+          else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
+            display = topPlane.callsign;
+          else if (topPlane.model) display = topPlane.model;
+          if (display && display !== this.lastTitleUpdateHash) {
+            this.lastTitleUpdateHash = display;
             document.title = `Just stinky ${display}. | ${this.baseTitle}`;
           }
         }

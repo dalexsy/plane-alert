@@ -4,7 +4,7 @@
   <div class="button-group">
     <span class="map-status">
       <span *ngIf="loadingAirports" class="loading-airports">
-        <span class="loading-spinner"></span>Loading airports
+        <span class="loading-spinner"></span>Processing airports
       </span></span
     >
     <!-- Hide Export Filter List button for now -->
@@ -70,8 +70,8 @@
           <span class="top">
             <span
               class="flag-callsign"
-              (mouseenter)="hoveredPlaneIcao = plane.icao"
-              (mouseleave)="hoveredPlaneIcao = null"
+              (mouseenter)="hoveredSkyPlaneIcao = plane.icao"
+              (mouseleave)="hoveredSkyPlaneIcao = null"
             >
               <app-button
                 [icon]="
@@ -91,7 +91,8 @@
                   plane.callsign && plane.callsign.trim().length >= 3;
                   else noLink
                 "
-                ><span class="call-sign">
+              >
+                <span class="call-sign">
                   <a
                     href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
                     target="_blank"
@@ -104,8 +105,8 @@
                     class="material-symbols-sharp icon small military-star"
                     title="Military plane"
                     >star</span
-                  ></span
-                >
+                  >
+                </span>
               </ng-container>
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
@@ -113,7 +114,7 @@
 
               <!-- Special marker toggle button -->
               <app-button
-                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                *ngIf="hoveredSkyPlaneIcao === plane.icao || plane.isSpecial"
                 type="tertiary"
                 [size]="'small'"
                 class="special-icon"
@@ -136,9 +137,11 @@
             </span>
           </span>
           <span class="top">
-            <span class="operator" *ngIf="plane.operator">{{
-              plane.operator
-            }}</span>
+            <span>
+              <span class="operator" *ngIf="plane.operator">{{
+                plane.operator
+              }}</span></span
+            >
             <span class="model" *ngIf="plane.model">
               <a
                 href="https://www.bing.com/search?q={{ plane.model }}"
@@ -180,12 +183,11 @@
             settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
           "
         >
-          <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
           <span class="top">
             <span
               class="flag-callsign"
-              (mouseenter)="hoveredPlaneIcao = plane.icao"
-              (mouseleave)="hoveredPlaneIcao = null"
+              (mouseenter)="hoveredAirportPlaneIcao = plane.icao"
+              (mouseleave)="hoveredAirportPlaneIcao = null"
             >
               <app-button
                 [icon]="
@@ -219,8 +221,8 @@
                     class="material-symbols-sharp icon small military-star"
                     title="Military plane"
                     >star</span
-                  ></span
-                >
+                  >
+                </span>
               </ng-container>
               <ng-template #noLink>
                 <span class="none-callsign">Pending</span>
@@ -228,7 +230,9 @@
 
               <!-- Special marker toggle button -->
               <app-button
-                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                *ngIf="
+                  hoveredAirportPlaneIcao === plane.icao || plane.isSpecial
+                "
                 type="tertiary"
                 [size]="'small'"
                 [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
@@ -238,21 +242,25 @@
                 "
               ></app-button>
             </span>
-            <span class="direction-info">
-              <span>{{ plane.cardinal }}</span>
-              <span
-                class="material-symbols-sharp direction-icon"
-                [style.transform]="'rotate(' + (plane?.bearing ?? 0) + 'deg)'"
-              >
-                navigation
-              </span>
-              <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
-            </span>
+            <!-- Display IATA code if available, else full airport name -->
+            <span
+              class="airport-code"
+              *ngIf="plane.airportCode"
+              [title]="plane.airportName"
+              >{{ plane.airportCode }}</span
+            >
+            <span
+              class="airport-name"
+              *ngIf="!plane.airportCode && plane.airportName"
+              >{{ plane.airportName }}</span
+            >
           </span>
           <span class="top">
-            <span class="operator" *ngIf="plane.operator">{{
-              plane.operator
-            }}</span>
+            <span
+              ><span class="operator" *ngIf="plane.operator">{{
+                plane.operator
+              }}</span></span
+            >
             <span class="model" *ngIf="plane.model">
               <a
                 href="https://www.bing.com/search?q={{ plane.model }}"
@@ -316,12 +324,11 @@
               settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
             "
           >
-            <!-- DEBUG: {{ plane.icao }} filteredOut: {{ plane.filteredOut }} -->
             <span class="top">
               <span
                 class="flag-callsign"
-                (mouseenter)="hoveredPlaneIcao = plane.icao"
-                (mouseleave)="hoveredPlaneIcao = null"
+                (mouseenter)="hoveredSeenPlaneIcao = plane.icao"
+                (mouseleave)="hoveredSeenPlaneIcao = null"
               >
                 <app-button
                   [icon]="
@@ -364,7 +371,7 @@
                 >
                 <!-- Special marker toggle button -->
                 <app-button
-                  *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                  *ngIf="hoveredSeenPlaneIcao === plane.icao || plane.isSpecial"
                   type="tertiary"
                   [size]="'small'"
                   [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
@@ -379,10 +386,20 @@
               </span>
             </span>
             <span class="top">
-              <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
-              <span class="operator" *ngIf="plane.operator">{{
-                plane.operator
-              }}</span>
+              <span>
+                <span class="operator" *ngIf="plane.operator">{{
+                  plane.operator
+                }}</span>
+              </span>
+              <span class="model" *ngIf="plane.model">
+                <a
+                  href="https://www.bing.com/search?q={{ plane.model }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ plane.model }}
+                </a>
+              </span>
             </span>
           </div>
         </div>

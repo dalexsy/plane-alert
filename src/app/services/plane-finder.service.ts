@@ -17,6 +17,7 @@ import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
+import { MilitaryPrefixService } from './military-prefix.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -53,16 +54,13 @@ export class PlaneFinderService {
   private mapInitialized = false;
   private isInitialLoad = false;
 
-  setInitialLoad(value: boolean): void {
-    this.isInitialLoad = value;
-  }
-
   constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
     private specialListService: SpecialListService,
-    private operatorCallSignService: OperatorCallSignService // inject our service
+    private operatorCallSignService: OperatorCallSignService, // inject our service
+    private militaryPrefixService: MilitaryPrefixService
   ) {}
 
   private randomizeBrightness(): string {
@@ -460,6 +458,8 @@ export class PlaneFinderService {
     // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
     await this.specialListService.refreshSpecialList(manualUpdate);
+    // Load any configured military prefixes
+    await this.militaryPrefixService.loadPrefixes();
 
     if (!this.mapInitialized) {
       map.setView(
@@ -506,7 +506,10 @@ export class PlaneFinderService {
 
       // Define isFiltered early after getting necessary info
       const aircraft = getAircraftInfo(id);
-      const isMilitary = aircraft?.mil || false;
+      // Treat any callsign matching configured prefixes as military
+      const prefixIsMil =
+        this.militaryPrefixService.isMilitaryCallsign(callsign);
+      const isMilitary = prefixIsMil || aircraft?.mil || false;
       const wouldBeFiltered = filterPlaneByPrefix(
         callsign,
         excludeDiscount,
@@ -570,6 +573,8 @@ export class PlaneFinderService {
           isSpecial: isSpecial,
         };
         planeModelInstance = new PlaneModel(initialPlaneData);
+        // Apply forced military flag on the model (not part of Plane interface)
+        planeModelInstance.isMilitary = isMilitary;
         previousLog.set(id, planeModelInstance);
       } else {
         // If instance exists, update its core properties before visual updates
@@ -581,6 +586,7 @@ export class PlaneFinderService {
         planeModelInstance.onGround = onGround;
         planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
         planeModelInstance.isSpecial = isSpecial;
+        planeModelInstance.isMilitary = isMilitary; // update forced military flag
       }
 
       // Update PlaneModel with potentially fetched aircraft data
@@ -711,8 +717,12 @@ export class PlaneFinderService {
       const stillNew = this.newPlaneService.isNew(plane.icao); // Check final 'new' status
       plane.isNew = stillNew; // Update the model's final 'new' status for the next cycle
 
-      const aircraft = getAircraftInfo(plane.icao); // Re-get info for military status if needed
-      const isMilitary = aircraft?.mil || false;
+      const aircraft = getAircraftInfo(plane.icao);
+      // Determine military flag based on configured prefixes or DB
+      const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
+        plane.callsign
+      );
+      const isMilitary = prefixIsMil2 || aircraft?.mil || false;
 
       // Update marker/tooltip classes based on final state
       if (plane.marker) {
