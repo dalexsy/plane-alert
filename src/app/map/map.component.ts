@@ -1005,10 +1005,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   resolveAndUpdateFromAddress(): void {
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
-    // Get the MAIN radius from the input
-    const mainRadius =
-      this.inputOverlayComponent.searchRadiusInputRef.nativeElement
-        .valueAsNumber;
+    // Get the MAIN radius from the input, fallback to settings.radius
+    const mainRadius = (() => {
+      const ref = this.inputOverlayComponent.searchRadiusInputRef;
+      const val = ref?.nativeElement?.valueAsNumber;
+      return !isNaN(val!) ? val! : this.settings.radius ?? 5;
+    })();
 
     // Check if we're at home location before clearing cones
     const homeLocation = this.settings.getHomeLocation();

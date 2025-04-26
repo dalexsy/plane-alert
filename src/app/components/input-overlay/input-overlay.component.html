@@ -46,8 +46,7 @@
         placeholder="Enter check interval (minutes)"
         step="any"
         [value]="settings.interval / 60"
-        (change)="onIntervalChange()"
-        (keydown.enter)="onResolveAndUpdate()"
+        (change)="onIntervalChange($event)"
       />
     </div>
     <div class="form-group">

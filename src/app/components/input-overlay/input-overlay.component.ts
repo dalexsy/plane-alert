@@ -24,11 +24,11 @@ import { ButtonComponent } from '../ui/button.component';
   styleUrls: ['./input-overlay.component.scss'],
 })
 export class InputOverlayComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('addressInput', { static: true })
+  @ViewChild('addressInput', { static: false })
   addressInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('searchRadiusInput', { static: true })
+  @ViewChild('searchRadiusInput', { static: false })
   searchRadiusInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('checkIntervalInput', { static: true })
+  @ViewChild('checkIntervalInput', { static: false })
   checkIntervalInputRef!: ElementRef<HTMLInputElement>;
 
   @Output() resolveAndUpdate = new EventEmitter<void>();
@@ -98,8 +98,9 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  onIntervalChange(): void {
-    const minutes = this.checkIntervalInputRef.nativeElement.valueAsNumber;
+  onIntervalChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const minutes = input.valueAsNumber;
     if (isNaN(minutes)) {
       return;
     }
