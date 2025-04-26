@@ -673,4 +673,11 @@ export class ResultsOverlayComponent
       plane.isSpecial = this.specialListService.isSpecial(plane.icao);
     });
   }
+
+  public collapsed = false;
+
+  public toggleCollapsed(): void {
+    this.collapsed = !this.collapsed;
+    this.cdr.detectChanges();
+  }
 }

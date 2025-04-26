@@ -241,6 +241,30 @@
   @media (max-width: 600px) {
     display: none !important;
   }
+
+  .collapse-toggle {
+    position: absolute;
+    top: 0.25rem;
+    left: 0.25rem;
+    z-index: 1100;
+  }
+}
+
+.results-overlay.collapsed {
+  width: 3rem;
+  height: 3rem;
+  min-width: unset;
+  min-height: unset;
+  max-width: unset;
+  max-height: unset;
+  padding: 0.5rem;
+  .collapse-toggle {
+    left: -1px;
+    top: 0;
+  }
+  > *:not(.collapse-toggle) {
+    display: none !important;
+  }
 }
 
 .loading-airports {

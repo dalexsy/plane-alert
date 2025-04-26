@@ -527,11 +527,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Load planes immediately for faster UX
     this.findPlanes();
 
-    this.reverseGeocode(lat, lon).then((address) => {
-      this.inputOverlayComponent.addressInputRef.nativeElement.value = address;
-    });
-    this.inputOverlayComponent.searchRadiusInputRef.nativeElement.value =
-      mainRadius.toString();
+    // Only update input fields if overlay is not collapsed and refs exist
+    if (!this.inputOverlayComponent.collapsed) {
+      if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
+        this.reverseGeocode(lat, lon).then((address) => {
+          this.inputOverlayComponent.addressInputRef.nativeElement.value =
+            address;
+        });
+      }
+      if (this.inputOverlayComponent.searchRadiusInputRef?.nativeElement) {
+        this.inputOverlayComponent.searchRadiusInputRef.nativeElement.value =
+          mainRadius.toString();
+      }
+    }
 
     // Find airports within the new MAIN radius
     this.findAndDisplayAirports(lat, lon, mainRadius).then(() => {

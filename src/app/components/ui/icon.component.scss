@@ -34,5 +34,6 @@
   }
   &.large {
     font-size: 2rem; // ~32px
+    font-variation-settings: "FILL" 0, "wght" 250, "GRAD" 0, "opsz" 20;
   }
 }

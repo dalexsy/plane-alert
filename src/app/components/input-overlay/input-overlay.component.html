@@ -1,6 +1,18 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
-<div class="options-overlay">
-  <form (submit)="onResolveAndUpdate($event)" autocomplete="off">
+<div class="options-overlay" [class.collapsed]="collapsed">
+  <app-button
+    class="collapse-toggle"
+    [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
+    type="tertiary"
+    size="large"
+    [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
+    (click)="toggleCollapsed()"
+  ></app-button>
+  <form
+    *ngIf="!collapsed"
+    (submit)="onResolveAndUpdate($event)"
+    autocomplete="off"
+  >
     <h1>Precious Little Lifeforms</h1>
     <div class="form-group">
       <label for="address">Address</label>
@@ -56,7 +68,7 @@
         [nativeType]="'submit'"
         (click)="onResolveAndUpdate($event)"
       >
-        // Add explicit click handler and closing bracket
+        <!-- Add explicit click handler and closing bracket -->
       </app-button>
       <app-button
         id="useLocationButton"

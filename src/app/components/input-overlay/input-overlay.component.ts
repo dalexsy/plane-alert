@@ -40,6 +40,7 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
 
   scanButtonText = '';
   private sub!: Subscription;
+  collapsed = false;
 
   constructor(
     public settings: SettingsService,
@@ -58,10 +59,17 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
       this.cdr.detectChanges();
     });
 
-    const radius = this.settings.radius ?? 5;
-    this.searchRadiusInputRef.nativeElement.value = radius.toString();
-    const displayedInterval = (this.settings.interval / 60).toString();
-    this.checkIntervalInputRef.nativeElement.value = displayedInterval;
+    // Only set input values if not collapsed and refs exist
+    if (!this.collapsed) {
+      if (this.searchRadiusInputRef?.nativeElement) {
+        const radius = this.settings.radius ?? 5;
+        this.searchRadiusInputRef.nativeElement.value = radius.toString();
+      }
+      if (this.checkIntervalInputRef?.nativeElement) {
+        const displayedInterval = (this.settings.interval / 60).toString();
+        this.checkIntervalInputRef.nativeElement.value = displayedInterval;
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -111,5 +119,10 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
 
   onGoToHome(): void {
     this.goToHome.emit();
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed = !this.collapsed;
+    this.cdr.detectChanges();
   }
 }
