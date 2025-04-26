@@ -20,6 +20,7 @@ export type ButtonType = 'primary' | 'secondary' | 'tertiary';
       "
       [attr.aria-label]="ariaLabel"
       [type]="nativeType"
+      [disabled]="disabled"
       (click)="onClick($event)"
     >
       <app-icon *ngIf="icon" [icon]="icon" [size]="size"></app-icon>
@@ -35,12 +36,16 @@ export class ButtonComponent {
   @Input() nativeType: 'button' | 'submit' | 'reset' = 'button';
   @Input() type: ButtonType = 'primary';
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
+  @Input() disabled: boolean = false;
   @Output() click = new EventEmitter<Event>();
 
   onClick(event: Event) {
-    // Stop event propagation to prevent multiple triggers
+    // Stop event propagation FIRST to prevent any parent handlers
     event.preventDefault();
     event.stopPropagation();
-    this.click.emit(event);
+    // Only emit if not disabled
+    if (!this.disabled) {
+      this.click.emit(event);
+    }
   }
 }

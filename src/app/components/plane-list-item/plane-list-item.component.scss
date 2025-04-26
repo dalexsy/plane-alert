@@ -1,0 +1,137 @@
+// src/app/components/plane-list-item/plane-list-item.component.scss
+:host {
+  // Styles apply to the host element <app-plane-list-item>
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  padding-bottom: 0.5rem;
+  font-family: "JetBrains Mono", monospace;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  // --- Class Bindings from Parent ---
+  &.new-plane {
+    color: #ff6161;
+    a {
+      font-weight: bold;
+    }
+  }
+  &.military-plane {
+    color: #89d138;
+  }
+  &.special-plane {
+    color: gold;
+  }
+  &.filtered-out,
+  &.hide-commercial {
+    display: none !important;
+  }
+  // --- End Class Bindings ---
+
+  .top,
+  .bottom {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center; // Vertically center items in both rows
+  }
+
+  .flag-callsign,
+  .direction-info,
+  .operator-visibility {
+    // Added .operator-visibility
+    display: grid; // Use grid for alignment
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .flag-callsign {
+    grid-template-columns: 2rem 1.75rem auto auto 1fr; // Adjusted last column for special icon
+    margin-left: -0.5rem; // Align button edge
+    app-button {
+      align-self: center;
+    } // Keep buttons centered vertically
+    .special-icon {
+      justify-self: end;
+    } // Push special icon to the right
+  }
+
+  .operator-visibility {
+    // Styles for the new wrapper
+    grid-template-columns: 2rem auto; // Button column + Operator column
+    margin-left: -0.5rem; // Align button edge
+    app-button {
+      align-self: center;
+    } // Keep button centered vertically
+  }
+
+  .direction-info {
+    grid-template-columns: 1fr 1.75rem 3.5rem;
+    justify-items: end;
+    text-align: right;
+    font-variation-settings: "FILL" 0, "wght" 320, "GRAD" 0, "opsz" 20;
+    transform-origin: center;
+
+    .direction-icon {
+      width: 1.75rem;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center;
+    }
+  }
+
+  .time-ago {
+    // Style for seen list time
+    text-align: right;
+    color: #aaa; // Example color
+  }
+
+  .airport-code,
+  .airport-name {
+    // Styles for airport info
+    text-align: right;
+    color: #ccc; // Example color
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 8rem; // Limit width if needed
+  }
+
+  .model {
+    text-align: right;
+    hyphens: auto;
+    a {
+      display: flex;
+      gap: 0.25rem;
+    }
+  }
+
+  .icon.small {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .none-callsign {
+    color: gray;
+  }
+
+  .call-sign {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .military-star {
+    color: #89d138; // Match military color
+  }
+}
+
+// --- Global styles that might need adjustment if moved ---
+// Ensure .military-star, .special-icon styles are available or defined here.
+// Ensure flag styles are global or defined here/passed via service.

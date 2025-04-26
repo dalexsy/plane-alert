@@ -122,6 +122,10 @@
         .flag-callsign {
           grid-template-columns: 2rem 1.75rem auto auto auto;
           margin-left: -0.5rem;
+          // Align button to the top of its grid cell
+          app-button {
+            align-self: start;
+          }
         }
 
         &.filtered-out,
@@ -152,7 +156,26 @@
           display: flex;
           justify-content: space-between;
           width: 100%;
-          align-items: center;
+          align-items: flex-start;
+
+          // Grid layout for operator with center button
+          .operator-center {
+            display: grid;
+            grid-template-columns: 2rem auto; // first column aligns under visibility icon width
+            align-items: start;
+            gap: 0.25rem;
+            margin-left: -0.5rem; // align with flag-callsign icons
+            // Align button to the top of its grid cell
+            app-button {
+              align-self: start;
+              margin-top: -0.25rem;
+            }
+          }
+
+          .center-icon-active {
+            color: white; // Or your desired highlight color
+            font-variation-settings: "FILL" 1; // Make icon filled when active
+          }
         }
       }
     }

@@ -73,15 +73,17 @@
               (mouseenter)="hoveredSkyPlaneIcao = plane.icao"
               (mouseleave)="hoveredSkyPlaneIcao = null"
             >
+              <!-- Moved Location Button Here -->
               <app-button
                 [icon]="
-                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
-                    ? 'visibility_off'
-                    : 'visibility'
+                  plane.icao === highlightedPlaneIcao
+                    ? 'my_location'
+                    : 'location_searching'
                 "
                 type="tertiary"
                 [size]="'small'"
-                (click)="onFilter(plane)"
+                (click)="onCenterPlane(plane, $event)"
+                [ariaLabel]="'Center plane on map'"
               ></app-button>
               <span
                 [innerHTML]="countryService.getFlagHTML(plane.origin)"
@@ -137,11 +139,22 @@
             </span>
           </span>
           <span class="top">
-            <span>
-              <span class="operator" *ngIf="plane.operator">{{
-                plane.operator
-              }}</span></span
-            >
+            <span class="operator-center">
+              <!-- Moved Visibility Button Here -->
+              <app-button
+                [icon]="
+                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+                    ? 'visibility_off'
+                    : 'visibility'
+                "
+                type="tertiary"
+                [size]="'small'"
+                (click)="onFilter(plane)"
+              ></app-button>
+              <span class="operator" [class.none-callsign]="!plane.operator">{{
+                plane.operator || "Unknown operator"
+              }}</span>
+            </span>
             <span class="model" *ngIf="plane.model">
               <a
                 href="https://www.bing.com/search?q={{ plane.model }}"
@@ -189,15 +202,17 @@
               (mouseenter)="hoveredAirportPlaneIcao = plane.icao"
               (mouseleave)="hoveredAirportPlaneIcao = null"
             >
+              <!-- Moved Location Button Here -->
               <app-button
                 [icon]="
-                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
-                    ? 'visibility_off'
-                    : 'visibility'
+                  plane.icao === highlightedPlaneIcao
+                    ? 'my_location'
+                    : 'location_searching'
                 "
                 type="tertiary"
                 [size]="'small'"
-                (click)="onFilter(plane)"
+                (click)="onCenterPlane(plane, $event)"
+                [ariaLabel]="'Center plane on map'"
               ></app-button>
               <span
                 [innerHTML]="countryService.getFlagHTML(plane.origin)"
@@ -256,11 +271,22 @@
             >
           </span>
           <span class="top">
-            <span
-              ><span class="operator" *ngIf="plane.operator">{{
-                plane.operator
-              }}</span></span
-            >
+            <span class="operator-center">
+              <!-- Moved Visibility Button Here -->
+              <app-button
+                [icon]="
+                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+                    ? 'visibility_off'
+                    : 'visibility'
+                "
+                type="tertiary"
+                [size]="'small'"
+                (click)="onFilter(plane)"
+              ></app-button>
+              <span class="operator" [class.none-callsign]="!plane.operator">{{
+                plane.operator || "Unknown operator"
+              }}</span>
+            </span>
             <span class="model" *ngIf="plane.model">
               <a
                 href="https://www.bing.com/search?q={{ plane.model }}"
@@ -313,35 +339,30 @@
           #seenList
           (scroll)="onSeenScroll($event)"
         >
-          <div
-            class="plane-item"
-            *ngFor="let plane of seenPlaneLog"
-            [class.new-plane]="plane.isNew === true"
-            [class.military-plane]="plane.isMilitary"
-            [class.special-plane]="plane.isSpecial"
-            [class.filtered-out]="plane.filteredOut"
-            [class.hide-commercial]="
-              settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
-            "
-          >
+          <div class="plane-item" *ngFor="let plane of seenPlaneLog">
             <span class="top">
               <span
                 class="flag-callsign"
                 (mouseenter)="hoveredSeenPlaneIcao = plane.icao"
                 (mouseleave)="hoveredSeenPlaneIcao = null"
               >
+                <!-- Location button for seen planes -->
                 <app-button
                   [icon]="
-                    planeFilter.isPlaneFiltered(
-                      plane.callsign,
-                      plane.isMilitary
-                    )
-                      ? 'visibility_off'
-                      : 'visibility'
+                    plane.icao === highlightedPlaneIcao
+                      ? 'my_location'
+                      : 'location_searching'
                   "
                   type="tertiary"
                   [size]="'small'"
-                  (click)="onFilter(plane)"
+                  (click)="centerPlane.emit(plane)"
+                  [ariaLabel]="'Center plane on map'"
+                  [disabled]="
+                    !plane.lat ||
+                    !plane.lon ||
+                    !activePlaneIcaos.has(plane.icao)
+                  "
+                  title="No longer in range."
                 ></app-button>
                 <span
                   [innerHTML]="countryService.getFlagHTML(plane.origin)"
@@ -381,15 +402,28 @@
                   "
                 ></app-button>
               </span>
-              <span>
-                {{ getTimeAgo(plane.firstSeen) }}
-              </span>
+              <span>{{ getTimeAgo(plane.firstSeen) }}</span>
             </span>
             <span class="top">
-              <span>
-                <span class="operator" *ngIf="plane.operator">{{
-                  plane.operator
-                }}</span>
+              <span class="operator-center">
+                <app-button
+                  [icon]="
+                    planeFilter.isPlaneFiltered(
+                      plane.callsign,
+                      plane.isMilitary
+                    )
+                      ? 'visibility_off'
+                      : 'visibility'
+                  "
+                  type="tertiary"
+                  [size]="'small'"
+                  (click)="filterPrefix.emit(plane)"
+                ></app-button>
+                <span
+                  class="operator"
+                  [class.none-callsign]="!plane.operator"
+                  >{{ plane.operator || "Unknown operator" }}</span
+                >
               </span>
               <span class="model" *ngIf="plane.model">
                 <a

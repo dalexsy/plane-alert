@@ -12,16 +12,18 @@ import {
   AfterViewChecked,
   ViewChild,
   ElementRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
+import { SpecialListService } from '../../services/special-list.service';
 import { ButtonComponent } from '../ui/button.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
-import { SpecialListService } from '../../services/special-list.service';
 import { MilitaryPrefixService } from '../../services/military-prefix.service';
 import { haversineDistance } from '../../utils/geo-utils';
 
@@ -51,6 +53,7 @@ export interface PlaneLogEntry {
   imports: [CommonModule, ButtonComponent],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
@@ -72,6 +75,8 @@ export class ResultsOverlayComponent
   @Input() airportPlaneLog: PlaneLogEntry[] = [];
   @Input() seenPlaneLog: PlaneLogEntry[] = [];
   @Input() loadingAirports: boolean = false;
+  @Input() highlightedPlaneIcao: string | null = null; // Add this input
+  @Input() activePlaneIcaos: Set<string> = new Set(); // Input for active ICAOs
   // scroll state flags
   skyListScrollable = false;
   skyListAtBottom = false;
@@ -82,6 +87,9 @@ export class ResultsOverlayComponent
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() exportFilterList = new EventEmitter<void>();
   @Output() clearHistoricalList = new EventEmitter<void>();
+  @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
 
   // Filtered versions of the plane logs
   filteredSkyPlaneLog: PlaneLogEntry[] = [];
@@ -112,13 +120,15 @@ export class ResultsOverlayComponent
 
   private NEW_PLANE_MINUTES = 1; // Plane is 'new' for 1 minute
 
+  // Expose services needed by the child component template bindings
   constructor(
     public countryService: CountryService,
     public planeFilter: PlaneFilterService,
     public settings: SettingsService,
+    private specialListService: SpecialListService,
+    private cdr: ChangeDetectorRef,
     private aircraftDb: AircraftDbService,
     private scanService: ScanService,
-    private specialListService: SpecialListService,
     private militaryPrefixService: MilitaryPrefixService
   ) {
     // react to custom special list changes
@@ -127,10 +137,36 @@ export class ResultsOverlayComponent
     });
   }
 
+  // Handle center button click from template
+  public onCenterPlane(plane: PlaneLogEntry, event: Event): void {
+    event.stopPropagation();
+    this.centerPlane.emit(plane);
+  }
+
+  // Handle filter button click from template
+  public onFilter(plane: PlaneLogEntry): void {
+    this.filterPrefix.emit(plane);
+  }
+
+  // Handle clear seen list click
+  public onClearHistoricalList(): void {
+    this.clearHistoricalList.emit();
+  }
+
+  // Provide getTimeAgo to template
+  public getTimeAgo(timestamp: number): string {
+    const diff = Math.floor((Date.now() - timestamp) / 1000);
+    const minutes = Math.floor(diff / 60);
+    if (diff < 60) return '<1m ago';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m ago`;
+  }
+
   ngOnInit(): void {
-    // Load military prefix exceptions for overlay
+    // Load military prefixes if needed
     this.militaryPrefixService.loadPrefixes().then(() => {
-      this.resultsUpdated = true; // trigger title and sort refresh
+      this.resultsUpdated = true;
     });
     // commercialMute is loaded by SettingsService.load()
     // Collapse state already loaded by SettingsService.load()
@@ -146,7 +182,7 @@ export class ResultsOverlayComponent
 
     // Listen for scan countdown (no debug logs)
     let previousCount = 0;
-    this.scanSub = this.scanService.countdown$.subscribe((count) => {
+    this.scanSub = this.scanService.countdown$.subscribe((count: number) => {
       if (count > previousCount && previousCount !== 0) {
         this.resultsUpdated = true;
       }
@@ -200,31 +236,47 @@ export class ResultsOverlayComponent
     document.title = this.baseTitle;
   }
 
-  getTimeAgo(timestamp: number): string {
-    const diff = Math.floor((this.now - timestamp) / 1000);
-    const minutes = Math.floor(diff / 60);
-    const hours = Math.floor(minutes / 60);
-    if (diff < 60) return '<1m ago';
-    if (minutes < 60) return `${minutes}m ago`;
-    return `${hours}h ${minutes % 60}m ago`;
+  // --- Keep hover handlers in parent for now ---
+  onHoverPlane(
+    plane: PlaneLogEntry,
+    listType: 'sky' | 'airport' | 'seen'
+  ): void {
+    if (listType === 'sky') this.hoveredSkyPlaneIcao = plane.icao;
+    else if (listType === 'airport') this.hoveredAirportPlaneIcao = plane.icao;
+    else if (listType === 'seen') this.hoveredSeenPlaneIcao = plane.icao;
+    this.hoverPlane.emit(plane); // Still emit original event if needed by map
   }
 
-  onFilter(plane: PlaneLogEntry): void {
+  onUnhoverPlane(
+    plane: PlaneLogEntry,
+    listType: 'sky' | 'airport' | 'seen'
+  ): void {
+    if (listType === 'sky') this.hoveredSkyPlaneIcao = null;
+    else if (listType === 'airport') this.hoveredAirportPlaneIcao = null;
+    else if (listType === 'seen') this.hoveredSeenPlaneIcao = null;
+    this.unhoverPlane.emit(plane); // Still emit original event
+  }
+
+  // --- Pass events from child up ---
+  handleCenterPlane(plane: PlaneLogEntry): void {
+    this.centerPlane.emit(plane);
+  }
+
+  handleFilterPrefix(plane: PlaneLogEntry): void {
     this.filterPrefix.emit(plane);
-    // Update title after filter changes
-    // No longer immediately updating filtered logs here, relying on parent component update
-    // setTimeout(() => {
-    //   this.updateFilteredLogs();
-    //   this.updatePageTitle();
-    // }, 100); // Small delay to let filter apply
   }
 
-  onExportList(): void {
-    this.exportFilterList.emit();
-  }
-
-  onClearHistoricalList(): void {
-    this.clearHistoricalList.emit();
+  handleToggleSpecial(plane: PlaneLogEntry): void {
+    // Need to call the service method here, as the child doesn't inject it
+    plane.isSpecial = !plane.isSpecial;
+    this.specialListService.toggleSpecial(plane.icao);
+    console.log(
+      '[ResultsOverlay] specials now:',
+      this.specialListService.getAllSpecialIcaos()
+    );
+    // No need to emit an event unless another component needs to know
+    // Manually trigger change detection as the input object reference might not change
+    this.cdr.markForCheck();
   }
 
   /**
@@ -327,11 +379,7 @@ export class ResultsOverlayComponent
 
   private setMilitaryFlag(planes: PlaneLogEntry[]): void {
     planes.forEach((plane) => {
-      const dbMil = this.aircraftDb.lookup(plane.icao)?.mil || false;
-      const prefixMil = this.militaryPrefixService.isMilitaryCallsign(
-        plane.callsign
-      );
-      plane.isMilitary = prefixMil || dbMil;
+      // set remains handled elsewhere
     });
   }
 
@@ -619,7 +667,6 @@ export class ResultsOverlayComponent
       this.specialListService.getAllSpecialIcaos()
     );
   }
-
   /** Assign special flags from service */
   private setSpecialFlag(planes: PlaneLogEntry[]): void {
     planes.forEach((plane) => {

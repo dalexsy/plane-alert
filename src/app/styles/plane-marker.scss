@@ -50,6 +50,10 @@
   &.new-and-grounded {
     @extend .grounded-plane;
   }
+
+  &:hover {
+    z-index: 1000 !important;
+  }
 }
 
 @keyframes spin {
@@ -80,4 +84,9 @@
     pointer-events: none; // Prevent interaction
     // color is set inline based on altitude
   }
+}
+
+/* Highlighted plane marker */
+.leaflet-marker-icon.highlighted-marker {
+  z-index: 1000 !important;
 }
