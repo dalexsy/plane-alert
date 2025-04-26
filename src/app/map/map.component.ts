@@ -486,8 +486,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.settings.setLon(lon);
     this.settings.setRadius(mainRadius); // Set the MAIN radius
     this.manualUpdate = true;
-    // Update view first to recalc internal transforms
-    this.map.setView([lat, lon], zoomLevel ?? 12);
+    // Update view first to recalc internal transforms, keep current zoom if none provided
+    const targetZoom = zoomLevel != null ? zoomLevel : this.map.getZoom();
+    this.map.setView([lat, lon], targetZoom);
+
     // Then draw main radius so it projects correctly
     this.mapService.setMainRadius(lat, lon, mainRadius);
 
@@ -810,11 +812,25 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Sort the full historical log chronologically (most recent first)
     this.planeHistoricalLog.sort((a, b) => b.firstSeen - a.firstSeen);
     // Build seen list: specials first, then military, then others, each by recency
-    const specialPlanes = this.planeHistoricalLog.filter(p => this.specialListService.isSpecial(p.icao));
-    const militaryPlanes = this.planeHistoricalLog.filter(p => !this.specialListService.isSpecial(p.icao) && (this.aircraftDb.lookup(p.icao)?.mil || false));
-    const otherPlanes = this.planeHistoricalLog.filter(p => !this.specialListService.isSpecial(p.icao) && !(this.aircraftDb.lookup(p.icao)?.mil || false));
+    const specialPlanes = this.planeHistoricalLog.filter((p) =>
+      this.specialListService.isSpecial(p.icao)
+    );
+    const militaryPlanes = this.planeHistoricalLog.filter(
+      (p) =>
+        !this.specialListService.isSpecial(p.icao) &&
+        (this.aircraftDb.lookup(p.icao)?.mil || false)
+    );
+    const otherPlanes = this.planeHistoricalLog.filter(
+      (p) =>
+        !this.specialListService.isSpecial(p.icao) &&
+        !(this.aircraftDb.lookup(p.icao)?.mil || false)
+    );
     // Already sorted by firstSeen descending, so slices preserve order
-    this.resultsOverlayComponent.seenPlaneLog = [...specialPlanes, ...militaryPlanes, ...otherPlanes];
+    this.resultsOverlayComponent.seenPlaneLog = [
+      ...specialPlanes,
+      ...militaryPlanes,
+      ...otherPlanes,
+    ];
   }
 
   clearSeenList(): void {
@@ -1061,7 +1077,25 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     return this.settings.radius ?? 5;
   }
 
+  // Get stored home location
+  get homeLocationValue(): { lat: number; lon: number } | null {
+    return this.settings.getHomeLocation() || null;
+  }
+
+  // Check if current view is at home location
+  get isAtHome(): boolean {
+    const home = this.homeLocationValue;
+    if (!home) {
+      return false;
+    }
+    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+    const tol = 1e-6;
+    return Math.abs(lat - home.lat) < tol && Math.abs(lon - home.lon) < tol;
+  }
+
   toggleConeVisibility(show: boolean): void {
+    // Show or hide cones regardless of current map view, always anchored at home
     this.coneVisible = show;
   }
 

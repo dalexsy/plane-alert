@@ -1,12 +1,11 @@
 <div id="map"></div>
 
 <app-cone
-  *ngIf="map"
+  *ngIf="map && coneVisible && homeLocationValue"
   [map]="map"
-  [lat]="currentLat"
-  [lon]="currentLon"
+  [lat]="homeLocationValue!.lat"
+  [lon]="homeLocationValue!.lon"
   [distanceKm]="radiusKm"
-  [opacity]="coneVisible ? 1 : 0"
 ></app-cone>
 
 <app-input-overlay

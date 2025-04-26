@@ -1,4 +1,12 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  OnDestroy,
+  OnInit,
+  ViewEncapsulation,
+} from '@angular/core';
 import * as L from 'leaflet';
 
 @Component({
@@ -230,7 +238,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           fillColor: bandColor,
           fillOpacity: 0.2 * this.opacity,
           weight: 1.5,
-          opacity: 0.6 * this.opacity
+          opacity: 0.6 * this.opacity,
         });
         segment.addTo(this.map);
         this.visualCones.push(segment);
@@ -275,13 +283,14 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // Apply opacity to the group itself for efficiency
     if (coneGroup) {
       coneGroup.style.opacity = String(this.opacity);
-      // Note: Individual fill/stroke opacity set during creation might override this.
-      // If finer control needed, iterate through children:
-      // Array.from(coneGroup.children).forEach(child => {
-      //     (child as SVGElement).style.fillOpacity = String(0.4 * this.opacity);
-      //     (child as SVGElement).style.strokeOpacity = String(0.6 * this.opacity);
-      // });
     }
+    // Also update each ring segment (Leaflet polygon) style
+    this.visualCones.forEach((segment) => {
+      segment.setStyle({
+        fillOpacity: 0.2 * this.opacity,
+        opacity: 0.6 * this.opacity,
+      });
+    });
 
     // Update text arc opacity (they are not in the cone group)
     this.arcElements.forEach(({ path, textGroup }) => {
