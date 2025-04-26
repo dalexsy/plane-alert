@@ -103,6 +103,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   isResizing = false;
   private resizeTimeout: any;
 
+  // Currently highlighted plane ICAO (for persistent tooltip/marker highlight)
+  highlightedPlaneIcao: string | null = null;
+  private currentFaviconUrl: string = '';
+  // Set of ICAOs for planes currently active on the map
+  activePlaneIcaos = new Set<string>();
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -530,11 +536,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       ) {
         plane.marker?.remove();
         plane.path?.remove();
-        // Ensure history trails and predicted paths are also removed
         plane.removeVisuals(this.map); // Use the comprehensive removal method
         this.planeLog.delete(icao);
       }
     }
+    // Update the set of active plane ICAOs after removal
+    this.activePlaneIcaos = new Set(this.planeLog.keys());
     this.updatePlaneLog(Array.from(this.planeLog.values()));
   }
 
@@ -740,6 +747,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.planeLog.set(planeModel.icao, planeModel);
         }
 
+        // Update the set of active plane ICAOs
+        this.activePlaneIcaos = new Set(this.planeLog.keys());
+
         this.updatePlaneLog(updatedPlaneModels);
         this.manualUpdate = false;
         this.cdr.detectChanges();
@@ -748,6 +758,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Replace favicon by updating the href of the <link rel="icon"> tag */
   private updateFavicon(iconUrl: string): void {
+    // Only update when icon URL changes
+    if (this.currentFaviconUrl === iconUrl) {
+      return;
+    }
+    this.currentFaviconUrl = iconUrl;
     const linkSelectors = [
       "link[rel='icon']",
       "link[rel='shortcut icon']",
@@ -761,7 +776,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       return;
     }
     links.forEach((link) => {
-      console.log('[Favicon] Updating', link.rel, 'to', iconUrl);
       link.href = iconUrl;
     });
   }
@@ -1140,6 +1154,56 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.coneVisible = show;
   }
 
+  /** Remove highlight from a plane's marker and tooltip */
+  private unhighlightPlane(icao: string): void {
+    const pm = this.planeLog.get(icao);
+    if (pm?.marker) {
+      const tooltip = pm.marker.getTooltip();
+      if (tooltip) {
+        const tooltipEl = tooltip.getElement();
+        tooltipEl?.classList.remove('highlighted-tooltip');
+      }
+      const markerEl = pm.marker.getElement();
+      markerEl?.classList.remove('highlighted-marker');
+      pm.marker.setZIndexOffset(0); // Reset z-index offset
+    }
+  }
+
+  /** Center the map and toggle highlight on the selected plane */
+  centerOnPlane(plane: PlaneLogEntry): void {
+    const icao = plane.icao;
+    // If already highlighted, remove highlight
+    if (this.highlightedPlaneIcao === icao) {
+      this.unhighlightPlane(icao);
+      this.highlightedPlaneIcao = null; // Clear the highlighted ICAO
+      return; // Exit after unhighlighting
+    }
+
+    // Unhighlight previously highlighted plane
+    if (this.highlightedPlaneIcao) {
+      this.unhighlightPlane(this.highlightedPlaneIcao);
+    }
+
+    // Highlight new plane
+    this.highlightedPlaneIcao = icao; // Set the new highlighted ICAO
+    const pm = this.planeLog.get(icao);
+    if (pm?.marker && plane.lat != null && plane.lon != null) {
+      // Pan map to plane
+      this.map.panTo([plane.lat, plane.lon]);
+      // Bring marker to front
+      pm.marker.setZIndexOffset(10000); // bring marker above others
+      // Open tooltip and apply highlight styling
+      pm.marker.openTooltip();
+      const tooltip = pm.marker.getTooltip();
+      if (tooltip) {
+        const tooltipEl = tooltip.getElement();
+        tooltipEl?.classList.add('highlighted-tooltip'); // Use highlight class
+      }
+      const markerEl = pm.marker.getElement();
+      markerEl?.classList.add('highlighted-marker');
+    }
+  }
+
   // New function to find and display airports
   async findAndDisplayAirports(
     lat: number,
@@ -1394,5 +1458,36 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.isResizing = false;
       this.cdr.detectChanges();
     }, 500);
+  }
+
+  /** Temporarily highlight marker and tooltip on overlay hover */
+  onHoverOverlayPlane(plane: PlaneLogEntry): void {
+    const pm = this.planeLog.get(plane.icao);
+    // Only apply hover effect if not the persistently highlighted plane
+    if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
+      pm.marker.setZIndexOffset(5000);
+      pm.marker.openTooltip();
+      pm.marker
+        .getTooltip()
+        ?.getElement()
+        ?.classList.add('highlighted-tooltip'); // Use correct class
+    }
+  }
+
+  /** Remove temporary highlight on overlay hover out */
+  onUnhoverOverlayPlane(plane: PlaneLogEntry): void {
+    const pm = this.planeLog.get(plane.icao);
+    // Only remove hover effect if not the persistently highlighted plane
+    if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
+      pm.marker.setZIndexOffset(0);
+      // Don't close tooltip if it was opened by persistent highlight
+      if (!pm.marker.isTooltipOpen()) {
+        pm.marker.closeTooltip();
+      }
+      pm.marker
+        .getTooltip()
+        ?.getElement()
+        ?.classList.remove('highlighted-tooltip'); // Use correct class
+    }
   }
 }

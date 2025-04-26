@@ -90,6 +90,15 @@
     z-index: 1000;
     border-color: white;
   }
+  &.hovered-tooltip {
+    z-index: 1000;
+    border-color: white;
+  }
+  &.highlighted-tooltip {
+    // New class for persistent highlight
+    z-index: 1000;
+    border-color: white;
+  }
 
   .material-symbols-sharp.military-star-tooltip {
     font-size: 0.75rem;

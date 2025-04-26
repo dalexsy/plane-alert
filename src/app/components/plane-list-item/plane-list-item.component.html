@@ -1,0 +1,115 @@
+<!-- src/app/components/plane-list-item/plane-list-item.component.html -->
+<span class="top">
+  <span class="flag-callsign">
+    <!-- Location Button -->
+    <app-button
+      [icon]="
+        plane.icao === highlightedPlaneIcao
+          ? 'my_location'
+          : 'location_searching'
+      "
+      type="tertiary"
+      [size]="'small'"
+      (click)="onCenterPlane($event)"
+      [ariaLabel]="'Center plane on map'"
+    ></app-button>
+    <!-- Flag -->
+    <span [innerHTML]="countryService.getFlagHTML(plane.origin)"></span>
+    <!-- Callsign/Link -->
+    <ng-container
+      *ngIf="plane.callsign && plane.callsign.trim().length >= 3; else noLink"
+    >
+      <span class="call-sign">
+        <a
+          href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {{ plane.callsign }}
+        </a>
+        <span
+          *ngIf="plane.isMilitary"
+          class="material-symbols-sharp icon small military-star"
+          title="Military plane"
+          >star</span
+        >
+      </span>
+    </ng-container>
+    <ng-template #noLink>
+      <span class="none-callsign">Pending</span>
+    </ng-template>
+    <!-- Special Toggle -->
+    <app-button
+      *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+      type="tertiary"
+      [size]="'small'"
+      class="special-icon"
+      [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+      (click)="onToggleSpecial($event)"
+      [ariaLabel]="plane.isSpecial ? 'Unmark special' : 'Mark special'"
+    ></app-button>
+  </span>
+
+  <!-- Right side: Direction (Sky/Airport) OR Time Ago (Seen) -->
+  <ng-container *ngIf="listType === 'sky' || listType === 'airport'">
+    <span class="direction-info">
+      <span>{{ plane.cardinal }}</span>
+      <span
+        class="material-symbols-sharp direction-icon"
+        [style.transform]="'rotate(' + (plane.bearing ?? 0) + 'deg)'"
+      >
+        navigation
+      </span>
+      <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
+    </span>
+  </ng-container>
+  <ng-container *ngIf="listType === 'seen'">
+    <span class="time-ago">
+      {{ getTimeAgo(plane.firstSeen) }}
+    </span>
+  </ng-container>
+  <!-- Display IATA code (Airport only) -->
+  <span
+    class="airport-code"
+    *ngIf="listType === 'airport' && plane.airportCode"
+    [title]="plane.airportName"
+  >
+    {{ plane.airportCode }}
+  </span>
+  <span
+    class="airport-name"
+    *ngIf="listType === 'airport' && !plane.airportCode && plane.airportName"
+  >
+    {{ plane.airportName }}
+  </span>
+</span>
+
+<span class="bottom">
+  <!-- Changed from 'top' to 'bottom' for clarity -->
+  <span class="operator-visibility">
+    <!-- New wrapper -->
+    <!-- Visibility Button -->
+    <app-button
+      [icon]="
+        planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+          ? 'visibility_off'
+          : 'visibility'
+      "
+      type="tertiary"
+      [size]="'small'"
+      (click)="onFilter($event)"
+    ></app-button>
+    <!-- Operator -->
+    <span class="operator" *ngIf="plane.operator">{{ plane.operator }}</span>
+  </span>
+  <!-- Model -->
+  <span class="model" *ngIf="plane.model">
+    <a
+      href="https://www.bing.com/search?q={{ plane.model }}"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {{ plane.model }}
+    </a>
+  </span>
+</span>

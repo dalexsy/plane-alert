@@ -17,6 +17,19 @@
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
 ></app-input-overlay>
+
+<!-- Pass the set of active ICAOs to the results overlay -->
 <app-results-overlay
-  [loadingAirports]="loadingAirports || isResizing"
+  [skyPlaneLog]="resultsOverlayComponent.skyPlaneLog"
+  [airportPlaneLog]="resultsOverlayComponent.airportPlaneLog"
+  [seenPlaneLog]="resultsOverlayComponent.seenPlaneLog"
+  [loadingAirports]="loadingAirports"
+  [highlightedPlaneIcao]="highlightedPlaneIcao"
+  [activePlaneIcaos]="activePlaneIcaos"
+  (filterPrefix)="resultsOverlayComponent.filterPrefix.emit($event)"
+  (exportFilterList)="resultsOverlayComponent.exportFilterList.emit()"
+  (clearHistoricalList)="resultsOverlayComponent.clearHistoricalList.emit()"
+  (centerPlane)="centerOnPlane($event)"
+  (hoverPlane)="onHoverOverlayPlane($event)"
+  (unhoverPlane)="onUnhoverOverlayPlane($event)"
 ></app-results-overlay>

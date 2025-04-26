@@ -18,6 +18,19 @@ button {
   font-size: 0.875rem;
   font-weight: 500;
 
+  // Styles for disabled state
+  &[disabled] {
+    color: #888; // Grey color like .none-callsign
+    font-style: italic; // Italic style like .none-callsign
+    opacity: 0.4;
+    cursor: unset;
+    transform: none; // Prevent hover scale effect
+
+    &:hover {
+      color: #888;
+    }
+  }
+
   &.primary {
     background-color: white;
     color: black;
