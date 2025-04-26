@@ -70,8 +70,8 @@
           <span class="top">
             <span
               class="flag-callsign"
-              (mouseenter)="hoveredPlaneIcao = plane.icao"
-              (mouseleave)="hoveredPlaneIcao = null"
+              (mouseenter)="hoveredSkyPlaneIcao = plane.icao"
+              (mouseleave)="hoveredSkyPlaneIcao = null"
             >
               <app-button
                 [icon]="
@@ -114,7 +114,7 @@
 
               <!-- Special marker toggle button -->
               <app-button
-                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                *ngIf="hoveredSkyPlaneIcao === plane.icao || plane.isSpecial"
                 type="tertiary"
                 [size]="'small'"
                 class="special-icon"
@@ -186,8 +186,8 @@
           <span class="top">
             <span
               class="flag-callsign"
-              (mouseenter)="hoveredPlaneIcao = plane.icao"
-              (mouseleave)="hoveredPlaneIcao = null"
+              (mouseenter)="hoveredAirportPlaneIcao = plane.icao"
+              (mouseleave)="hoveredAirportPlaneIcao = null"
             >
               <app-button
                 [icon]="
@@ -230,7 +230,9 @@
 
               <!-- Special marker toggle button -->
               <app-button
-                *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                *ngIf="
+                  hoveredAirportPlaneIcao === plane.icao || plane.isSpecial
+                "
                 type="tertiary"
                 [size]="'small'"
                 [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
@@ -325,8 +327,8 @@
             <span class="top">
               <span
                 class="flag-callsign"
-                (mouseenter)="hoveredPlaneIcao = plane.icao"
-                (mouseleave)="hoveredPlaneIcao = null"
+                (mouseenter)="hoveredSeenPlaneIcao = plane.icao"
+                (mouseleave)="hoveredSeenPlaneIcao = null"
               >
                 <app-button
                   [icon]="
@@ -369,7 +371,7 @@
                 >
                 <!-- Special marker toggle button -->
                 <app-button
-                  *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+                  *ngIf="hoveredSeenPlaneIcao === plane.icao || plane.isSpecial"
                   type="tertiary"
                   [size]="'small'"
                   [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"

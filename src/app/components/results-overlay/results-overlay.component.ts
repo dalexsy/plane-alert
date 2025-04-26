@@ -55,8 +55,10 @@ export interface PlaneLogEntry {
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
 {
-  // track hover state for special toggle
-  hoveredPlaneIcao: string | null = null;
+  // track hover state separately for each list to avoid cross-list hover
+  hoveredSkyPlaneIcao: string | null = null;
+  hoveredAirportPlaneIcao: string | null = null;
+  hoveredSeenPlaneIcao: string | null = null;
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
     return this.settings.seenCollapsed;

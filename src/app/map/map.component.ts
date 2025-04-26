@@ -8,6 +8,7 @@ import {
   ViewEncapsulation,
   HostListener,
   NgZone,
+  Inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
@@ -33,6 +34,7 @@ import { SpecialListService } from '../services/special-list.service';
 import { MapPanService } from '../services/map-pan.service';
 import { MapService } from '../services/map.service';
 import { MilitaryPrefixService } from '../services/military-prefix.service';
+import { DOCUMENT } from '@angular/common';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -102,6 +104,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private resizeTimeout: any;
 
   constructor(
+    @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
     private mapService: MapService,
     private planeFinder: PlaneFinderService,
@@ -583,6 +586,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.planeLog as Map<string, PlaneModel>
       )
       .then(({ anyNew, currentIDs, updatedLog }) => {
+        // Dynamically update favicon if special or military plane detected
+        const hasSpecial = updatedLog.some((p) =>
+          this.specialListService.isSpecial(p.icao)
+        );
+        const hasMil = updatedLog.some(
+          (p) => this.aircraftDb.lookup(p.icao)?.mil
+        );
+        if (hasSpecial) {
+          this.updateFavicon('assets/favicon/special-plane.ico');
+        } else if (hasMil) {
+          this.updateFavicon('assets/favicon/military-plane.ico');
+        } else {
+          this.updateFavicon('assets/favicon/favicon.ico');
+        }
+
         const newUnfiltered = updatedLog.filter(
           (p) => p.isNew && !p.filteredOut
         );
@@ -723,6 +741,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.manualUpdate = false;
         this.cdr.detectChanges();
       });
+  }
+
+  /** Replace favicon by updating the href of the <link rel="icon"> tag */
+  private updateFavicon(iconUrl: string): void {
+    const link: HTMLLinkElement | null =
+      this.document.querySelector("link[rel*='icon']");
+    if (link) {
+      link.href = iconUrl;
+    }
   }
 
   updatePlaneLog(planes: PlaneModel[]): void {

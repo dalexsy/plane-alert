@@ -37,7 +37,7 @@
                 "output": "assets"
               },
               {
-                "glob": "favicon.ico",
+                "glob": "**/*",
                 "input": "public",
                 "output": "."
               }
@@ -102,7 +102,7 @@
                 "output": "assets"
               },
               {
-                "glob": "favicon.ico",
+                "glob": "**/*",
                 "input": "public",
                 "output": "."
               }
