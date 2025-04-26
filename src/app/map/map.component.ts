@@ -213,7 +213,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       (plane: PlaneLogEntry) => {
         const prefix = this.planeFilter.extractAirlinePrefix(plane.callsign);
 
-        // Use togglePrefix instead of addPrefix
+        // Toggle the prefix in the filter service
         this.planeFilter.togglePrefix(prefix);
 
         // Find the actual PlaneModel instance in the main log
@@ -224,24 +224,40 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.aircraftDb.lookup(planeModel.icao)?.mil || false;
           const shouldBeFiltered = !this.planeFilter.shouldIncludeCallsign(
             planeModel.callsign,
-            this.settings.excludeDiscount,
+            this.settings.excludeDiscount, // Use current setting
             this.planeFilter.getFilterPrefixes(),
             isMilitary
           );
 
-          if (planeModel.filteredOut !== shouldBeFiltered) {
-            planeModel.filteredOut = shouldBeFiltered;
+          // Update the filteredOut status directly on the model
+          planeModel.filteredOut = shouldBeFiltered;
 
-            // We only update the flag, visuals are handled by CSS now
-            // planeModel.removeVisuals(this.map); // DO NOT REMOVE VISUALS
+          // --- Handle Visuals ---
+          if (shouldBeFiltered) {
+            // Remove visuals if the plane is now filtered out
+            planeModel.removeVisuals(this.map);
           } else {
+            // If it was filtered and now isn't, re-add visuals if they exist but aren't on map
+            // Note: This is a simplified re-add. The main findPlanes loop handles full visual creation.
+            if (planeModel.marker && !this.map.hasLayer(planeModel.marker)) {
+              planeModel.marker.addTo(this.map);
+              if (planeModel.path) planeModel.path.addTo(this.map);
+              if (planeModel.predictedPathArrowhead)
+                planeModel.predictedPathArrowhead.addTo(this.map);
+              if (planeModel.historyTrailSegments) {
+                planeModel.historyTrailSegments.forEach((segment) =>
+                  segment.addTo(this.map)
+                );
+              }
+            }
           }
-        } else {
         }
 
-        // Trigger an update of the logs passed to the results overlay
-        this.updatePlaneLog(Array.from(this.planeLog.values()));
-        this.cdr.detectChanges(); // Ensure change detection runs
+        // --- REMOVED to prevent infinite loop ---
+
+        // Trigger change detection manually as we mutated an object property
+        // which might not be picked up by default change detection strategy.
+        this.cdr.detectChanges();
       }
     );
 
