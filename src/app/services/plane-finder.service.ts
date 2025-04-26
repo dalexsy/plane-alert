@@ -507,8 +507,9 @@ export class PlaneFinderService {
       // Define isFiltered early after getting necessary info
       const aircraft = getAircraftInfo(id);
       // Treat any callsign matching configured prefixes as military
-      const prefixIsMil = this.militaryPrefixService.isMilitaryCallsign(callsign);
-      const isMilitary = prefixIsMil || (aircraft?.mil || false);
+      const prefixIsMil =
+        this.militaryPrefixService.isMilitaryCallsign(callsign);
+      const isMilitary = prefixIsMil || aircraft?.mil || false;
       const wouldBeFiltered = filterPlaneByPrefix(
         callsign,
         excludeDiscount,
@@ -718,8 +719,10 @@ export class PlaneFinderService {
 
       const aircraft = getAircraftInfo(plane.icao);
       // Determine military flag based on configured prefixes or DB
-      const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(plane.callsign);
-      const isMilitary = prefixIsMil2 || (aircraft?.mil || false);
+      const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
+        plane.callsign
+      );
+      const isMilitary = prefixIsMil2 || aircraft?.mil || false;
 
       // Update marker/tooltip classes based on final state
       if (plane.marker) {

@@ -156,8 +156,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.initMap(lat, lon, radius); // Pass main radius
     // Provide the created map instance to the service
     this.mapService.setMapInstance(this.map);
-    // Draw main radius via service
-    this.mapService.setMainRadius(lat, lon, radius);
+    // Main radius will be drawn by updateMap to avoid duplicate initial draw
     // Force Angular to detect view changes so radius and cone components render
     this.cdr.detectChanges();
     // Initial map update to draw radius, airports, and planes
@@ -726,16 +725,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   updatePlaneLog(planes: PlaneModel[]): void {
     // Define the sortByMilitary function
-    const sortByMilitary = (a: PlaneModel, b: PlaneModel): number => {
-      const aIsMil = this.aircraftDb.lookup(a.icao)?.mil || false;
-      const bIsMil = this.aircraftDb.lookup(b.icao)?.mil || false;
-      if (aIsMil !== bIsMil) {
-        return aIsMil ? -1 : 1;
+    const sortByPriority = (a: PlaneModel, b: PlaneModel): number => {
+      // Special planes always on top
+      const aSpecial = this.specialListService.isSpecial(a.icao);
+      const bSpecial = this.specialListService.isSpecial(b.icao);
+      if (aSpecial !== bSpecial) {
+        return aSpecial ? -1 : 1;
       }
-      // Then sort by first seen descending
+      // Military planes next
+      const aMil = this.aircraftDb.lookup(a.icao)?.mil || false;
+      const bMil = this.aircraftDb.lookup(b.icao)?.mil || false;
+      if (aMil !== bMil) {
+        return aMil ? -1 : 1;
+      }
+      // Then sort by firstSeen descending
       if (a.firstSeen !== b.firstSeen) {
         return b.firstSeen - a.firstSeen;
       }
+      // Tie-break by ICAO
       return a.icao.localeCompare(b.icao);
     };
 
@@ -759,7 +766,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       (entry) =>
         !isInAnyAirport(entry) && entry.lat != null && entry.lon != null
     );
-    sky.sort(sortByMilitary);
+    sky.sort(sortByPriority);
 
     // Airport planes: those in any airport circle
     const airport = planes.filter((entry) => isInAnyAirport(entry));
@@ -782,7 +789,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         }
       }
     });
-    airport.sort(sortByMilitary);
+    airport.sort(sortByPriority);
 
     this.resultsOverlayComponent.skyPlaneLog = sky;
     this.resultsOverlayComponent.airportPlaneLog = airport;
@@ -800,14 +807,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Store the full merged list, including filtered items
     this.planeHistoricalLog = Array.from(mergedMap.values());
 
-    // Sort the full historical log
-    this.planeHistoricalLog.sort(sortByMilitary);
-
-    // Log isNew status for seen planes being sent to overlay
-    const seenLogForOverlay = this.planeHistoricalLog.slice().reverse();
-
-    // Assign the full, sorted historical list to the overlay component
-    this.resultsOverlayComponent.seenPlaneLog = seenLogForOverlay;
+    // Sort the full historical log chronologically (most recent first)
+    this.planeHistoricalLog.sort((a, b) => b.firstSeen - a.firstSeen);
+    // Build seen list: specials first, then military, then others, each by recency
+    const specialPlanes = this.planeHistoricalLog.filter(p => this.specialListService.isSpecial(p.icao));
+    const militaryPlanes = this.planeHistoricalLog.filter(p => !this.specialListService.isSpecial(p.icao) && (this.aircraftDb.lookup(p.icao)?.mil || false));
+    const otherPlanes = this.planeHistoricalLog.filter(p => !this.specialListService.isSpecial(p.icao) && !(this.aircraftDb.lookup(p.icao)?.mil || false));
+    // Already sorted by firstSeen descending, so slices preserve order
+    this.resultsOverlayComponent.seenPlaneLog = [...specialPlanes, ...militaryPlanes, ...otherPlanes];
   }
 
   clearSeenList(): void {
@@ -1131,21 +1138,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               }).addTo(this.map);
               this.airportCircles.set(airportId, circle);
 
-              // Kick off async radius calculation if not cached
+              // Use default radius until bulk runway query updates it
               if (!this.airportRadiusCache.has(airportId)) {
-                // queue radius update promise
-                const p = this.computeAirportRadiusKm(
-                  airportLat,
-                  airportLon,
-                  !!code
-                )
-                  .then((radius) => {
-                    this.airportRadiusCache.set(airportId, radius);
-                    const c = this.airportCircles.get(airportId);
-                    if (c) c.setRadius(radius * 1000);
-                  })
-                  .catch(() => {});
-                radiusPromises.push(p);
+                const defaultKm = code
+                  ? MAJOR_AIRPORT_RADIUS_KM
+                  : MINOR_AIRPORT_RADIUS_KM;
+                this.airportRadiusCache.set(airportId, defaultKm);
               }
             }
           }

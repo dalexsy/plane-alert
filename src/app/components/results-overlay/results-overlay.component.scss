@@ -1,5 +1,3 @@
-@use "../../../styles.scss" as *;
-
 .results-overlay {
   position: absolute;
   top: 0.25rem;
@@ -95,7 +93,7 @@
 
         // merge common styles
         align-items: center;
-        font-family: $font-mono;
+        font-family: "JetBrains Mono", monospace;
 
         .flag-callsign,
         .direction-info {

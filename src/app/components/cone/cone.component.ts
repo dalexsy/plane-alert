@@ -1,16 +1,10 @@
-import {
-  Component,
-  Input,
-  OnChanges,
-  SimpleChanges,
-  OnDestroy,
-  OnInit,
-} from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import * as L from 'leaflet';
 
 @Component({
   selector: 'app-cone',
   template: '',
+  encapsulation: ViewEncapsulation.None,
 })
 export class ConeComponent implements OnChanges, OnDestroy, OnInit {
   @Input() map!: L.Map;
@@ -26,6 +20,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
   private mapInitialized = false;
   private coneSvgGroupName = 'cone-segments-group'; // ID for the SVG group
   private initialDrawPending = true; // Flag for initial draw delay
+  private labelMarkers: L.Marker[] = []; // Track leaflet markers for labels
 
   ngOnInit(): void {
     if (this.map && !this.mapInitialized) {
@@ -54,7 +49,6 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
 
   private setupMapListeners(): void {
     if (!this.map) return; // Guard against null map
-    console.log('[ConeComponent] Setting up map listeners');
     this.map.getContainer().classList.add('custom-leaflet-container');
     // Remove potentially existing handlers first (belt-and-suspenders)
     this.map.off('zoomend moveend', this.debouncedDrawCones);
@@ -66,11 +60,16 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     setTimeout(() => {
       // Check map still exists and initial draw hasn't happened via other means
       if (this.map && this.initialDrawPending) {
-        console.log('[ConeComponent] Triggering delayed initial draw.');
+        // console.log('[ConeComponent] Triggering delayed initial draw.');
         this.debouncedDrawCones();
         this.initialDrawPending = false;
       }
     }, 250); // Delay in milliseconds (adjust if needed)
+
+    // Ensure arcs can extend beyond map container
+    const container = this.map.getContainer();
+    container.style.overflow = 'visible';
+    this.map.getPanes().overlayPane.style.overflow = 'visible';
   }
 
   ngOnDestroy(): void {
@@ -93,16 +92,20 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     }
     this.arcElements = [];
 
+    // Clean up label markers
+    this.labelMarkers.forEach((marker) => this.map?.removeLayer(marker));
+    this.labelMarkers = [];
+
     // Remove the dedicated SVG group on destroy
     const coneGroup = svg?.querySelector(`#${this.coneSvgGroupName}`);
     if (coneGroup && svg?.contains(coneGroup)) {
       svg.removeChild(coneGroup);
-      console.log(
-        `[ConeComponent] Removed SVG group: ${this.coneSvgGroupName}`
-      );
+      // console.log(
+      //   `[ConeComponent] Removed SVG group: ${this.coneSvgGroupName}`
+      // );
     }
 
-    console.log('[ConeComponent] Destroyed');
+    // console.log('[ConeComponent] Destroyed');
   }
 
   // Debounced drawing function to prevent multiple quick redraws
@@ -124,67 +127,22 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
   };
 
   private drawVisualCones(): void {
-    if (!this.mapInitialized || !this.map) {
-      console.warn(
-        '[ConeComponent] drawVisualCones called before map initialization.'
-      );
-      return;
-    }
+    if (!this.mapInitialized || !this.map) return;
 
     // Clean up existing cone layers from the map
     this.visualCones.forEach((cone) => this.map.removeLayer(cone));
     this.visualCones = [];
 
-    // Find the main SVG container and the dedicated cone group
+    // Use overlayPane SVG for cone segments
     const svg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
-
     if (!svg) {
-      console.error('[ConeComponent] SVG container not found in overlayPane.');
+      console.error('[ConeComponent] overlayPane SVG not found.');
       return;
     }
 
-    let coneGroup = svg.querySelector(
-      `#${this.coneSvgGroupName}`
-    ) as SVGGElement | null;
-
-    // Create and insert the group if it doesn't exist
-    if (!coneGroup) {
-      coneGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      coneGroup.setAttribute('id', this.coneSvgGroupName);
-
-      // --- Revert to Inserting AFTER main-radius-group ---
-      const mainRadiusGroup = svg.querySelector('#main-radius-group');
-
-      if (mainRadiusGroup && mainRadiusGroup.nextSibling) {
-        // Insert the cone group *after* the main radius group
-        svg.insertBefore(coneGroup, mainRadiusGroup.nextSibling);
-        console.log(
-          `[ConeComponent] Inserted SVG group ${this.coneSvgGroupName} after main radius group.`
-        );
-      } else if (mainRadiusGroup) {
-        // Main radius group is the last element, append cone group after it
-        svg.appendChild(coneGroup);
-        console.log(
-          `[ConeComponent] Appended SVG group ${this.coneSvgGroupName} after main radius group (last element).`
-        );
-      } else {
-        // Fallback: Insert the group at the very beginning if main radius group not found
-        svg.insertBefore(coneGroup, svg.firstChild);
-        console.warn(
-          `[ConeComponent] Main radius group not found. Inserted SVG group ${this.coneSvgGroupName} at beginning.`
-        );
-      }
-      // --- End Reverted Insertion Logic ---
-    } else {
-      // Clear previous cone paths from the group
-      while (coneGroup.firstChild) {
-        coneGroup.removeChild(coneGroup.firstChild);
-      }
-    }
-
-    // Clean up existing text arc elements (still added directly to SVG, should be on top)
+    // Clean up existing text arc elements (added directly to SVG)
     this.arcElements.forEach(({ path, textGroup }) => {
       if (svg.contains(path)) svg.removeChild(path);
       if (svg.contains(textGroup)) svg.removeChild(textGroup);
@@ -212,12 +170,12 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       color?: string;
     }
 
-    console.log(
-      `[ConeComponent] Using distance bands up to ${maxDistanceKm}km.`
-    );
-    console.log(
-      `[ConeComponent] Scaling altitude thresholds non-linearly up to ${maxPracticalAltitudeM}m.`
-    );
+    // console.log(
+    //   `[ConeComponent] Using distance bands up to ${maxDistanceKm}km.`
+    // );
+    // console.log(
+    //   `[ConeComponent] Scaling altitude thresholds non-linearly up to ${maxPracticalAltitudeM}m.`
+    // );
 
     // 4. Calculate plausible altitude thresholds for each band using h = C * d^2
     const visibilityBands: PracticalVisibilityBand[] = distancesKm.map(
@@ -239,13 +197,9 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       // Using sqrt scaling for hue to emphasize lower altitude differences
       const hue = Math.min(Math.sqrt(hueRatio), 1) * 300; // 0 (red) to 300 (purple)
       band.color = `hsl(${Math.floor(hue)}, 100%, 50%)`;
-      console.log(
-        `Band ${band.innerKm}-${
-          band.outerKm
-        }km → Practical Alt ≈ ${band.practicalAltM.toFixed(0)}m+ → color=${
-          band.color
-        }`
-      );
+      // console.log(
+      //   `Band ${band.innerKm}-${band.outerKm}km → Practical Alt ≈ ${band.practicalAltM.toFixed(0)}m+ → color=${band.color}`
+      // );
     });
 
     // --- Drawing Logic ---
@@ -270,64 +224,45 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           band.innerKm,
           band.outerKm
         );
+        // Style each segment directly via Leaflet API
         segment.setStyle({
           color: bandColor,
           fillColor: bandColor,
-          fillOpacity: 0.4 * this.opacity,
-          weight: 1,
-          opacity: 0.6 * this.opacity, // Note: Opacity might need direct SVG update later
+          fillOpacity: 0.2 * this.opacity,
+          weight: 1.5,
+          opacity: 0.6 * this.opacity
         });
-
-        // Add segment to map to generate SVG path
         segment.addTo(this.map);
-        this.visualCones.push(segment); // Track for layer removal
-
-        // Get the generated SVG path element
-        const pathElement = (segment as any)._path as
-          | SVGPathElement
-          | undefined;
-
-        if (pathElement && coneGroup) {
-          // Instead of inserting into svg, append to the dedicated coneGroup
-          coneGroup.appendChild(pathElement);
-          // console.log(`[ConeComponent] Appended cone segment for ${band.practicalAltM}m to group.`); // Less verbose log
-        } else if (!pathElement) {
-          console.warn(
-            `[ConeComponent] Could not find SVG path for segment ${band.practicalAltM}m.`
-          );
-        }
-
-        // Label drawing remains the same (appended directly to SVG)
-        if (svg) {
-          const midKm = (band.innerKm + band.outerKm) / 2;
-          const midAngle = (start + end) / 2;
-          this.addTextArc(
-            svg,
-            `${band.practicalAltM.toFixed(0)}m+`,
-            this.lat,
-            this.lon,
-            midAngle - 10,
-            midAngle + 10,
-            midKm,
-            '#000'
-          );
-        }
+        this.visualCones.push(segment);
+        segment.bringToFront();
       }
     });
 
-    // After all segments are added, force the cone group to sit above the main radius
-    const mainRadiusGroup = svg.querySelector('#main-radius-group');
-    if (mainRadiusGroup && coneGroup) {
-      svg.insertBefore(coneGroup, mainRadiusGroup.nextSibling);
-      console.log(
-        '[ConeComponent] Reordered cone group after main radius group'
-      );
-    }
+    // Prevent clipping of labels outside SVG bounds
+    svg.style.overflow = 'visible';
 
-    console.log(
-      '[ConeComponent] Completed drawing practical visibility bands (SVG group).'
-    );
-    this.updateOpacity(); // Update opacity after reordering
+    // Draw custom text arcs for labels on the third cone ring (20km)
+    const ringRadiusKm = distancesKm[1];
+    angles.forEach(({ start, end }, idx) => {
+      const midStart = start - 10;
+      const midEnd = end + 10;
+      const label = idx === 0 ? 'Balcony' : 'Streetside';
+      // White text color for contrast
+      this.addTextArc(
+        svg,
+        label,
+        this.lat,
+        this.lon,
+        midStart,
+        midEnd,
+        ringRadiusKm,
+        '#fff'
+      );
+    });
+
+    // console.log(
+    //   '[ConeComponent] Completed drawVisualCones with bringToFront ordering'
+    // );
   }
 
   private updateOpacity(): void {

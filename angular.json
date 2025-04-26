@@ -36,7 +36,11 @@
                 "input": "src/assets",
                 "output": "assets"
               },
-              "src/favicon.ico"
+              {
+                "glob": "favicon.ico",
+                "input": "public",
+                "output": "."
+              }
             ],
             "styles": ["src/styles.scss"],
             "scripts": []
@@ -97,7 +101,11 @@
                 "input": "src/assets",
                 "output": "assets"
               },
-              "src/favicon.ico"
+              {
+                "glob": "favicon.ico",
+                "input": "public",
+                "output": "."
+              }
             ],
             "styles": ["src/styles.scss"],
             "scripts": []

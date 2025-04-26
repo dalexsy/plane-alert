@@ -384,10 +384,20 @@
               </span>
             </span>
             <span class="top">
-              <span class="model" *ngIf="plane.model">{{ plane.model }}</span>
-              <span class="operator" *ngIf="plane.operator">{{
-                plane.operator
-              }}</span>
+              <span>
+                <span class="operator" *ngIf="plane.operator">{{
+                  plane.operator
+                }}</span>
+              </span>
+              <span class="model" *ngIf="plane.model">
+                <a
+                  href="https://www.bing.com/search?q={{ plane.model }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ plane.model }}
+                </a>
+              </span>
             </span>
           </div>
         </div>

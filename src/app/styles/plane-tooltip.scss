@@ -1,5 +1,3 @@
-@use "../../styles.scss" as *; // Re-add import for global variables
-
 .leaflet-tooltip.plane-tooltip {
   font-size: 0.75rem;
   background: rgba(0, 0, 0, 0.9);
@@ -11,7 +9,7 @@
   margin-left: 1.5rem;
   color: rgb(255, 255, 255);
   box-shadow: 0 1px 3px rgb(0 0 0);
-  font-family: $font-mono;
+  font-family: "JetBrains Mono", monospace;
   position: absolute;
   z-index: 1;
   outline: 1px solid rgb(255 255 255 / 80%);
