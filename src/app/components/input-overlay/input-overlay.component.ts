@@ -44,6 +44,7 @@ export class InputOverlayComponent implements OnDestroy {
   scanButtonText = '';
   private sub!: Subscription;
   collapsed = localStorage.getItem('inputOverlayCollapsed') === 'true';
+  public currentAddress: string = '';
 
   constructor(
     public settings: SettingsService,

@@ -8,6 +8,7 @@
         type="tertiary"
         size="medium"
         [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
+        [title]="collapsed ? 'Expand options' : 'Collapse options'"
         (click)="toggleCollapsed()"
       ></app-button>
       <app-button
@@ -15,12 +16,8 @@
         [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          showDateTime ? 'Hide date/time overlays' : 'Show date/time overlays'
-        "
-        [title]="
-          showDateTime ? 'Hide date/time overlays' : 'Show date/time overlays'
-        "
+        [ariaLabel]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+        [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
         (click)="toggleDateTimeOverlays.emit()"
       ></app-button>
     </app-tab>
@@ -33,6 +30,9 @@
     <h1>Precious Little Lifeforms</h1>
     <div class="form-group">
       <label for="address">Address</label>
+      <div *ngIf="currentAddress" class="current-address">
+        Current: {{ currentAddress }}
+      </div>
       <input
         #addressInput
         type="text"

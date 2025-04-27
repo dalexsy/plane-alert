@@ -10,7 +10,34 @@
         [ariaLabel]="
           collapsed ? 'Expand results overlay' : 'Collapse results overlay'
         "
+        [title]="collapsed ? 'Expand results' : 'Collapse results'"
         (click)="toggleCollapsed()"
+      ></app-button>
+      <app-button
+        [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          settings.excludeDiscount
+            ? 'Show commercial planes'
+            : 'Hide commercial planes'
+        "
+        [title]="
+          settings.excludeDiscount ? 'Show commercial' : 'Hide commercial'
+        "
+        (click)="onToggleCommercialFilter()"
+      ></app-button>
+      <app-button
+        [icon]="commercialMute ? 'volume_off' : 'volume_up'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+        "
+        [title]="
+          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+        "
+        (click)="onToggleCommercialMute()"
       ></app-button>
     </app-tab>
   </div>
@@ -30,34 +57,6 @@
         (click)="onExportList()"
       ></app-button>
       -->
-      <!-- Group the commercial toggle buttons -->
-      <div class="commercial-toggle-group">
-        <span class="label">Commercial</span>
-        <div class="buttons">
-          <app-button
-            [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
-            [type]="'secondary'"
-            [size]="'small'"
-            (click)="onToggleCommercialFilter()"
-            [ariaLabel]="
-              settings.excludeDiscount
-                ? 'Show commercial planes'
-                : 'Hide commercial planes'
-            "
-          ></app-button>
-          <app-button
-            [icon]="commercialMute ? 'volume_off' : 'volume_up'"
-            [type]="'secondary'"
-            [size]="'small'"
-            (click)="onToggleCommercialMute()"
-            [ariaLabel]="
-              commercialMute
-                ? 'Unmute commercial alert'
-                : 'Mute commercial alert'
-            "
-          ></app-button>
-        </div>
-      </div>
     </div>
 
     <!-- Planes in the Sky section - always show -->

@@ -4,7 +4,8 @@
   right: 0.25rem;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.7);
-  padding: 1rem;
+  padding: 1rem 1rem 1rem 1rem;
+  padding-top: 0; // Remove top padding so absolutely positioned tab does not create a gap
   border: 1px solid rgba(255, 255, 255, 0.4);
   width: 25rem;
   max-height: calc(100% - 0.5rem);
@@ -26,13 +27,29 @@
     border-right: none;
   }
 
-  .top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+  // Remove gap for the first overlay content item when not collapsed
+  &:not(.collapsed) > *:first-child:not(.top-buttons) {
+    margin-top: 0;
+  }
 
-    .clear-seen {
-      margin-right: -0.5rem;
+  &.collapsed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 0.5rem;
+    .top-buttons {
+      position: static;
+      margin: 0;
+      border-radius: 0.5rem;
+    }
+    > :not(.top-buttons) {
+      display: none;
     }
   }
 
@@ -257,35 +274,6 @@
 
   .collapse-toggle {
     position: static;
-  }
-}
-
-.results-overlay.collapsed {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* Remove all padding so the container fits its children exactly */
-  padding: 0;
-  /* Remove inherited left padding from open state */
-  padding-left: 0;
-  margin: 0;
-  width: auto;
-  height: auto;
-  min-width: 0;
-  min-height: 0;
-  border-radius: 0.5rem;
-
-  .top-buttons {
-    position: static;
-    margin: 0;
-    border-radius: 0.5rem;
-    /* icons will size themselves */
-  }
-
-  /* hide all but the tab when collapsed */
-  > :not(.top-buttons) {
-    display: none;
   }
 }
 
