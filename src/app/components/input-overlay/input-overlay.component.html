@@ -1,13 +1,28 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
 <div class="options-overlay" [class.collapsed]="collapsed">
-  <app-button
-    class="collapse-toggle"
-    [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
-    type="tertiary"
-    size="large"
-    [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
-    (click)="toggleCollapsed()"
-  ></app-button>
+  <div class="top-buttons">
+    <app-button
+      class="collapse-toggle"
+      [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
+      type="tertiary"
+      size="large"
+      [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
+      (click)="toggleCollapsed()"
+    ></app-button>
+    <app-button
+      class="toggle-datetime"
+      [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
+      type="tertiary"
+      size="large"
+      [ariaLabel]="
+        showDateTime ? 'Hide date/time overlays' : 'Show date/time overlays'
+      "
+      [title]="
+        showDateTime ? 'Hide date/time overlays' : 'Show date/time overlays'
+      "
+      (click)="toggleDateTimeOverlays.emit()"
+    ></app-button>
+  </div>
   <form
     *ngIf="!collapsed"
     (submit)="onResolveAndUpdate($event)"

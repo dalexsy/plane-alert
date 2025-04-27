@@ -116,6 +116,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private airportsLoading = false; // guard for Overpass fetches
   currentTime: string = '';
 
+  showDateTime = true;
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -151,6 +153,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         }
       });
     });
+  }
+
+  onToggleDateTimeOverlays(): void {
+    this.showDateTime = !this.showDateTime;
   }
 
   async ngAfterViewInit(): Promise<void> {

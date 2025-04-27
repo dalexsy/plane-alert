@@ -37,6 +37,8 @@ export class InputOverlayComponent implements OnDestroy {
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
   @Output() setHome = new EventEmitter<void>();
   @Output() goToHome = new EventEmitter<void>();
+  @Input() showDateTime = true;
+  @Output() toggleDateTimeOverlays = new EventEmitter<void>();
 
   scanButtonText = '';
   private sub!: Subscription;

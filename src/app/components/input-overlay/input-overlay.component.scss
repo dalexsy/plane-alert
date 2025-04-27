@@ -4,7 +4,7 @@
   left: 0.25rem;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.7);
-  padding: 1.5rem;
+  padding: 1rem;
   border: 1px solid rgb(255 255 255 / 40%);
   max-height: calc(100% - 0.5rem);
   display: flex;
@@ -12,6 +12,10 @@
   gap: 0.5rem;
   border-radius: 0.5rem;
   max-width: 20rem;
+
+  h1 {
+    margin-bottom: 1rem;
+  }
 
   .form-group {
     margin-bottom: 15px;
@@ -60,26 +64,32 @@
     font-weight: bold;
   }
 
-  .collapse-toggle {
+  .top-buttons {
     position: absolute;
     top: 0.25rem;
     right: 0.25rem;
+    display: flex;
+    flex-direction: column;
     z-index: 1100;
+  }
+
+  .collapse-toggle,
+  .toggle-datetime {
+    position: static;
   }
 }
 
 .options-overlay.collapsed {
-  width: 3rem;
-  height: 3rem;
-  min-width: unset;
-  min-height: unset;
-  max-width: unset;
-  max-height: unset;
-  padding: 0.5rem;
-  .collapse-toggle {
-    right: 0;
-    top: 0;
+  width: auto !important;
+  height: auto !important;
+  padding: 0rem;
+
+  .top-buttons {
+    position: static;
+    flex-direction: column;
+    align-items: center;
   }
+
   form,
   .form-group,
   .button-group {

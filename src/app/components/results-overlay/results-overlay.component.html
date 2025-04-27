@@ -362,7 +362,12 @@
             #seenList
             (scroll)="onSeenScroll($event)"
           >
-            <div class="plane-item" *ngFor="let plane of seenPlaneLog">
+            <div
+              class="plane-item"
+              *ngFor="let plane of seenPlaneLog"
+              [class.military-plane]="plane.isMilitary"
+              [class.special-plane]="plane.isSpecial"
+            >
               <span class="top">
                 <span
                   class="flag-callsign"

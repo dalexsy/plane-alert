@@ -6,6 +6,8 @@
   (coneVisibilityChange)="toggleConeVisibility($event)"
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
+  (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
+  [showDateTime]="showDateTime"
 ></app-input-overlay>
 
 <!-- Pass the set of active ICAOs to the results overlay -->
@@ -25,9 +27,10 @@
 ></app-results-overlay>
 
 <app-temperature
+  *ngIf="showDateTime"
   [resultsCollapsed]="resultsOverlayComponent.collapsed"
 ></app-temperature>
-<app-clock></app-clock>
+<app-clock *ngIf="showDateTime"></app-clock>
 
 <div id="map"></div>
 
