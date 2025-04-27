@@ -17,10 +17,14 @@ export class ClockComponent implements OnInit {
 
   private updateTime(): void {
     const now = new Date();
+    this.currentDate = now.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
     this.currentTime = now.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
     });
-    this.currentDate = now.toLocaleDateString();
   }
 }
