@@ -297,7 +297,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
-    this.map = L.map('map', { doubleClickZoom: false }).setView([lat, lon], 12);
+    this.map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false,
+      doubleClickZoom: false,
+    }).setView([lat, lon], 12);
     // Add SVG renderer for vector overlays (draws into overlayPane)
     L.svg().addTo(this.map);
 

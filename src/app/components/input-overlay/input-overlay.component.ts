@@ -23,7 +23,7 @@ import { ButtonComponent } from '../ui/button.component';
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
-export class InputOverlayComponent implements AfterViewInit, OnDestroy {
+export class InputOverlayComponent implements OnDestroy {
   @ViewChild('addressInput', { static: false })
   addressInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('searchRadiusInput', { static: false })
@@ -40,7 +40,7 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
 
   scanButtonText = '';
   private sub!: Subscription;
-  collapsed = false;
+  collapsed = localStorage.getItem('inputOverlayCollapsed') === 'true';
 
   constructor(
     public settings: SettingsService,
@@ -70,6 +70,12 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
         this.checkIntervalInputRef.nativeElement.value = displayedInterval;
       }
     }
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed = !this.collapsed;
+    localStorage.setItem('inputOverlayCollapsed', this.collapsed.toString());
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
@@ -120,10 +126,5 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
 
   onGoToHome(): void {
     this.goToHome.emit();
-  }
-
-  toggleCollapsed(): void {
-    this.collapsed = !this.collapsed;
-    this.cdr.detectChanges();
   }
 }

@@ -2,12 +2,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.25rem;
-
   position: fixed;
   bottom: 0.5rem;
   right: calc(28rem + 0.5rem);
-
   z-index: 1000;
   font-size: 10rem;
   line-height: 1;
@@ -19,9 +16,10 @@
     -1px 1px 20px #000000, 1px 1px 10px #000000;
 
   .temperature-row {
-    gap: 0.5rem; // spacing among icon, high, low
+    gap: 1rem;
     display: flex;
     flex-direction: row;
+    margin-bottom: -1rem;
 
     .weather-icon {
       font-size: 10rem;
@@ -45,7 +43,7 @@
   }
 
   .temp-low {
-    font-size: 8rem;
+    font-size: 7.5rem;
   }
 }
 

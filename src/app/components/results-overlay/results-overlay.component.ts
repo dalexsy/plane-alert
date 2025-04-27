@@ -59,6 +59,21 @@ export interface PlaneLogEntry {
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
 {
+  constructor(
+    public settings: SettingsService,
+    public countryService: CountryService,
+    public planeFilter: PlaneFilterService,
+    private specialListService: SpecialListService,
+    private cdr: ChangeDetectorRef,
+    private aircraftDb: AircraftDbService,
+    private scanService: ScanService,
+    private militaryPrefixService: MilitaryPrefixService
+  ) {
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.resultsUpdated = true;
+    });
+  }
+
   // track hover state separately for each list to avoid cross-list hover
   hoveredSkyPlaneIcao: string | null = null;
   hoveredAirportPlaneIcao: string | null = null;
@@ -122,21 +137,6 @@ export class ResultsOverlayComponent
   private NEW_PLANE_MINUTES = 1; // Plane is 'new' for 1 minute
 
   // Expose services needed by the child component template bindings
-  constructor(
-    public countryService: CountryService,
-    public planeFilter: PlaneFilterService,
-    public settings: SettingsService,
-    private specialListService: SpecialListService,
-    private cdr: ChangeDetectorRef,
-    private aircraftDb: AircraftDbService,
-    private scanService: ScanService,
-    private militaryPrefixService: MilitaryPrefixService
-  ) {
-    // react to custom special list changes
-    this.specialListService.specialListUpdated$.subscribe(() => {
-      this.resultsUpdated = true;
-    });
-  }
 
   // Handle center button click from template
   public onCenterPlane(plane: PlaneLogEntry, event: Event): void {
@@ -165,6 +165,7 @@ export class ResultsOverlayComponent
   }
 
   ngOnInit(): void {
+    // initial collapse state is set via property initializer
     // Load military prefixes if needed
     this.militaryPrefixService.loadPrefixes().then(() => {
       this.resultsUpdated = true;
@@ -212,10 +213,10 @@ export class ResultsOverlayComponent
   }
 
   ngAfterViewInit(): void {
-    // Update logs and title immediately on initial page load
+    // collapse state already applied via property initializer
+    // Existing initialization
     this.updateFilteredLogs();
     this.updatePageTitle();
-    // ensure fade states set after view init
     setTimeout(() => this.updateScrollFadeStates(), 0);
   }
 
@@ -675,10 +676,11 @@ export class ResultsOverlayComponent
     });
   }
 
-  public collapsed = false;
+  public collapsed = localStorage.getItem('resultsOverlayCollapsed') === 'true';
 
   public toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
+    localStorage.setItem('resultsOverlayCollapsed', this.collapsed.toString());
     this.cdr.detectChanges();
   }
 }
