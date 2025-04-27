@@ -15,11 +15,12 @@ import { SettingsService } from '../../services/settings.service';
 import { ScanService } from '../../services/scan.service';
 import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
+import { TabComponent } from '../ui/tab.component';
 
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, TabComponent],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })

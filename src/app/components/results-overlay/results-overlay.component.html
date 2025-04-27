@@ -1,16 +1,18 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
 <div class="results-overlay" [class.collapsed]="collapsed">
   <div class="top-buttons">
-    <app-button
-      class="collapse-toggle"
-      [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
-      type="tertiary"
-      size="medium"
-      [ariaLabel]="
-        collapsed ? 'Expand results overlay' : 'Collapse results overlay'
-      "
-      (click)="toggleCollapsed()"
-    ></app-button>
+    <app-tab side="left">
+      <app-button
+        class="collapse-toggle"
+        [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          collapsed ? 'Expand results overlay' : 'Collapse results overlay'
+        "
+        (click)="toggleCollapsed()"
+      ></app-button>
+    </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">
     <!-- Options buttons - moved to the top -->
