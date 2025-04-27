@@ -20,8 +20,12 @@ import { PlaneLogEntry } from '../results-overlay/results-overlay.component';
       (mouseenter)="hoverState = true"
       (mouseleave)="hoverState = false"
       [disabled]="!plane.lat || !plane.lon || !activePlaneIcaos.has(plane.icao)"
+      [title]="
+        !plane.lat || !plane.lon || !activePlaneIcaos.has(plane.icao)
+          ? 'No longer in range.'
+          : 'Center plane on map'
+      "
       ariaLabel="Center plane on map"
-      title="No longer in range."
     ></app-button>
   `,
 })

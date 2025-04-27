@@ -43,25 +43,26 @@
   </div>
   <ng-container *ngIf="!collapsed">
     <!-- Options buttons - moved to the top -->
-    <div class="button-group">
-      <span class="map-status">
-        <span *ngIf="loadingAirports" class="loading-airports">
-          <span class="loading-spinner"></span>Processing airports
-        </span></span
-      >
-      <!-- Hide Export Filter List button for now -->
-      <!--
-      <app-button
-        [text]="'Export Filter List'"
-        type="secondary"
-        (click)="onExportList()"
-      ></app-button>
-      -->
-    </div>
 
     <!-- Planes in the Sky section - always show -->
     <div class="plane-section">
-      <h3>Planes in the Sky ({{ filteredSkyPlaneLog.length }})</h3>
+      <h3>
+        Planes in the Sky ({{ filteredSkyPlaneLog.length }})
+        <div class="button-group">
+          <span class="map-status">
+            <span *ngIf="loadingAirports" class="loading-airports">
+              <span class="loading-spinner"></span>Processing airports
+            </span></span
+          >
+          <!-- Hide Export Filter List button for now -->
+          <!--
+        <app-button
+          [text]="'Export Filter List'"
+          type="secondary"
+          (click)="onExportList()"
+        ></app-button>
+        --></div>
+      </h3>
       <div
         class="plane-list-wrapper"
         [class.fade-enabled]="skyListScrollable"
@@ -74,6 +75,7 @@
         <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
           <div
             class="plane-item"
+            [class.highlighted-plane]="plane.icao === highlightedPlaneIcao"
             *ngFor="let plane of filteredSkyPlaneLog"
             [class.new-plane]="plane.isNew === true"
             [class.military-plane]="plane.isMilitary"
@@ -171,7 +173,7 @@
                   class="operator"
                   [class.none-callsign]="!plane.operator"
                   [title]="!plane.operator ? 'Unknown operator.' : ''"
-                  >{{ plane.operator || "UNK" }}</span
+                  >{{ plane.operator || "Unknown" }}</span
                 >
               </span>
               <span class="model" *ngIf="plane.model">
@@ -208,6 +210,7 @@
         <div class="plane-list" #airportList (scroll)="onAirportScroll($event)">
           <div
             class="plane-item"
+            [class.highlighted-plane]="plane.icao === highlightedPlaneIcao"
             *ngFor="let plane of filteredAirportPlaneLog"
             [class.new-plane]="plane.isNew === true"
             [class.military-plane]="plane.isMilitary"
@@ -308,7 +311,7 @@
                   class="operator"
                   [class.none-callsign]="!plane.operator"
                   [title]="!plane.operator ? 'Unknown operator.' : ''"
-                  >{{ plane.operator || "UNK" }}</span
+                  >{{ plane.operator || "Unknown" }}</span
                 >
               </span>
               <span class="model" *ngIf="plane.model">
@@ -367,7 +370,8 @@
           >
             <div
               class="plane-item"
-              *ngFor="let plane of seenPlaneLog"
+              [class.highlighted-plane]="plane.icao === highlightedPlaneIcao"
+              *ngFor="let plane of filteredSeenPlaneLog"
               [class.military-plane]="plane.isMilitary"
               [class.special-plane]="plane.isSpecial"
             >
@@ -447,7 +451,7 @@
                     class="operator"
                     [class.none-callsign]="!plane.operator"
                     [title]="!plane.operator ? 'Unknown operator.' : ''"
-                    >{{ plane.operator || "UNK" }}</span
+                    >{{ plane.operator || "Unknown" }}</span
                   >
                 </span>
                 <span class="model" *ngIf="plane.model">

@@ -231,9 +231,14 @@ export class ResultsOverlayComponent
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // When input plane lists change
-    if (changes['skyPlaneLog'] || changes['airportPlaneLog']) {
+    // When input plane lists or highlighted plane change
+    if (
+      changes['skyPlaneLog'] ||
+      changes['airportPlaneLog'] ||
+      changes['highlightedPlaneIcao']
+    ) {
       this.resultsUpdated = true;
+      this.sortLogs();
       this.updateFilteredLogs();
     }
   }
@@ -349,10 +354,21 @@ export class ResultsOverlayComponent
   }
 
   // Updates the filtered versions of the plane logs
-  private updateFilteredLogs(): void {
+  public updateFilteredLogs(): void {
     this.filteredSkyPlaneLog = this.skyPlaneLog.filter(
       (plane) => !plane.filteredOut
     );
+    // Bring highlighted plane to top if present
+    if (this.highlightedPlaneIcao) {
+      const idxSky = this.filteredSkyPlaneLog.findIndex(
+        (p) => p.icao === this.highlightedPlaneIcao
+      );
+      if (idxSky > -1) {
+        this.filteredSkyPlaneLog.unshift(
+          this.filteredSkyPlaneLog.splice(idxSky, 1)[0]
+        );
+      }
+    }
     // Exclude airport planes over 300km from settings center
     const centerLat = this.settings.lat ?? 0;
     const centerLon = this.settings.lon ?? 0;
@@ -363,9 +379,31 @@ export class ResultsOverlayComponent
         plane.lon != null &&
         haversineDistance(centerLat, centerLon, plane.lat, plane.lon) <= 300
     );
+    // Bring highlighted plane to top of airport list
+    if (this.highlightedPlaneIcao) {
+      const idxAirport = this.filteredAirportPlaneLog.findIndex(
+        (p) => p.icao === this.highlightedPlaneIcao
+      );
+      if (idxAirport > -1) {
+        this.filteredAirportPlaneLog.unshift(
+          this.filteredAirportPlaneLog.splice(idxAirport, 1)[0]
+        );
+      }
+    }
     this.filteredSeenPlaneLog = this.seenPlaneLog.filter(
       (plane) => !plane.filteredOut
     );
+    // Bring highlighted plane to top of seen list
+    if (this.highlightedPlaneIcao) {
+      const idxSeen = this.filteredSeenPlaneLog.findIndex(
+        (p) => p.icao === this.highlightedPlaneIcao
+      );
+      if (idxSeen > -1) {
+        this.filteredSeenPlaneLog.unshift(
+          this.filteredSeenPlaneLog.splice(idxSeen, 1)[0]
+        );
+      }
+    }
 
     // Clear isNew if plane is older than NEW_PLANE_MINUTES
     const now = Date.now();
@@ -402,7 +440,7 @@ export class ResultsOverlayComponent
     });
   }
 
-  private sortLogs(): void {
+  public sortLogs(): void {
     this.setMilitaryFlag(this.skyPlaneLog);
     this.setMilitaryFlag(this.airportPlaneLog);
     this.setMilitaryFlag(this.seenPlaneLog);
@@ -417,6 +455,9 @@ export class ResultsOverlayComponent
     // 3. Within the same time frame (e.g., minutes), new planes first
     // 4. Finally sort alphabetically by callsign or ICAO for stable order
     const sortPlanes = (a: PlaneLogEntry, b: PlaneLogEntry) => {
+      // Highlighted (followed) plane always first
+      if (a.icao === this.highlightedPlaneIcao) return -1;
+      if (b.icao === this.highlightedPlaneIcao) return 1;
       // Military planes always first (ONLY military planes, not helicopters)
       if (a.isMilitary !== b.isMilitary) {
         return a.isMilitary ? -1 : 1;

@@ -109,6 +109,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Currently highlighted plane ICAO (for persistent tooltip/marker highlight)
   highlightedPlaneIcao: string | null = null;
+  centerZoom: number | null = null;
   private currentFaviconUrl: string = '';
   // Set of ICAOs for planes currently active on the map
   activePlaneIcaos = new Set<string>();
@@ -271,6 +272,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Trigger change detection manually as we mutated an object property
         // which might not be picked up by default change detection strategy.
         this.cdr.detectChanges();
+        // Also update filteredOut flag on historical entries for the seen list
+        this.planeHistoricalLog.forEach((hist) => {
+          const isMilHist = this.aircraftDb.lookup(hist.icao)?.mil || false;
+          hist.filteredOut = !this.planeFilter.shouldIncludeCallsign(
+            hist.callsign,
+            this.settings.excludeDiscount,
+            this.planeFilter.getFilterPrefixes(),
+            isMilHist
+          );
+        });
+        // Rebuild logs to refresh seen list
+        this.updatePlaneLog(Array.from(this.planeLog.values()));
       }
     );
 
@@ -800,6 +813,31 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.activePlaneIcaos = new Set(this.planeLog.keys());
 
         this.updatePlaneLog(updatedPlaneModels);
+        // If a plane is highlighted and centerZoom is set, re-center and zoom on each scan
+        if (this.highlightedPlaneIcao && this.centerZoom != null) {
+          const pm = this.planeLog.get(this.highlightedPlaneIcao);
+          const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+          const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+          const radius = this.settings.radius ?? 5;
+          if (pm?.lat != null && pm.lon != null) {
+            const dist = haversineDistance(
+              centerLat,
+              centerLon,
+              pm.lat,
+              pm.lon
+            );
+            if (dist <= radius) {
+              // in range: follow plane
+              this.map.setView([pm.lat, pm.lon], this.centerZoom);
+            } else {
+              // out of range: clear highlight and reset view
+              this.unhighlightPlane(this.highlightedPlaneIcao);
+              this.highlightedPlaneIcao = null;
+              this.centerZoom = null;
+              this.map.setView([centerLat, centerLon], this.map.getZoom());
+            }
+          }
+        }
         this.manualUpdate = false;
         this.cdr.detectChanges();
       });
@@ -873,6 +911,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         !isInAnyAirport(entry) && entry.lat != null && entry.lon != null
     );
     sky.sort(sortByPriority);
+    if (this.highlightedPlaneIcao) {
+      const idx = sky.findIndex((p) => p.icao === this.highlightedPlaneIcao);
+      if (idx > -1) {
+        const [followed] = sky.splice(idx, 1);
+        sky.unshift(followed);
+      }
+    }
 
     // Airport planes: those in any airport circle
     const airport = planes.filter((entry) => isInAnyAirport(entry));
@@ -896,6 +941,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     });
     airport.sort(sortByPriority);
+    if (this.highlightedPlaneIcao) {
+      const idxA = airport.findIndex(
+        (p) => p.icao === this.highlightedPlaneIcao
+      );
+      if (idxA > -1) {
+        const [followedA] = airport.splice(idxA, 1);
+        airport.unshift(followedA);
+      }
+    }
 
     this.resultsOverlayComponent.skyPlaneLog = sky;
     this.resultsOverlayComponent.airportPlaneLog = airport;
@@ -915,16 +969,20 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Sort the full historical log chronologically (most recent first)
     this.planeHistoricalLog.sort((a, b) => b.firstSeen - a.firstSeen);
+    // Build seen list: apply commercial filter to hide filtered planes
+    const historyFiltered = this.planeHistoricalLog.filter(
+      (p) => !p.filteredOut
+    );
     // Build seen list: specials first, then military, then others, each by recency
-    const specialPlanes = this.planeHistoricalLog.filter((p) =>
+    const specialPlanes = historyFiltered.filter((p) =>
       this.specialListService.isSpecial(p.icao)
     );
-    const militaryPlanes = this.planeHistoricalLog.filter(
+    const militaryPlanes = historyFiltered.filter(
       (p) =>
         !this.specialListService.isSpecial(p.icao) &&
         (this.aircraftDb.lookup(p.icao)?.mil || false)
     );
-    const otherPlanes = this.planeHistoricalLog.filter(
+    const otherPlanes = historyFiltered.filter(
       (p) =>
         !this.specialListService.isSpecial(p.icao) &&
         !(this.aircraftDb.lookup(p.icao)?.mil || false)
@@ -1031,6 +1089,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     console.debug(
       `[MapComponent] resolveAndUpdateFromAddress called with address='${this.inputOverlayComponent.addressInputRef.nativeElement.value}'`
     );
+    // If following a plane, stop tracking when user sets a new location
+    if (this.highlightedPlaneIcao) {
+      this.unhighlightPlane(this.highlightedPlaneIcao);
+      this.highlightedPlaneIcao = null;
+      this.centerZoom = null;
+      this.updatePlaneLog(Array.from(this.planeLog.values()));
+      this.resultsOverlayComponent.sortLogs();
+      this.resultsOverlayComponent.updateFilteredLogs();
+      this.cdr.detectChanges();
+    }
+
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
     // Get the MAIN radius from the input, fallback to settings.radius
@@ -1229,8 +1298,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // If already highlighted, remove highlight
     if (this.highlightedPlaneIcao === icao) {
       this.unhighlightPlane(icao);
-      this.highlightedPlaneIcao = null; // Clear the highlighted ICAO
-      return; // Exit after unhighlighting
+      this.highlightedPlaneIcao = null;
+      this.centerZoom = null;
+      // Refresh lists to reflect removal of highlight
+      this.updatePlaneLog(Array.from(this.planeLog.values()));
+      // Force overlay to resort and re-filter
+      this.resultsOverlayComponent.sortLogs();
+      this.resultsOverlayComponent.updateFilteredLogs();
+      this.cdr.detectChanges();
+      return;
     }
 
     // Unhighlight previously highlighted plane
@@ -1242,8 +1318,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.highlightedPlaneIcao = icao; // Set the new highlighted ICAO
     const pm = this.planeLog.get(icao);
     if (pm?.marker && plane.lat != null && plane.lon != null) {
-      // Pan map to plane
-      this.map.panTo([plane.lat, plane.lon]);
+      // Set zoom level one higher and center map on plane
+      this.centerZoom = 10;
+      this.map.setView([plane.lat, plane.lon], this.centerZoom);
       // Bring marker to front
       pm.marker.setZIndexOffset(10000); // bring marker above others
       // Open tooltip and apply highlight styling
@@ -1255,6 +1332,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
+      // Refresh lists so this plane moves to the top
+      this.updatePlaneLog(Array.from(this.planeLog.values()));
+      this.resultsOverlayComponent.sortLogs();
+      this.resultsOverlayComponent.updateFilteredLogs();
+      this.cdr.detectChanges();
     }
   }
 

@@ -27,8 +27,8 @@
       display: inline-block;
 
       ::ng-deep span.icon {
-        font-size: 10rem !important;
-        line-height: 1 !important;
+        font-size: 10rem;
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
       }
     }
   }
@@ -40,6 +40,7 @@
   .weather-icon,
   .temp-high {
     font-size: 10rem;
+    letter-spacing: -0.75rem;
   }
 
   .temp-low {
