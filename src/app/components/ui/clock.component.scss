@@ -1,0 +1,15 @@
+.time-overlay {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  line-height: 1;
+  background: transparent;
+  color: #fff;
+  font-size: 20rem;
+  z-index: 1000;
+  font-family: "JetBrains Mono", monospace;
+  pointer-events: none;
+  letter-spacing: -1.5rem;
+  text-shadow: -1px -1px 20px #000000, 1px -1px 20px #000000, -1px 1px 20px #000,
+    1px 1px 10px #000;
+}

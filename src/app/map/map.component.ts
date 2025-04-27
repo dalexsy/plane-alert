@@ -35,6 +35,7 @@ import { MapPanService } from '../services/map-pan.service';
 import { MapService } from '../services/map.service';
 import { MilitaryPrefixService } from '../services/military-prefix.service';
 import { DOCUMENT } from '@angular/common';
+import { ClockComponent } from '../components/ui/clock.component';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -57,6 +58,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     ConeComponent,
     InputOverlayComponent,
     ResultsOverlayComponent,
+    ClockComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -110,6 +112,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   activePlaneIcaos = new Set<string>();
 
   private airportsLoading = false; // guard for Overpass fetches
+  currentTime: string = '';
 
   constructor(
     @Inject(DOCUMENT) private document: Document,

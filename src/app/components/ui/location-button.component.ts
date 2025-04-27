@@ -19,9 +19,7 @@ import { PlaneLogEntry } from '../results-overlay/results-overlay.component';
       (click)="centerPlane.emit(plane)"
       (mouseenter)="hoverState = true"
       (mouseleave)="hoverState = false"
-      [disabled]="
-        !plane.lat || !plane.lon || !activePlaneIcaos?.has(plane.icao)
-      "
+      [disabled]="!plane.lat || !plane.lon || !activePlaneIcaos.has(plane.icao)"
       ariaLabel="Center plane on map"
       title="No longer in range."
     ></app-button>
