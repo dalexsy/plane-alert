@@ -1,15 +1,3 @@
-<app-clock></app-clock>
-
-<div id="map"></div>
-
-<app-cone
-  *ngIf="map && coneVisible && homeLocationValue"
-  [map]="map"
-  [lat]="homeLocationValue!.lat"
-  [lon]="homeLocationValue!.lon"
-  [distanceKm]="radiusKm"
-></app-cone>
-
 <app-input-overlay
   (resolveAndUpdate)="resolveAndUpdateFromAddress()"
   (excludeDiscountChange)="onExcludeDiscountChange()"
@@ -35,3 +23,18 @@
   (hoverPlane)="onHoverOverlayPlane($event)"
   (unhoverPlane)="onUnhoverOverlayPlane($event)"
 ></app-results-overlay>
+
+<app-temperature
+  [resultsCollapsed]="resultsOverlayComponent.collapsed"
+></app-temperature>
+<app-clock></app-clock>
+
+<div id="map"></div>
+
+<app-cone
+  *ngIf="map && coneVisible && homeLocationValue"
+  [map]="map"
+  [lat]="homeLocationValue!.lat"
+  [lon]="homeLocationValue!.lon"
+  [distanceKm]="radiusKm"
+></app-cone>

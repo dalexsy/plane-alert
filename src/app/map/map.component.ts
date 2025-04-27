@@ -36,6 +36,7 @@ import { MapService } from '../services/map.service';
 import { MilitaryPrefixService } from '../services/military-prefix.service';
 import { DOCUMENT } from '@angular/common';
 import { ClockComponent } from '../components/ui/clock.component';
+import { TemperatureComponent } from '../components/ui/temperature.component';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -59,6 +60,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     InputOverlayComponent,
     ResultsOverlayComponent,
     ClockComponent,
+    TemperatureComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
