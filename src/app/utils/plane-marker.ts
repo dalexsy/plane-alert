@@ -38,7 +38,7 @@ export function createOrUpdatePlaneMarker(
   } ${isMilitary ? 'military-plane' : ''} ${
     isCopter ? 'copter-plane' : ''
   }" style="transform: rotate(${
-    isCopter ? 0 : rotation + 90
+    isCopter ? 0 : rotation
   }deg); ${extraStyle}">${planeIcon}</div>`;
 
   const icon = L.divIcon({

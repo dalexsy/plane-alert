@@ -1,6 +1,7 @@
 // src/app/services/plane-finder.service.ts
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
+import * as turf from '@turf/turf';
 import {
   haversineDistance,
   computeBearing,
@@ -123,12 +124,13 @@ export class PlaneFinderService {
     } else {
       // Calculate predicted path points
       let pathPoints: [number, number][] = [[lat, lon]];
-      // Compute turn rate (deg/min) from last two history entries, if available
-      let turnRate = 0;
+      // Predict path using recent turn rate for smooth curvature
+      const minutesAhead = 2;
+      const pointsCount = 15;
+      const timeStep = minutesAhead / pointsCount;
       const hist = plane.positionHistory;
-      // Debug: log history length and last two tracks
-      console.log(`[Path Debug] ${plane.icao} history len=${hist.length}, lastTracks=`,
-        hist.slice(-2).map(p => p.track));
+      // Determine turn rate (deg per minute) from last two history entries
+      let turnRatePerMin = 0;
       if (
         hist.length >= 2 &&
         hist[hist.length - 1].track != null &&
@@ -139,39 +141,20 @@ export class PlaneFinderService {
         const dtMin =
           (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
           60000;
-        const MIN_DT_MIN = 0.1; // at least 6 seconds between samples to consider turn
-        if (dtMin >= MIN_DT_MIN) {
-          // adjust for wrap-around: minimal angle diff in [-180,180]
+        if (dtMin >= 0.1) {
           const rawDelta = ((t1 - t0 + 540) % 360) - 180;
-          turnRate = rawDelta / dtMin;
-          console.log(`[Path Debug] ${plane.icao} rawDelta=${rawDelta}, dtMin=${dtMin}, turnRate=${turnRate}`);
-          // clamp unrealistic turn rates
-          const MAX_TURN_RATE = 180; // deg per minute
-          if (Math.abs(turnRate) > MAX_TURN_RATE) {
-            console.log(`[Path Debug] ${plane.icao} turnRate ${turnRate} > ${MAX_TURN_RATE}, clamped to 0`);
-            turnRate = 0;
-          }
-        } else {
-          console.log(`[Path Debug] ${plane.icao} dtMin=${dtMin} < ${MIN_DT_MIN}, skip turnRate`);
+          turnRatePerMin = rawDelta / dtMin;
         }
       }
-      console.log(`[Path Debug] ${plane.icao} initial track=${track}`);
-      // Proceed with prediction, applying turnRate each step
-      let weightedTrack = track;
-      // Prediction window: 5 minutes for 10x longer prediction window
-      const minutesAhead = 2; // increased to 5 minutes for 10x longer prediction window
-      const pointsCount = 15;
       let curLat = lat;
       let curLon = lon;
-      let curTrack = weightedTrack;
-      const timeStep = minutesAhead / pointsCount;
+      let curHeading = track ?? hist[hist.length - 1]?.track ?? 0;
       for (let i = 1; i <= pointsCount; i++) {
-        // Apply computed turn rate per minute
-        curTrack = curTrack + turnRate * timeStep;
-        curTrack = ((curTrack % 360) + 360) % 360; // Normalize track
-
-        const brng = (curTrack * Math.PI) / 180;
-        const distanceKm = (velocity * 60 * timeStep) / 1000; // Velocity in m/s, timeStep in minutes
+        // apply turn rate
+        curHeading =
+          (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
+        const brng = (curHeading * Math.PI) / 180;
+        const distanceKm = ((velocity ?? 0) * 60 * timeStep) / 1000;
         const R = 6371; // Earth radius in km
         const lat1 = (curLat * Math.PI) / 180;
         const lon1 = (curLon * Math.PI) / 180;
@@ -189,6 +172,24 @@ export class PlaneFinderService {
         curLat = (lat2 * 180) / Math.PI;
         curLon = (lon2 * 180) / Math.PI;
         pathPoints.push([curLat, curLon]);
+      }
+
+      // Apply smoothing if we have enough points
+      if (pathPoints.length >= 3) {
+        // Convert to GeoJSON LineString with [lon, lat]
+        const line = turf.lineString(
+          pathPoints.map(([lat, lon]) => [lon, lat])
+        );
+        // Higher resolution and sharpness improve curve smoothness
+        const spline = turf.bezierSpline(line, {
+          resolution: pointsCount * 4,
+          sharpness: 0.85,
+        });
+        // Convert back to [lat, lon]
+        pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
+          lat,
+          lon,
+        ]);
       }
 
       // Cap the path length to a maximum distance (e.g., 50 km) from the current position
@@ -677,7 +678,7 @@ export class PlaneFinderService {
         map,
         lat,
         lon,
-        (track ?? 0) - 90,
+        track ?? 0,
         extraStyle,
         isNew,
         onGround,
