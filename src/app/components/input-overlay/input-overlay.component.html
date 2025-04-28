@@ -1,9 +1,38 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
-<div class="options-overlay">
-  <form (submit)="onResolveAndUpdate($event)" autocomplete="off">
+<div class="options-overlay" [class.collapsed]="collapsed">
+  <div class="top-buttons">
+    <app-tab side="right">
+      <app-button
+        class="collapse-toggle"
+        [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
+        [title]="collapsed ? 'Expand options' : 'Collapse options'"
+        (click)="toggleCollapsed()"
+      ></app-button>
+      <app-button
+        class="toggle-datetime"
+        [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+        [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+        (click)="toggleDateTimeOverlays.emit()"
+      ></app-button>
+    </app-tab>
+  </div>
+  <form
+    *ngIf="!collapsed"
+    (submit)="onResolveAndUpdate($event)"
+    autocomplete="off"
+  >
     <h1>Precious Little Lifeforms</h1>
     <div class="form-group">
       <label for="address">Address</label>
+      <div *ngIf="currentAddress" class="current-address">
+        Current: {{ currentAddress }}
+      </div>
       <input
         #addressInput
         type="text"
@@ -34,8 +63,7 @@
         placeholder="Enter check interval (minutes)"
         step="any"
         [value]="settings.interval / 60"
-        (change)="onIntervalChange()"
-        (keydown.enter)="onResolveAndUpdate()"
+        (change)="onIntervalChange($event)"
       />
     </div>
     <div class="form-group">
@@ -48,6 +76,17 @@
         Show view axes
       </label>
     </div>
+    <div class="form-group">
+      <label class="checkbox-inline" for="showCloud">
+        <input
+          type="checkbox"
+          id="showCloud"
+          [checked]="showCloudCover"
+          (change)="onShowCloudCoverChange($event)"
+        />
+        Show Cloud Cover
+      </label>
+    </div>
     <div class="button-group">
       <app-button
         id="findButton"
@@ -56,7 +95,7 @@
         [nativeType]="'submit'"
         (click)="onResolveAndUpdate($event)"
       >
-        // Add explicit click handler and closing bracket
+        <!-- Add explicit click handler and closing bracket -->
       </app-button>
       <app-button
         id="useLocationButton"

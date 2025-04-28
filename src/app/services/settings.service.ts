@@ -5,6 +5,13 @@ import { Injectable, EventEmitter } from '@angular/core';
   providedIn: 'root',
 })
 export class SettingsService {
+  constructor() {
+    console.log('[SettingsService] constructor: calling load()');
+    this.load();
+    console.log(
+      `[SettingsService] after load(): seenCollapsed=${this._seenCollapsed}, inputOverlayCollapsed=${this.inputOverlayCollapsed}, resultsOverlayCollapsed=${this.resultsOverlayCollapsed}`
+    );
+  }
   private _lat: number | null = null;
   private _lon: number | null = null;
   private _radius: number | null = 50;
@@ -16,6 +23,8 @@ export class SettingsService {
   private homeLocationKey = 'homeLocation';
   private seenCollapsedKey = 'seenCollapsed';
   private _seenCollapsed: boolean = false;
+  private inputOverlayCollapsedKey = 'inputOverlayCollapsed';
+  private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
   private commercialMuteKey = 'commercialMute';
   private _commercialMute: boolean = false;
 
@@ -26,6 +35,28 @@ export class SettingsService {
   setSeenCollapsed(value: boolean): void {
     this._seenCollapsed = value;
     localStorage.setItem(this.seenCollapsedKey, value.toString());
+  }
+  /** Whether the input overlay is collapsed */
+  get inputOverlayCollapsed(): boolean {
+    const value =
+      localStorage.getItem(this.inputOverlayCollapsedKey) === 'true';
+    console.log(`[SettingsService] get inputOverlayCollapsed => ${value}`);
+    return value;
+  }
+  setInputOverlayCollapsed(value: boolean): void {
+    console.log(`[SettingsService] setInputOverlayCollapsed => ${value}`);
+    localStorage.setItem(this.inputOverlayCollapsedKey, value.toString());
+  }
+  /** Whether the results overlay is collapsed */
+  get resultsOverlayCollapsed(): boolean {
+    const value =
+      localStorage.getItem(this.resultsOverlayCollapsedKey) === 'true';
+    console.log(`[SettingsService] get resultsOverlayCollapsed => ${value}`);
+    return value;
+  }
+  setResultsOverlayCollapsed(value: boolean): void {
+    console.log(`[SettingsService] setResultsOverlayCollapsed => ${value}`);
+    localStorage.setItem(this.resultsOverlayCollapsedKey, value.toString());
   }
 
   /** Whether commercial alerts are muted */
@@ -85,14 +116,10 @@ export class SettingsService {
   }
 
   set excludeDiscount(value: boolean) {
-    // Only emit event if the value actually changes
     if (this._excludeDiscount !== value) {
-      console.log(
-        `[${new Date().toISOString()}] [SettingsService] Setting excludeDiscount to: ${value}`
-      );
       this._excludeDiscount = value;
       localStorage.setItem('excludeDiscount', value.toString());
-      this.excludeDiscountChanged.emit(value); // Emit event when the setting changes
+      this.excludeDiscountChanged.emit(value);
     }
   }
 
@@ -170,7 +197,6 @@ export class SettingsService {
     const mapLat = parseFloat(localStorage.getItem('mapLat') || '');
     const mapLon = parseFloat(localStorage.getItem('mapLon') || '');
     const mapZoom = parseFloat(localStorage.getItem('mapZoom') || '');
-
     if (!isNaN(lat)) {
       this._lat = lat;
     }
@@ -200,6 +226,7 @@ export class SettingsService {
     if (seenStr !== null) {
       this._seenCollapsed = seenStr === 'true';
     }
+    console.log(`[SettingsService] load(): read seen=${seenStr}`);
     // Load commercial mute preference
     const muteStr = localStorage.getItem(this.commercialMuteKey);
     if (muteStr !== null) {

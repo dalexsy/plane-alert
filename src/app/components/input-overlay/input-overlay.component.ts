@@ -15,20 +15,21 @@ import { SettingsService } from '../../services/settings.service';
 import { ScanService } from '../../services/scan.service';
 import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
+import { TabComponent } from '../ui/tab.component';
 
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, TabComponent],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
-export class InputOverlayComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('addressInput', { static: true })
+export class InputOverlayComponent implements OnDestroy {
+  @ViewChild('addressInput', { static: false })
   addressInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('searchRadiusInput', { static: true })
+  @ViewChild('searchRadiusInput', { static: false })
   searchRadiusInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('checkIntervalInput', { static: true })
+  @ViewChild('checkIntervalInput', { static: false })
   checkIntervalInputRef!: ElementRef<HTMLInputElement>;
 
   @Output() resolveAndUpdate = new EventEmitter<void>();
@@ -37,9 +38,15 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
   @Output() setHome = new EventEmitter<void>();
   @Output() goToHome = new EventEmitter<void>();
+  @Input() showCloudCover = true;
+  @Output() cloudToggleChange = new EventEmitter<boolean>();
+  @Input() showDateTime = true;
+  @Output() toggleDateTimeOverlays = new EventEmitter<void>();
 
   scanButtonText = '';
   private sub!: Subscription;
+  collapsed = localStorage.getItem('inputOverlayCollapsed') === 'true';
+  public currentAddress: string = '';
 
   constructor(
     public settings: SettingsService,
@@ -58,10 +65,23 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
       this.cdr.detectChanges();
     });
 
-    const radius = this.settings.radius ?? 5;
-    this.searchRadiusInputRef.nativeElement.value = radius.toString();
-    const displayedInterval = (this.settings.interval / 60).toString();
-    this.checkIntervalInputRef.nativeElement.value = displayedInterval;
+    // Only set input values if not collapsed and refs exist
+    if (!this.collapsed) {
+      if (this.searchRadiusInputRef?.nativeElement) {
+        const radius = this.settings.radius ?? 5;
+        this.searchRadiusInputRef.nativeElement.value = radius.toString();
+      }
+      if (this.checkIntervalInputRef?.nativeElement) {
+        const displayedInterval = (this.settings.interval / 60).toString();
+        this.checkIntervalInputRef.nativeElement.value = displayedInterval;
+      }
+    }
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed = !this.collapsed;
+    localStorage.setItem('inputOverlayCollapsed', this.collapsed.toString());
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
@@ -90,8 +110,9 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  onIntervalChange(): void {
-    const minutes = this.checkIntervalInputRef.nativeElement.valueAsNumber;
+  onIntervalChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const minutes = input.valueAsNumber;
     if (isNaN(minutes)) {
       return;
     }
@@ -111,5 +132,10 @@ export class InputOverlayComponent implements AfterViewInit, OnDestroy {
 
   onGoToHome(): void {
     this.goToHome.emit();
+  }
+
+  onShowCloudCoverChange(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.cloudToggleChange.emit(checked);
   }
 }

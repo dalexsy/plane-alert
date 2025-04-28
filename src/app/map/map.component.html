@@ -1,21 +1,15 @@
-<div id="map"></div>
-
-<app-cone
-  *ngIf="map && coneVisible && homeLocationValue"
-  [map]="map"
-  [lat]="homeLocationValue!.lat"
-  [lon]="homeLocationValue!.lon"
-  [distanceKm]="radiusKm"
-></app-cone>
-
 <app-input-overlay
   (resolveAndUpdate)="resolveAndUpdateFromAddress()"
   (excludeDiscountChange)="onExcludeDiscountChange()"
   (useCurrentLocation)="useCurrentLocation()"
   (goToAirport)="goToAirport()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
+  (cloudToggleChange)="toggleCloudCover($event)"
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
+  (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
+  [showDateTime]="showDateTime"
+  [showCloudCover]="cloudVisible"
 ></app-input-overlay>
 
 <!-- Pass the set of active ICAOs to the results overlay -->
@@ -26,10 +20,23 @@
   [loadingAirports]="loadingAirports"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [activePlaneIcaos]="activePlaneIcaos"
-  (filterPrefix)="resultsOverlayComponent.filterPrefix.emit($event)"
-  (exportFilterList)="resultsOverlayComponent.exportFilterList.emit()"
-  (clearHistoricalList)="resultsOverlayComponent.clearHistoricalList.emit()"
   (centerPlane)="centerOnPlane($event)"
   (hoverPlane)="onHoverOverlayPlane($event)"
   (unhoverPlane)="onUnhoverOverlayPlane($event)"
 ></app-results-overlay>
+
+<app-temperature
+  *ngIf="showDateTime"
+  [resultsCollapsed]="resultsOverlayComponent.collapsed"
+></app-temperature>
+<app-clock *ngIf="showDateTime"></app-clock>
+
+<div id="map"></div>
+
+<app-cone
+  *ngIf="map && coneVisible && homeLocationValue"
+  [map]="map"
+  [lat]="homeLocationValue!.lat"
+  [lon]="homeLocationValue!.lon"
+  [distanceKm]="radiusKm"
+></app-cone>

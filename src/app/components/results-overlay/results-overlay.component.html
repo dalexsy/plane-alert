@@ -1,369 +1,103 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
-<div class="results-overlay">
-  <!-- Options buttons - moved to the top -->
-  <div class="button-group">
-    <span class="map-status">
-      <span *ngIf="loadingAirports" class="loading-airports">
-        <span class="loading-spinner"></span>Processing airports
-      </span></span
-    >
-    <!-- Hide Export Filter List button for now -->
-    <!--
-    <app-button
-      [text]="'Export Filter List'"
-      type="secondary"
-      (click)="onExportList()"
-    ></app-button>
-    -->
-    <!-- Group the commercial toggle buttons -->
-    <div class="commercial-toggle-group">
-      <span class="label">Commercial</span>
-      <div class="buttons">
-        <app-button
-          [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
-          [type]="'secondary'"
-          [size]="'small'"
-          (click)="onToggleCommercialFilter()"
-          [ariaLabel]="
-            settings.excludeDiscount
-              ? 'Show commercial planes'
-              : 'Hide commercial planes'
-          "
-        ></app-button>
-        <app-button
-          [icon]="commercialMute ? 'volume_off' : 'volume_up'"
-          [type]="'secondary'"
-          [size]="'small'"
-          (click)="onToggleCommercialMute()"
-          [ariaLabel]="
-            commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
-          "
-        ></app-button>
-      </div>
-    </div>
+<div class="results-overlay" [class.collapsed]="collapsed">
+  <div class="top-buttons">
+    <app-tab side="left">
+      <app-button
+        class="collapse-toggle"
+        [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          collapsed ? 'Expand results overlay' : 'Collapse results overlay'
+        "
+        [title]="collapsed ? 'Expand results' : 'Collapse results'"
+        (click)="toggleCollapsed()"
+      ></app-button>
+      <app-button
+        [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          settings.excludeDiscount
+            ? 'Show commercial planes'
+            : 'Hide commercial planes'
+        "
+        [title]="
+          settings.excludeDiscount ? 'Show commercial' : 'Hide commercial'
+        "
+        (click)="onToggleCommercialFilter()"
+      ></app-button>
+      <app-button
+        [icon]="commercialMute ? 'volume_off' : 'volume_up'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+        "
+        [title]="
+          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+        "
+        (click)="onToggleCommercialMute()"
+      ></app-button>
+    </app-tab>
   </div>
+  <ng-container *ngIf="!collapsed">
+    <!-- Options buttons - moved to the top -->
 
-  <!-- Planes in the Sky section - always show -->
-  <div class="plane-section">
-    <h3>Planes in the Sky ({{ filteredSkyPlaneLog.length }})</h3>
-    <div
-      class="plane-list-wrapper"
-      [class.fade-enabled]="skyListScrollable"
-      [class.no-fade]="!skyListScrollable || skyListAtBottom"
-      *ngIf="
-        filteredSkyPlaneLog && filteredSkyPlaneLog.length;
-        else noSkyPlanes
-      "
-    >
-      <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
-        <div
-          class="plane-item"
-          *ngFor="let plane of filteredSkyPlaneLog"
-          [class.new-plane]="plane.isNew === true"
-          [class.military-plane]="plane.isMilitary"
-          [class.special-plane]="plane.isSpecial"
-          [class.filtered-out]="plane.filteredOut"
-          [class.hide-commercial]="
-            settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
-          "
-        >
-          <span class="top">
-            <span
-              class="flag-callsign"
-              (mouseenter)="hoveredSkyPlaneIcao = plane.icao"
-              (mouseleave)="hoveredSkyPlaneIcao = null"
-            >
-              <!-- Moved Location Button Here -->
-              <app-button
-                [icon]="
-                  plane.icao === highlightedPlaneIcao
-                    ? 'my_location'
-                    : 'location_searching'
-                "
-                type="tertiary"
-                [size]="'small'"
-                (click)="onCenterPlane(plane, $event)"
-                [ariaLabel]="'Center plane on map'"
-              ></app-button>
-              <span
-                [innerHTML]="countryService.getFlagHTML(plane.origin)"
-              ></span>
-              <ng-container
-                *ngIf="
-                  plane.callsign && plane.callsign.trim().length >= 3;
-                  else noLink
-                "
-              >
-                <span class="call-sign">
-                  <a
-                    href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {{ plane.callsign }}
-                  </a>
-                  <span
-                    *ngIf="plane.isMilitary"
-                    class="material-symbols-sharp icon small military-star"
-                    title="Military plane"
-                    >star</span
-                  >
-                </span>
-              </ng-container>
-              <ng-template #noLink>
-                <span class="none-callsign">Pending</span>
-              </ng-template>
-
-              <!-- Special marker toggle button -->
-              <app-button
-                *ngIf="hoveredSkyPlaneIcao === plane.icao || plane.isSpecial"
-                type="tertiary"
-                [size]="'small'"
-                class="special-icon"
-                [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
-                (click)="onToggleSpecial(plane, $event)"
-                [ariaLabel]="
-                  plane.isSpecial ? 'Unmark special' : 'Mark special'
-                "
-              ></app-button>
-            </span>
-            <span class="direction-info">
-              <span>{{ plane.cardinal }}</span>
-              <span
-                class="material-symbols-sharp direction-icon"
-                [style.transform]="'rotate(' + (plane?.bearing ?? 0) + 'deg)'"
-              >
-                navigation
-              </span>
-              <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
-            </span>
-          </span>
-          <span class="top">
-            <span class="operator-center">
-              <!-- Moved Visibility Button Here -->
-              <app-button
-                [icon]="
-                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
-                    ? 'visibility_off'
-                    : 'visibility'
-                "
-                type="tertiary"
-                [size]="'small'"
-                (click)="onFilter(plane)"
-              ></app-button>
-              <span class="operator" [class.none-callsign]="!plane.operator">{{
-                plane.operator || "Unknown operator"
-              }}</span>
-            </span>
-            <span class="model" *ngIf="plane.model">
-              <a
-                href="https://www.bing.com/search?q={{ plane.model }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ plane.model }}
-              </a>
-            </span>
-          </span>
-        </div>
-      </div>
-    </div>
-    <ng-template #noSkyPlanes>
-      <p>No planes worth peeping.</p>
-    </ng-template>
-  </div>
-
-  <!-- Planes at the Airport section - only show if there are planes -->
-  <div
-    class="plane-section"
-    *ngIf="filteredAirportPlaneLog && filteredAirportPlaneLog.length"
-  >
-    <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
-    <div
-      class="plane-list-wrapper"
-      [class.fade-enabled]="airportListScrollable"
-      [class.no-fade]="!airportListScrollable || airportListAtBottom"
-    >
-      <div class="plane-list" #airportList (scroll)="onAirportScroll($event)">
-        <div
-          class="plane-item"
-          *ngFor="let plane of filteredAirportPlaneLog"
-          [class.new-plane]="plane.isNew === true"
-          [class.military-plane]="plane.isMilitary"
-          [class.special-plane]="plane.isSpecial"
-          [class.filtered-out]="plane.filteredOut"
-          [class.hide-commercial]="
-            settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
-          "
-        >
-          <span class="top">
-            <span
-              class="flag-callsign"
-              (mouseenter)="hoveredAirportPlaneIcao = plane.icao"
-              (mouseleave)="hoveredAirportPlaneIcao = null"
-            >
-              <!-- Moved Location Button Here -->
-              <app-button
-                [icon]="
-                  plane.icao === highlightedPlaneIcao
-                    ? 'my_location'
-                    : 'location_searching'
-                "
-                type="tertiary"
-                [size]="'small'"
-                (click)="onCenterPlane(plane, $event)"
-                [ariaLabel]="'Center plane on map'"
-              ></app-button>
-              <span
-                [innerHTML]="countryService.getFlagHTML(plane.origin)"
-              ></span>
-              <ng-container
-                *ngIf="
-                  plane.callsign && plane.callsign.trim().length >= 3;
-                  else noLink
-                "
-              >
-                <span class="call-sign">
-                  <a
-                    href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {{ plane.callsign }}
-                  </a>
-                  <span
-                    *ngIf="plane.isMilitary"
-                    class="material-symbols-sharp icon small military-star"
-                    title="Military plane"
-                    >star</span
-                  >
-                </span>
-              </ng-container>
-              <ng-template #noLink>
-                <span class="none-callsign">Pending</span>
-              </ng-template>
-
-              <!-- Special marker toggle button -->
-              <app-button
-                *ngIf="
-                  hoveredAirportPlaneIcao === plane.icao || plane.isSpecial
-                "
-                type="tertiary"
-                [size]="'small'"
-                [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
-                (click)="onToggleSpecial(plane, $event)"
-                [ariaLabel]="
-                  plane.isSpecial ? 'Unmark special' : 'Mark special'
-                "
-              ></app-button>
-            </span>
-            <!-- Display IATA code if available, else full airport name -->
-            <span
-              class="airport-code"
-              *ngIf="plane.airportCode"
-              [title]="plane.airportName"
-              >{{ plane.airportCode }}</span
-            >
-            <span
-              class="airport-name"
-              *ngIf="!plane.airportCode && plane.airportName"
-              >{{ plane.airportName }}</span
-            >
-          </span>
-          <span class="top">
-            <span class="operator-center">
-              <!-- Moved Visibility Button Here -->
-              <app-button
-                [icon]="
-                  planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
-                    ? 'visibility_off'
-                    : 'visibility'
-                "
-                type="tertiary"
-                [size]="'small'"
-                (click)="onFilter(plane)"
-              ></app-button>
-              <span class="operator" [class.none-callsign]="!plane.operator">{{
-                plane.operator || "Unknown operator"
-              }}</span>
-            </span>
-            <span class="model" *ngIf="plane.model">
-              <a
-                href="https://www.bing.com/search?q={{ plane.model }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ plane.model }}
-              </a>
-            </span>
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="seenResults">
-    <h3 class="top">
-      All Planes Peeped ({{ seenPlaneLog.length }})<span>
-        <!-- Collapse toggle button -->
+    <!-- Planes in the Sky section - always show -->
+    <div class="plane-section">
+      <h3>
+        Planes in the Sky ({{ filteredSkyPlaneLog.length }})
+        <div class="button-group">
+          <span class="map-status">
+            <span *ngIf="loadingAirports" class="loading-airports">
+              <span class="loading-spinner"></span>Processing airports
+            </span></span
+          >
+          <!-- Hide Export Filter List button for now -->
+          <!--
         <app-button
-          id="collapseSeenButton"
-          [icon]="seenCollapsed ? 'expand_less' : 'expand_more'"
-          type="tertiary"
-          [size]="'medium'"
-          (click)="toggleSeenCollapsed()"
-          [ariaLabel]="
-            seenCollapsed ? 'Expand seen list' : 'Collapse seen list'
-          "
+          [text]="'Export Filter List'"
+          type="secondary"
+          (click)="onExportList()"
         ></app-button>
-        <!-- Clear historical list button -->
-        <app-button
-          [icon]="'refresh'"
-          type="tertiary"
-          [size]="'medium'"
-          (click)="onClearHistoricalList()"
-          class="clear-seen"
-        ></app-button
-      ></span>
-    </h3>
-    <!-- Wrap seen list in collapse container -->
-    <ng-container *ngIf="!seenCollapsed">
+        --></div>
+      </h3>
       <div
         class="plane-list-wrapper"
-        [class.fade-enabled]="seenListScrollable"
-        [class.no-fade]="!seenListScrollable || seenListAtBottom"
-        *ngIf="seenPlaneLog && seenPlaneLog.length; else noSeen"
+        [class.fade-enabled]="skyListScrollable"
+        [class.no-fade]="!skyListScrollable || skyListAtBottom"
+        *ngIf="
+          filteredSkyPlaneLog && filteredSkyPlaneLog.length;
+          else noSkyPlanes
+        "
       >
-        <div
-          class="seen-list plane-list"
-          #seenList
-          (scroll)="onSeenScroll($event)"
-        >
-          <div class="plane-item" *ngFor="let plane of seenPlaneLog">
+        <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
+          <div
+            class="plane-item"
+            [class.highlighted-plane]="plane.icao === highlightedPlaneIcao"
+            *ngFor="let plane of filteredSkyPlaneLog"
+            [class.new-plane]="plane.isNew === true"
+            [class.military-plane]="plane.isMilitary"
+            [class.special-plane]="plane.isSpecial"
+            [class.filtered-out]="plane.filteredOut"
+            [class.hide-commercial]="
+              settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
+            "
+          >
             <span class="top">
               <span
                 class="flag-callsign"
-                (mouseenter)="hoveredSeenPlaneIcao = plane.icao"
-                (mouseleave)="hoveredSeenPlaneIcao = null"
+                (mouseenter)="hoveredSkyPlaneIcao = plane.icao"
+                (mouseleave)="hoveredSkyPlaneIcao = null"
               >
-                <!-- Location button for seen planes -->
-                <app-button
-                  [icon]="
-                    plane.icao === highlightedPlaneIcao
-                      ? 'my_location'
-                      : 'location_searching'
-                  "
-                  type="tertiary"
-                  [size]="'small'"
-                  (click)="centerPlane.emit(plane)"
-                  [ariaLabel]="'Center plane on map'"
-                  [disabled]="
-                    !plane.lat ||
-                    !plane.lon ||
-                    !activePlaneIcaos.has(plane.icao)
-                  "
-                  title="No longer in range."
-                ></app-button>
+                <!-- Moved Location Button Here -->
+                <app-location-button
+                  [plane]="plane"
+                  [highlightedPlaneIcao]="highlightedPlaneIcao"
+                  [activePlaneIcaos]="activePlaneIcaos"
+                  (centerPlane)="handleCenterPlane($event)"
+                ></app-location-button>
                 <span
                   [innerHTML]="countryService.getFlagHTML(plane.origin)"
                 ></span>
@@ -373,28 +107,34 @@
                     else noLink
                   "
                 >
-                  <a
-                    href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {{ plane.callsign }}
-                  </a>
+                  <span class="call-sign">
+                    <a
+                      href="https://globe.adsbexchange.com/?icao={{
+                        plane.icao
+                      }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ plane.callsign }}
+                    </a>
+                    <span
+                      *ngIf="plane.isMilitary"
+                      class="material-symbols-sharp icon small military-star"
+                      title="Military plane"
+                      >star</span
+                    >
+                  </span>
                 </ng-container>
                 <ng-template #noLink>
                   <span class="none-callsign">Pending</span>
                 </ng-template>
-                <span
-                  *ngIf="plane.isMilitary"
-                  class="material-symbols-sharp icon small military-star"
-                  title="Military plane"
-                  >star</span
-                >
+
                 <!-- Special marker toggle button -->
                 <app-button
-                  *ngIf="hoveredSeenPlaneIcao === plane.icao || plane.isSpecial"
+                  *ngIf="hoveredSkyPlaneIcao === plane.icao || plane.isSpecial"
                   type="tertiary"
                   [size]="'small'"
+                  class="special-icon"
                   [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
                   (click)="onToggleSpecial(plane, $event)"
                   [ariaLabel]="
@@ -402,10 +142,20 @@
                   "
                 ></app-button>
               </span>
-              <span>{{ getTimeAgo(plane.firstSeen) }}</span>
+              <span class="direction-info">
+                <span>{{ plane.cardinal }}</span>
+                <span
+                  class="material-symbols-sharp direction-icon"
+                  [style.transform]="'rotate(' + (plane?.bearing ?? 0) + 'deg)'"
+                >
+                  navigation
+                </span>
+                <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
+              </span>
             </span>
             <span class="top">
               <span class="operator-center">
+                <!-- Moved Visibility Button Here -->
                 <app-button
                   [icon]="
                     planeFilter.isPlaneFiltered(
@@ -417,17 +167,20 @@
                   "
                   type="tertiary"
                   [size]="'small'"
-                  (click)="filterPrefix.emit(plane)"
+                  (click)="onFilter(plane)"
                 ></app-button>
                 <span
                   class="operator"
                   [class.none-callsign]="!plane.operator"
-                  >{{ plane.operator || "Unknown operator" }}</span
+                  [title]="!plane.operator ? 'Unknown operator.' : ''"
+                  >{{ plane.operator || "Unknown" }}</span
                 >
               </span>
               <span class="model" *ngIf="plane.model">
                 <a
-                  href="https://www.bing.com/search?q={{ plane.model }}"
+                  href="https://www.bing.com/search?q={{
+                    plane.model
+                  }} aircraft"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -438,9 +191,288 @@
           </div>
         </div>
       </div>
-      <ng-template #noSeen>
-        <p>No planes peeped.</p>
+      <ng-template #noSkyPlanes>
+        <p>No planes worth peeping.</p>
       </ng-template>
-    </ng-container>
-  </div>
+    </div>
+
+    <!-- Planes at the Airport section - only show if there are planes -->
+    <div
+      class="plane-section"
+      *ngIf="filteredAirportPlaneLog && filteredAirportPlaneLog.length"
+    >
+      <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
+      <div
+        class="plane-list-wrapper"
+        [class.fade-enabled]="airportListScrollable"
+        [class.no-fade]="!airportListScrollable || airportListAtBottom"
+      >
+        <div class="plane-list" #airportList (scroll)="onAirportScroll($event)">
+          <div
+            class="plane-item"
+            [class.highlighted-plane]="plane.icao === highlightedPlaneIcao"
+            *ngFor="let plane of filteredAirportPlaneLog"
+            [class.new-plane]="plane.isNew === true"
+            [class.military-plane]="plane.isMilitary"
+            [class.special-plane]="plane.isSpecial"
+            [class.filtered-out]="plane.filteredOut"
+            [class.hide-commercial]="
+              settings.excludeDiscount && plane.filteredOut && !plane.isMilitary
+            "
+          >
+            <span class="top">
+              <span
+                class="flag-callsign"
+                (mouseenter)="hoveredAirportPlaneIcao = plane.icao"
+                (mouseleave)="hoveredAirportPlaneIcao = null"
+              >
+                <!-- Moved Location Button Here -->
+                <app-location-button
+                  [plane]="plane"
+                  [highlightedPlaneIcao]="highlightedPlaneIcao"
+                  [activePlaneIcaos]="activePlaneIcaos"
+                  (centerPlane)="handleCenterPlane($event)"
+                ></app-location-button>
+                <span
+                  [innerHTML]="countryService.getFlagHTML(plane.origin)"
+                ></span>
+                <ng-container
+                  *ngIf="
+                    plane.callsign && plane.callsign.trim().length >= 3;
+                    else noLink
+                  "
+                >
+                  <span class="call-sign">
+                    <a
+                      href="https://globe.adsbexchange.com/?icao={{
+                        plane.icao
+                      }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ plane.callsign }}
+                    </a>
+                    <span
+                      *ngIf="plane.isMilitary"
+                      class="material-symbols-sharp icon small military-star"
+                      title="Military plane"
+                      >star</span
+                    >
+                  </span>
+                </ng-container>
+                <ng-template #noLink>
+                  <span class="none-callsign">Pending</span>
+                </ng-template>
+
+                <!-- Special marker toggle button -->
+                <app-button
+                  *ngIf="
+                    hoveredAirportPlaneIcao === plane.icao || plane.isSpecial
+                  "
+                  type="tertiary"
+                  [size]="'small'"
+                  [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                  (click)="onToggleSpecial(plane, $event)"
+                  [ariaLabel]="
+                    plane.isSpecial ? 'Unmark special' : 'Mark special'
+                  "
+                ></app-button>
+              </span>
+              <!-- Display IATA code if available, else full airport name -->
+              <span
+                class="airport-code"
+                *ngIf="plane.airportCode"
+                [title]="plane.airportName"
+                >{{ plane.airportCode }}</span
+              >
+              <span
+                class="airport-name"
+                *ngIf="!plane.airportCode && plane.airportName"
+                >{{ plane.airportName }}</span
+              >
+            </span>
+            <span class="top">
+              <span class="operator-center">
+                <!-- Moved Visibility Button Here -->
+                <app-button
+                  [icon]="
+                    planeFilter.isPlaneFiltered(
+                      plane.callsign,
+                      plane.isMilitary
+                    )
+                      ? 'visibility_off'
+                      : 'visibility'
+                  "
+                  type="tertiary"
+                  [size]="'small'"
+                  (click)="onFilter(plane)"
+                ></app-button>
+                <span
+                  class="operator"
+                  [class.none-callsign]="!plane.operator"
+                  [title]="!plane.operator ? 'Unknown operator.' : ''"
+                  >{{ plane.operator || "Unknown" }}</span
+                >
+              </span>
+              <span class="model" *ngIf="plane.model">
+                <a
+                  href="https://www.bing.com/search?q={{
+                    plane.model
+                  }} aircraft"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ plane.model }}
+                </a>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="seenResults">
+      <h3 class="top">
+        All Planes Peeped ({{ seenPlaneLog.length }})<span>
+          <!-- Collapse toggle button -->
+          <app-button
+            id="collapseSeenButton"
+            [icon]="seenCollapsed ? 'expand_less' : 'expand_more'"
+            type="tertiary"
+            [size]="'medium'"
+            (click)="toggleSeenCollapsed()"
+            [ariaLabel]="
+              seenCollapsed ? 'Expand seen list' : 'Collapse seen list'
+            "
+          ></app-button>
+          <!-- Clear historical list button -->
+          <app-button
+            [icon]="'refresh'"
+            type="tertiary"
+            [size]="'medium'"
+            (click)="onClearHistoricalList()"
+            class="clear-seen"
+          ></app-button
+        ></span>
+      </h3>
+      <!-- Wrap seen list in collapse container -->
+      <ng-container *ngIf="!seenCollapsed">
+        <div
+          class="plane-list-wrapper"
+          [class.fade-enabled]="seenListScrollable"
+          [class.no-fade]="!seenListScrollable || seenListAtBottom"
+          *ngIf="seenPlaneLog && seenPlaneLog.length; else noSeen"
+        >
+          <div
+            class="seen-list plane-list"
+            #seenList
+            (scroll)="onSeenScroll($event)"
+          >
+            <div
+              class="plane-item"
+              [class.highlighted-plane]="plane.icao === highlightedPlaneIcao"
+              *ngFor="let plane of filteredSeenPlaneLog"
+              [class.military-plane]="plane.isMilitary"
+              [class.special-plane]="plane.isSpecial"
+            >
+              <span class="top">
+                <span
+                  class="flag-callsign"
+                  (mouseenter)="hoveredSeenPlaneIcao = plane.icao"
+                  (mouseleave)="hoveredSeenPlaneIcao = null"
+                >
+                  <!-- Location button for seen planes -->
+                  <app-location-button
+                    [plane]="plane"
+                    [highlightedPlaneIcao]="highlightedPlaneIcao"
+                    [activePlaneIcaos]="activePlaneIcaos"
+                    (centerPlane)="handleCenterPlane($event)"
+                  ></app-location-button>
+                  <span
+                    [innerHTML]="countryService.getFlagHTML(plane.origin)"
+                  ></span>
+                  <ng-container
+                    *ngIf="
+                      plane.callsign && plane.callsign.trim().length >= 3;
+                      else noLink
+                    "
+                  >
+                    <a
+                      href="https://globe.adsbexchange.com/?icao={{
+                        plane.icao
+                      }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ plane.callsign }}
+                    </a>
+                  </ng-container>
+                  <ng-template #noLink>
+                    <span class="none-callsign">Pending</span>
+                  </ng-template>
+                  <span
+                    *ngIf="plane.isMilitary"
+                    class="material-symbols-sharp icon small military-star"
+                    title="Military plane"
+                    >star</span
+                  >
+                  <!-- Special marker toggle button -->
+                  <app-button
+                    *ngIf="
+                      hoveredSeenPlaneIcao === plane.icao || plane.isSpecial
+                    "
+                    type="tertiary"
+                    [size]="'small'"
+                    [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+                    (click)="onToggleSpecial(plane, $event)"
+                    [ariaLabel]="
+                      plane.isSpecial ? 'Unmark special' : 'Mark special'
+                    "
+                  ></app-button>
+                </span>
+                <span>{{ getTimeAgo(plane.firstSeen) }}</span>
+              </span>
+              <span class="top">
+                <span class="operator-center">
+                  <app-button
+                    [icon]="
+                      planeFilter.isPlaneFiltered(
+                        plane.callsign,
+                        plane.isMilitary
+                      )
+                        ? 'visibility_off'
+                        : 'visibility'
+                    "
+                    type="tertiary"
+                    [size]="'small'"
+                    (click)="filterPrefix.emit(plane)"
+                  ></app-button>
+                  <span
+                    class="operator"
+                    [class.none-callsign]="!plane.operator"
+                    [title]="!plane.operator ? 'Unknown operator.' : ''"
+                    >{{ plane.operator || "Unknown" }}</span
+                  >
+                </span>
+                <span class="model" *ngIf="plane.model">
+                  <a
+                    href="https://www.bing.com/search?q={{
+                      plane.model
+                    }} aircraft"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ plane.model }}
+                  </a>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noSeen>
+          <p>No planes peeped.</p>
+        </ng-template>
+      </ng-container>
+    </div>
+  </ng-container>
 </div>
