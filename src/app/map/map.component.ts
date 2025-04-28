@@ -166,6 +166,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onToggleDateTimeOverlays(): void {
     this.showDateTime = !this.showDateTime;
+    this.settings.setShowDateTimeOverlay(this.showDateTime);
   }
 
   async ngAfterViewInit(): Promise<void> {
@@ -174,6 +175,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Load configured military prefix list for overlay flags
     await this.militaryPrefixService.loadPrefixes();
     this.settings.load();
+    // Restore saved show/hide date-time overlay setting
+    this.showDateTime = this.settings.showDateTimeOverlay;
 
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];

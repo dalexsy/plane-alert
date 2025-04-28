@@ -27,6 +27,8 @@ export class SettingsService {
   private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
   private commercialMuteKey = 'commercialMute';
   private _commercialMute: boolean = false;
+  private dateTimeOverlayKey = 'showDateTimeOverlay';
+  private _showDateTimeOverlay: boolean = true;
 
   /** Whether the 'All Planes Peeped' list is collapsed */
   get seenCollapsed(): boolean {
@@ -232,5 +234,19 @@ export class SettingsService {
     if (muteStr !== null) {
       this._commercialMute = muteStr === 'true';
     }
+    // Load show/hide date-time overlay preference
+    const dtStr = localStorage.getItem(this.dateTimeOverlayKey);
+    if (dtStr !== null) {
+      this._showDateTimeOverlay = dtStr === 'true';
+    }
+  }
+
+  /** Whether the date/time overlays are shown */
+  get showDateTimeOverlay(): boolean {
+    return this._showDateTimeOverlay;
+  }
+  setShowDateTimeOverlay(value: boolean): void {
+    this._showDateTimeOverlay = value;
+    localStorage.setItem(this.dateTimeOverlayKey, value.toString());
   }
 }
