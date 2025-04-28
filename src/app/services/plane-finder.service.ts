@@ -351,14 +351,38 @@ export class PlaneFinderService {
           const hue = Math.min(segAlt / maxAltitude, 1) * 300;
           const segColor = `hsl(${hue},100%,50%)`;
 
-          const segment = L.polyline(interpolatedPoints, {
-            color: segColor,
-            weight: 4,
-            opacity: opacity,
-            interactive: false,
-          }).addTo(map);
-
-          plane.historyTrailSegments!.push(segment);
+          // Color transition: interpolate between the altitudes of the segment endpoints
+          let rawIdx1 = 0,
+            rawIdx2 = 0;
+          if (rawPoints.length > 1) {
+            rawIdx1 = Math.floor(
+              (i * (rawPoints.length - 1)) / (smoothPoints.length - 1)
+            );
+            rawIdx2 = Math.ceil(
+              ((i + 1) * (rawPoints.length - 1)) / (smoothPoints.length - 1)
+            );
+          }
+          const segAlt1 = rawHistory[rawIdx1]?.alt ?? 0;
+          const segAlt2 = rawHistory[rawIdx2]?.alt ?? 0;
+          const hue1 = Math.min(segAlt1 / maxAltitude, 1) * 300;
+          const hue2 = Math.min(segAlt2 / maxAltitude, 1) * 300;
+          // Initialize previous point for gradient segments
+          let prevPt: L.LatLngExpression = interpolatedPoints[0];
+          // Draw each subsegment with interpolated color
+          for (let k = 1; k < interpolatedPoints.length; k++) {
+            const t = k / (interpolatedPoints.length - 1);
+            const hue = hue1 + (hue2 - hue1) * t;
+            const segColor = `hsl(${hue},100%,50%)`;
+            const segment = L.polyline([prevPt, interpolatedPoints[k]], {
+              className: 'history-trail-segment',
+              color: segColor,
+              weight: 4,
+              opacity: opacity,
+              interactive: false,
+            }).addTo(map);
+            plane.historyTrailSegments!.push(segment);
+            prevPt = interpolatedPoints[k];
+          }
         }
       }
     } else {
