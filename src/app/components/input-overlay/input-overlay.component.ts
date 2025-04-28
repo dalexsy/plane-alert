@@ -38,6 +38,8 @@ export class InputOverlayComponent implements OnDestroy {
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
   @Output() setHome = new EventEmitter<void>();
   @Output() goToHome = new EventEmitter<void>();
+  @Input() showCloudCover = true;
+  @Output() cloudToggleChange = new EventEmitter<boolean>();
   @Input() showDateTime = true;
   @Output() toggleDateTimeOverlays = new EventEmitter<void>();
 
@@ -130,5 +132,10 @@ export class InputOverlayComponent implements OnDestroy {
 
   onGoToHome(): void {
     this.goToHome.emit();
+  }
+
+  onShowCloudCoverChange(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.cloudToggleChange.emit(checked);
   }
 }

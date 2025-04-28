@@ -76,6 +76,17 @@
         Show view axes
       </label>
     </div>
+    <div class="form-group">
+      <label class="checkbox-inline" for="showCloud">
+        <input
+          type="checkbox"
+          id="showCloud"
+          [checked]="showCloudCover"
+          (change)="onShowCloudCoverChange($event)"
+        />
+        Show Cloud Cover
+      </label>
+    </div>
     <div class="button-group">
       <app-button
         id="findButton"

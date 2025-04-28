@@ -4,10 +4,12 @@
   (useCurrentLocation)="useCurrentLocation()"
   (goToAirport)="goToAirport()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
+  (cloudToggleChange)="toggleCloudCover($event)"
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
   (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
   [showDateTime]="showDateTime"
+  [showCloudCover]="cloudVisible"
 ></app-input-overlay>
 
 <!-- Pass the set of active ICAOs to the results overlay -->

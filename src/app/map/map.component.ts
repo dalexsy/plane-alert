@@ -38,6 +38,9 @@ import { DOCUMENT } from '@angular/common';
 import { ClockComponent } from '../components/ui/clock.component';
 import { TemperatureComponent } from '../components/ui/temperature.component';
 
+// OpenWeatherMap tile service API key - replace with your own key
+const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
+
 // Interface for Overpass API airport results
 interface OverpassElement {
   type: 'node' | 'way' | 'relation';
@@ -90,6 +93,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private locationErrorShown = false;
 
   coneVisible = false; // Default to hidden
+  cloudVisible = true; // Show cloud layer by default
+  cloudOpacity = 1;
 
   // Store found airports and their circles
   private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
@@ -106,6 +111,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Flag for viewport resizing (legacy) if needed
   isResizing = false;
   private resizeTimeout: any;
+
+  // Tile layer for cloud coverage overlay
+  private cloudLayer?: L.TileLayer;
 
   // Currently highlighted plane ICAO (for persistent tooltip/marker highlight)
   highlightedPlaneIcao: string | null = null;
@@ -340,7 +348,20 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
 
-    // Remove pattern definitions; airport circles use simple styling
+    // Cloud coverage overlay from OpenWeatherMap
+    this.cloudLayer = L.tileLayer(
+      `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
+      {
+        opacity: this.cloudOpacity,
+        attribution: 'Weather data © OpenWeatherMap',
+      }
+    )
+      .addTo(this.map)
+      .on('tileerror', (error) =>
+        console.error('Cloud tile load error:', error)
+      );
+    // Ensure clouds render above base tiles
+    this.cloudLayer.setZIndex(650);
 
     // Create custom marker for current location
     const locationIcon = L.divIcon({
@@ -1275,6 +1296,26 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   toggleConeVisibility(show: boolean): void {
     // Show or hide cones regardless of current map view, always anchored at home
     this.coneVisible = show;
+  }
+
+  /** Adjust cloud layer opacity */
+  setCloudOpacity(opacity: number): void {
+    this.cloudOpacity = opacity;
+    if (this.cloudLayer) {
+      this.cloudLayer.setOpacity(opacity);
+    }
+  }
+
+  /** Toggle display of cloud coverage layer */
+  toggleCloudCover(show: boolean): void {
+    this.cloudVisible = show;
+    if (this.cloudLayer) {
+      if (show) {
+        this.cloudLayer.addTo(this.map);
+      } else {
+        this.cloudLayer.remove();
+      }
+    }
   }
 
   /** Remove highlight from a plane's marker and tooltip */
