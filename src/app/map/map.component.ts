@@ -352,6 +352,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cloudLayer = L.tileLayer(
       `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
       {
+        className: 'cloud-layer',
         opacity: this.cloudOpacity,
         attribution: 'Weather data © OpenWeatherMap',
       }

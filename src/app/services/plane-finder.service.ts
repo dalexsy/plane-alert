@@ -126,6 +126,9 @@ export class PlaneFinderService {
       // Compute turn rate (deg/min) from last two history entries, if available
       let turnRate = 0;
       const hist = plane.positionHistory;
+      // Debug: log history length and last two tracks
+      console.log(`[Path Debug] ${plane.icao} history len=${hist.length}, lastTracks=`,
+        hist.slice(-2).map(p => p.track));
       if (
         hist.length >= 2 &&
         hist[hist.length - 1].track != null &&
@@ -136,10 +139,23 @@ export class PlaneFinderService {
         const dtMin =
           (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
           60000;
-        if (dtMin > 0) {
-          turnRate = (t1 - t0) / dtMin;
+        const MIN_DT_MIN = 0.1; // at least 6 seconds between samples to consider turn
+        if (dtMin >= MIN_DT_MIN) {
+          // adjust for wrap-around: minimal angle diff in [-180,180]
+          const rawDelta = ((t1 - t0 + 540) % 360) - 180;
+          turnRate = rawDelta / dtMin;
+          console.log(`[Path Debug] ${plane.icao} rawDelta=${rawDelta}, dtMin=${dtMin}, turnRate=${turnRate}`);
+          // clamp unrealistic turn rates
+          const MAX_TURN_RATE = 180; // deg per minute
+          if (Math.abs(turnRate) > MAX_TURN_RATE) {
+            console.log(`[Path Debug] ${plane.icao} turnRate ${turnRate} > ${MAX_TURN_RATE}, clamped to 0`);
+            turnRate = 0;
+          }
+        } else {
+          console.log(`[Path Debug] ${plane.icao} dtMin=${dtMin} < ${MIN_DT_MIN}, skip turnRate`);
         }
       }
+      console.log(`[Path Debug] ${plane.icao} initial track=${track}`);
       // Proceed with prediction, applying turnRate each step
       let weightedTrack = track;
       // Prediction window: 5 minutes for 10x longer prediction window
@@ -174,19 +190,6 @@ export class PlaneFinderService {
         curLon = (lon2 * 180) / Math.PI;
         pathPoints.push([curLat, curLon]);
       }
-      // Smooth predicted path but always anchor the first point at the plane's current position
-      const ctrlPts = pathPoints;
-      const samples = 30;
-      const smoothed: [number, number][] = [];
-      if (ctrlPts.length > 0) {
-        // Always start at true current location
-        smoothed.push(ctrlPts[0]);
-      }
-      for (let i = 1; i <= samples; i++) {
-        const t = i / samples;
-        smoothed.push(this.calculateCurvePoint(t, ctrlPts));
-      }
-      pathPoints = smoothed;
 
       // Cap the path length to a maximum distance (e.g., 50 km) from the current position
       const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
