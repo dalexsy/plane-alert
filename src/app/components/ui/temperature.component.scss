@@ -7,6 +7,7 @@
   right: calc(28rem + 0.5rem);
   z-index: 1000;
   font-size: 10rem;
+  gap: 1rem;
   line-height: 1;
   background: transparent;
   color: #fff;
@@ -22,30 +23,32 @@
     margin-bottom: -1rem;
 
     .weather-icon {
-      font-size: 10rem;
+      font-size: 6vw;
       line-height: 1;
       display: inline-block;
 
       ::ng-deep span.icon {
-        font-size: 10rem;
+        font-size: 6vw;
         font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
       }
     }
   }
 
   .temperature-current {
-    font-size: 20rem;
+    font-size: 12vw;
+    letter-spacing: -1vw;
     margin-right: -2rem;
   }
 
   .weather-icon,
   .temp-high {
-    font-size: 10rem;
-    letter-spacing: -0.75rem;
+    font-size: 6vw;
+    letter-spacing: -0.5vw;
   }
 
   .temp-low {
-    font-size: 7.5rem;
+    font-size: 4vw;
+    letter-spacing: -0.4vw;
     margin-top: 2px;
   }
 }

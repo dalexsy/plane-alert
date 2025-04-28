@@ -8,7 +8,8 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ClockComponent implements OnInit {
   currentTime = '';
-  currentDate = '';
+  weekday = '';
+  dayMonth = '';
 
   ngOnInit(): void {
     this.updateTime();
@@ -17,8 +18,8 @@ export class ClockComponent implements OnInit {
 
   private updateTime(): void {
     const now = new Date();
-    this.currentDate = now.toLocaleDateString('en-GB', {
-      weekday: 'long',
+    this.weekday = now.toLocaleDateString('en-GB', { weekday: 'long' });
+    this.dayMonth = now.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'long',
     });
