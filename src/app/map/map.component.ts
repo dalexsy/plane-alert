@@ -864,6 +864,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           }
         }
         this.manualUpdate = false;
+        // Reapply tooltip highlight after updates if a plane is followed
+        if (this.highlightedPlaneIcao) {
+          const pm = this.planeLog.get(this.highlightedPlaneIcao);
+          const tooltipEl = pm?.marker?.getTooltip()?.getElement();
+          tooltipEl?.classList.add('highlighted-tooltip');
+        }
         this.cdr.detectChanges();
       });
   }
@@ -919,6 +925,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const airportCircles = Array.from(this.airportCircles.values());
 
     const isInAnyAirport = (entry: PlaneModel) => {
+      // Prevent high-altitude planes from being considered at airports
+      const lastHist =
+        entry.positionHistory?.[entry.positionHistory.length - 1];
+      const alt = lastHist?.altitude ?? 0;
+      if (alt > 300) return false;
       if (entry.lat == null || entry.lon == null) return false;
       return airportCircles.some((circle) => {
         const center = circle.getLatLng();
