@@ -477,7 +477,9 @@ export class PlaneFinderService {
     getAircraftInfo: (
       icao: string
     ) => { model?: string; ownop?: string; mil?: boolean } | null,
-    previousLog: Map<string, PlaneModel> // Use PlaneModel here
+    previousLog: Map<string, PlaneModel>, // Use PlaneModel here
+    followedIcao?: string | null, // <-- new param
+    followNearest?: boolean // <-- new param
   ): Promise<{
     anyNew: boolean;
     currentIDs: string[];
@@ -696,7 +698,7 @@ export class PlaneFinderService {
 
       // Custom icon mapping removed, always use default icon
       const customPlaneIcon = '';
-
+      const followed = !!(followNearest && followedIcao && id === followedIcao);
       const { marker } = createOrUpdatePlaneMarker(
         planeModelInstance.marker, // Pass existing marker from model
         map,
@@ -710,7 +712,9 @@ export class PlaneFinderService {
         customPlaneIcon, // Pass custom icon HTML if ICAO matches
         isMilitary,
         model,
-        this.helicopterListService.isHelicopter(id)
+        this.helicopterListService.isHelicopter(id),
+        isSpecial,
+        followed // <-- pass followed flag
       );
       planeModelInstance.marker = marker; // Update marker reference on model
 

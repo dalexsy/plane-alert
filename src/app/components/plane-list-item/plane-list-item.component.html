@@ -1,6 +1,10 @@
 <!-- src/app/components/plane-list-item/plane-list-item.component.html -->
 <span class="top">
-  <span class="flag-callsign">
+  <span
+    class="flag-callsign"
+    (mouseenter)="onCenterPlaneMouseEnter()"
+    (mouseleave)="onCenterPlaneMouseLeave()"
+  >
     <!-- Location Button -->
     <app-button
       [icon]="

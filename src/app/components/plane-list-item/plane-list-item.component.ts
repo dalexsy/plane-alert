@@ -5,6 +5,8 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  // Add HostBinding for dynamic classes
+  HostBinding,
   HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -23,11 +25,30 @@ import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComp
 })
 export class PlaneListItemComponent {
   @Input({ required: true }) plane!: PlaneLogEntry;
+  // Reflect military/special state on host element for styling
+  @HostBinding('class.military-plane') get hostMilitary() {
+    return this.plane?.isMilitary === true;
+  }
+  @HostBinding('class.special-plane') get hostSpecial() {
+    return this.plane?.isSpecial === true;
+  }
+  @HostBinding('class.new-plane') get hostNew() {
+    return this.plane?.isNew === true;
+  }
   @Input() highlightedPlaneIcao: string | null = null;
+  @HostBinding('class.highlighted-plane')
+  get hostHighlighted(): boolean {
+    return this.plane.icao === this.highlightedPlaneIcao;
+  }
   @Input() listType: 'sky' | 'airport' | 'seen' = 'sky'; // Default or require
   @Input() hoveredPlaneIcao: string | null = null; // For special icon hover
   @Input() now: number = Date.now();
   @Input() activePlaneIcaos: Set<string> = new Set();
+  @Input() followedPlaneIcao: string | null = null;
+  @HostBinding('class.followed-plane')
+  get hostFollowed(): boolean {
+    return this.plane.icao === this.followedPlaneIcao;
+  }
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
@@ -55,6 +76,14 @@ export class PlaneListItemComponent {
   onCenterPlane(event: Event): void {
     event.stopPropagation(); // Prevent triggering other clicks if nested
     this.centerPlane.emit(this.plane);
+  }
+
+  onCenterPlaneMouseEnter(): void {
+    this.hoverPlane.emit(this.plane);
+  }
+
+  onCenterPlaneMouseLeave(): void {
+    this.unhoverPlane.emit(this.plane);
   }
 
   onFilter(event: Event): void {

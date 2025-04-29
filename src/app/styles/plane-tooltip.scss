@@ -1,3 +1,6 @@
+$followed-plane-color: #00ffff;
+$new-plane-color: #ff6161;
+
 .leaflet-tooltip.plane-tooltip {
   font-size: 0.75rem;
   background: rgba(0, 0, 0, 0.9);
@@ -64,6 +67,14 @@
       gap: 0.25rem;
       align-items: center;
     }
+    .callsign-text {
+      cursor: pointer;
+      text-decoration: underline dotted;
+      transition: color 0.15s;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 
   &.grounded-plane-tooltip {
@@ -73,7 +84,7 @@
   }
 
   &.new-plane-tooltip {
-    border-color: #ff2e2e;
+    border-color: $new-plane-color;
   }
 
   &.military-plane-tooltip {
@@ -94,13 +105,14 @@
     z-index: 1000;
     border-color: white;
   }
-  &.highlighted-tooltip {
-    // New class for persistent highlight
+  &.highlighted-tooltip:not(.followed-plane-tooltip) {
+    // Persistent highlight style
     z-index: 1000;
-    border-color: cyan;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+    border-color: white;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    color: white;
     a {
-      color: cyan;
+      color: white;
     }
   }
 
@@ -114,5 +126,20 @@
     font-size: 0.75rem;
     color: gold;
     font-variation-settings: "FILL" 0, "wght" 700, "GRAD" 0, "opsz" 20;
+  }
+
+  &.followed-plane-tooltip {
+    border-color: $followed-plane-color;
+    box-shadow: 0 0 0 2px $followed-plane-color, 0 1px 3px rgb(0 0 0);
+    color: $followed-plane-color;
+    // Override hover to maintain cyan border and text
+    &:hover {
+      border-color: $followed-plane-color;
+      color: $followed-plane-color;
+    }
+    // Prevent gold callsign on hover when followed
+    .callsign-text:hover {
+      color: $followed-plane-color;
+    }
   }
 }

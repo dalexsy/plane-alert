@@ -38,6 +38,7 @@ export class ClosestPlaneOverlayComponent {
   /** Handle user click to select this plane */
   onClick(): void {
     if (this.plane) {
+      console.log('[ClosestPlaneOverlay] clicked for icao:', this.plane.icao);
       this.selectPlane.emit(this.plane);
     }
   }

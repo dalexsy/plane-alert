@@ -257,6 +257,7 @@ export class ResultsOverlayComponent
     if (listType === 'sky') this.hoveredSkyPlaneIcao = plane.icao;
     else if (listType === 'airport') this.hoveredAirportPlaneIcao = plane.icao;
     else if (listType === 'seen') this.hoveredSeenPlaneIcao = plane.icao;
+    this.cdr.markForCheck();
     this.hoverPlane.emit(plane); // Still emit original event if needed by map
   }
 
@@ -267,6 +268,7 @@ export class ResultsOverlayComponent
     if (listType === 'sky') this.hoveredSkyPlaneIcao = null;
     else if (listType === 'airport') this.hoveredAirportPlaneIcao = null;
     else if (listType === 'seen') this.hoveredSeenPlaneIcao = null;
+    this.cdr.markForCheck();
     this.unhoverPlane.emit(plane); // Still emit original event
   }
 

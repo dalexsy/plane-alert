@@ -117,7 +117,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   isResizing = false;
   private resizeTimeout: any;
 
-  // Tile layer for cloud coverage overlay
+  // Tile layer for cloud coverage overlay from OpenWeatherMap
   private cloudLayer?: L.TileLayer;
 
   // Currently highlighted plane ICAO (for persistent tooltip/marker highlight)
@@ -174,6 +174,41 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
         }
       });
+    });
+
+    // Listen for tooltip follow/unfollow events
+    window.addEventListener('plane-tooltip-follow', (e: Event) => {
+      const icao = (e as CustomEvent).detail?.icao;
+      if (!icao) return;
+      this.ngZone.run(() => {
+        if (this.highlightedPlaneIcao === icao) {
+          this.unhighlightPlane(icao);
+          this.highlightedPlaneIcao = null;
+          this.followNearest = false;
+        } else {
+          this.highlightedPlaneIcao = icao;
+          this.followNearest = true;
+        }
+        this.updatePlaneLog(Array.from(this.planeLog.values()));
+        this.updateFollowedStyles(); // <-- ensure all planes update
+        this.cdr.detectChanges();
+      });
+    });
+
+    // Add global click handler for tooltip follow
+    window.addEventListener('click', (e: MouseEvent) => {
+      const wrapper = (e.target as HTMLElement).closest(
+        '.tooltip-follow-wrapper'
+      );
+      if (!wrapper) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const icao = wrapper.getAttribute('data-icao');
+      if (icao) {
+        window.dispatchEvent(
+          new CustomEvent('plane-tooltip-follow', { detail: { icao } })
+        );
+      }
     });
   }
 
@@ -318,7 +353,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Subscribe to radius changes: clear markers and paths outside new radius
     this.settings.radiusChanged.subscribe((newRadius) => {
       const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-      const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
       this.removeOutOfRangePlanes(lat, lon, newRadius);
       // Also update airports when main radius changes
       this.findAndDisplayAirports(lat, lon, newRadius);
@@ -699,14 +734,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             ? { model: record.model, ownop: record.ownop, mil: record.mil }
             : null;
         },
-        this.planeLog as Map<string, PlaneModel>
+        this.planeLog as Map<string, PlaneModel>,
+        this.highlightedPlaneIcao, // pass followed ICAO
+        this.followNearest // pass followNearest
       )
       .then(({ anyNew, currentIDs, updatedLog }) => {
-        console.log('[MapComponent] findPlanes returned IDs:', currentIDs);
-        console.log(
-          '[MapComponent] updatedLog ICAOs:',
-          updatedLog.map((p) => p.icao)
-        );
+        // Log scan summary
+        console.debug('[findPlanes] total planes found:', updatedLog.length);
 
         // Dynamically update favicon if special or military plane detected
         const hasSpecial = updatedLog.some((p) =>
@@ -847,11 +881,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     // Use PlaneModel entries from planeLog
     let candidate: PlaneModel | undefined;
-    // If followingNearest, start with highlighted plane if still present
     if (this.followNearest && this.highlightedPlaneIcao) {
       candidate = this.planeLog.get(this.highlightedPlaneIcao) || undefined;
     }
-    // Otherwise find the nearest visible plane by distance
     if (!candidate) {
       let minDist = Infinity;
       for (const plane of this.planeLog.values()) {
@@ -871,7 +903,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.closestSecondsAway = null;
       return;
     }
-    // Update overlay properties
+    // Update overlay with selected candidate
     this.closestPlane = candidate;
     const dist = haversineDistance(
       centerLat,
@@ -885,11 +917,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       candidate.velocity != null
         ? Math.round((dist * 1000) / candidate.velocity!)
         : null;
-    console.log(
-      `[MapComponent] Nearest overlay entry ICAO=${candidate.icao}, callsign=${
-        candidate.callsign
-      }, distance=${dist.toFixed(2)}km`
-    );
   }
 
   /** Replace favicon by updating the href of the <link rel="icon"> tag */
@@ -914,6 +941,50 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     links.forEach((link) => {
       link.href = iconUrl;
     });
+  }
+
+  /** Update followed styles for all planes based on current follow state */
+  private updateFollowedStyles(): void {
+    for (const plane of this.planeLog.values()) {
+      const marker = plane.marker;
+      if (marker) {
+        const markerEl = marker.getElement();
+        const tooltipEl = marker.getTooltip()?.getElement();
+        // Always remove followed styles first
+        markerEl?.classList.remove('highlighted-marker');
+        if (tooltipEl) {
+          tooltipEl.classList.remove('highlighted-tooltip');
+          tooltipEl.classList.remove('followed-plane-tooltip');
+          tooltipEl.style.borderColor = '';
+          tooltipEl.style.color = '';
+        }
+        if (markerEl) {
+          markerEl.style.borderColor = '';
+          markerEl.style.color = '';
+        }
+        marker.setZIndexOffset(0);
+      }
+    }
+    // Now apply followed style to the currently followed plane only
+    if (this.followNearest && this.highlightedPlaneIcao) {
+      const followed = this.planeLog.get(this.highlightedPlaneIcao);
+      if (followed && followed.marker) {
+        const markerEl = followed.marker.getElement();
+        const tooltipEl = followed.marker.getTooltip()?.getElement();
+        followed.marker.setZIndexOffset(10000);
+        markerEl?.classList.add('highlighted-marker');
+        if (tooltipEl) {
+          tooltipEl.classList.add('highlighted-tooltip');
+          tooltipEl.classList.add('followed-plane-tooltip');
+          tooltipEl.style.borderColor = '#00ffff';
+          tooltipEl.style.color = '#00ffff';
+        }
+        if (markerEl) {
+          markerEl.style.borderColor = '#00ffff';
+          markerEl.style.color = '#00ffff';
+        }
+      }
+    }
   }
 
   private updatePlaneLog(planes: PlaneModel[]): void {
@@ -946,39 +1017,43 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const visiblePlanes = planes.filter(
       (p) => !p.filteredOut && p.lat != null && p.lon != null
     );
-    visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen); // Sort by firstSeen ascending
-    // Update results list
+    // Sort sky list by firstSeen for display (newest bottom)
+    visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
     this.resultsOverlayComponent.skyPlaneLog = visiblePlanes;
     this.resultsOverlayComponent.airportPlaneLog = [];
+    // Compute nearest (or followed) plane for overlay
+    this.computeClosestPlane();
+    // --- REMOVED ---
     // Update nearest overlay and UI debug in sync
-    if (visiblePlanes.length > 0) {
-      const top = visiblePlanes[0];
-      this.closestPlane = top;
-      this.closestDistance =
-        Math.round(
-          haversineDistance(centerLat, centerLon, top.lat!, top.lon!) * 10
-        ) / 10;
-      this.closestOperator = top.operator || null;
-      this.closestSecondsAway = top.velocity
-        ? Math.round(
-            (haversineDistance(centerLat, centerLon, top.lat!, top.lon!) *
-              1000) /
-              top.velocity!
-          )
-        : null;
-      const distStr = this.closestDistance.toFixed(1);
-      console.log(
-        `[MapComponent] UI top plane ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
-      );
-      console.log(
-        `[MapComponent] Nearest overlay entry ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
-      );
-    } else {
-      this.closestPlane = null;
-      this.closestDistance = null;
-      this.closestOperator = null;
-      this.closestSecondsAway = null;
-    }
+    // if (visiblePlanes.length > 0) {
+    //   const top = visiblePlanes[0];
+    //   this.closestPlane = top;
+    //   this.closestDistance =
+    //     Math.round(
+    //       haversineDistance(centerLat, centerLon, top.lat!, top.lon!) * 10
+    //     ) / 10;
+    //   this.closestOperator = top.operator || null;
+    //   this.closestSecondsAway = top.velocity
+    //     ? Math.round(
+    //         (haversineDistance(centerLat, centerLon, top.lat!, top.lon!) *
+    //           1000) /
+    //           top.velocity!
+    //       )
+    //     : null;
+    //   const distStr = this.closestDistance.toFixed(1);
+    //   console.log(
+    //     `[MapComponent] UI top plane ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
+    //   );
+    //   console.log(
+    //     `[MapComponent] Nearest overlay entry ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
+    //   );
+    // } else {
+    //   this.closestPlane = null;
+    //   this.closestDistance = null;
+    //   this.closestOperator = null;
+    //   this.closestSecondsAway = null;
+    // }
+    // --- END REMOVED ---
 
     // Merge into historical log
     const mergedMap = new Map<string, PlaneModel>();
@@ -1019,6 +1094,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       ...militaryPlanes,
       ...otherPlanes,
     ];
+
+    // Only clear follow state if the followed plane is gone
+    if (this.followNearest && this.highlightedPlaneIcao) {
+      if (!this.planeLog.has(this.highlightedPlaneIcao)) {
+        this.followNearest = false;
+        this.highlightedPlaneIcao = null;
+      }
+    }
+    this.updateFollowedStyles(); // <-- ensure all planes update
   }
 
   clearSeenList(): void {
@@ -1340,9 +1424,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
   centerOnPlane(plane: PlaneLogEntry, preserveFollowNearest = false): void {
-    if (!preserveFollowNearest) {
-      this.followNearest = false;
-    }
+    console.debug('[MapComponent] centerOnPlane:', plane.icao);
+    // Always follow when a plane is centered from the results list or overlay
+    this.followNearest = true;
+
     const icao = plane.icao;
     // If already highlighted, remove highlight
     if (this.highlightedPlaneIcao === icao) {
@@ -1391,26 +1476,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: PlaneModel): void {
-    this.centerOnPlane(
-      {
-        callsign: plane.callsign,
-        origin: plane.origin,
-        firstSeen: plane.firstSeen,
-        model: plane.model,
-        operator: plane.operator,
-        bearing: plane.bearing,
-        cardinal: plane.cardinal,
-        arrow: plane.arrow,
-        icao: plane.icao,
-        isNew: plane.isNew,
-        lat: plane.lat,
-        lon: plane.lon,
-        filteredOut: plane.filteredOut,
-        isMilitary: plane.isMilitary,
-        isSpecial: plane.isSpecial,
-      },
-      true
-    ); // preserve followNearest flag on initial follow
+    // Always center and highlight, just like results overlay
+    this.centerOnPlane(plane);
   }
 
   // New function to find and display airports
@@ -1686,6 +1753,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Temporarily highlight marker and tooltip on overlay hover */
   onHoverOverlayPlane(plane: PlaneLogEntry): void {
+    console.debug('[MapComponent] onHoverOverlayPlane:', plane.icao);
     const pm = this.planeLog.get(plane.icao);
     // Only apply hover effect if not the persistently highlighted plane
     if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
@@ -1700,6 +1768,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Remove temporary highlight on overlay hover out */
   onUnhoverOverlayPlane(plane: PlaneLogEntry): void {
+    console.debug('[MapComponent] onUnhoverOverlayPlane:', plane.icao);
     const pm = this.planeLog.get(plane.icao);
     // Only remove hover effect if not the persistently highlighted plane
     if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {

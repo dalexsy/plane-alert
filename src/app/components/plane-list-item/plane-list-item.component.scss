@@ -1,4 +1,7 @@
 // src/app/components/plane-list-item/plane-list-item.component.scss
+$new-plane-color: #ff6161;
+$followed-plane-color: #00ffff;
+
 :host {
   display: flex;
   flex-direction: column;
@@ -13,10 +16,22 @@
     border-bottom: none;
   }
 
-  // --- Class Bindings from Parent ---
   &.new-plane {
-    color: #ff6161;
+    color: $new-plane-color;
     a {
+      font-weight: bold;
+    }
+  }
+  &.followed-plane {
+    color: $followed-plane-color;
+    border-left: 3px solid $followed-plane-color;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 255, 255, 0.2) 0%,
+      rgba(0, 255, 255, 0.05) 100%
+    );
+    a {
+      color: $followed-plane-color;
       font-weight: bold;
     }
   }
@@ -30,7 +45,16 @@
   &.hide-commercial {
     display: none !important;
   }
-  // --- End Class Bindings ---
+  &.highlighted-plane {
+    color: #00ffff;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 255, 255, 0.2) 0%,
+      rgba(0, 255, 255, 0.05) 100%
+    );
+    border-left: 3px solid #00ffff;
+    padding-left: calc(1rem - 3px);
+  }
 
   .top,
   .bottom {

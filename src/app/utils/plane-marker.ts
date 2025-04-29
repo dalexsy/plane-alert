@@ -16,7 +16,8 @@ export function createOrUpdatePlaneMarker(
   isMilitary: boolean = false,
   model: string = '',
   isCustomHelicopter: boolean = false,
-  isSpecial: boolean = false
+  isSpecial: boolean = false,
+  followed: boolean = false // <-- new param
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Check if this is a helicopter based on model name or our custom list
   const modelLower = model.toLowerCase();
@@ -35,8 +36,8 @@ export function createOrUpdatePlaneMarker(
       : isGrounded
       ? 'grounded-plane'
       : ''
-  } ${isMilitary ? 'military-plane' : ''} ${
-    isCopter ? 'copter-plane' : ''
+  } ${isMilitary ? 'military-plane' : ''} ${isCopter ? 'copter-plane' : ''}${
+    followed ? ' followed-plane' : ''
   }" style="transform: rotate(${
     isCopter ? 0 : rotation
   }deg); ${extraStyle}">${planeIcon}</div>`;
@@ -53,11 +54,12 @@ export function createOrUpdatePlaneMarker(
     permanent: true,
     direction: 'right',
     offset: isGrounded ? L.point(-10, 0) : L.point(10, 0),
+    interactive: true, // enable pointer events on tooltip
     className: `plane-tooltip ${isGrounded ? 'grounded-plane-tooltip' : ''} ${
       isNew ? 'new-plane-tooltip' : ''
     } ${isMilitary ? 'military-plane-tooltip' : ''} ${
       isSpecial ? 'special-plane-tooltip' : ''
-    }`,
+    }${followed ? ' followed-plane-tooltip' : ''}`,
     pane: 'tooltipPane', // Ensure tooltip is in the tooltipPane (typically above markerPane)
   };
 
@@ -86,6 +88,20 @@ export function createOrUpdatePlaneMarker(
     }
     oldMarker.bindTooltip(tooltip, tooltipOptions);
 
+    // --- Set followed style immediately ---
+    if (followed) {
+      const markerEl = oldMarker.getElement();
+      if (markerEl) {
+        markerEl.style.borderColor = '#00ffff';
+        markerEl.style.color = '#00ffff';
+      }
+      const tooltipEl = oldMarker.getTooltip()?.getElement();
+      if (tooltipEl) {
+        tooltipEl.style.borderColor = '#00ffff';
+        tooltipEl.style.color = '#00ffff';
+      }
+    }
+
     // --- Event Handling for Existing Markers ---
     const bringForwardHandler = () => manageZIndex(oldMarker, true);
     const sendBackwardHandler = () => manageZIndex(oldMarker, false);
@@ -106,6 +122,21 @@ export function createOrUpdatePlaneMarker(
       if (tooltipEl) {
         tooltipEl.addEventListener('mouseenter', bringForwardHandler);
         tooltipEl.addEventListener('mouseleave', sendBackwardHandler);
+        // Add follow click handler on callsign-text
+        tooltipEl.addEventListener('click', (e: MouseEvent) => {
+          const wrapperEl = (e.target as HTMLElement).closest(
+            '.tooltip-follow-wrapper'
+          );
+          if (!wrapperEl) return;
+          e.stopPropagation();
+          e.preventDefault();
+          const icao = wrapperEl.getAttribute('data-icao');
+          if (icao) {
+            window.dispatchEvent(
+              new CustomEvent('plane-tooltip-follow', { detail: { icao } })
+            );
+          }
+        });
       }
     });
     oldMarker.on('tooltipclose', () => {
@@ -113,6 +144,8 @@ export function createOrUpdatePlaneMarker(
       if (tooltipEl) {
         tooltipEl.removeEventListener('mouseenter', bringForwardHandler);
         tooltipEl.removeEventListener('mouseleave', sendBackwardHandler);
+        // Remove follow/unfollow click handler
+        // (No need to remove as tooltip is destroyed, but safe to do)
       }
     });
     // --- End Event Handling ---
@@ -122,6 +155,20 @@ export function createOrUpdatePlaneMarker(
     const marker = L.marker([lat, lon], { icon });
     marker.bindTooltip(tooltip, tooltipOptions);
     marker.addTo(map);
+
+    // --- Set followed style immediately ---
+    if (followed) {
+      const markerEl = marker.getElement();
+      if (markerEl) {
+        markerEl.style.borderColor = '#00ffff';
+        markerEl.style.color = '#00ffff';
+      }
+      const tooltipEl = marker.getTooltip()?.getElement();
+      if (tooltipEl) {
+        tooltipEl.style.borderColor = '#00ffff';
+        tooltipEl.style.color = '#00ffff';
+      }
+    }
 
     // --- Event Handling for New Markers ---
     const bringForwardHandler = () => manageZIndex(marker, true);
@@ -137,6 +184,21 @@ export function createOrUpdatePlaneMarker(
       if (tooltipEl) {
         tooltipEl.addEventListener('mouseenter', bringForwardHandler);
         tooltipEl.addEventListener('mouseleave', sendBackwardHandler);
+        // Add follow click handler on callsign-text
+        tooltipEl.addEventListener('click', (e: MouseEvent) => {
+          const wrapperEl = (e.target as HTMLElement).closest(
+            '.tooltip-follow-wrapper'
+          );
+          if (!wrapperEl) return;
+          e.stopPropagation();
+          e.preventDefault();
+          const icao = wrapperEl.getAttribute('data-icao');
+          if (icao) {
+            window.dispatchEvent(
+              new CustomEvent('plane-tooltip-follow', { detail: { icao } })
+            );
+          }
+        });
       }
     });
     marker.on('tooltipclose', () => {
@@ -144,6 +206,7 @@ export function createOrUpdatePlaneMarker(
       if (tooltipEl) {
         tooltipEl.removeEventListener('mouseenter', bringForwardHandler);
         tooltipEl.removeEventListener('mouseleave', sendBackwardHandler);
+        // Remove follow/unfollow click handler
       }
     });
     // --- End Event Handling ---

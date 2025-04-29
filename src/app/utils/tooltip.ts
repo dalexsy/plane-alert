@@ -36,20 +36,23 @@ export function planeTooltip(
   const mainRow = `
   <span class="tooltip-row">
     ${getFlagHTML(origin)}
-    <strong>${displayCallsign}${
-    isMilitary
-      ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
-      : ''
-  }${
+    <strong>
+      <span class="callsign-text tooltip-follow-callsign" data-icao="${id}">${displayCallsign}</span>
+      ${
+        isMilitary
+          ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
+          : ''
+      }${
     isSpecial
       ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
-  }</strong>
+  }
+    </strong>
     ${
       operator
         ? `<span class="divider">•</span> <span class="aircraft-operator">${operator}</span>`
         : speedText || altText || verticalRateSpan || isGrounded
-        ? ((): string => {
+        ? (() => {
             const parts: string[] = [];
             if (speedText) {
               parts.push(`<span class="velocity">${speedText}</span>`);
@@ -97,5 +100,5 @@ export function planeTooltip(
     : '';
 
   // Combine rows
-  return `<a href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" rel="noopener noreferrer" class="plane-tooltip-link">${mainRow}${infoRow}</a>`;
+  return `<span class="plane-tooltip-link tooltip-follow-wrapper" data-icao="${id}" onclick="(function(e){console.debug('[TOOLTIP] Clicked tooltip for ICAO:', '${id}', 'event target:', e.target);if(e.target.closest('.callsign-text')){console.debug('[TOOLTIP] Dispatching follow event for', '${id}');window.dispatchEvent(new CustomEvent('plane-tooltip-follow',{detail:{icao:'${id}'}}));e.stopPropagation();e.preventDefault();}else{console.debug('[TOOLTIP] Ignored click, not on callsign.');}})(event)">${mainRow}${infoRow}</span>`;
 }

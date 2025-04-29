@@ -82,6 +82,8 @@
             (centerPlane)="handleCenterPlane($event)"
             (filterPrefix)="handleFilterPrefix($event)"
             (toggleSpecial)="handleToggleSpecial($event)"
+            (hoverPlane)="onHoverPlane($event, 'sky')"
+            (unhoverPlane)="onUnhoverPlane($event, 'sky')"
           ></app-plane-list-item>
         </div>
       </div>
@@ -112,6 +114,8 @@
             (centerPlane)="handleCenterPlane($event)"
             (filterPrefix)="handleFilterPrefix($event)"
             (toggleSpecial)="handleToggleSpecial($event)"
+            (hoverPlane)="onHoverPlane($event, 'airport')"
+            (unhoverPlane)="onUnhoverPlane($event, 'airport')"
           ></app-plane-list-item>
         </div>
       </div>
@@ -164,6 +168,8 @@
               (centerPlane)="handleCenterPlane($event)"
               (filterPrefix)="handleFilterPrefix($event)"
               (toggleSpecial)="handleToggleSpecial($event)"
+              (hoverPlane)="onHoverPlane($event, 'seen')"
+              (unhoverPlane)="onUnhoverPlane($event, 'seen')"
             ></app-plane-list-item>
           </div>
         </div>
