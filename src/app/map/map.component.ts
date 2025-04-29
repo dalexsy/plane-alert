@@ -9,6 +9,7 @@ import {
   HostListener,
   NgZone,
   Inject,
+  HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
@@ -27,7 +28,6 @@ import { AircraftDbService } from '../services/aircraft-db.service';
 import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
 import { playAlertSound } from '../utils/alert-sound';
-import { Plane } from '../types/plane';
 import { PlaneModel } from '../models/plane-model';
 import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused later
 import { SpecialListService } from '../services/special-list.service';
@@ -37,6 +37,7 @@ import { MilitaryPrefixService } from '../services/military-prefix.service';
 import { DOCUMENT } from '@angular/common';
 import { ClockComponent } from '../components/ui/clock.component';
 import { TemperatureComponent } from '../components/ui/temperature.component';
+import { ClosestPlaneOverlayComponent } from '../components/closest-plane-overlay/closest-plane-overlay.component';
 
 // OpenWeatherMap tile service API key - replace with your own key
 const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
@@ -64,12 +65,16 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     ResultsOverlayComponent,
     ClockComponent,
     TemperatureComponent,
+    ClosestPlaneOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
   encapsulation: ViewEncapsulation.None, // Restored for Leaflet map elements
 })
 export class MapComponent implements AfterViewInit, OnDestroy {
+  /** Flag for panning state, toggles pointer-events on overlays */
+  @HostBinding('class.map-panning') panning = false;
+
   @ViewChild(InputOverlayComponent, { static: true })
   inputOverlayComponent!: InputOverlayComponent;
   @ViewChild(ResultsOverlayComponent, { static: true })
@@ -121,6 +126,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private currentFaviconUrl: string = '';
   // Set of ICAOs for planes currently active on the map
   activePlaneIcaos = new Set<string>();
+
+  // New properties for closest-plane overlay
+  closestPlane: PlaneModel | null = null;
+  closestDistance: number | null = null;
+  closestOperator: string | null = null;
+  closestSecondsAway: number | null = null;
+  /** Whether user is following the nearest overlay plane */
+  followNearest = false;
 
   private airportsLoading = false; // guard for Overpass fetches
   currentTime: string = '';
@@ -332,6 +345,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       attributionControl: false,
       doubleClickZoom: false,
     }).setView([lat, lon], 12);
+
+    // Disable overlay pointer-events while panning
+    this.map.on('movestart', () =>
+      this.ngZone.run(() => (this.panning = true))
+    );
+    this.map.on('moveend', () => this.ngZone.run(() => (this.panning = false)));
+
     // Add SVG renderer for vector overlays (draws into overlayPane)
     L.svg().addTo(this.map);
 
@@ -682,6 +702,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.planeLog as Map<string, PlaneModel>
       )
       .then(({ anyNew, currentIDs, updatedLog }) => {
+        console.log('[MapComponent] findPlanes returned IDs:', currentIDs);
+        console.log(
+          '[MapComponent] updatedLog ICAOs:',
+          updatedLog.map((p) => p.icao)
+        );
+
         // Dynamically update favicon if special or military plane detected
         const hasSpecial = updatedLog.some((p) =>
           this.specialListService.isSpecial(p.icao)
@@ -765,44 +791,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                   .getTooltip()
                   ?.getElement()
                   ?.classList.add('grounded-plane-tooltip'); // Assuming this class exists
-                planeModel.marker
-                  .getTooltip()
-                  ?.getElement()
-                  ?.classList.remove('new-plane-tooltip');
-              } else if (planeModel.isNew) {
-                // Marker and tooltip for military override new-plane
-                if (isMilitary) {
-                  planeModel.marker
-                    ?.getElement()
-                    ?.classList.add('military-plane');
-                  planeModel.marker
-                    ?.getElement()
-                    ?.classList.remove('new-plane');
-                  // Add military tooltip class, remove new-plane-tooltip if present
-                  planeModel.marker
-                    .getTooltip()
-                    ?.getElement()
-                    ?.classList.add('military-plane-tooltip');
-                  planeModel.marker
-                    .getTooltip()
-                    ?.getElement()
-                    ?.classList.remove('new-plane-tooltip');
-                } else {
-                  // Non-military new plane
-                  planeModel.marker?.getElement()?.classList.add('new-plane');
-                  planeModel.marker
-                    ?.getElement()
-                    ?.classList.remove('military-plane');
-                  // Tooltip classes
-                  planeModel.marker
-                    .getTooltip()
-                    ?.getElement()
-                    ?.classList.add('new-plane-tooltip');
-                  planeModel.marker
-                    .getTooltip()
-                    ?.getElement()
-                    ?.classList.remove('military-plane-tooltip');
-                }
               } else {
                 // Not new and not on ground
                 planeModel.marker
@@ -815,8 +803,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                     'new-plane-tooltip',
                     'grounded-plane-tooltip'
                   );
-
-                // For non-new planes, add military-plane class if it's military
+                planeModel.marker
+                  .getTooltip()
+                  ?.getElement()
+                  ?.classList.remove('new-plane-tooltip');
+                // Marker and tooltip for military override new-plane
                 if (isMilitary) {
                   planeModel.marker
                     .getElement()
@@ -837,32 +828,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Update the set of active plane ICAOs
         this.activePlaneIcaos = new Set(this.planeLog.keys());
 
+        // Update both the overlay and lists via updatePlaneLog
         this.updatePlaneLog(updatedPlaneModels);
-        // If a plane is highlighted and centerZoom is set, re-center and zoom on each scan
-        if (this.highlightedPlaneIcao && this.centerZoom != null) {
-          const pm = this.planeLog.get(this.highlightedPlaneIcao);
-          const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-          const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-          const radius = this.settings.radius ?? 5;
-          if (pm?.lat != null && pm.lon != null) {
-            const dist = haversineDistance(
-              centerLat,
-              centerLon,
-              pm.lat,
-              pm.lon
-            );
-            if (dist <= radius) {
-              // in range: follow plane
-              this.map.setView([pm.lat, pm.lon], this.centerZoom);
-            } else {
-              // out of range: clear highlight and reset view
-              this.unhighlightPlane(this.highlightedPlaneIcao);
-              this.highlightedPlaneIcao = null;
-              this.centerZoom = null;
-              this.map.setView([centerLat, centerLon], this.map.getZoom());
-            }
-          }
-        }
         this.manualUpdate = false;
         // Reapply tooltip highlight after updates if a plane is followed
         if (this.highlightedPlaneIcao) {
@@ -872,6 +839,57 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         }
         this.cdr.detectChanges();
       });
+  }
+
+  /** Compute and update the overlay to show the nearest plane (or tracked) */
+  private computeClosestPlane(): void {
+    const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+    // Use PlaneModel entries from planeLog
+    let candidate: PlaneModel | undefined;
+    // If followingNearest, start with highlighted plane if still present
+    if (this.followNearest && this.highlightedPlaneIcao) {
+      candidate = this.planeLog.get(this.highlightedPlaneIcao) || undefined;
+    }
+    // Otherwise find the nearest visible plane by distance
+    if (!candidate) {
+      let minDist = Infinity;
+      for (const plane of this.planeLog.values()) {
+        if (plane.filteredOut || plane.lat == null || plane.lon == null)
+          continue;
+        const d = haversineDistance(centerLat, centerLon, plane.lat, plane.lon);
+        if (d < minDist) {
+          minDist = d;
+          candidate = plane;
+        }
+      }
+    }
+    if (!candidate) {
+      this.closestPlane = null;
+      this.closestDistance = null;
+      this.closestOperator = null;
+      this.closestSecondsAway = null;
+      return;
+    }
+    // Update overlay properties
+    this.closestPlane = candidate;
+    const dist = haversineDistance(
+      centerLat,
+      centerLon,
+      candidate.lat!,
+      candidate.lon!
+    );
+    this.closestDistance = Math.round(dist * 10) / 10;
+    this.closestOperator = candidate.operator || null;
+    this.closestSecondsAway =
+      candidate.velocity != null
+        ? Math.round((dist * 1000) / candidate.velocity!)
+        : null;
+    console.log(
+      `[MapComponent] Nearest overlay entry ICAO=${candidate.icao}, callsign=${
+        candidate.callsign
+      }, distance=${dist.toFixed(2)}km`
+    );
   }
 
   /** Replace favicon by updating the href of the <link rel="icon"> tag */
@@ -898,97 +916,69 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  updatePlaneLog(planes: PlaneModel[]): void {
-    // Define the sortByMilitary function
-    const sortByPriority = (a: PlaneModel, b: PlaneModel): number => {
-      // Special planes always on top
-      const aSpecial = this.specialListService.isSpecial(a.icao);
-      const bSpecial = this.specialListService.isSpecial(b.icao);
-      if (aSpecial !== bSpecial) {
-        return aSpecial ? -1 : 1;
-      }
-      // Military planes next
-      const aMil = this.aircraftDb.lookup(a.icao)?.mil || false;
-      const bMil = this.aircraftDb.lookup(b.icao)?.mil || false;
-      if (aMil !== bMil) {
-        return aMil ? -1 : 1;
-      }
-      // Then sort by firstSeen descending
-      if (a.firstSeen !== b.firstSeen) {
-        return b.firstSeen - a.firstSeen;
-      }
-      // Tie-break by ICAO
-      return a.icao.localeCompare(b.icao);
-    };
-
-    // Gather centers and radii of dynamic airport circles
-    const airportCircles = Array.from(this.airportCircles.values());
-
-    const isInAnyAirport = (entry: PlaneModel) => {
-      // Prevent high-altitude planes from being considered at airports
-      const lastHist =
-        entry.positionHistory?.[entry.positionHistory.length - 1];
-      const alt = lastHist?.altitude ?? 0;
-      if (alt > 300) return false;
-      if (entry.lat == null || entry.lon == null) return false;
-      return airportCircles.some((circle) => {
-        const center = circle.getLatLng();
-        const radiusKm = circle.getRadius() / 1000;
-        return (
-          haversineDistance(center.lat, center.lng, entry.lat!, entry.lon!) <=
-          radiusKm
-        );
-      });
-    };
-
-    // Sky planes: those not in any airport circle
-    const sky = planes.filter(
-      (entry) =>
-        !isInAnyAirport(entry) && entry.lat != null && entry.lon != null
-    );
-    sky.sort(sortByPriority);
-    if (this.highlightedPlaneIcao) {
-      const idx = sky.findIndex((p) => p.icao === this.highlightedPlaneIcao);
-      if (idx > -1) {
-        const [followed] = sky.splice(idx, 1);
-        sky.unshift(followed);
-      }
-    }
-
-    // Airport planes: those in any airport circle
-    const airport = planes.filter((entry) => isInAnyAirport(entry));
-    // Annotate each airport plane with airport name
-    airport.forEach((plane) => {
-      // find the airport circle containing this plane
-      for (const [id, circle] of this.airportCircles.entries()) {
-        const center = circle.getLatLng();
-        const radKm = circle.getRadius() / 1000;
-        if (
-          plane.lat != null &&
-          plane.lon != null &&
-          haversineDistance(center.lat, center.lng, plane.lat, plane.lon) <=
-            radKm
-        ) {
-          const md = this.airportData.get(id);
-          plane.airportName = md?.name || '';
-          plane.airportCode = md?.code || '';
-          break;
-        }
-      }
+  private updatePlaneLog(planes: PlaneModel[]): void {
+    // Assign airport code/name for planes within airport circles
+    planes.forEach((p) => {
+      p.airportCode = undefined;
+      p.airportName = undefined;
     });
-    airport.sort(sortByPriority);
-    if (this.highlightedPlaneIcao) {
-      const idxA = airport.findIndex(
-        (p) => p.icao === this.highlightedPlaneIcao
-      );
-      if (idxA > -1) {
-        const [followedA] = airport.splice(idxA, 1);
-        airport.unshift(followedA);
-      }
-    }
+    // Get current center for distance calculations
+    const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
 
-    this.resultsOverlayComponent.skyPlaneLog = sky;
-    this.resultsOverlayComponent.airportPlaneLog = airport;
+    this.airportCircles.forEach((circle, id) => {
+      const center = circle.getLatLng();
+      const radiusMeters = circle.getRadius();
+      planes.forEach((p) => {
+        if (p.lat != null && p.lon != null && p.airportCode == null) {
+          const dist =
+            haversineDistance(p.lat, p.lon, center.lat, center.lng) * 1000;
+          if (dist <= radiusMeters) {
+            const data = this.airportData.get(id);
+            if (data) {
+              p.airportCode = data.code || undefined;
+              p.airportName = data.name;
+            }
+          }
+        }
+      });
+    });
+    const visiblePlanes = planes.filter(
+      (p) => !p.filteredOut && p.lat != null && p.lon != null
+    );
+    visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen); // Sort by firstSeen ascending
+    // Update results list
+    this.resultsOverlayComponent.skyPlaneLog = visiblePlanes;
+    this.resultsOverlayComponent.airportPlaneLog = [];
+    // Update nearest overlay and UI debug in sync
+    if (visiblePlanes.length > 0) {
+      const top = visiblePlanes[0];
+      this.closestPlane = top;
+      this.closestDistance =
+        Math.round(
+          haversineDistance(centerLat, centerLon, top.lat!, top.lon!) * 10
+        ) / 10;
+      this.closestOperator = top.operator || null;
+      this.closestSecondsAway = top.velocity
+        ? Math.round(
+            (haversineDistance(centerLat, centerLon, top.lat!, top.lon!) *
+              1000) /
+              top.velocity!
+          )
+        : null;
+      const distStr = this.closestDistance.toFixed(1);
+      console.log(
+        `[MapComponent] UI top plane ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
+      );
+      console.log(
+        `[MapComponent] Nearest overlay entry ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
+      );
+    } else {
+      this.closestPlane = null;
+      this.closestDistance = null;
+      this.closestOperator = null;
+      this.closestSecondsAway = null;
+    }
 
     // Merge into historical log
     const mergedMap = new Map<string, PlaneModel>();
@@ -1348,8 +1338,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  /** Center the map and toggle highlight on the selected plane */
-  centerOnPlane(plane: PlaneLogEntry): void {
+  /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
+  centerOnPlane(plane: PlaneLogEntry, preserveFollowNearest = false): void {
+    if (!preserveFollowNearest) {
+      this.followNearest = false;
+    }
     const icao = plane.icao;
     // If already highlighted, remove highlight
     if (this.highlightedPlaneIcao === icao) {
@@ -1358,7 +1351,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.centerZoom = null;
       // Refresh lists to reflect removal of highlight
       this.updatePlaneLog(Array.from(this.planeLog.values()));
-      // Force overlay to resort and re-filter
+      // Force overlay to sort and re-filter
       this.resultsOverlayComponent.sortLogs();
       this.resultsOverlayComponent.updateFilteredLogs();
       this.cdr.detectChanges();
@@ -1394,6 +1387,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.resultsOverlayComponent.updateFilteredLogs();
       this.cdr.detectChanges();
     }
+  }
+
+  /** Follow and center on overlay-selected nearest plane */
+  public followNearestPlane(plane: PlaneModel): void {
+    this.centerOnPlane(
+      {
+        callsign: plane.callsign,
+        origin: plane.origin,
+        firstSeen: plane.firstSeen,
+        model: plane.model,
+        operator: plane.operator,
+        bearing: plane.bearing,
+        cardinal: plane.cardinal,
+        arrow: plane.arrow,
+        icao: plane.icao,
+        isNew: plane.isNew,
+        lat: plane.lat,
+        lon: plane.lon,
+        filteredOut: plane.filteredOut,
+        isMilitary: plane.isMilitary,
+        isSpecial: plane.isSpecial,
+      },
+      true
+    ); // preserve followNearest flag on initial follow
   }
 
   // New function to find and display airports

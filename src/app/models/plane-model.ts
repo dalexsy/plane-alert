@@ -24,6 +24,8 @@ export class PlaneModel implements Plane {
   isNew!: boolean;
   lat!: number;
   lon!: number;
+  track?: number | null;
+  velocity?: number | null;
   marker?: L.Marker;
   path?: L.Polyline;
   predictedPathArrowhead?: L.Marker; // Add arrowhead marker property

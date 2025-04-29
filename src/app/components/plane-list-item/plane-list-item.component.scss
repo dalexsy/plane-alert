@@ -1,11 +1,13 @@
 // src/app/components/plane-list-item/plane-list-item.component.scss
 :host {
-  // Styles apply to the host element <app-plane-list-item>
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-  padding-bottom: 0.5rem;
+  padding: 0.5rem 1rem; // restore overlay item padding
+  margin-right: 0.25rem; // match overlay spacing
+  mix-blend-mode: plus-lighter; // overlay blend mode
   font-family: "JetBrains Mono", monospace;
+  align-items: center;
 
   &:last-of-type {
     border-bottom: none;
@@ -41,21 +43,17 @@
   .flag-callsign,
   .direction-info,
   .operator-visibility {
-    // Added .operator-visibility
-    display: grid; // Use grid for alignment
+    display: grid;
     gap: 0.25rem;
     align-items: center;
   }
 
   .flag-callsign {
-    grid-template-columns: 2rem 1.75rem auto auto 1fr; // Adjusted last column for special icon
-    margin-left: -0.5rem; // Align button edge
+    grid-template-columns: 2rem 1.75rem auto auto; // match overlay structure
+    margin-left: -0.5rem; // align with overlay
     app-button {
-      align-self: center;
-    } // Keep buttons centered vertically
-    .special-icon {
-      justify-self: end;
-    } // Push special icon to the right
+      align-self: start; // align button to top
+    }
   }
 
   .operator-visibility {
@@ -68,7 +66,7 @@
   }
 
   .direction-info {
-    grid-template-columns: 1fr 1.75rem 3.5rem;
+    grid-template-columns: auto auto 1.75rem 3.5rem; // restore overlay ordering
     justify-items: end;
     text-align: right;
     font-variation-settings: "FILL" 0, "wght" 320, "GRAD" 0, "opsz" 20;
@@ -85,9 +83,8 @@
   }
 
   .time-ago {
-    // Style for seen list time
     text-align: right;
-    color: #aaa; // Example color
+    color: #aaa;
   }
 
   .airport-code,

@@ -97,7 +97,11 @@
   &.highlighted-tooltip {
     // New class for persistent highlight
     z-index: 1000;
-    border-color: white;
+    border-color: cyan;
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+    a {
+      color: cyan;
+    }
   }
 
   .material-symbols-sharp.military-star-tooltip {

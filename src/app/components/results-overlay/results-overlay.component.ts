@@ -21,8 +21,8 @@ import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { SpecialListService } from '../../services/special-list.service';
 import { ButtonComponent } from '../ui/button.component';
-import { LocationButtonComponent } from '../ui/location-button.component';
 import { TabComponent } from '../ui/tab.component';
+import { PlaneListItemComponent } from '../plane-list-item/plane-list-item.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
@@ -55,8 +55,8 @@ export interface PlaneLogEntry {
   imports: [
     CommonModule,
     ButtonComponent,
-    LocationButtonComponent,
     TabComponent,
+    PlaneListItemComponent,
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
@@ -271,24 +271,23 @@ export class ResultsOverlayComponent
   }
 
   // --- Pass events from child up ---
-  handleCenterPlane(plane: PlaneLogEntry): void {
-    this.centerPlane.emit(plane);
+  // Accept any event payload from child to avoid template type mismatch
+  public handleCenterPlane(plane: any): void {
+    this.centerPlane.emit(plane as PlaneLogEntry);
   }
 
-  handleFilterPrefix(plane: PlaneLogEntry): void {
-    this.filterPrefix.emit(plane);
+  public handleFilterPrefix(plane: any): void {
+    this.filterPrefix.emit(plane as PlaneLogEntry);
   }
 
-  handleToggleSpecial(plane: PlaneLogEntry): void {
-    // Need to call the service method here, as the child doesn't inject it
-    plane.isSpecial = !plane.isSpecial;
-    this.specialListService.toggleSpecial(plane.icao);
+  public handleToggleSpecial(plane: any): void {
+    const p = plane as PlaneLogEntry;
+    p.isSpecial = !p.isSpecial;
+    this.specialListService.toggleSpecial(p.icao);
     console.log(
       '[ResultsOverlay] specials now:',
       this.specialListService.getAllSpecialIcaos()
     );
-    // No need to emit an event unless another component needs to know
-    // Manually trigger change detection as the input object reference might not change
     this.cdr.markForCheck();
   }
 
@@ -355,55 +354,30 @@ export class ResultsOverlayComponent
 
   // Updates the filtered versions of the plane logs
   public updateFilteredLogs(): void {
-    this.filteredSkyPlaneLog = this.skyPlaneLog.filter(
-      (plane) => !plane.filteredOut
-    );
-    // Bring highlighted plane to top if present
-    if (this.highlightedPlaneIcao) {
-      const idxSky = this.filteredSkyPlaneLog.findIndex(
-        (p) => p.icao === this.highlightedPlaneIcao
-      );
-      if (idxSky > -1) {
-        this.filteredSkyPlaneLog.unshift(
-          this.filteredSkyPlaneLog.splice(idxSky, 1)[0]
-        );
-      }
-    }
-    // Exclude airport planes over 300km from settings center
+    // Filter sky planes and sort by ascending distance
     const centerLat = this.settings.lat ?? 0;
     const centerLon = this.settings.lon ?? 0;
-    this.filteredAirportPlaneLog = this.airportPlaneLog.filter(
-      (plane) =>
-        !plane.filteredOut &&
-        plane.lat != null &&
-        plane.lon != null &&
-        haversineDistance(centerLat, centerLon, plane.lat, plane.lon) <= 300
-    );
-    // Bring highlighted plane to top of airport list
-    if (this.highlightedPlaneIcao) {
-      const idxAirport = this.filteredAirportPlaneLog.findIndex(
-        (p) => p.icao === this.highlightedPlaneIcao
-      );
-      if (idxAirport > -1) {
-        this.filteredAirportPlaneLog.unshift(
-          this.filteredAirportPlaneLog.splice(idxAirport, 1)[0]
-        );
-      }
-    }
-    this.filteredSeenPlaneLog = this.seenPlaneLog.filter(
-      (plane) => !plane.filteredOut
-    );
-    // Bring highlighted plane to top of seen list
-    if (this.highlightedPlaneIcao) {
-      const idxSeen = this.filteredSeenPlaneLog.findIndex(
-        (p) => p.icao === this.highlightedPlaneIcao
-      );
-      if (idxSeen > -1) {
-        this.filteredSeenPlaneLog.unshift(
-          this.filteredSeenPlaneLog.splice(idxSeen, 1)[0]
-        );
-      }
-    }
+    const distanceSort = (a: PlaneLogEntry, b: PlaneLogEntry) =>
+      haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+      haversineDistance(centerLat, centerLon, b.lat!, b.lon!);
+    this.filteredSkyPlaneLog = this.skyPlaneLog
+      .filter((plane) => !plane.filteredOut)
+      .sort(distanceSort);
+
+    // Exclude airport planes over 300km from settings center
+    this.filteredAirportPlaneLog = this.airportPlaneLog
+      .filter(
+        (plane) =>
+          !plane.filteredOut &&
+          plane.lat != null &&
+          plane.lon != null &&
+          haversineDistance(centerLat, centerLon, plane.lat, plane.lon) <= 300
+      )
+      .sort(distanceSort);
+
+    this.filteredSeenPlaneLog = this.seenPlaneLog
+      .filter((plane) => !plane.filteredOut)
+      .sort(distanceSort);
 
     // Clear isNew if plane is older than NEW_PLANE_MINUTES
     const now = Date.now();
@@ -441,85 +415,7 @@ export class ResultsOverlayComponent
   }
 
   public sortLogs(): void {
-    this.setMilitaryFlag(this.skyPlaneLog);
-    this.setMilitaryFlag(this.airportPlaneLog);
-    this.setMilitaryFlag(this.seenPlaneLog);
-    // set special flags from persistent service
-    this.setSpecialFlag(this.skyPlaneLog);
-    this.setSpecialFlag(this.airportPlaneLog);
-    this.setSpecialFlag(this.seenPlaneLog);
-
-    // More comprehensive sorting function that:
-    // 1. Military planes always at the top
-    // 2. Then sort by time seen (most recent first)
-    // 3. Within the same time frame (e.g., minutes), new planes first
-    // 4. Finally sort alphabetically by callsign or ICAO for stable order
-    const sortPlanes = (a: PlaneLogEntry, b: PlaneLogEntry) => {
-      // Highlighted (followed) plane always first
-      if (a.icao === this.highlightedPlaneIcao) return -1;
-      if (b.icao === this.highlightedPlaneIcao) return 1;
-      // Military planes always first (ONLY military planes, not helicopters)
-      if (a.isMilitary !== b.isMilitary) {
-        return a.isMilitary ? -1 : 1;
-      }
-      // Special planes always next
-      if (a.isSpecial !== b.isSpecial) {
-        return a.isSpecial ? -1 : 1;
-      }
-      // Then prioritize new planes over older ones
-      if (a.isNew !== b.isNew) {
-        return a.isNew ? -1 : 1;
-      }
-
-      // Next prioritize planes that have an operator
-      const aHasOperator = !!a.operator;
-      const bHasOperator = !!b.operator;
-      if (aHasOperator !== bHasOperator) {
-        return aHasOperator ? -1 : 1;
-      }
-      // Then prioritize planes that have a model
-      const aHasModel = !!a.model;
-      const bHasModel = !!b.model;
-      if (aHasModel !== bHasModel) {
-        return aHasModel ? -1 : 1;
-      }
-
-      // Calculate time buckets (in minutes) for better comparison
-      const aMinutes = Math.floor((this.now - a.firstSeen) / (60 * 1000));
-      const bMinutes = Math.floor((this.now - b.firstSeen) / (60 * 1000));
-
-      // Sort by time bucket first (most recent first)
-      if (aMinutes !== bMinutes) {
-        return aMinutes - bMinutes;
-      }
-
-      // For planes with identical time buckets and newness, sort by exact timestamp
-      if (a.firstSeen !== b.firstSeen) {
-        return b.firstSeen - a.firstSeen;
-      }
-
-      // Prefer planes with a callsign (non-empty) over empty
-      const aHasCallsign = !!(a.callsign && a.callsign.trim().length > 0);
-      const bHasCallsign = !!(b.callsign && b.callsign.trim().length > 0);
-      if (aHasCallsign !== bHasCallsign) {
-        return aHasCallsign ? -1 : 1;
-      }
-
-      // Alphabetically by callsign (empty callsigns sort last)
-      if ((a.callsign || '') !== (b.callsign || '')) {
-        return (a.callsign || '').localeCompare(b.callsign || '');
-      }
-
-      // Use ICAO as a final tie-breaker
-      return a.icao.localeCompare(b.icao);
-    };
-
-    this.skyPlaneLog.sort(sortPlanes);
-    this.airportPlaneLog.sort(sortPlanes);
-    this.seenPlaneLog.sort(sortPlanes);
-
-    // Ensure isNew stays consistent with the sky-plane list
-    this.unifyNewFlags();
+    // No-op: preserve order provided by parent component (already sorted by distance)
   }
 
   /**

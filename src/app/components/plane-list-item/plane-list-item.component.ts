@@ -5,6 +5,7 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PlaneLogEntry } from '../results-overlay/results-overlay.component'; // Adjust path if needed
@@ -25,11 +26,14 @@ export class PlaneListItemComponent {
   @Input() highlightedPlaneIcao: string | null = null;
   @Input() listType: 'sky' | 'airport' | 'seen' = 'sky'; // Default or require
   @Input() hoveredPlaneIcao: string | null = null; // For special icon hover
-  @Input() now: number = Date.now(); // Pass current time for 'time ago'
+  @Input() now: number = Date.now();
+  @Input() activePlaneIcaos: Set<string> = new Set();
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
+  @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
   // Keep hover/unhover in parent for simplicity for now
 
   constructor(

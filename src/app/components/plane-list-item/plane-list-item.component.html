@@ -53,6 +53,32 @@
   <!-- Right side: Direction (Sky/Airport) OR Time Ago (Seen) -->
   <ng-container *ngIf="listType === 'sky' || listType === 'airport'">
     <span class="direction-info">
+      <!-- Display IATA code (Airport only) -->
+      <span
+        ><span
+          class="airport-code"
+          *ngIf="listType === 'airport' && plane.airportCode"
+          [title]="plane.airportName"
+        >
+          {{ plane.airportCode }}
+        </span>
+        <span
+          class="airport-name"
+          *ngIf="
+            listType === 'airport' && !plane.airportCode && plane.airportName
+          "
+        >
+          {{ plane.airportName }}
+        </span>
+        <!-- Show airport code if available before direction -->
+        <span
+          *ngIf="plane.airportCode"
+          class="airport-code"
+          [title]="plane.airportName"
+        >
+          {{ plane.airportCode }}
+        </span></span
+      >
       <span>{{ plane.cardinal }}</span>
       <span
         class="material-symbols-sharp direction-icon"
@@ -68,20 +94,6 @@
       {{ getTimeAgo(plane.firstSeen) }}
     </span>
   </ng-container>
-  <!-- Display IATA code (Airport only) -->
-  <span
-    class="airport-code"
-    *ngIf="listType === 'airport' && plane.airportCode"
-    [title]="plane.airportName"
-  >
-    {{ plane.airportCode }}
-  </span>
-  <span
-    class="airport-name"
-    *ngIf="listType === 'airport' && !plane.airportCode && plane.airportName"
-  >
-    {{ plane.airportName }}
-  </span>
 </span>
 
 <span class="bottom">
