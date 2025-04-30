@@ -93,6 +93,7 @@ export class InputOverlayComponent implements OnDestroy {
   onResolveAndUpdate(event?: Event): void {
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
+    console.info('[PlaneAlert] Update now button pressed');
     this.resolveAndUpdate.emit();
   }
 

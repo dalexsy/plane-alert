@@ -140,6 +140,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   showDateTime = true;
 
+  private _initialScanDone = false; // Flag to prevent double scan
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -297,7 +299,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.aircraftDb.lookup(planeModel.icao)?.mil || false;
           const shouldBeFiltered = !this.planeFilter.shouldIncludeCallsign(
             planeModel.callsign,
-            this.settings.excludeDiscount, // Use current setting
+            this.settings.excludeDiscount,
             this.planeFilter.getFilterPrefixes(),
             isMilitary
           );
@@ -307,22 +309,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
           // --- Handle Visuals ---
           if (shouldBeFiltered) {
-            // Remove visuals if the plane is now filtered out
-            planeModel.removeVisuals(this.map);
-          } else {
-            // If it was filtered and now isn't, re-add visuals if they exist but aren't on map
-            // Note: This is a simplified re-add. The main findPlanes loop handles full visual creation.
-            if (planeModel.marker && !this.map.hasLayer(planeModel.marker)) {
-              planeModel.marker.addTo(this.map);
-              if (planeModel.path) planeModel.path.addTo(this.map);
-              if (planeModel.predictedPathArrowhead)
-                planeModel.predictedPathArrowhead.addTo(this.map);
-              if (planeModel.historyTrailSegments) {
-                planeModel.historyTrailSegments.forEach((segment) =>
-                  segment.addTo(this.map)
-                );
-              }
-            }
+            planeModel.marker?.remove();
+            planeModel.path?.remove();
+          } else if (
+            planeModel.marker &&
+            !this.map.hasLayer(planeModel.marker)
+          ) {
+            planeModel.marker.addTo(this.map);
           }
         }
 
@@ -346,7 +339,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     );
 
-    this.scanService.start(this.settings.interval, () => this.findPlanes());
+    this.scanService.start(this.settings.interval, () => {
+      this.findPlanes();
+    });
     // Don't force scan here, updateMap will trigger it after airport search
     // this.scanService.forceScan(); // REMOVED
 
@@ -618,10 +613,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number, // This is the MAIN search radius
     zoomLevel?: number
   ): void {
-    const t0 = performance.now();
-    console.debug(
-      `[MapComponent] updateMap start lat=${lat}, lon=${lon}, radiusKm=${radiusKm}`
-    );
     // Clamp radius to a maximum of 500km
     let mainRadius = radiusKm ?? this.settings.radius ?? 5;
     if (mainRadius > 500) {
@@ -650,30 +641,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Only update input fields if overlay is not collapsed and refs exist
     if (!this.inputOverlayComponent.collapsed) {
       if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
-        this.reverseGeocode(lat, lon).then((address) => {
-          this.inputOverlayComponent.addressInputRef.nativeElement.value =
-            address;
-        });
+        this.inputOverlayComponent.addressInputRef.nativeElement.value = '';
       }
       if (this.inputOverlayComponent.searchRadiusInputRef?.nativeElement) {
         this.inputOverlayComponent.searchRadiusInputRef.nativeElement.value =
-          mainRadius.toString();
+          String(mainRadius);
       }
     }
 
     // Find airports within the new MAIN radius
     this.findAndDisplayAirports(lat, lon, mainRadius).then(() => {
-      const t1 = performance.now();
-      console.debug(
-        `[MapComponent] findAndDisplayAirports completed in ${(t1 - t0).toFixed(
-          1
-        )}ms`
-      );
       // Only after airports are potentially updated, remove out-of-range planes
       // and force a plane scan.
       this.removeOutOfRangePlanes(lat, lon, mainRadius);
 
-      this.scanService.forceScan();
+      // Prevent double scan on initial load: only force scan if not immediately after ngAfterViewInit
+      if (!this._initialScanDone) {
+        this._initialScanDone = true;
+        // console.log('[MapComponent] Skipping forceScan after initial load');
+      } else {
+        // console.log(
+        //   '[MapComponent] Calling scanService.forceScan from updateMap'
+        // );
+        this.scanService.forceScan();
+      }
     });
   }
 
@@ -745,9 +736,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.followNearest // pass followNearest
       )
       .then(({ anyNew, currentIDs, updatedLog }) => {
-        // Log scan summary
-        console.debug('[findPlanes] total planes found:', updatedLog.length);
-
         // Dynamically update favicon if special or military plane detected
         const hasSpecial = updatedLog.some((p) =>
           this.specialListService.isSpecial(p.icao)
@@ -755,13 +743,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const hasMil = updatedLog.some(
           (p) => !!this.aircraftDb.lookup(p.icao)?.mil
         );
-        // console.debug(`[Favicon] findPlanes: hasSpecial=${hasSpecial}, hasMil=${hasMil}`);
         const iconToUse = hasSpecial
           ? 'assets/favicon/special/favicon.ico'
           : hasMil
           ? 'assets/favicon/military/favicon.ico'
           : 'assets/favicon/favicon.ico';
-        // console.debug('[Favicon] Selected icon to update:', iconToUse);
         this.updateFavicon(iconToUse);
 
         const newUnfiltered = updatedLog.filter(
@@ -852,6 +838,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                   planeModel.marker
                     .getElement()
                     ?.classList.add('military-plane');
+                  // Always set military border for tooltip
+                  planeModel.marker
+                    .getTooltip()
+                    ?.getElement()
+                    ?.classList.add('military-plane-tooltip');
+                  // Remove new-plane-tooltip if present
+                  planeModel.marker
+                    .getTooltip()
+                    ?.getElement()
+                    ?.classList.remove('new-plane-tooltip');
                 } else {
                   planeModel.marker
                     .getElement()
@@ -859,6 +855,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 }
                 // Tooltips handled above
               }
+            }
+          }
+          // --- Set tooltip classes for new planes (not grounded) ---
+          if (planeModel.marker && planeModel.marker.getTooltip()) {
+            const tooltipEl = planeModel.marker.getTooltip()?.getElement();
+            if (tooltipEl) {
+              tooltipEl.classList.toggle('new-plane-tooltip', planeModel.isNew);
             }
           }
           // Always update the log regardless of filter status
@@ -1159,20 +1162,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   resolveAndUpdateFromAddress(): void {
-    console.debug(
-      `[MapComponent] resolveAndUpdateFromAddress called with address='${this.inputOverlayComponent.addressInputRef.nativeElement.value}'`
-    );
-    // If following a plane, stop tracking when user sets a new location
-    if (this.highlightedPlaneIcao) {
-      this.unhighlightPlane(this.highlightedPlaneIcao);
-      this.highlightedPlaneIcao = null;
-      this.centerZoom = null;
-      this.updatePlaneLog(Array.from(this.planeLog.values()));
-      this.resultsOverlayComponent.sortLogs();
-      this.resultsOverlayComponent.updateFilteredLogs();
-      this.cdr.detectChanges();
-    }
-
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
     // Get the MAIN radius from the input, fallback to settings.radius
@@ -1387,7 +1376,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
   centerOnPlane(plane: PlaneLogEntry, preserveFollowNearest = false): void {
-    console.debug('[MapComponent] centerOnPlane:', plane.icao);
     // Always follow when a plane is centered from the results list or overlay
     this.followNearest = true;
 
@@ -1716,7 +1704,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Temporarily highlight marker and tooltip on overlay hover */
   onHoverOverlayPlane(plane: PlaneLogEntry): void {
-    console.debug('[MapComponent] onHoverOverlayPlane:', plane.icao);
     const pm = this.planeLog.get(plane.icao);
     // Only apply hover effect if not the persistently highlighted plane
     if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
@@ -1731,7 +1718,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Remove temporary highlight on overlay hover out */
   onUnhoverOverlayPlane(plane: PlaneLogEntry): void {
-    console.debug('[MapComponent] onUnhoverOverlayPlane:', plane.icao);
     const pm = this.planeLog.get(plane.icao);
     // Only remove hover effect if not the persistently highlighted plane
     if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
@@ -1745,5 +1731,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         ?.getElement()
         ?.classList.remove('highlighted-tooltip'); // Use correct class
     }
+  }
+
+  onUpdateNow(): void {
+    this.scanService.forceScan();
   }
 }

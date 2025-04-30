@@ -36,7 +36,11 @@ export function planeTooltip(
   const mainRow = `
   <span class="tooltip-row">
     ${getFlagHTML(origin)}
-      <a class="callsign-text" href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" title="Open in ADS-B Exchange" onclick="event.stopPropagation()">${displayCallsign}</a>
+      <a class="callsign-text" href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" title="Open in ADS-B Exchange" onclick="event.stopPropagation()">${
+    callsign && callsign.trim().length >= 3
+      ? callsign
+      : '<span class="none-callsign">Pending</span>'
+  }</a>
       ${
         isMilitary
           ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'

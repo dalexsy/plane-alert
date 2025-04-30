@@ -105,7 +105,7 @@ $new-plane-color: #ff6161;
   }
 
   &.new-plane-tooltip {
-    border-color: $new-plane-color !important;
+    border-color: $new-plane-color;
   }
 
   &.military-plane-tooltip {
@@ -149,22 +149,22 @@ $new-plane-color: #ff6161;
   }
 
   &.followed-plane-tooltip {
-    border-color: $followed-plane-color;
+    border-color: $followed-plane-color !important;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
-    color: $followed-plane-color;
+    color: $followed-plane-color !important;
 
     &:hover {
-      border-color: $followed-plane-color;
-      color: $followed-plane-color;
+      border-color: $followed-plane-color !important;
+      color: $followed-plane-color !important;
     }
 
     .callsign-text:hover {
-      color: $followed-plane-color;
+      color: $followed-plane-color !important;
     }
   }
 
   &.military-plane-tooltip.followed-plane-tooltip.highlighted-tooltip {
-    border-color: #89d138;
+    border-color: #89d138 !important;
     box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
     color: #89d138;
 
