@@ -68,6 +68,14 @@ export class PlaneListItemComponent {
   get hostFollowed(): boolean {
     return this.plane.icao === this.followedPlaneIcao;
   }
+  @HostBinding('class.faded-out')
+  get hostFadedOut(): boolean {
+    // Only fade out if not followed
+    return (
+      !this.activePlaneIcaos.has(this.plane.icao) &&
+      this.plane.icao !== this.followedPlaneIcao
+    );
+  }
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();

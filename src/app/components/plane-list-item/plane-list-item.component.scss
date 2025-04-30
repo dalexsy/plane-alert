@@ -187,6 +187,13 @@ $followed-plane-color: #00ffff;
   }
 }
 
+.faded-out {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(0.7) blur(0.5px);
+  transition: opacity 0.2s, filter 0.2s;
+}
+
 // --- Global styles that might need adjustment if moved ---
 // Ensure .military-star, .special-icon styles are available or defined here.
 // Ensure flag styles are global or defined here/passed via service.

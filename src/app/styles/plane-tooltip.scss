@@ -152,6 +152,7 @@ $new-plane-color: #ff6161;
     border-color: $followed-plane-color !important;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
     color: $followed-plane-color !important;
+    z-index: 1000;
 
     &:hover {
       border-color: $followed-plane-color !important;
