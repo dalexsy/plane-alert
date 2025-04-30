@@ -16,6 +16,12 @@
       [size]="'small'"
       (click)="onCenterPlane($event)"
       [ariaLabel]="'Center plane on map'"
+      [disabled]="!activePlaneIcaos.has(plane.icao)"
+      [title]="
+        !activePlaneIcaos.has(plane.icao)
+          ? 'No longer in range.'
+          : 'Center plane on map'
+      "
     ></app-button>
     <!-- Flag -->
     <span [innerHTML]="countryService.getFlagHTML(plane.origin)"></span>
@@ -41,7 +47,17 @@
       </span>
     </ng-container>
     <ng-template #noLink>
-      <span class="none-callsign">Pending</span>
+      <span class="call-sign">
+        <a
+          href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+          target="_blank"
+          title="Open in ADS-B Exchange"
+          rel="noopener noreferrer"
+          (click)="$event.stopPropagation()"
+        >
+          <span class="none-callsign">Pending</span>
+        </a>
+      </span>
     </ng-template>
     <!-- Special Toggle -->
     <app-button

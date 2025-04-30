@@ -640,12 +640,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Only update input fields if overlay is not collapsed and refs exist
     if (!this.inputOverlayComponent.collapsed) {
-      if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
-        this.inputOverlayComponent.addressInputRef.nativeElement.value = '';
-      }
+      // Update search radius input
       if (this.inputOverlayComponent.searchRadiusInputRef?.nativeElement) {
         this.inputOverlayComponent.searchRadiusInputRef.nativeElement.value =
           String(mainRadius);
+      }
+      // Reverse geocode current center and update address input
+      const addressInput =
+        this.inputOverlayComponent.addressInputRef?.nativeElement;
+      if (addressInput) {
+        this.reverseGeocode(lat, lon).then((address) => {
+          addressInput.value = address;
+        });
       }
     }
 
