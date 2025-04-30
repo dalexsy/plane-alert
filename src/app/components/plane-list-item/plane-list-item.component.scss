@@ -18,9 +18,6 @@ $followed-plane-color: #00ffff;
 
   &.new-plane {
     color: $new-plane-color;
-    a {
-      font-weight: bold;
-    }
   }
   &.followed-plane {
     color: $followed-plane-color;

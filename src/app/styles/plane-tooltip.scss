@@ -113,18 +113,17 @@ $new-plane-color: #ff6161;
     z-index: 10;
   }
 
-  &.special-plane-tooltip {
-    border-color: gold;
-    z-index: 10;
-  }
-
-  &:hover,
-  &.hovered-tooltip {
+  // Only apply white border on hover/hovered unless special or followed
+  &:hover:not(.special-plane-tooltip):not(.followed-plane-tooltip),
+  &.hovered-tooltip:not(.special-plane-tooltip):not(.followed-plane-tooltip) {
     z-index: 1000;
     border-color: #fff;
   }
 
-  &.highlighted-tooltip:not(.followed-plane-tooltip) {
+  // Apply white border for highlighted unless special or followed
+  &.highlighted-tooltip:not(.followed-plane-tooltip):not(
+      .special-plane-tooltip
+    ) {
     z-index: 1000;
     border-color: #fff;
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
@@ -132,6 +131,17 @@ $new-plane-color: #ff6161;
 
     a {
       color: #fff;
+    }
+  }
+
+  // Ensure special tooltip has gold border always
+  &.special-plane-tooltip {
+    border-color: gold;
+    z-index: 10;
+
+    &:hover,
+    &.hovered-tooltip {
+      border-color: gold;
     }
   }
 
@@ -149,23 +159,28 @@ $new-plane-color: #ff6161;
   }
 
   &.followed-plane-tooltip {
-    border-color: $followed-plane-color !important;
+    border-color: $followed-plane-color;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
-    color: $followed-plane-color !important;
+    color: $followed-plane-color;
     z-index: 1000;
 
     &:hover {
-      border-color: $followed-plane-color !important;
-      color: $followed-plane-color !important;
+      border-color: $followed-plane-color;
+      color: $followed-plane-color;
     }
 
     .callsign-text:hover {
-      color: $followed-plane-color !important;
+      color: $followed-plane-color;
     }
   }
 
+  &.special-plane-tooltip {
+    border-color: gold;
+    z-index: 10;
+  }
+
   &.military-plane-tooltip.followed-plane-tooltip.highlighted-tooltip {
-    border-color: #89d138 !important;
+    border-color: #89d138;
     box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
     color: #89d138;
 
