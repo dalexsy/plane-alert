@@ -6,11 +6,7 @@ import { Injectable, EventEmitter } from '@angular/core';
 })
 export class SettingsService {
   constructor() {
-    console.log('[SettingsService] constructor: calling load()');
     this.load();
-    console.log(
-      `[SettingsService] after load(): seenCollapsed=${this._seenCollapsed}, inputOverlayCollapsed=${this.inputOverlayCollapsed}, resultsOverlayCollapsed=${this.resultsOverlayCollapsed}`
-    );
   }
   private _lat: number | null = null;
   private _lon: number | null = null;
@@ -29,6 +25,26 @@ export class SettingsService {
   private _commercialMute: boolean = false;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = true;
+  // Key for persisting show view axes (cone visibility)
+  private viewAxesKey = 'showViewAxes';
+  private _showViewAxes: boolean = false;
+
+  /** Whether the date/time overlays are shown */
+  get showDateTimeOverlay(): boolean {
+    return this._showDateTimeOverlay;
+  }
+  setShowDateTimeOverlay(value: boolean): void {
+    this._showDateTimeOverlay = value;
+    localStorage.setItem(this.dateTimeOverlayKey, value.toString());
+  }
+  /** Whether the view axes (cones) are shown */
+  get showViewAxes(): boolean {
+    return this._showViewAxes;
+  }
+  setShowViewAxes(value: boolean): void {
+    this._showViewAxes = value;
+    localStorage.setItem(this.viewAxesKey, value.toString());
+  }
 
   /** Whether the 'All Planes Peeped' list is collapsed */
   get seenCollapsed(): boolean {
@@ -42,22 +58,18 @@ export class SettingsService {
   get inputOverlayCollapsed(): boolean {
     const value =
       localStorage.getItem(this.inputOverlayCollapsedKey) === 'true';
-    console.log(`[SettingsService] get inputOverlayCollapsed => ${value}`);
     return value;
   }
   setInputOverlayCollapsed(value: boolean): void {
-    console.log(`[SettingsService] setInputOverlayCollapsed => ${value}`);
     localStorage.setItem(this.inputOverlayCollapsedKey, value.toString());
   }
   /** Whether the results overlay is collapsed */
   get resultsOverlayCollapsed(): boolean {
     const value =
       localStorage.getItem(this.resultsOverlayCollapsedKey) === 'true';
-    console.log(`[SettingsService] get resultsOverlayCollapsed => ${value}`);
     return value;
   }
   setResultsOverlayCollapsed(value: boolean): void {
-    console.log(`[SettingsService] setResultsOverlayCollapsed => ${value}`);
     localStorage.setItem(this.resultsOverlayCollapsedKey, value.toString());
   }
 
@@ -228,7 +240,6 @@ export class SettingsService {
     if (seenStr !== null) {
       this._seenCollapsed = seenStr === 'true';
     }
-    console.log(`[SettingsService] load(): read seen=${seenStr}`);
     // Load commercial mute preference
     const muteStr = localStorage.getItem(this.commercialMuteKey);
     if (muteStr !== null) {
@@ -239,14 +250,10 @@ export class SettingsService {
     if (dtStr !== null) {
       this._showDateTimeOverlay = dtStr === 'true';
     }
-  }
-
-  /** Whether the date/time overlays are shown */
-  get showDateTimeOverlay(): boolean {
-    return this._showDateTimeOverlay;
-  }
-  setShowDateTimeOverlay(value: boolean): void {
-    this._showDateTimeOverlay = value;
-    localStorage.setItem(this.dateTimeOverlayKey, value.toString());
+    // Load show/hide view axes (cones) preference
+    const axesStr = localStorage.getItem(this.viewAxesKey);
+    if (axesStr !== null) {
+      this._showViewAxes = axesStr === 'true';
+    }
   }
 }

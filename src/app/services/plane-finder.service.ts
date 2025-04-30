@@ -743,43 +743,44 @@ export class PlaneFinderService {
       }
     }
 
-    // Update 'isNew' status and marker/tooltip classes for planes remaining
-    // This loop is now simpler as the main update happened above
+    // Update 'isNew' and rebind tooltips so styling always reflects the PlaneModel state
     updatedLogModels.forEach((plane) => {
-      const stillNew = this.newPlaneService.isNew(plane.icao); // Check final 'new' status
-      plane.isNew = stillNew; // Update the model's final 'new' status for the next cycle
-
+      const stillNew = this.newPlaneService.isNew(plane.icao);
+      plane.isNew = stillNew;
       const aircraft = getAircraftInfo(plane.icao);
-      // Determine military flag based on configured prefixes or DB
       const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
         plane.callsign
       );
       const isMilitary = prefixIsMil2 || aircraft?.mil || false;
-
-      // Update marker/tooltip classes based on final state
       if (plane.marker) {
-        const element = plane.marker.getElement();
-        const tooltipElement = plane.marker.getTooltip()?.getElement();
-
-        if (element) {
-          element.classList.toggle('grounded-plane', plane.onGround);
-          element.classList.toggle('new-plane', !plane.onGround && stillNew);
-          element.classList.toggle('special-plane', plane.isSpecial || false);
-        }
-        if (tooltipElement) {
-          tooltipElement.classList.toggle('new-plane-tooltip', stillNew);
-          tooltipElement.classList.toggle('military-plane-tooltip', isMilitary);
-          tooltipElement.classList.toggle(
-            'grounded-plane-tooltip',
-            plane.onGround
-          );
-          tooltipElement.classList.toggle(
-            'special-plane-tooltip',
-            plane.isSpecial || false
-          );
+        // Rebind tooltip fully to ensure classes are in sync with plane state
+        const tooltip = plane.marker.getTooltip();
+        if (tooltip) {
+          const rawContent = tooltip.getContent();
+          const content = rawContent ?? '';
+          // Build new className string
+          const className = [
+            'plane-tooltip',
+            plane.onGround ? 'grounded-plane-tooltip' : '',
+            stillNew ? 'new-plane-tooltip' : '',
+            isMilitary ? 'military-plane-tooltip' : '',
+            plane.isSpecial ? 'special-plane-tooltip' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          // Unbind and rebind with updated options
+          plane.marker.unbindTooltip();
+          plane.marker.bindTooltip(content, {
+            permanent: true,
+            direction: 'right',
+            offset: plane.onGround ? L.point(-10, 0) : L.point(10, 0),
+            interactive: true,
+            className: className,
+            pane: 'tooltipPane',
+          });
+          plane.marker.openTooltip();
         }
       }
-      // No need to set previousLog here, it was updated directly earlier
     });
 
     this.newPlaneService.updatePlanes(currentUpdateSet);

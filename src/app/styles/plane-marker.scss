@@ -56,7 +56,7 @@ $followed-plane-color: #00ffff;
 
   &.followed-plane {
     color: $followed-plane-color;
-    filter: drop-shadow(0 0 6px $followed-plane-color);
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
   }
 
   &:hover {
@@ -81,4 +81,8 @@ $followed-plane-color: #00ffff;
 .history-trail-segment {
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.predicted-path-line {
+  border-style: dashed;
 }

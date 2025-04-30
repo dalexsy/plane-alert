@@ -197,12 +197,6 @@ export class ResultsOverlayComponent
       previousCount = count;
     });
 
-    // Log initial special list loaded from service
-    console.log(
-      '[ResultsOverlay] initial specials:',
-      this.specialListService.getAllSpecialIcaos()
-    );
-
     // Listen for commercial filter changes via the settings service
     this.settings.excludeDiscountChanged.subscribe(() => {
       if (this.ignoreNextFilterChange) {
@@ -286,10 +280,7 @@ export class ResultsOverlayComponent
     const p = plane as PlaneLogEntry;
     p.isSpecial = !p.isSpecial;
     this.specialListService.toggleSpecial(p.icao);
-    console.log(
-      '[ResultsOverlay] specials now:',
-      this.specialListService.getAllSpecialIcaos()
-    );
+
     this.cdr.markForCheck();
   }
 
@@ -356,17 +347,22 @@ export class ResultsOverlayComponent
 
   // Updates the filtered versions of the plane logs
   public updateFilteredLogs(): void {
-    // Filter sky planes and sort by ascending distance
+    // Filter sky planes and sort: military first, then by ascending distance
     const centerLat = this.settings.lat ?? 0;
     const centerLon = this.settings.lon ?? 0;
-    const distanceSort = (a: PlaneLogEntry, b: PlaneLogEntry) =>
-      haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
-      haversineDistance(centerLat, centerLon, b.lat!, b.lon!);
+    const militaryThenDistance = (a: PlaneLogEntry, b: PlaneLogEntry) => {
+      if (a.isMilitary && !b.isMilitary) return -1;
+      if (!a.isMilitary && b.isMilitary) return 1;
+      return (
+        haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+        haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
+      );
+    };
     this.filteredSkyPlaneLog = this.skyPlaneLog
       .filter((plane) => !plane.filteredOut)
-      .sort(distanceSort);
+      .sort(militaryThenDistance);
 
-    // Exclude airport planes over 300km from settings center
+    // Exclude airport planes over 300km from settings center, then sort military first
     this.filteredAirportPlaneLog = this.airportPlaneLog
       .filter(
         (plane) =>
@@ -375,11 +371,12 @@ export class ResultsOverlayComponent
           plane.lon != null &&
           haversineDistance(centerLat, centerLon, plane.lat, plane.lon) <= 300
       )
-      .sort(distanceSort);
+      .sort(militaryThenDistance);
 
+    // Sort seen planes: military first, then by distance
     this.filteredSeenPlaneLog = this.seenPlaneLog
       .filter((plane) => !plane.filteredOut)
-      .sort(distanceSort);
+      .sort(militaryThenDistance);
 
     // Clear isNew if plane is older than NEW_PLANE_MINUTES
     const now = Date.now();
@@ -609,10 +606,6 @@ export class ResultsOverlayComponent
     plane.isSpecial = !plane.isSpecial;
     this.specialListService.toggleSpecial(plane.icao);
     // Log updated list to confirm persistence
-    console.log(
-      '[ResultsOverlay] specials now:',
-      this.specialListService.getAllSpecialIcaos()
-    );
   }
   /** Assign special flags from service */
   private setSpecialFlag(planes: PlaneLogEntry[]): void {

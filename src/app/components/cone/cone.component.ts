@@ -68,7 +68,6 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     setTimeout(() => {
       // Check map still exists and initial draw hasn't happened via other means
       if (this.map && this.initialDrawPending) {
-        // console.log('[ConeComponent] Triggering delayed initial draw.');
         this.debouncedDrawCones();
         this.initialDrawPending = false;
       }
@@ -108,12 +107,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     const coneGroup = svg?.querySelector(`#${this.coneSvgGroupName}`);
     if (coneGroup && svg?.contains(coneGroup)) {
       svg.removeChild(coneGroup);
-      // console.log(
-      //   `[ConeComponent] Removed SVG group: ${this.coneSvgGroupName}`
-      // );
     }
-
-    // console.log('[ConeComponent] Destroyed');
   }
 
   // Debounced drawing function to prevent multiple quick redraws
@@ -178,13 +172,6 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       color?: string;
     }
 
-    // console.log(
-    //   `[ConeComponent] Using distance bands up to ${maxDistanceKm}km.`
-    // );
-    // console.log(
-    //   `[ConeComponent] Scaling altitude thresholds non-linearly up to ${maxPracticalAltitudeM}m.`
-    // );
-
     // 4. Calculate plausible altitude thresholds for each band using h = C * d^2
     const visibilityBands: PracticalVisibilityBand[] = distancesKm.map(
       (outerKm, i) => {
@@ -205,9 +192,6 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       // Using sqrt scaling for hue to emphasize lower altitude differences
       const hue = Math.min(Math.sqrt(hueRatio), 1) * 300; // 0 (red) to 300 (purple)
       band.color = `hsl(${Math.floor(hue)}, 100%, 50%)`;
-      // console.log(
-      //   `Band ${band.innerKm}-${band.outerKm}km → Practical Alt ≈ ${band.practicalAltM.toFixed(0)}m+ → color=${band.color}`
-      // );
     });
 
     // --- Drawing Logic ---
@@ -267,10 +251,6 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
         '#fff'
       );
     });
-
-    // console.log(
-    //   '[ConeComponent] Completed drawVisualCones with bringToFront ordering'
-    // );
   }
 
   private updateOpacity(): void {

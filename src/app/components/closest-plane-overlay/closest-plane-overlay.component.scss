@@ -35,3 +35,15 @@
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
   }
 }
+
+.closest-plane-overlay.military-plane.selected {
+  border-color: #89d138;
+  color: #89d138;
+  background: linear-gradient(
+      to right,
+      rgba(137, 209, 56, 0.1),
+      rgba(137, 209, 56, 0.1)
+    ),
+    rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
+}

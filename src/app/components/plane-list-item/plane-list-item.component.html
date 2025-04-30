@@ -27,6 +27,7 @@
         <a
           href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
           target="_blank"
+          title="Open in ADS-B Exchange"
           rel="noopener noreferrer"
         >
           {{ plane.callsign }}
@@ -90,7 +91,7 @@
       >
         navigation
       </span>
-      <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
+      <span>{{ distanceKm }} km</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">
@@ -115,8 +116,10 @@
       [size]="'small'"
       (click)="onFilter($event)"
     ></app-button>
-    <!-- Operator -->
-    <span class="operator" *ngIf="plane.operator">{{ plane.operator }}</span>
+    <!-- Operator: show 'Unknown' when operator is missing -->
+    <span class="operator" [ngClass]="{ 'unknown-operator': !plane.operator }">
+      {{ plane.operator || "Unknown" }}
+    </span>
   </span>
   <!-- Model -->
   <span class="model" *ngIf="plane.model">

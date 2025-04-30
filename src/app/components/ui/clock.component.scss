@@ -26,11 +26,6 @@
     .responsive-break {
       display: block; // show by default
     }
-    @media (min-width: 80rem) {
-      .responsive-break {
-        display: none;
-      }
-    }
   }
 
   .time-overlay {

@@ -4,6 +4,7 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from '../ui/icon.component';
@@ -19,6 +20,9 @@ import { PlaneModel } from '../../models/plane-model';
 })
 export class ClosestPlaneOverlayComponent {
   @Input() plane: PlaneModel | null = null;
+  @HostBinding('class.military-plane') get hostMilitary() {
+    return this.plane?.isMilitary === true;
+  }
   @Input() distanceKm: number | null = null;
   @Input() operator: string | null = null;
   @Input() secondsAway: number | null = null;
@@ -38,7 +42,6 @@ export class ClosestPlaneOverlayComponent {
   /** Handle user click to select this plane */
   onClick(): void {
     if (this.plane) {
-      console.log('[ClosestPlaneOverlay] clicked for icao:', this.plane.icao);
       this.selectPlane.emit(this.plane);
     }
   }

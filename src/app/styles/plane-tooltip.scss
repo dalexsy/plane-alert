@@ -10,20 +10,22 @@ $new-plane-color: #ff6161;
   text-decoration: none;
   pointer-events: auto;
   margin-left: 1.5rem;
-  color: rgb(255, 255, 255);
+  color: #fff;
   box-shadow: 0 1px 3px rgb(0 0 0);
   font-family: "JetBrains Mono", monospace;
   position: absolute;
   z-index: 1;
-  outline: 1px solid rgb(255 255 255 / 80%);
+  outline: 1px solid rgba(255, 255, 255, 0.8);
 
   &.leaflet-tooltip-right:before {
     border-right-color: inherit;
     left: -2px;
   }
+
   .divider {
-    color: rgb(255 255 255 / 50%);
+    color: rgba(255, 255, 255, 0.5);
   }
+
   .altitude {
     display: flex;
     gap: 0.25rem;
@@ -37,21 +39,21 @@ $new-plane-color: #ff6161;
 
   .plane-tooltip-link {
     text-decoration: none;
-    color: white;
+    color: #fff;
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
-    flex-direction: column;
 
     .tooltip-row {
       display: flex;
-      gap: 0.25rem;
       flex-direction: row;
       align-items: center;
+      gap: 0.25rem;
     }
 
     .none-callsign {
-      color: rgb(255 255 255 / 50%);
+      color: rgba(255, 255, 255, 0.5);
     }
 
     .fi {
@@ -64,27 +66,46 @@ $new-plane-color: #ff6161;
       font-weight: bold;
       display: flex;
       flex-direction: row;
-      gap: 0.25rem;
       align-items: center;
+      gap: 0.25rem;
     }
+
     .callsign-text {
       cursor: pointer;
-      text-decoration: underline dotted;
       transition: color 0.15s;
+
       &:hover {
         text-decoration: underline;
       }
     }
+
+    .tooltip-info-button {
+      background-color: transparent;
+      border: none;
+      color: inherit;
+      padding: 0.125rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      cursor: pointer;
+      line-height: 1;
+
+      &:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+      }
+    }
   }
 
-  &.grounded-plane-tooltip {
+  &.grounded-plane-tooltip:not(.new-plane-tooltip) {
     border-color: grey;
     margin-left: 1rem;
     background: #333;
   }
 
   &.new-plane-tooltip {
-    border-color: $new-plane-color;
+    border-color: $new-plane-color !important;
   }
 
   &.military-plane-tooltip {
@@ -97,49 +118,58 @@ $new-plane-color: #ff6161;
     z-index: 10;
   }
 
-  &:hover {
-    z-index: 1000;
-    border-color: white;
-  }
+  &:hover,
   &.hovered-tooltip {
     z-index: 1000;
-    border-color: white;
+    border-color: #fff;
   }
+
   &.highlighted-tooltip:not(.followed-plane-tooltip) {
-    // Persistent highlight style
     z-index: 1000;
-    border-color: white;
+    border-color: #fff;
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-    color: white;
+    color: #fff;
+
     a {
-      color: white;
+      color: #fff;
     }
   }
 
-  .material-symbols-sharp.military-star-tooltip {
+  .material-symbols-sharp {
     font-size: 0.75rem;
-    color: #89d138;
     font-variation-settings: "FILL" 0, "wght" 700, "GRAD" 0, "opsz" 20;
-  }
 
-  .material-symbols-sharp.special-star-tooltip {
-    font-size: 0.75rem;
-    color: gold;
-    font-variation-settings: "FILL" 0, "wght" 700, "GRAD" 0, "opsz" 20;
+    &.military-star-tooltip {
+      color: #89d138;
+    }
+
+    &.special-star-tooltip {
+      color: gold;
+    }
   }
 
   &.followed-plane-tooltip {
     border-color: $followed-plane-color;
-    box-shadow: 0 0 0 2px $followed-plane-color, 0 1px 3px rgb(0 0 0);
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
     color: $followed-plane-color;
-    // Override hover to maintain cyan border and text
+
     &:hover {
       border-color: $followed-plane-color;
       color: $followed-plane-color;
     }
-    // Prevent gold callsign on hover when followed
+
     .callsign-text:hover {
       color: $followed-plane-color;
+    }
+  }
+
+  &.military-plane-tooltip.followed-plane-tooltip.highlighted-tooltip {
+    border-color: #89d138;
+    box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
+    color: #89d138;
+
+    a {
+      color: #89d138;
     }
   }
 }

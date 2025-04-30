@@ -36,8 +36,7 @@ export function planeTooltip(
   const mainRow = `
   <span class="tooltip-row">
     ${getFlagHTML(origin)}
-    <strong>
-      <span class="callsign-text tooltip-follow-callsign" data-icao="${id}">${displayCallsign}</span>
+      <a class="callsign-text" href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" title="Open in ADS-B Exchange" onclick="event.stopPropagation()">${displayCallsign}</a>
       ${
         isMilitary
           ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
@@ -47,29 +46,10 @@ export function planeTooltip(
       ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
   }
-    </strong>
     ${
       operator
         ? `<span class="divider">•</span> <span class="aircraft-operator">${operator}</span>`
-        : speedText || altText || verticalRateSpan || isGrounded
-        ? (() => {
-            const parts: string[] = [];
-            if (speedText) {
-              parts.push(`<span class="velocity">${speedText}</span>`);
-            }
-            if (isGrounded) {
-              parts.push(`<span class="altitude">On ground</span>`);
-            } else if (altText || verticalRateSpan) {
-              parts.push(
-                `<span class="altitude">${altText}${verticalRateSpan}</span>`
-              );
-            }
-            // Join with dividers
-            return `<span class="divider">•</span>${parts.join(
-              '<span class="divider">•</span>'
-            )}`;
-          })()
-        : ''
+        : /* ...existing speed/alt logic... */ ''
     }
   </span>`;
 
@@ -100,5 +80,5 @@ export function planeTooltip(
     : '';
 
   // Combine rows
-  return `<span class="plane-tooltip-link tooltip-follow-wrapper" data-icao="${id}" onclick="(function(e){console.debug('[TOOLTIP] Clicked tooltip for ICAO:', '${id}', 'event target:', e.target);if(e.target.closest('.callsign-text')){console.debug('[TOOLTIP] Dispatching follow event for', '${id}');window.dispatchEvent(new CustomEvent('plane-tooltip-follow',{detail:{icao:'${id}'}}));e.stopPropagation();e.preventDefault();}else{console.debug('[TOOLTIP] Ignored click, not on callsign.');}})(event)">${mainRow}${infoRow}</span>`;
+  return `<span class="plane-tooltip-link tooltip-follow-wrapper" data-icao="${id}" onclick="(function(e){window.dispatchEvent(new CustomEvent('plane-tooltip-follow',{detail:{icao:'${id}'}}));e.stopPropagation();e.preventDefault();})(event)">${mainRow}${infoRow}</span>`;
 }

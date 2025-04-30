@@ -80,7 +80,6 @@ export class PlaneModel implements Plane {
     altitude?: number | null
   ): void {
     // Log adding position
-    // console.log(`[PlaneModel ${this.icao}] Adding position: lat=${lat}, lon=${lon}, track=${track}, velocity=${velocity}`);
     this.positionHistory.push({
       lat,
       lon,
@@ -95,7 +94,6 @@ export class PlaneModel implements Plane {
       this.positionHistory.shift(); // Remove oldest entry
     }
     // Log current history size
-    // console.log(`[PlaneModel ${this.icao}] History size: ${this.positionHistory.length}`);
   }
 
   // Helper to remove trail segments from map
@@ -103,7 +101,6 @@ export class PlaneModel implements Plane {
     if (this.historyTrailSegments) {
       this.historyTrailSegments.forEach((segment) => map.removeLayer(segment));
       this.historyTrailSegments = []; // Clear the array
-      // console.log(`[PlaneModel ${this.icao}] Removed history trail segments.`);
     }
   }
 

@@ -13,7 +13,9 @@ import { CommonModule } from '@angular/common';
 import { PlaneLogEntry } from '../results-overlay/results-overlay.component'; // Adjust path if needed
 import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
+import { SettingsService } from '../../services/settings.service';
 import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComponent is standalone
+import { haversineDistance } from '../../utils/geo-utils';
 
 @Component({
   selector: 'app-plane-list-item',
@@ -24,6 +26,23 @@ import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComp
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
 })
 export class PlaneListItemComponent {
+  constructor(
+    public countryService: CountryService,
+    public planeFilter: PlaneFilterService,
+    private settings: SettingsService
+  ) {}
+  /** Distance from center, in km rounded to nearest tenth */
+  get distanceKm(): number {
+    const lat = this.settings.lat ?? 0;
+    const lon = this.settings.lon ?? 0;
+    if (this.plane.lat == null || this.plane.lon == null) return 0;
+    return (
+      Math.round(
+        haversineDistance(lat, lon, this.plane.lat, this.plane.lon) * 10
+      ) / 10
+    );
+  }
+
   @Input({ required: true }) plane!: PlaneLogEntry;
   // Reflect military/special state on host element for styling
   @HostBinding('class.military-plane') get hostMilitary() {
@@ -56,11 +75,6 @@ export class PlaneListItemComponent {
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
   // Keep hover/unhover in parent for simplicity for now
-
-  constructor(
-    public countryService: CountryService,
-    public planeFilter: PlaneFilterService
-  ) {}
 
   // Keep getTimeAgo logic here as it's specific to the 'seen' variant display
   getTimeAgo(timestamp: number): string {

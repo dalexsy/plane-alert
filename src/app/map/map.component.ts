@@ -390,6 +390,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Add SVG renderer for vector overlays (draws into overlayPane)
     L.svg().addTo(this.map);
 
+    // Create a custom pane for followed markers and set its zIndex above markerPane
+    this.map.createPane('followedMarkerPane');
+    const followedPane = this.map.getPane('followedMarkerPane') as HTMLElement;
+    followedPane.style.zIndex = '610';
+    followedPane.style.pointerEvents = 'auto';
+
     // Define airport striped pattern in overlayPane's SVG
     const overlaySvg = this.map
       .getPanes()
@@ -955,12 +961,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (tooltipEl) {
           tooltipEl.classList.remove('highlighted-tooltip');
           tooltipEl.classList.remove('followed-plane-tooltip');
-          tooltipEl.style.borderColor = '';
-          tooltipEl.style.color = '';
-        }
-        if (markerEl) {
-          markerEl.style.borderColor = '';
-          markerEl.style.color = '';
         }
         marker.setZIndexOffset(0);
       }
@@ -971,17 +971,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       if (followed && followed.marker) {
         const markerEl = followed.marker.getElement();
         const tooltipEl = followed.marker.getTooltip()?.getElement();
-        followed.marker.setZIndexOffset(10000);
+        followed.marker.setZIndexOffset(20000);
         markerEl?.classList.add('highlighted-marker');
         if (tooltipEl) {
           tooltipEl.classList.add('highlighted-tooltip');
           tooltipEl.classList.add('followed-plane-tooltip');
-          tooltipEl.style.borderColor = '#00ffff';
-          tooltipEl.style.color = '#00ffff';
-        }
-        if (markerEl) {
-          markerEl.style.borderColor = '#00ffff';
-          markerEl.style.color = '#00ffff';
         }
       }
     }
@@ -1023,37 +1017,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.resultsOverlayComponent.airportPlaneLog = [];
     // Compute nearest (or followed) plane for overlay
     this.computeClosestPlane();
-    // --- REMOVED ---
-    // Update nearest overlay and UI debug in sync
-    // if (visiblePlanes.length > 0) {
-    //   const top = visiblePlanes[0];
-    //   this.closestPlane = top;
-    //   this.closestDistance =
-    //     Math.round(
-    //       haversineDistance(centerLat, centerLon, top.lat!, top.lon!) * 10
-    //     ) / 10;
-    //   this.closestOperator = top.operator || null;
-    //   this.closestSecondsAway = top.velocity
-    //     ? Math.round(
-    //         (haversineDistance(centerLat, centerLon, top.lat!, top.lon!) *
-    //           1000) /
-    //           top.velocity!
-    //       )
-    //     : null;
-    //   const distStr = this.closestDistance.toFixed(1);
-    //   console.log(
-    //     `[MapComponent] UI top plane ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
-    //   );
-    //   console.log(
-    //     `[MapComponent] Nearest overlay entry ICAO=${top.icao}, callsign=${top.callsign}, distance=${distStr}km`
-    //   );
-    // } else {
-    //   this.closestPlane = null;
-    //   this.closestDistance = null;
-    //   this.closestOperator = null;
-    //   this.closestSecondsAway = null;
-    // }
-    // --- END REMOVED ---
 
     // Merge into historical log
     const mergedMap = new Map<string, PlaneModel>();
@@ -1455,8 +1418,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Set zoom level one higher and center map on plane
       this.centerZoom = 10;
       this.map.setView([plane.lat, plane.lon], this.centerZoom);
-      // Bring marker to front
-      pm.marker.setZIndexOffset(10000); // bring marker above others
+      // Bring marker to front above all tooltips
+      pm.marker.setZIndexOffset(20000); // use a higher z-index for followed marker
       // Open tooltip and apply highlight styling
       pm.marker.openTooltip();
       const tooltip = pm.marker.getTooltip();

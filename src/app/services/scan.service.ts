@@ -22,9 +22,6 @@ export class ScanService {
 
   start(seconds: number, onScan: () => void): void {
     if (this.tickSub) {
-      console.log(
-        'ScanService is already running. Stop it before starting again.'
-      );
       return;
     }
     this.intervalSeconds = seconds;
@@ -35,7 +32,6 @@ export class ScanService {
 
     // If there was a pending force scan, do it now
     if (this.pendingForceScan && this.scanCallback) {
-      console.log('Executing pending forced scan');
       this.pendingForceScan = false;
       this.scanCallback();
     }
@@ -47,27 +43,21 @@ export class ScanService {
         this.scanCallback?.();
         this.current = this.intervalSeconds;
         this.countdownSubject.next(this.current);
-        console.log('Scan executed, resetting countdown');
       }
     });
-
-    console.log('Scan service started with interval', seconds);
   }
 
   stop(): void {
     if (!this.tickSub) {
-      console.log('ScanService is not running. Nothing to stop.');
       return;
     }
     this.tickSub.unsubscribe();
     this.tickSub = null;
     this.activeSubject.next(false);
-    console.log('Scan service stopped');
   }
 
   forceScan(): void {
     if (!this.scanCallback) {
-      console.log('No scan callback defined. Cannot force scan.');
       // Store that we need to do a scan as soon as a callback is registered
       this.pendingForceScan = true;
       return;
@@ -75,7 +65,6 @@ export class ScanService {
     this.scanCallback();
     this.current = this.intervalSeconds;
     this.countdownSubject.next(this.current);
-    console.log('Forced scan triggered');
   }
 
   updateInterval(newSeconds: number): void {
@@ -84,6 +73,5 @@ export class ScanService {
       this.stop();
       this.start(this.intervalSeconds, this.scanCallback!);
     }
-    console.log('Updated scan interval to', newSeconds);
   }
 }
