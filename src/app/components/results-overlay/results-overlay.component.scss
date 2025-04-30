@@ -6,13 +6,13 @@
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
   width: 25rem;
-  display: grid;
-  grid-template-rows: min-content min-content 1fr;
-  grid-auto-rows: none;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 0.5rem);
+  overflow: visible;
+  gap: 0.5rem;
   border-radius: 0 0.5rem 0.5rem 0.5rem;
   padding: 0.25rem 0;
-  max-height: calc(100vh - 0.5rem);
 
   h3 {
     padding: 1rem;
@@ -77,6 +77,7 @@
   .plane-list-wrapper {
     position: relative;
     overflow: hidden;
+    max-height: 64vh;
 
     // use pseudo-element with mix-blend-mode for a true mask fade
     &::after {
@@ -110,7 +111,6 @@
       margin-right: 0.25rem;
       position: relative;
       padding-bottom: 0;
-      max-height: 30vh;
       min-height: 10vh;
       overflow-y: auto;
 
@@ -225,24 +225,62 @@
     }
   }
 
-  /* ensure seenResults sits in the last grid row and flexes correctly */
-  #seenResults {
+  // Sky list fills remaining space
+  .plane-section:first-of-type {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow: hidden;
-    margin-top: -1rem;
-
     .plane-list-wrapper {
+      flex: 1 1 auto;
       display: flex;
       flex-direction: column;
-    }
-
-    .plane-list {
-      flex: 1 1 auto;
       min-height: 0;
+      overflow: hidden;
+      .plane-list {
+        flex: 1 1 auto;
+        overflow-y: auto;
+      }
+    }
+  }
+
+  // Airport list scrolls internally up to 30vh
+  > .plane-section:nth-of-type(2) .plane-list-wrapper {
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+
+  // Ensure seen section is limited and scrolls internally
+  #seenResults {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    max-height: 30vh;
+    overflow: hidden;
+    .plane-list-wrapper {
+      flex: 1 1 auto;
       overflow-y: auto;
     }
+    h3 {
+      flex: 0 0 auto;
+    }
+  }
+
+  // Prevent airport section from flexing and overflowing
+  > .plane-section:nth-of-type(2) {
+    flex: 0 0 auto;
+    overflow: hidden;
+    .plane-list-wrapper {
+      max-height: calc(
+        100vh - 0.5rem - 3rem - 30vh
+      ); // overlay height minus top bar minus seen list
+      overflow-y: auto;
+    }
+  }
+
+  // Ensure all plane-list-wrapper allow shrink
+  .plane-list-wrapper {
+    min-height: 0;
   }
 
   .button-group {
@@ -327,10 +365,6 @@
 
 .new-plane {
   color: #ff6161;
-
-  a {
-    font-weight: bold;
-  }
 }
 
 .none-callsign {

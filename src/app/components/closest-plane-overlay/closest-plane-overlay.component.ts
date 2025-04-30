@@ -26,6 +26,7 @@ export class ClosestPlaneOverlayComponent {
   @Input() distanceKm: number | null = null;
   @Input() operator: string | null = null;
   @Input() secondsAway: number | null = null;
+  @Input() velocity: number | null = null;
   @Input() isSelected: boolean = false;
   @Output() selectPlane = new EventEmitter<PlaneModel>();
 

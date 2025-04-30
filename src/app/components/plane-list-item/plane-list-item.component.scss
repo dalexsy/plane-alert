@@ -27,9 +27,10 @@ $followed-plane-color: #00ffff;
       rgba(0, 255, 255, 0.2) 0%,
       rgba(0, 255, 255, 0.05) 100%
     );
-    a {
-      color: $followed-plane-color;
-      font-weight: bold;
+    font-variation-settings: none;
+    a,
+    .direction-info {
+      font-variation-settings: normal;
     }
   }
   &.military-plane {
@@ -46,7 +47,6 @@ $followed-plane-color: #00ffff;
       );
       a {
         color: #89d138;
-        font-weight: bold;
       }
     }
   }

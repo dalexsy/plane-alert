@@ -44,86 +44,93 @@
   <ng-container *ngIf="!collapsed">
     <!-- Options buttons - moved to the top -->
 
-    <!-- Planes in the Sky section - always show -->
-    <div class="plane-section">
-      <h3>
-        Planes in the Sky ({{ filteredSkyPlaneLog.length }})
-        <div class="button-group">
-          <span class="map-status">
-            <span *ngIf="loadingAirports" class="loading-airports">
-              Processing airports <span class="loading-spinner"></span> </span
-          ></span>
-          <!-- Hide Export Filter List button for now -->
-          <!--
-        <app-button
-          [text]="'Export Filter List'"
-          type="secondary"
-          (click)="onExportList()"
-        ></app-button>
-        --></div>
-      </h3>
-      <div
-        class="plane-list-wrapper"
-        [class.fade-enabled]="skyListScrollable"
-        [class.no-fade]="!skyListScrollable || skyListAtBottom"
-        *ngIf="
-          filteredSkyPlaneLog && filteredSkyPlaneLog.length;
-          else noSkyPlanes
-        "
-      >
-        <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
-          <app-plane-list-item
-            *ngFor="let plane of filteredSkyPlaneLog"
-            [plane]="plane"
-            [listType]="'sky'"
-            [highlightedPlaneIcao]="highlightedPlaneIcao"
-            [hoveredPlaneIcao]="hoveredSkyPlaneIcao"
-            [now]="now"
-            [activePlaneIcaos]="activePlaneIcaos"
-            [followedPlaneIcao]="highlightedPlaneIcao"
-            (centerPlane)="handleCenterPlane($event)"
-            (filterPrefix)="handleFilterPrefix($event)"
-            (toggleSpecial)="handleToggleSpecial($event)"
-            (hoverPlane)="onHoverPlane($event, 'sky')"
-            (unhoverPlane)="onUnhoverPlane($event, 'sky')"
-          ></app-plane-list-item>
+    <div class="middle-section">
+      <!-- Planes in the Sky section -->
+      <div class="plane-section">
+        <h3>
+          Planes in the Sky ({{ filteredSkyPlaneLog.length }})
+          <div class="button-group">
+            <span class="map-status">
+              <span *ngIf="loadingAirports" class="loading-airports">
+                Processing airports <span class="loading-spinner"></span> </span
+            ></span>
+            <!-- Hide Export Filter List button for now -->
+            <!--
+          <app-button
+            [text]="'Export Filter List'"
+            type="secondary"
+            (click)="onExportList()"
+          ></app-button>
+          --></div>
+        </h3>
+        <div
+          class="plane-list-wrapper"
+          [class.fade-enabled]="skyListScrollable"
+          [class.no-fade]="!skyListScrollable || skyListAtBottom"
+          *ngIf="
+            filteredSkyPlaneLog && filteredSkyPlaneLog.length;
+            else noSkyPlanes
+          "
+        >
+          <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
+            <app-plane-list-item
+              *ngFor="let plane of filteredSkyPlaneLog"
+              [plane]="plane"
+              [listType]="'sky'"
+              [highlightedPlaneIcao]="highlightedPlaneIcao"
+              [hoveredPlaneIcao]="hoveredSkyPlaneIcao"
+              [now]="now"
+              [activePlaneIcaos]="activePlaneIcaos"
+              [followedPlaneIcao]="highlightedPlaneIcao"
+              (centerPlane)="handleCenterPlane($event)"
+              (filterPrefix)="handleFilterPrefix($event)"
+              (toggleSpecial)="handleToggleSpecial($event)"
+              (hoverPlane)="onHoverPlane($event, 'sky')"
+              (unhoverPlane)="onUnhoverPlane($event, 'sky')"
+            ></app-plane-list-item>
+          </div>
         </div>
+        <ng-template #noSkyPlanes>
+          <p>No planes worth peeping.</p>
+        </ng-template>
       </div>
-      <ng-template #noSkyPlanes>
-        <p>No planes worth peeping.</p>
-      </ng-template>
-    </div>
 
-    <!-- Planes at the Airport section - only show if there are planes -->
-    <div
-      class="plane-section"
-      *ngIf="filteredAirportPlaneLog && filteredAirportPlaneLog.length"
-    >
-      <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
+      <!-- Planes at the Airport section -->
       <div
-        class="plane-list-wrapper"
-        [class.fade-enabled]="airportListScrollable"
-        [class.no-fade]="!airportListScrollable || airportListAtBottom"
+        class="plane-section"
+        *ngIf="filteredAirportPlaneLog && filteredAirportPlaneLog.length"
       >
-        <div class="plane-list" #airportList (scroll)="onAirportScroll($event)">
-          <app-plane-list-item
-            *ngFor="let plane of filteredAirportPlaneLog"
-            [plane]="plane"
-            [listType]="'airport'"
-            [highlightedPlaneIcao]="highlightedPlaneIcao"
-            [hoveredPlaneIcao]="hoveredAirportPlaneIcao"
-            [now]="now"
-            [activePlaneIcaos]="activePlaneIcaos"
-            [followedPlaneIcao]="highlightedPlaneIcao"
-            (centerPlane)="handleCenterPlane($event)"
-            (filterPrefix)="handleFilterPrefix($event)"
-            (toggleSpecial)="handleToggleSpecial($event)"
-            (hoverPlane)="onHoverPlane($event, 'airport')"
-            (unhoverPlane)="onUnhoverPlane($event, 'airport')"
-          ></app-plane-list-item>
+        <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
+        <div
+          class="plane-list-wrapper"
+          [class.fade-enabled]="airportListScrollable"
+          [class.no-fade]="!airportListScrollable || airportListAtBottom"
+        >
+          <div
+            class="plane-list"
+            #airportList
+            (scroll)="onAirportScroll($event)"
+          >
+            <app-plane-list-item
+              *ngFor="let plane of filteredAirportPlaneLog"
+              [plane]="plane"
+              [listType]="'airport'"
+              [highlightedPlaneIcao]="highlightedPlaneIcao"
+              [hoveredPlaneIcao]="hoveredAirportPlaneIcao"
+              [now]="now"
+              [activePlaneIcaos]="activePlaneIcaos"
+              [followedPlaneIcao]="highlightedPlaneIcao"
+              (centerPlane)="handleCenterPlane($event)"
+              (filterPrefix)="handleFilterPrefix($event)"
+              (toggleSpecial)="handleToggleSpecial($event)"
+              (hoverPlane)="onHoverPlane($event, 'airport')"
+              (unhoverPlane)="onUnhoverPlane($event, 'airport')"
+            ></app-plane-list-item>
+          </div>
         </div>
       </div>
     </div>
+    <!-- .middle-section -->
 
     <div id="seenResults">
       <h3 class="top">

@@ -62,14 +62,6 @@ $new-plane-color: #ff6161;
       margin-right: 0.25rem;
     }
 
-    strong {
-      font-weight: bold;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
     .callsign-text {
       cursor: pointer;
       transition: color 0.15s;

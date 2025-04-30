@@ -132,6 +132,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   closestDistance: number | null = null;
   closestOperator: string | null = null;
   closestSecondsAway: number | null = null;
+  closestVelocity: number | null = null;
   /** Whether user is following the nearest overlay plane */
   followNearest = false;
 
@@ -190,6 +191,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         } else {
           this.highlightedPlaneIcao = icao;
           this.followNearest = true;
+          // Center map on followed plane
+          const pm = this.planeLog.get(icao);
+          if (pm && pm.lat != null && pm.lon != null) {
+            this.map.panTo([pm.lat, pm.lon]);
+          }
         }
         this.updatePlaneLog(Array.from(this.planeLog.values()));
         this.updateFollowedStyles(); // <-- ensure all planes update
@@ -916,6 +922,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.closestDistance = null;
       this.closestOperator = null;
       this.closestSecondsAway = null;
+      this.closestVelocity = null;
       return;
     }
     // Update overlay with selected candidate
@@ -928,10 +935,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
     this.closestDistance = Math.round(dist * 10) / 10;
     this.closestOperator = candidate.operator || null;
-    this.closestSecondsAway =
-      candidate.velocity != null
-        ? Math.round((dist * 1000) / candidate.velocity!)
-        : null;
+    // Only show ETA if velocity > 0
+    const vel = candidate.velocity ?? null;
+    if (vel != null && vel > 100) {
+      this.closestVelocity = vel;
+      this.closestSecondsAway = Math.round((dist * 1000) / vel);
+    } else {
+      this.closestVelocity = null;
+      this.closestSecondsAway = null;
+    }
   }
 
   /** Replace favicon by updating the href of the <link rel="icon"> tag */
@@ -1042,27 +1054,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Sort the full historical log chronologically (most recent first)
     this.planeHistoricalLog.sort((a, b) => b.firstSeen - a.firstSeen);
-    // Build seen list: apply commercial filter to hide filtered planes
-    const historyFiltered = this.planeHistoricalLog.filter(
-      (p) => !p.filteredOut
-    );
-    // Build seen list: specials first, then military, then others, each by recency
-    const specialPlanes = historyFiltered.filter((p) =>
-      this.specialListService.isSpecial(p.icao)
-    );
-    const militaryPlanes = historyFiltered.filter(
-      (p) =>
-        !this.specialListService.isSpecial(p.icao) &&
-        (this.aircraftDb.lookup(p.icao)?.mil || false)
-    );
-    const otherPlanes = historyFiltered.filter(
-      (p) =>
-        !this.specialListService.isSpecial(p.icao) &&
-        !(this.aircraftDb.lookup(p.icao)?.mil || false)
-    );
-    // Already sorted by firstSeen descending, so slices preserve order
+    // Build seen list: sort by recency and prioritize military
+    const historyFiltered = this.planeHistoricalLog
+      .filter((p) => !p.filteredOut)
+      .sort((a, b) => b.firstSeen - a.firstSeen);
+    const militaryPlanes = historyFiltered.filter((p) => p.isMilitary);
+    const otherPlanes = historyFiltered.filter((p) => !p.isMilitary);
     this.resultsOverlayComponent.seenPlaneLog = [
-      ...specialPlanes,
       ...militaryPlanes,
       ...otherPlanes,
     ];
@@ -1390,10 +1388,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (this.highlightedPlaneIcao === icao) {
       this.unhighlightPlane(icao);
       this.highlightedPlaneIcao = null;
-      this.centerZoom = null;
       // Refresh lists to reflect removal of highlight
       this.updatePlaneLog(Array.from(this.planeLog.values()));
-      // Force overlay to sort and re-filter
       this.resultsOverlayComponent.sortLogs();
       this.resultsOverlayComponent.updateFilteredLogs();
       this.cdr.detectChanges();
@@ -1406,20 +1402,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
 
     // Highlight new plane
-    this.highlightedPlaneIcao = icao; // Set the new highlighted ICAO
+    this.highlightedPlaneIcao = icao;
     const pm = this.planeLog.get(icao);
     if (pm?.marker && plane.lat != null && plane.lon != null) {
-      // Set zoom level one higher and center map on plane
-      this.centerZoom = 10;
-      this.map.setView([plane.lat, plane.lon], this.centerZoom);
+      // Pan map to plane location without changing zoom
+      this.map.panTo([plane.lat, plane.lon]);
       // Bring marker to front above all tooltips
-      pm.marker.setZIndexOffset(20000); // use a higher z-index for followed marker
+      pm.marker.setZIndexOffset(20000);
       // Open tooltip and apply highlight styling
       pm.marker.openTooltip();
       const tooltip = pm.marker.getTooltip();
       if (tooltip) {
         const tooltipEl = tooltip.getElement();
-        tooltipEl?.classList.add('highlighted-tooltip'); // Use highlight class
+        tooltipEl?.classList.add('highlighted-tooltip');
       }
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');

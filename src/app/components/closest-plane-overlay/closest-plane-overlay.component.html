@@ -20,7 +20,10 @@
     ariaLabel="ETA"
   ></app-icon>
   <span class="distance">{{ distanceKm | number : "1.1-1" }}km </span>
-  <span class="eta" *ngIf="secondsAway !== null">
+  <span
+    class="eta"
+    *ngIf="secondsAway !== null && velocity !== null && velocity > 0"
+  >
     {{ formattedEta }}
   </span>
 </div>
