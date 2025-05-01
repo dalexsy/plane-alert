@@ -7,6 +7,9 @@
   (selectPlane)="followNearestPlane($event)"
   [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
 ></app-closest-plane-overlay>
+<div class="closest-plane-address-overlay" *ngIf="closestPlaneAddress">
+  {{ closestPlaneAddress }}
+</div>
 
 <app-input-overlay
   (resolveAndUpdate)="resolveAndUpdateFromAddress()"

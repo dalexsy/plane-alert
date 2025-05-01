@@ -143,6 +143,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   private _initialScanDone = false; // Flag to prevent double scan
 
+  /** Human-readable address for the closestPlane */
+  closestPlaneAddress: string | null = null;
+
+  private lastClosestIcao: string | null = null;
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -453,17 +458,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const currentMainRadius = this.settings.radius ?? 5;
       this.updateMap(lat, lng, currentMainRadius); // This will trigger airport search
 
-      // Hide the cone when double-clicking to a new location
-      this.coneVisible = false;
-
-      // Update the Show View Axes checkbox to match
-      const coneCheckbox = document.getElementById(
-        'showCone'
-      ) as HTMLInputElement;
-      if (coneCheckbox) {
-        coneCheckbox.checked = false;
-      }
-
       this.reverseGeocode(lat, lng).then((address) => {
         this.inputOverlayComponent.addressInputRef.nativeElement.value =
           address;
@@ -708,6 +702,50 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       );
   }
 
+  /** Reverse geocode and return street, district/city, municipality, county, state, country, and display_name for fallback */
+  private async reverseGeocodeParts(
+    lat: number,
+    lon: number
+  ): Promise<{
+    street: string;
+    locality: string;
+    cityDistrict: string;
+    municipality: string;
+    state: string;
+    country: string;
+    displayName: string;
+  }> {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`
+    );
+    const data = await res.json();
+    const addr = data.address || {};
+    const street = (
+      addr.road ||
+      addr.pedestrian ||
+      addr.footway ||
+      addr.cycleway ||
+      addr.path ||
+      ''
+    ).trim();
+    // Locality fallback: hamlet, village, town
+    const locality = (addr.hamlet || addr.village || addr.town || '').trim();
+    const cityDistrict = (addr.city_district || '').trim();
+    const municipality = (addr.municipality || '').trim();
+    const state = (addr.state || '').trim();
+    const country = (addr.country || '').trim();
+    const displayName = data.display_name || '';
+    return {
+      street,
+      locality,
+      cityDistrict,
+      municipality,
+      state,
+      country,
+      displayName,
+    };
+  }
+
   // Helper to check if alert should be muted
   shouldMuteCommercialAlert(newUnfiltered: PlaneModel[]): boolean {
     // If mute is enabled, only commercial planes are present, and all new planes are commercial, mute the alert
@@ -926,7 +964,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.closestDistance = null;
       this.closestOperator = null;
       this.closestSecondsAway = null;
-      this.closestVelocity = null;
+      this.closestPlaneAddress = null;
+      this.lastClosestIcao = null;
       return;
     }
     // Update overlay with selected candidate
@@ -947,6 +986,61 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     } else {
       this.closestVelocity = null;
       this.closestSecondsAway = null;
+    }
+    // Only reverse-geocode when the closest plane changes
+    if (candidate.icao !== this.lastClosestIcao) {
+      this.lastClosestIcao = candidate.icao;
+      this.reverseGeocodeParts(candidate.lat!, candidate.lon!).then(
+        ({
+          street,
+          locality,
+          cityDistrict,
+          municipality,
+          state,
+          country,
+          displayName,
+        }) => {
+          // Filter out non-street path names
+          let filteredStreet = street;
+          if (/^durchfahrt/i.test(filteredStreet)) {
+            filteredStreet = '';
+          }
+          // Build short address: prioritize borough and municipality
+          let shortAddr = '';
+          if (filteredStreet && locality) {
+            shortAddr = `${filteredStreet}, ${locality}`;
+          } else if (filteredStreet && cityDistrict) {
+            shortAddr = `${filteredStreet}, ${cityDistrict}`;
+          } else if (filteredStreet && municipality) {
+            shortAddr = `${filteredStreet}, ${municipality.replace(
+              /^(Gemeinde|Kreis)\s*/i,
+              ''
+            )}`;
+          } else if (filteredStreet) {
+            shortAddr = filteredStreet;
+          } else if (locality) {
+            shortAddr = locality;
+          } else if (cityDistrict) {
+            shortAddr = cityDistrict;
+          } else if (municipality) {
+            shortAddr = municipality.replace(/^(Gemeinde|Kreis)\s*/i, '');
+          } else {
+            // Fallback to nearest settlement via Overpass API
+            shortAddr = '';
+          }
+          // if still empty or equals state/country, try Overpass
+          if (!shortAddr || shortAddr === state || shortAddr === country) {
+            this.getNearestSettlement(candidate.lat!, candidate.lon!).then(
+              (name) => {
+                if (name) {
+                  this.ngZone.run(() => (this.closestPlaneAddress = name));
+                }
+              }
+            );
+          }
+          this.ngZone.run(() => (this.closestPlaneAddress = shortAddr));
+        }
+      );
     }
   }
 
@@ -1104,17 +1198,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   useCurrentLocation(): void {
-    // Hide the cone when navigating to current location
-    this.coneVisible = false;
-
-    // Update the Show View Axes checkbox to match
-    const coneCheckbox = document.getElementById(
-      'showCone'
-    ) as HTMLInputElement;
-    if (coneCheckbox) {
-      coneCheckbox.checked = false;
-    }
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -1152,17 +1235,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   goToAirport(): void {
     // This now goes to the *default* coordinates, as there's no single "the airport"
-    // Hide the cone when navigating to airport
-    this.coneVisible = false;
-
-    // Update the Show View Axes checkbox to match
-    const coneCheckbox = document.getElementById(
-      'showCone'
-    ) as HTMLInputElement;
-    if (coneCheckbox) {
-      coneCheckbox.checked = false;
-    }
-
     // Use current main radius for update
     const currentMainRadius = this.settings.radius ?? 5;
     this.updateMap(
@@ -1195,19 +1267,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       homeLocation &&
       Math.abs(lat - homeLocation.lat) < 0.0001 &&
       Math.abs(lon - homeLocation.lon) < 0.0001;
-
-    if (!atHome) {
-      // Hide the cone when navigating to a searched address (if not at home)
-      this.coneVisible = false;
-
-      // Update the Show View Axes checkbox to match
-      const coneCheckbox = document.getElementById(
-        'showCone'
-      ) as HTMLInputElement;
-      if (coneCheckbox) {
-        coneCheckbox.checked = false;
-      }
-    }
 
     // Set the MAIN radius setting if valid
     if (!isNaN(mainRadius)) {
@@ -1746,5 +1805,47 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onUpdateNow(): void {
     this.scanService.forceScan();
+  }
+
+  /** Find nearest place (town/village/hamlet) via Overpass as fallback */
+  private async getNearestSettlement(
+    lat: number,
+    lon: number
+  ): Promise<string> {
+    try {
+      const overpassUrl = 'https://overpass-api.de/api/interpreter';
+      // search for place nodes within 5km
+      const query = `
+        [out:json][timeout:25];
+        (
+          node["place"~"^(town|village|hamlet|island)$"](around:5000,${lat},${lon});
+          way["place"~"^(town|village|hamlet|island)$"](around:5000,${lat},${lon});
+          relation["place"~"^(town|village|hamlet|island)$"](around:5000,${lat},${lon});
+        );
+        out center;
+      `;
+      const res = await fetch(overpassUrl, { method: 'POST', body: query });
+      const data = await res.json();
+      if (!data.elements || data.elements.length === 0) return '';
+      // pick nearest by distance
+      let best = data.elements[0];
+      let bestDist = Infinity;
+      for (const el of data.elements) {
+        const d = haversineDistance(
+          lat,
+          lon,
+          el.lat ?? el.center?.lat,
+          el.lon ?? el.center?.lon
+        );
+        if (d < bestDist) {
+          bestDist = d;
+          best = el;
+        }
+      }
+      return best.tags?.name || '';
+    } catch (e) {
+      console.error('Nearest settlement lookup failed', e);
+      return '';
+    }
   }
 }

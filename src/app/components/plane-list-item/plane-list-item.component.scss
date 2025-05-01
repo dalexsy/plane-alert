@@ -112,7 +112,7 @@ $followed-plane-color: #00ffff;
 
     // Style unknown operator text
     .operator.unknown-operator {
-      color: gray;
+      opacity: 0.8;
       font-style: italic;
     }
   }
@@ -166,10 +166,6 @@ $followed-plane-color: #00ffff;
     font-size: 1rem;
     width: 1rem;
     height: 1rem;
-  }
-
-  .none-callsign {
-    color: gray;
   }
 
   .call-sign {
