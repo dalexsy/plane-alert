@@ -30,6 +30,9 @@ export class ClosestPlaneOverlayComponent {
   @Input() isSelected: boolean = false;
   @Output() selectPlane = new EventEmitter<PlaneModel>();
 
+  /** Optional human-readable address to display below the nearest overlay */
+  @Input() address: string | null = null;
+
   /** Formatted ETA in #m #s format without suffix */
   get formattedEta(): string {
     if (this.secondsAway == null) {
