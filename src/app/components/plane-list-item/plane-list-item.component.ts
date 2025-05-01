@@ -79,6 +79,8 @@ export class PlaneListItemComponent {
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
+  /** Center map on the airport location without highlighting the plane */
+  @Output() centerAirport = new EventEmitter<PlaneLogEntry>();
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
@@ -111,6 +113,12 @@ export class PlaneListItemComponent {
   onFilter(event: Event): void {
     event.stopPropagation();
     this.filterPrefix.emit(this.plane);
+  }
+
+  /** Handle click on airport code link to center map on airport without highlight */
+  onCenterAirport(event: Event): void {
+    event.stopPropagation();
+    this.centerAirport.emit(this.plane);
   }
 
   onToggleSpecial(event: Event): void {

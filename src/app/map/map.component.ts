@@ -1848,4 +1848,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       return '';
     }
   }
+
+  /** Center map on airport without highlighting the plane */
+  public centerOnAirport(plane: any): void {
+    if (plane.lat != null && plane.lon != null) {
+      this.map.panTo([plane.lat, plane.lon]);
+    }
+  }
 }

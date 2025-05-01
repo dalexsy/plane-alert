@@ -193,6 +193,12 @@ $followed-plane-color: #00ffff;
   font-style: italic;
 }
 
+// Utility to disable underline on links
+.no-underline {
+  text-decoration: none;
+  cursor: pointer;
+}
+
 // --- Global styles that might need adjustment if moved ---
 // Ensure .military-star, .special-icon styles are available or defined here.
 // Ensure flag styles are global or defined here/passed via service.

@@ -119,6 +119,8 @@ export class ResultsOverlayComponent
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+  /** Center map on airport without highlighting the plane */
+  @Output() centerAirport = new EventEmitter<PlaneLogEntry>();
 
   // Filtered versions of the plane logs
   filteredSkyPlaneLog: PlaneLogEntry[] = [];
