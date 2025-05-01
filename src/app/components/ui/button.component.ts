@@ -39,9 +39,9 @@ export class ButtonComponent {
   @Input() disabled: boolean = false;
   @Output() click = new EventEmitter<Event>();
 
-  onClick(event: Event) {
-    // For non-submit buttons, prevent default and stop propagation
-    if (this.nativeType !== 'submit') {
+  onClick(event?: Event) {
+    // Guard against missing event
+    if (event && this.nativeType !== 'submit') {
       event.preventDefault();
       event.stopPropagation();
     }

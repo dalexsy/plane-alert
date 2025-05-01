@@ -80,6 +80,13 @@ export class ResultsOverlayComponent
     });
   }
 
+  /** Force re-sort, re-filter, and trigger change detection on this component */
+  public refresh(): void {
+    this.sortLogs();
+    this.updateFilteredLogs();
+    this.cdr.markForCheck();
+  }
+
   // track hover state separately for each list to avoid cross-list hover
   hoveredSkyPlaneIcao: string | null = null;
   hoveredAirportPlaneIcao: string | null = null;
@@ -225,6 +232,14 @@ export class ResultsOverlayComponent
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // When airport loading finishes, refresh to pick up airport names
+    if (
+      changes['loadingAirports'] &&
+      changes['loadingAirports'].previousValue === true &&
+      changes['loadingAirports'].currentValue === false
+    ) {
+      this.refresh();
+    }
     // When input plane lists or highlighted plane change
     if (
       changes['skyPlaneLog'] ||

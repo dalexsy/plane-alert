@@ -885,6 +885,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
         // Update both the overlay and lists via updatePlaneLog
         this.updatePlaneLog(updatedPlaneModels);
+        // Ensure overlay picks up new airportPlaneLog (OnPush component)
+        this.resultsOverlayComponent.refresh();
         this.manualUpdate = false;
         // Reapply tooltip highlight after updates if a plane is followed
         if (this.highlightedPlaneIcao) {
@@ -893,6 +895,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           tooltipEl?.classList.add('highlighted-tooltip');
         }
         this.cdr.detectChanges();
+        // Also refresh airport data after plane scan to update airport names
+        this.findAndDisplayAirports(lat, lon, radius);
       });
   }
 
@@ -1035,7 +1039,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Sort sky list by firstSeen for display (newest bottom)
     visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
     this.resultsOverlayComponent.skyPlaneLog = visiblePlanes;
-    this.resultsOverlayComponent.airportPlaneLog = [];
+    // Show planes at airports: those assigned an airportName
+    const airportPlanes = visiblePlanes.filter((p) => p.airportName != null);
+    this.resultsOverlayComponent.airportPlaneLog = airportPlanes;
+
     // Compute nearest (or followed) plane for overlay
     this.computeClosestPlane();
 
@@ -1441,12 +1448,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     lon: number,
     radiusKm: number
   ): Promise<void> {
-    if (this.airportsLoading) {
-      console.debug(
-        '[MapComponent] findAndDisplayAirports skipped: already loading'
-      );
-      return;
-    }
+    // always allow starting a new airport scan to refresh circles and names
     this.airportsLoading = true;
     console.debug(
       `[MapComponent] findAndDisplayAirports start lat=${lat}, lon=${lon}, radiusKm=${radiusKm}`
@@ -1632,6 +1634,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.ngZone.run(() => {
         this.loadingAirports = false;
         this.cdr.detectChanges();
+        // Immediately update overlay logs to reflect airport names
+        this.updatePlaneLog(Array.from(this.planeLog.values()));
+        this.cdr.detectChanges();
+        // ensure ResultsOverlayComponent re-renders OnPush inputs
+        this.resultsOverlayComponent.refresh();
       });
     } catch (error) {
       console.error(

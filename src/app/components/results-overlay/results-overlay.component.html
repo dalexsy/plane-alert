@@ -94,41 +94,6 @@
           <p>No planes worth peeping.</p>
         </ng-template>
       </div>
-
-      <!-- Planes at the Airport section -->
-      <div
-        class="plane-section"
-        *ngIf="filteredAirportPlaneLog && filteredAirportPlaneLog.length"
-      >
-        <h3>Planes at the Airport ({{ filteredAirportPlaneLog.length }})</h3>
-        <div
-          class="plane-list-wrapper"
-          [class.fade-enabled]="airportListScrollable"
-          [class.no-fade]="!airportListScrollable || airportListAtBottom"
-        >
-          <div
-            class="plane-list"
-            #airportList
-            (scroll)="onAirportScroll($event)"
-          >
-            <app-plane-list-item
-              *ngFor="let plane of filteredAirportPlaneLog"
-              [plane]="plane"
-              [listType]="'airport'"
-              [highlightedPlaneIcao]="highlightedPlaneIcao"
-              [hoveredPlaneIcao]="hoveredAirportPlaneIcao"
-              [now]="now"
-              [activePlaneIcaos]="activePlaneIcaos"
-              [followedPlaneIcao]="highlightedPlaneIcao"
-              (centerPlane)="handleCenterPlane($event)"
-              (filterPrefix)="handleFilterPrefix($event)"
-              (toggleSpecial)="handleToggleSpecial($event)"
-              (hoverPlane)="onHoverPlane($event, 'airport')"
-              (unhoverPlane)="onUnhoverPlane($event, 'airport')"
-            ></app-plane-list-item>
-          </div>
-        </div>
-      </div>
     </div>
     <!-- .middle-section -->
 
