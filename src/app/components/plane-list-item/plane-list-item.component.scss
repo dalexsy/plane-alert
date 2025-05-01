@@ -1,25 +1,54 @@
 // src/app/components/plane-list-item/plane-list-item.component.scss
+$new-plane-color: #ff6161;
+$followed-plane-color: #00ffff;
+
 :host {
-  // Styles apply to the host element <app-plane-list-item>
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-  padding-bottom: 0.5rem;
+  padding: 0.5rem 1rem; // restore overlay item padding
+  margin-right: 0.25rem; // match overlay spacing
+  mix-blend-mode: plus-lighter; // overlay blend mode
   font-family: "JetBrains Mono", monospace;
+  align-items: center;
 
   &:last-of-type {
     border-bottom: none;
   }
 
-  // --- Class Bindings from Parent ---
   &.new-plane {
-    color: #ff6161;
-    a {
-      font-weight: bold;
+    color: $new-plane-color;
+  }
+  &.followed-plane {
+    color: $followed-plane-color;
+    border-left: 3px solid $followed-plane-color;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 255, 255, 0.2) 0%,
+      rgba(0, 255, 255, 0.05) 100%
+    );
+    font-variation-settings: none;
+    a,
+    .direction-info {
+      font-variation-settings: normal;
     }
   }
   &.military-plane {
     color: #89d138;
+    // Override followed styling on military planes
+    &.followed-plane {
+      // Match military color
+      color: #89d138;
+      border-left: 3px solid #89d138;
+      background: linear-gradient(
+        90deg,
+        rgba(137, 209, 56, 0.2) 0%,
+        rgba(137, 209, 56, 0.05) 100%
+      );
+      a {
+        color: #89d138;
+      }
+    }
   }
   &.special-plane {
     color: gold;
@@ -28,7 +57,26 @@
   &.hide-commercial {
     display: none !important;
   }
-  // --- End Class Bindings ---
+  &.highlighted-plane {
+    color: #00ffff;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 255, 255, 0.2) 0%,
+      rgba(0, 255, 255, 0.05) 100%
+    );
+    border-left: 2px solid #00ffff;
+    padding-left: calc(1rem - 2px);
+  }
+  &.military-plane.highlighted-plane {
+    color: #89d138;
+    background: linear-gradient(
+      90deg,
+      rgba(137, 209, 56, 0.2) 0%,
+      rgba(137, 209, 56, 0.05) 100%
+    );
+    border-left: 2px solid #89d138;
+    padding-left: calc(1rem - 2px);
+  }
 
   .top,
   .bottom {
@@ -41,21 +89,17 @@
   .flag-callsign,
   .direction-info,
   .operator-visibility {
-    // Added .operator-visibility
-    display: grid; // Use grid for alignment
+    display: grid;
     gap: 0.25rem;
     align-items: center;
   }
 
   .flag-callsign {
-    grid-template-columns: 2rem 1.75rem auto auto 1fr; // Adjusted last column for special icon
-    margin-left: -0.5rem; // Align button edge
+    grid-template-columns: 2rem 1.75rem auto auto; // match overlay structure
+    margin-left: -0.5rem; // align with overlay
     app-button {
-      align-self: center;
-    } // Keep buttons centered vertically
-    .special-icon {
-      justify-self: end;
-    } // Push special icon to the right
+      align-self: start; // align button to top
+    }
   }
 
   .operator-visibility {
@@ -65,10 +109,17 @@
     app-button {
       align-self: center;
     } // Keep button centered vertically
+
+    // Style unknown operator text
+    .operator.unknown-operator {
+      color: gray;
+      font-style: italic;
+    }
   }
 
   .direction-info {
-    grid-template-columns: 1fr 1.75rem 3.5rem;
+    grid-template-columns: auto auto 1.5rem auto; // restore overlay ordering
+    gap: 0.5rem;
     justify-items: end;
     text-align: right;
     font-variation-settings: "FILL" 0, "wght" 320, "GRAD" 0, "opsz" 20;
@@ -85,20 +136,21 @@
   }
 
   .time-ago {
-    // Style for seen list time
     text-align: right;
-    color: #aaa; // Example color
+    color: #aaa;
   }
 
   .airport-code,
   .airport-name {
-    // Styles for airport info
     text-align: right;
-    color: #ccc; // Example color
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 8rem; // Limit width if needed
+    color: black;
+    background: white;
+    font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20;
+    font-size: 0.75rem;
+    padding: 0 0.25rem;
+
+    margin-right: 0.25rem;
+    border-radius: 0.25rem;
   }
 
   .model {
@@ -130,6 +182,13 @@
   .military-star {
     color: #89d138; // Match military color
   }
+}
+
+.faded-out {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(0.7) blur(0.5px);
+  transition: opacity 0.2s, filter 0.2s;
 }
 
 // --- Global styles that might need adjustment if moved ---

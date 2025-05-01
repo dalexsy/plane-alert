@@ -135,12 +135,7 @@ export class PlaneFilterService {
   }
 
   // Initialize the filter system and properly handle the first-load scenario
-  initializeFiltering(excludeDiscount: boolean): void {
-    console.log(
-      `[PlaneFilterService] Initializing filtering, excludeDiscount: ${excludeDiscount}`
-    );
-    console.log(`[PlaneFilterService] Prefixes: ${this.prefixes.join(', ')}`);
-  }
+  initializeFiltering(excludeDiscount: boolean): void {}
 
   // Determines if a plane should be filtered based on its callsign
   shouldIncludeCallsign(

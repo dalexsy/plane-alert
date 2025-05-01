@@ -1,6 +1,7 @@
 // src/app/services/plane-finder.service.ts
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
+import * as turf from '@turf/turf';
 import {
   haversineDistance,
   computeBearing,
@@ -123,9 +124,13 @@ export class PlaneFinderService {
     } else {
       // Calculate predicted path points
       let pathPoints: [number, number][] = [[lat, lon]];
-      // Compute turn rate (deg/min) from last two history entries, if available
-      let turnRate = 0;
+      // Predict path using recent turn rate for smooth curvature
+      const minutesAhead = 2;
+      const pointsCount = 15;
+      const timeStep = minutesAhead / pointsCount;
       const hist = plane.positionHistory;
+      // Determine turn rate (deg per minute) from last two history entries
+      let turnRatePerMin = 0;
       if (
         hist.length >= 2 &&
         hist[hist.length - 1].track != null &&
@@ -136,26 +141,20 @@ export class PlaneFinderService {
         const dtMin =
           (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
           60000;
-        if (dtMin > 0) {
-          turnRate = (t1 - t0) / dtMin;
+        if (dtMin >= 0.1) {
+          const rawDelta = ((t1 - t0 + 540) % 360) - 180;
+          turnRatePerMin = rawDelta / dtMin;
         }
       }
-      // Proceed with prediction, applying turnRate each step
-      let weightedTrack = track;
-      // Prediction window: 5 minutes for 10x longer prediction window
-      const minutesAhead = 2; // increased to 5 minutes for 10x longer prediction window
-      const pointsCount = 15;
       let curLat = lat;
       let curLon = lon;
-      let curTrack = weightedTrack;
-      const timeStep = minutesAhead / pointsCount;
+      let curHeading = track ?? hist[hist.length - 1]?.track ?? 0;
       for (let i = 1; i <= pointsCount; i++) {
-        // Apply computed turn rate per minute
-        curTrack = curTrack + turnRate * timeStep;
-        curTrack = ((curTrack % 360) + 360) % 360; // Normalize track
-
-        const brng = (curTrack * Math.PI) / 180;
-        const distanceKm = (velocity * 60 * timeStep) / 1000; // Velocity in m/s, timeStep in minutes
+        // apply turn rate
+        curHeading =
+          (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
+        const brng = (curHeading * Math.PI) / 180;
+        const distanceKm = ((velocity ?? 0) * 60 * timeStep) / 1000;
         const R = 6371; // Earth radius in km
         const lat1 = (curLat * Math.PI) / 180;
         const lon1 = (curLon * Math.PI) / 180;
@@ -174,19 +173,24 @@ export class PlaneFinderService {
         curLon = (lon2 * 180) / Math.PI;
         pathPoints.push([curLat, curLon]);
       }
-      // Smooth predicted path but always anchor the first point at the plane's current position
-      const ctrlPts = pathPoints;
-      const samples = 30;
-      const smoothed: [number, number][] = [];
-      if (ctrlPts.length > 0) {
-        // Always start at true current location
-        smoothed.push(ctrlPts[0]);
+
+      // Apply smoothing if we have enough points
+      if (pathPoints.length >= 3) {
+        // Convert to GeoJSON LineString with [lon, lat]
+        const line = turf.lineString(
+          pathPoints.map(([lat, lon]) => [lon, lat])
+        );
+        // Higher resolution and sharpness improve curve smoothness
+        const spline = turf.bezierSpline(line, {
+          resolution: pointsCount * 4,
+          sharpness: 0.85,
+        });
+        // Convert back to [lat, lon]
+        pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
+          lat,
+          lon,
+        ]);
       }
-      for (let i = 1; i <= samples; i++) {
-        const t = i / samples;
-        smoothed.push(this.calculateCurvePoint(t, ctrlPts));
-      }
-      pathPoints = smoothed;
 
       // Cap the path length to a maximum distance (e.g., 50 km) from the current position
       const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
@@ -347,14 +351,38 @@ export class PlaneFinderService {
           const hue = Math.min(segAlt / maxAltitude, 1) * 300;
           const segColor = `hsl(${hue},100%,50%)`;
 
-          const segment = L.polyline(interpolatedPoints, {
-            color: segColor,
-            weight: 4,
-            opacity: opacity,
-            interactive: false,
-          }).addTo(map);
-
-          plane.historyTrailSegments!.push(segment);
+          // Color transition: interpolate between the altitudes of the segment endpoints
+          let rawIdx1 = 0,
+            rawIdx2 = 0;
+          if (rawPoints.length > 1) {
+            rawIdx1 = Math.floor(
+              (i * (rawPoints.length - 1)) / (smoothPoints.length - 1)
+            );
+            rawIdx2 = Math.ceil(
+              ((i + 1) * (rawPoints.length - 1)) / (smoothPoints.length - 1)
+            );
+          }
+          const segAlt1 = rawHistory[rawIdx1]?.alt ?? 0;
+          const segAlt2 = rawHistory[rawIdx2]?.alt ?? 0;
+          const hue1 = Math.min(segAlt1 / maxAltitude, 1) * 300;
+          const hue2 = Math.min(segAlt2 / maxAltitude, 1) * 300;
+          // Initialize previous point for gradient segments
+          let prevPt: L.LatLngExpression = interpolatedPoints[0];
+          // Draw each subsegment with interpolated color
+          for (let k = 1; k < interpolatedPoints.length; k++) {
+            const t = k / (interpolatedPoints.length - 1);
+            const hue = hue1 + (hue2 - hue1) * t;
+            const segColor = `hsl(${hue},100%,50%)`;
+            const segment = L.polyline([prevPt, interpolatedPoints[k]], {
+              className: 'history-trail-segment',
+              color: segColor,
+              weight: 4,
+              opacity: opacity,
+              interactive: false,
+            }).addTo(map);
+            plane.historyTrailSegments!.push(segment);
+            prevPt = interpolatedPoints[k];
+          }
         }
       }
     } else {
@@ -449,7 +477,9 @@ export class PlaneFinderService {
     getAircraftInfo: (
       icao: string
     ) => { model?: string; ownop?: string; mil?: boolean } | null,
-    previousLog: Map<string, PlaneModel> // Use PlaneModel here
+    previousLog: Map<string, PlaneModel>, // Use PlaneModel here
+    followedIcao?: string | null, // <-- new param
+    followNearest?: boolean // <-- new param
   ): Promise<{
     anyNew: boolean;
     currentIDs: string[];
@@ -668,13 +698,13 @@ export class PlaneFinderService {
 
       // Custom icon mapping removed, always use default icon
       const customPlaneIcon = '';
-
+      const followed = !!(followNearest && followedIcao && id === followedIcao);
       const { marker } = createOrUpdatePlaneMarker(
         planeModelInstance.marker, // Pass existing marker from model
         map,
         lat,
         lon,
-        (track ?? 0) - 90,
+        track ?? 0,
         extraStyle,
         isNew,
         onGround,
@@ -682,7 +712,9 @@ export class PlaneFinderService {
         customPlaneIcon, // Pass custom icon HTML if ICAO matches
         isMilitary,
         model,
-        this.helicopterListService.isHelicopter(id)
+        this.helicopterListService.isHelicopter(id),
+        isSpecial,
+        followed // <-- pass followed flag
       );
       planeModelInstance.marker = marker; // Update marker reference on model
 
@@ -711,43 +743,44 @@ export class PlaneFinderService {
       }
     }
 
-    // Update 'isNew' status and marker/tooltip classes for planes remaining
-    // This loop is now simpler as the main update happened above
+    // Update 'isNew' and rebind tooltips so styling always reflects the PlaneModel state
     updatedLogModels.forEach((plane) => {
-      const stillNew = this.newPlaneService.isNew(plane.icao); // Check final 'new' status
-      plane.isNew = stillNew; // Update the model's final 'new' status for the next cycle
-
+      const stillNew = this.newPlaneService.isNew(plane.icao);
+      plane.isNew = stillNew;
       const aircraft = getAircraftInfo(plane.icao);
-      // Determine military flag based on configured prefixes or DB
       const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
         plane.callsign
       );
       const isMilitary = prefixIsMil2 || aircraft?.mil || false;
-
-      // Update marker/tooltip classes based on final state
       if (plane.marker) {
-        const element = plane.marker.getElement();
-        const tooltipElement = plane.marker.getTooltip()?.getElement();
-
-        if (element) {
-          element.classList.toggle('grounded-plane', plane.onGround);
-          element.classList.toggle('new-plane', !plane.onGround && stillNew);
-          element.classList.toggle('special-plane', plane.isSpecial || false);
-        }
-        if (tooltipElement) {
-          tooltipElement.classList.toggle('new-plane-tooltip', stillNew);
-          tooltipElement.classList.toggle('military-plane-tooltip', isMilitary);
-          tooltipElement.classList.toggle(
-            'grounded-plane-tooltip',
-            plane.onGround
-          );
-          tooltipElement.classList.toggle(
-            'special-plane-tooltip',
-            plane.isSpecial || false
-          );
+        // Rebind tooltip fully to ensure classes are in sync with plane state
+        const tooltip = plane.marker.getTooltip();
+        if (tooltip) {
+          const rawContent = tooltip.getContent();
+          const content = rawContent ?? '';
+          // Build new className string
+          const className = [
+            'plane-tooltip',
+            plane.onGround ? 'grounded-plane-tooltip' : '',
+            stillNew ? 'new-plane-tooltip' : '',
+            isMilitary ? 'military-plane-tooltip' : '',
+            plane.isSpecial ? 'special-plane-tooltip' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          // Unbind and rebind with updated options
+          plane.marker.unbindTooltip();
+          plane.marker.bindTooltip(content, {
+            permanent: true,
+            direction: 'right',
+            offset: plane.onGround ? L.point(-10, 0) : L.point(10, 0),
+            interactive: true,
+            className: className,
+            pane: 'tooltipPane',
+          });
+          plane.marker.openTooltip();
         }
       }
-      // No need to set previousLog here, it was updated directly earlier
     });
 
     this.newPlaneService.updatePlanes(currentUpdateSet);

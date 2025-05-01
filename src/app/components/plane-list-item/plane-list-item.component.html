@@ -1,6 +1,10 @@
 <!-- src/app/components/plane-list-item/plane-list-item.component.html -->
 <span class="top">
-  <span class="flag-callsign">
+  <span
+    class="flag-callsign"
+    (mouseenter)="onCenterPlaneMouseEnter()"
+    (mouseleave)="onCenterPlaneMouseLeave()"
+  >
     <!-- Location Button -->
     <app-button
       [icon]="
@@ -12,6 +16,12 @@
       [size]="'small'"
       (click)="onCenterPlane($event)"
       [ariaLabel]="'Center plane on map'"
+      [disabled]="!activePlaneIcaos.has(plane.icao)"
+      [title]="
+        !activePlaneIcaos.has(plane.icao)
+          ? 'No longer in range.'
+          : 'Center plane on map'
+      "
     ></app-button>
     <!-- Flag -->
     <span [innerHTML]="countryService.getFlagHTML(plane.origin)"></span>
@@ -23,6 +33,7 @@
         <a
           href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
           target="_blank"
+          title="Open in ADS-B Exchange"
           rel="noopener noreferrer"
         >
           {{ plane.callsign }}
@@ -36,7 +47,17 @@
       </span>
     </ng-container>
     <ng-template #noLink>
-      <span class="none-callsign">Pending</span>
+      <span class="call-sign">
+        <a
+          href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+          target="_blank"
+          title="Open in ADS-B Exchange"
+          rel="noopener noreferrer"
+          (click)="$event.stopPropagation()"
+        >
+          <span class="none-callsign">Pending</span>
+        </a>
+      </span>
     </ng-template>
     <!-- Special Toggle -->
     <app-button
@@ -53,6 +74,32 @@
   <!-- Right side: Direction (Sky/Airport) OR Time Ago (Seen) -->
   <ng-container *ngIf="listType === 'sky' || listType === 'airport'">
     <span class="direction-info">
+      <!-- Display IATA code (Airport only) -->
+      <span
+        ><span
+          class="airport-code"
+          *ngIf="listType === 'airport' && plane.airportCode"
+          [title]="plane.airportName"
+        >
+          {{ plane.airportCode }}
+        </span>
+        <span
+          class="airport-name"
+          *ngIf="
+            listType === 'airport' && !plane.airportCode && plane.airportName
+          "
+        >
+          {{ plane.airportName }}
+        </span>
+        <!-- Show airport code if available before direction -->
+        <span
+          *ngIf="plane.airportCode"
+          class="airport-code"
+          [title]="plane.airportName"
+        >
+          {{ plane.airportCode }}
+        </span></span
+      >
       <span>{{ plane.cardinal }}</span>
       <span
         class="material-symbols-sharp direction-icon"
@@ -60,7 +107,7 @@
       >
         navigation
       </span>
-      <span>({{ plane.bearing | number : "1.0-0" }}°)</span>
+      <span>{{ distanceKm }} km</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">
@@ -68,20 +115,6 @@
       {{ getTimeAgo(plane.firstSeen) }}
     </span>
   </ng-container>
-  <!-- Display IATA code (Airport only) -->
-  <span
-    class="airport-code"
-    *ngIf="listType === 'airport' && plane.airportCode"
-    [title]="plane.airportName"
-  >
-    {{ plane.airportCode }}
-  </span>
-  <span
-    class="airport-name"
-    *ngIf="listType === 'airport' && !plane.airportCode && plane.airportName"
-  >
-    {{ plane.airportName }}
-  </span>
 </span>
 
 <span class="bottom">
@@ -99,8 +132,10 @@
       [size]="'small'"
       (click)="onFilter($event)"
     ></app-button>
-    <!-- Operator -->
-    <span class="operator" *ngIf="plane.operator">{{ plane.operator }}</span>
+    <!-- Operator: show 'Unknown' when operator is missing -->
+    <span class="operator" [ngClass]="{ 'unknown-operator': !plane.operator }">
+      {{ plane.operator || "Unknown" }}
+    </span>
   </span>
   <!-- Model -->
   <span class="model" *ngIf="plane.model">

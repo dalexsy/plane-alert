@@ -45,8 +45,8 @@ export class RadiusComponent implements OnChanges, OnDestroy {
       color: 'white',
       weight: 2,
       fill: true,
-      fillColor: 'rgba(0,0,0,0.3)',
-      fillOpacity: 0.3,
+      fillColor: 'rgba(0,0,0,1)',
+      fillOpacity: 0.5,
     }).addTo(this.map);
     // Send radius behind markers
     this.circle.bringToBack();

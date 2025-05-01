@@ -42,6 +42,8 @@ export class InputOverlayComponent implements OnDestroy {
   @Output() cloudToggleChange = new EventEmitter<boolean>();
   @Input() showDateTime = true;
   @Output() toggleDateTimeOverlays = new EventEmitter<void>();
+  /** Whether to show view axes (cones) */
+  @Input() showViewAxes = false;
 
   scanButtonText = '';
   private sub!: Subscription;
@@ -89,9 +91,9 @@ export class InputOverlayComponent implements OnDestroy {
   }
 
   onResolveAndUpdate(event?: Event): void {
-    console.log('[InputOverlayComponent] onResolveAndUpdate called');
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
+    console.info('[PlaneAlert] Update now button pressed');
     this.resolveAndUpdate.emit();
   }
 

@@ -35,7 +35,6 @@ export class HelicopterListService {
       .toPromise()
       .then((text: string | undefined) => {
         if (!text) {
-          console.log('No helicopter-icaos.json file found, using empty list');
           return;
         }
 
@@ -54,7 +53,6 @@ export class HelicopterListService {
       })
       .catch((error) => {
         if (error.status === 404) {
-          console.log('No helicopter-icaos.json file found, using empty list');
         } else {
           console.error('Error loading helicopter list:', error);
         }

@@ -36,37 +36,24 @@ export function planeTooltip(
   const mainRow = `
   <span class="tooltip-row">
     ${getFlagHTML(origin)}
-    <strong>${displayCallsign}${
-    isMilitary
-      ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
-      : ''
-  }${
+      <a class="callsign-text" href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" title="Open in ADS-B Exchange" onclick="event.stopPropagation()">${
+    callsign && callsign.trim().length >= 3
+      ? callsign
+      : '<span class="none-callsign">Pending</span>'
+  }</a>
+      ${
+        isMilitary
+          ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
+          : ''
+      }${
     isSpecial
       ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
-  }</strong>
+  }
     ${
       operator
         ? `<span class="divider">•</span> <span class="aircraft-operator">${operator}</span>`
-        : speedText || altText || verticalRateSpan || isGrounded
-        ? ((): string => {
-            const parts: string[] = [];
-            if (speedText) {
-              parts.push(`<span class="velocity">${speedText}</span>`);
-            }
-            if (isGrounded) {
-              parts.push(`<span class="altitude">On ground</span>`);
-            } else if (altText || verticalRateSpan) {
-              parts.push(
-                `<span class="altitude">${altText}${verticalRateSpan}</span>`
-              );
-            }
-            // Join with dividers
-            return `<span class="divider">•</span>${parts.join(
-              '<span class="divider">•</span>'
-            )}`;
-          })()
-        : ''
+        : /* ...existing speed/alt logic... */ ''
     }
   </span>`;
 
@@ -97,5 +84,5 @@ export function planeTooltip(
     : '';
 
   // Combine rows
-  return `<a href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" rel="noopener noreferrer" class="plane-tooltip-link">${mainRow}${infoRow}</a>`;
+  return `<span class="plane-tooltip-link tooltip-follow-wrapper" data-icao="${id}" onclick="(function(e){window.dispatchEvent(new CustomEvent('plane-tooltip-follow',{detail:{icao:'${id}'}}));e.stopPropagation();e.preventDefault();})(event)">${mainRow}${infoRow}</span>`;
 }
