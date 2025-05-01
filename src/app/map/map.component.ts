@@ -1166,12 +1166,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   resolveAndUpdateFromAddress(): void {
+    console.log('[MapComponent] resolveAndUpdateFromAddress called');
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
+    console.log('[MapComponent] address from input:', address);
     // Get the MAIN radius from the input, fallback to settings.radius
     const mainRadius = (() => {
       const ref = this.inputOverlayComponent.searchRadiusInputRef;
       const val = ref?.nativeElement?.valueAsNumber;
+      console.log('[MapComponent] radius from input:', val);
       return !isNaN(val!) ? val! : this.settings.radius ?? 5;
     })();
 

@@ -24,9 +24,21 @@
   </div>
   <form
     *ngIf="!collapsed"
+    class="options-form"
     (submit)="onResolveAndUpdate($event)"
     autocomplete="off"
   >
+    <button
+      type="submit"
+      style="
+        display: none;
+        width: 0;
+        height: 0;
+        padding: 0;
+        border: none;
+        margin: 0;
+      "
+    ></button>
     <h1>Precious Little Lifeforms</h1>
     <div class="form-group">
       <label for="address">Address</label>
@@ -39,7 +51,6 @@
         autocomplete="street-address"
         id="address"
         placeholder="Enter address"
-        (keydown.enter)="onResolveAndUpdate()"
       />
     </div>
     <div class="form-group">
@@ -51,7 +62,6 @@
         placeholder="Enter search radius (km)"
         step="any"
         [value]="settings.radius || 5"
-        (keydown.enter)="onResolveAndUpdate()"
       />
     </div>
     <div class="form-group">
@@ -94,10 +104,7 @@
         [text]="scanButtonText"
         type="primary"
         [nativeType]="'submit'"
-        (click)="onResolveAndUpdate($event)"
-      >
-        <!-- Add explicit click handler and closing bracket -->
-      </app-button>
+      ></app-button>
       <app-button
         id="useLocationButton"
         [text]="'Use My Current Location'"

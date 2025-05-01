@@ -90,7 +90,7 @@ $new-plane-color: #ff6161;
     }
   }
 
-  &.grounded-plane-tooltip:not(.new-plane-tooltip) {
+  &.grounded-plane-tooltip {
     border-color: grey;
     margin-left: 1rem;
     background: #333;
@@ -112,15 +112,12 @@ $new-plane-color: #ff6161;
     border-color: #fff;
   }
 
-  // Apply white border for highlighted unless special or followed
-  &.highlighted-tooltip:not(.followed-plane-tooltip):not(
-      .special-plane-tooltip
-    ) {
+  // Highlight override: ensure highlighted border always wins
+  &.highlighted-tooltip {
     z-index: 1000;
     border-color: #fff;
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
     color: #fff;
-
     a {
       color: #fff;
     }

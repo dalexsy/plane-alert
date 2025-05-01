@@ -40,10 +40,12 @@ export class ButtonComponent {
   @Output() click = new EventEmitter<Event>();
 
   onClick(event: Event) {
-    // Stop event propagation FIRST to prevent any parent handlers
-    event.preventDefault();
-    event.stopPropagation();
-    // Only emit if not disabled
+    // For non-submit buttons, prevent default and stop propagation
+    if (this.nativeType !== 'submit') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    // Emit click event if not disabled
     if (!this.disabled) {
       this.click.emit(event);
     }

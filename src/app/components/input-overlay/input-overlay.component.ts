@@ -9,8 +9,10 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   OnDestroy,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+// removed FormsModule import, using native form submission
 import { SettingsService } from '../../services/settings.service';
 import { ScanService } from '../../services/scan.service';
 import { Subscription, combineLatest } from 'rxjs';
@@ -91,6 +93,11 @@ export class InputOverlayComponent implements OnDestroy {
   }
 
   onResolveAndUpdate(event?: Event): void {
+    console.log('[InputOverlay] onResolveAndUpdate called', {
+      address: this.addressInputRef?.nativeElement.value,
+      radius: this.searchRadiusInputRef?.nativeElement.value,
+      interval: this.checkIntervalInputRef?.nativeElement.value,
+    });
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
     console.info('[PlaneAlert] Update now button pressed');
