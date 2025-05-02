@@ -36,8 +36,15 @@ export function ensureStripedPattern(
  */
 export function svgPathToSvg(pathData: string, size: [number, number]): string {
   const [width, height] = size;
-  // Use currentColor for fill so it inherits from CSS
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+
+  // IMPROVED: Add proper centering attributes for consistent positioning
+  // Using preserveAspectRatio="xMidYMid meet" ensures that the SVG is centered
+  // within the container regardless of its dimensions
+  return `<svg xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 ${width} ${height}" 
+            width="100%" 
+            height="100%" 
+            preserveAspectRatio="xMidYMid meet">
             <path d="${pathData}" fill="currentColor" />
           </svg>`;
 }

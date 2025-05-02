@@ -116,4 +116,47 @@ export class PlaneModel implements Plane {
     // this.path = undefined;
     // this.predictedPathArrowhead = undefined;
   }
+
+  // Update marker scale without recreating the marker
+  public refreshMarkerScale(scaleFactor: number): void {
+    if (!this.marker) return;
+
+    // Get current marker element
+    const markerEl = this.marker.getElement();
+    if (!markerEl) return;
+
+    // Calculate new size based on plane status
+    const baseSize = this.onGround ? 32 : 48;
+    const size = baseSize * scaleFactor;
+
+    // Apply new scale to the marker element
+    if (markerEl.querySelector('.plane-marker')) {
+      const planeMarker = markerEl.querySelector('.plane-marker');
+      if (planeMarker) {
+        // Update size if needed
+        planeMarker.setAttribute(
+          'style',
+          `${
+            planeMarker.getAttribute('style') || ''
+          }; width: ${size}px; height: ${size}px;`
+        );
+      }
+    }
+
+    // Update tooltip positioning if needed
+    const tooltip = this.marker.getTooltip();
+    if (tooltip) {
+      // Adjust tooltip offset based on new size
+      const marginPx = 5;
+      const offsetX = this.onGround
+        ? -(size / 2 + marginPx)
+        : size / 2 + marginPx;
+      tooltip.options.offset = L.point(offsetX, 0);
+
+      // Force tooltip to update its position
+      if (tooltip.isOpen()) {
+        tooltip.update();
+      }
+    }
+  }
 }

@@ -2,14 +2,14 @@ $followed-plane-color: #00ffff;
 $new-plane-color: #ff6161;
 
 .leaflet-tooltip.plane-tooltip {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--scale-factor));
   background: rgba(0, 0, 0, 0.9);
-  border-radius: 3px;
-  padding: 3px 5px;
-  border: 3px solid #333;
+  border-radius: calc(3px * var(--scale-factor));
+  padding: calc(3px * var(--scale-factor)) calc(5px * var(--scale-factor));
+  border: calc(3px * var(--scale-factor)) solid #333;
   text-decoration: none;
   pointer-events: auto;
-  margin-left: 1.5rem; // Default margin for 3rem icon + 10px offset
+  margin-left: 0; // rely on TS offset for positioning
   color: #fff;
   box-shadow: 0 1px 3px rgb(0 0 0);
   font-family: "JetBrains Mono", monospace;
@@ -90,9 +90,8 @@ $new-plane-color: #ff6161;
     border-color: grey;
     // Adjust margin for 2rem icon + -20px offset: (2rem / 2) - 20px = 1rem - 20px = 16px - 20px = -4px
     // Let's use a small positive value for better spacing, e.g., 0.25rem
-    margin-left: 0.25rem;
+    margin-left: 0; // rely on TS offset
     background: #333;
-    margin-left: 2rem;
   }
 
   &.new-plane-tooltip {

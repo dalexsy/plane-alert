@@ -225,6 +225,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         );
       }
     });
+
+    // Re-scale existing markers when UI scale changes without forcing API calls
+    this.settings.scaleFactorChanged.subscribe(() => {
+      // Update existing markers without forcing a new API scan
+      this.planeLog.forEach((plane) => {
+        if (plane.marker) {
+          // Refresh marker size/appearance based on new scale factor
+          plane.refreshMarkerScale(this.settings.scaleFactor);
+        }
+      });
+      // Force change detection to update the view
+      this.cdr.detectChanges();
+    });
   }
 
   onToggleDateTimeOverlays(): void {
@@ -523,10 +536,39 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (homeLocation) {
       this.setHomeMarker(homeLocation.lat, homeLocation.lon);
 
-      // Check if we're at home location
-      if (this.settings.lat !== null && this.settings.lon !== null) {
-        this.updateMarkersVisibility(this.settings.lat, this.settings.lon);
-      }
+      // Check if we're at home location before clearing cones
+      const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+      const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
+      // Only clear cones if we're not at home
+      const atHome =
+        homeLocation &&
+        Math.abs(lat - homeLocation.lat) < 0.0001 &&
+        Math.abs(lon - homeLocation.lon) < 0.0001;
+
+      // Get the main radius from settings
+      const mainRadius = this.settings.radius ?? 5;
+
+      const address = ''; // Initialize with empty string as we'll use the address from geocoding later
+
+      fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          address || homeLocation.lat + ',' + homeLocation.lon
+        )}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.length) {
+            const currentZoom = this.map.getZoom(); // Preserve current zoom level
+            // Pass the mainRadius obtained from the input (or current setting if invalid)
+            this.updateMap(
+              parseFloat(data[0].lat),
+              parseFloat(data[0].lon),
+              mainRadius, // Pass the potentially updated main radius
+              currentZoom
+            ); // Triggers airport search
+          }
+        });
     }
   }
 

@@ -2,21 +2,20 @@ $new-plane-color: #ff6161;
 $followed-plane-color: #00ffff;
 
 .plane-marker-container {
-  width: 3rem;
-  height: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none; // Let the .plane-marker handle pointer events
+  // FIXED: Ensure the container doesn't clip the icon
+  overflow: visible;
 
   // Override for grounded planes
   &.grounded-plane-container {
-    // Add a specific class for the container
-    width: 2rem;
-    height: 2rem;
+    opacity: 0.7; // Add reduced opacity for grounded planes
   }
 }
 
+// Scale inner marker content to preserve anchor
 .leaflet-marker-icon .plane-marker {
   pointer-events: auto; /* Ensure the marker can be clicked/selected */
   width: 100%; // Ensure the div takes up the container size
@@ -24,6 +23,8 @@ $followed-plane-color: #00ffff;
   display: flex; // Changed from block to flex
   align-items: center; // Added to vertically center content
   justify-content: center; // Added to horizontally center content
+  position: relative; // ADDED: Explicitly set position relative
+  transform-origin: center center; // ADDED: Ensure rotation happens around center
 
   // Style the embedded SVG directly
   svg {
@@ -35,6 +36,13 @@ $followed-plane-color: #00ffff;
     stroke-width: 1px; // Adjust stroke width as needed
     // Consider adding a drop-shadow filter for better visibility if needed
     filter: drop-shadow(0 0 1px black);
+    // ADDED: Ensure SVG is centered properly
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
   }
 
   // Style the Material Icon for helicopters

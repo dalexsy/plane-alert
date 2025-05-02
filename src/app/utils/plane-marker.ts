@@ -24,6 +24,14 @@ export function createOrUpdatePlaneMarker(
   // Check if this is a helicopter using the imported utility function
   const isCopter = checkIsHelicopter(category, model, isCustomHelicopter);
 
+  // Read UI scale factor from CSS
+  const scaleFactor =
+    parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        '--scale-factor'
+      )
+    ) || 1;
+
   // Determine marker content based on whether it's a copter
   const markerContent = isCopter
     ? `<span class="material-symbols-outlined spinning-copter-icon">toys_fan</span>`
@@ -32,11 +40,22 @@ export function createOrUpdatePlaneMarker(
   // Apply rotation only if it's not a copter
   const rotationStyle = isCopter ? '' : `transform: rotate(${rotation}deg);`;
 
-  // Determine icon size and anchor based on grounded status
-  const iconSize: L.PointTuple = isGrounded ? [32, 32] : [48, 48]; // 2rem for grounded, 3rem otherwise
-  const iconAnchor: L.PointTuple = isGrounded ? [16, 16] : [24, 24]; // Center anchor
+  // Determine icon size and anchor based on type
+  // Use consistent base size for all marker states to prevent recreation on status changes
+  const baseSize = 48; // px
+  const size = baseSize * scaleFactor;
+
+  // FIXED: Always use the center of the icon as the anchor point
+  // This ensures consistent positioning regardless of icon size or state changes
+  const iconSize: L.PointTuple = [size, size];
+  const iconAnchor: L.PointTuple = [size / 2, size / 2];
+
+  // Compute tooltip offset based on scaled icon size
+  const marginPx = 5; // small margin in px
+  const offsetX = isGrounded ? -(size / 2 + marginPx) : size / 2 + marginPx;
 
   // Directly embed the SVG string or the mat-icon HTML into the marker HTML
+  // IMPROVED: Added position:relative and overflow:visible to ensure proper centering
   const markerHtml = `<div class="plane-marker ${
     isNew && isGrounded
       ? 'new-and-grounded'
@@ -46,22 +65,23 @@ export function createOrUpdatePlaneMarker(
       ? 'grounded-plane'
       : ''
   } ${isMilitary ? 'military-plane' : ''} ${
-    // No longer need copter-plane class here, handled by icon content
     followed ? ' followed-plane' : ''
-  }" style="${rotationStyle} ${extraStyle}">${markerContent}</div>`;
+  }" style="${rotationStyle} ${extraStyle} position:relative; overflow:visible;">${markerContent}</div>`;
 
   const icon = L.divIcon({
-    className: 'plane-marker-container', // Keep a container class
+    className: `plane-marker-container ${
+      isGrounded ? 'grounded-plane-container' : ''
+    }`,
     html: markerHtml,
-    iconSize: iconSize, // Use dynamic size
-    iconAnchor: iconAnchor, // Use dynamic anchor
+    iconSize: iconSize,
+    iconAnchor: iconAnchor,
   });
 
   // Define tooltip options with the correct classes and ensure offset is a proper PointTuple
   const tooltipOptions: L.TooltipOptions = {
     permanent: true,
-    direction: 'right',
-    offset: isGrounded ? L.point(-20, 0) : L.point(10, 0), // Increased negative offset for grounded
+    direction: isGrounded ? 'left' : 'right',
+    offset: L.point(offsetX, 0),
     interactive: true, // enable pointer events on tooltip
     className: `plane-tooltip ${isGrounded ? 'grounded-plane-tooltip' : ''} ${
       isNew ? 'new-plane-tooltip' : ''
@@ -86,73 +106,31 @@ export function createOrUpdatePlaneMarker(
     }
   };
 
+  // IMPROVED: Check if we can reuse the existing marker to avoid unnecessary recreation
   if (oldMarker) {
+    // OPTIMIZED: Update marker properties without recreating it
     oldMarker.setLatLng([lat, lon]);
     oldMarker.setIcon(icon);
 
-    // Recreate marker if pane needs to change when follow status toggles
-    // ... or if icon size needs to change due to grounded status change
+    // Check only if pane needs to change when follow status changes
+    // FIXED: Only recreate marker if absolutely necessary (pane change)
     const oldPane = (oldMarker.options as any).pane;
     const desiredPane = followed ? 'followedMarkerPane' : undefined;
-    // Check if icon and its options exist before accessing iconSize
-    const oldIconSize = oldMarker.options.icon?.options?.iconSize as
-      | L.PointTuple
-      | undefined;
-    const desiredIconSize: L.PointTuple = isGrounded ? [32, 32] : [48, 48];
 
-    // Check if oldIconSize is defined before comparing
-    if (
-      oldPane !== desiredPane ||
-      !oldIconSize ||
-      oldIconSize[0] !== desiredIconSize[0]
-    ) {
+    // Only recreate marker if the pane needs to change (followed status toggle)
+    if (oldPane !== desiredPane) {
       const wasOnMap = map.hasLayer(oldMarker);
       oldMarker.remove();
-      // Pass isCopter to the new marker creation logic as well
-      const isCopterUpdate = checkIsHelicopter(
-        category,
-        model,
-        isCustomHelicopter
-      );
-      const markerContentUpdate = isCopterUpdate
-        ? `<span class="material-symbols-outlined spinning-copter-icon">toys_fan</span>`
-        : planeSvg;
-      const rotationStyleUpdate = isCopterUpdate
-        ? ''
-        : `transform: rotate(${rotation}deg);`;
 
-      // Use dynamic size/anchor for updates too
-      const iconSizeUpdate: L.PointTuple = isGrounded ? [32, 32] : [48, 48];
-      const iconAnchorUpdate: L.PointTuple = isGrounded ? [16, 16] : [24, 24];
-
-      const markerHtmlUpdate = `<div class="plane-marker ${
-        isNew && isGrounded
-          ? 'new-and-grounded'
-          : isNew
-          ? 'new-plane'
-          : isGrounded
-          ? 'grounded-plane'
-          : ''
-      } ${isMilitary ? 'military-plane' : ''} ${
-        followed ? ' followed-plane' : ''
-      }" style="${rotationStyleUpdate} ${extraStyle}">${markerContentUpdate}</div>`;
-
-      const iconUpdate = L.divIcon({
-        // Add grounded class to container as well
-        className: `plane-marker-container ${
-          isGrounded ? 'grounded-plane-container' : ''
-        }`,
-        html: markerHtmlUpdate,
-        iconSize: iconSizeUpdate,
-        iconAnchor: iconAnchorUpdate,
-      });
-
+      // Create new marker with updated pane setting
       const newMarker = L.marker(
         [lat, lon],
-        buildMarkerOptions(iconUpdate, followed)
+        buildMarkerOptions(icon, followed)
       );
       newMarker.bindTooltip(tooltip, tooltipOptions);
+
       if (wasOnMap) newMarker.addTo(map);
+
       // Copy over follow styles and event handlers
       if (followed) {
         const el = newMarker.getElement();
@@ -166,6 +144,7 @@ export function createOrUpdatePlaneMarker(
           tel.style.color = '#00ffff';
         }
       }
+
       const bring = () => manageZIndex(newMarker, true);
       const send = () => manageZIndex(newMarker, false);
       newMarker.on('mouseover', bring);
@@ -275,42 +254,8 @@ export function createOrUpdatePlaneMarker(
 
     return { marker: oldMarker, isNewMarker: false };
   } else {
-    // Pass category to checkIsHelicopter
-    const isCopterNew = checkIsHelicopter(category, model, isCustomHelicopter);
-    const markerContentNew = isCopterNew
-      ? `<span class="material-symbols-outlined spinning-copter-icon">toys_fan</span>`
-      : planeSvg;
-    const rotationStyleNew = isCopterNew
-      ? ''
-      : `transform: rotate(${rotation}deg);`;
-
-    // Use dynamic size/anchor for new markers
-    const iconSizeNew: L.PointTuple = isGrounded ? [32, 32] : [48, 48];
-    const iconAnchorNew: L.PointTuple = isGrounded ? [16, 16] : [24, 24];
-
-    const markerHtmlNew = `<div class="plane-marker ${
-      isNew && isGrounded
-        ? 'new-and-grounded'
-        : isNew
-        ? 'new-plane'
-        : isGrounded
-        ? 'grounded-plane'
-        : ''
-    } ${isMilitary ? 'military-plane' : ''} ${
-      followed ? ' followed-plane' : ''
-    }" style="${rotationStyleNew} ${extraStyle}">${markerContentNew}</div>`;
-
-    const iconNew = L.divIcon({
-      // Add grounded class to container as well
-      className: `plane-marker-container ${
-        isGrounded ? 'grounded-plane-container' : ''
-      }`,
-      html: markerHtmlNew,
-      iconSize: iconSizeNew,
-      iconAnchor: iconAnchorNew,
-    });
-
-    const marker = L.marker([lat, lon], buildMarkerOptions(iconNew, followed)); // Use buildMarkerOptions here too
+    // Create a new marker
+    const marker = L.marker([lat, lon], buildMarkerOptions(icon, followed));
     marker.bindTooltip(tooltip, tooltipOptions);
     marker.addTo(map);
 

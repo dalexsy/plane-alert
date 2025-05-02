@@ -46,6 +46,10 @@ export class SettingsService {
   private militaryPlaneColorKey = 'militaryPlaneColor';
   private specialColorOverrideKey = 'specialColorOverride';
   private specialPlaneColorKey = 'specialPlaneColor';
+  // Scale factor for markers, tooltips, and overlays
+  private scaleFactorKey = 'scaleFactor';
+  private _scaleFactor = 1; // Default scale factor
+  scaleFactorChanged = new EventEmitter<number>();
 
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
@@ -156,6 +160,15 @@ export class SettingsService {
   setSpecialPlaneColor(value: string): void {
     this._specialPlaneColor = value;
     localStorage.setItem(this.specialPlaneColorKey, value);
+  }
+
+  get scaleFactor(): number {
+    return this._scaleFactor;
+  }
+  setScaleFactor(value: number): void {
+    this._scaleFactor = value;
+    localStorage.setItem(this.scaleFactorKey, value.toString());
+    this.scaleFactorChanged.emit(value);
   }
 
   // Event emitted when exclude discount setting changes
@@ -360,5 +373,8 @@ export class SettingsService {
 
     const specialColorStr = localStorage.getItem(this.specialPlaneColorKey);
     if (specialColorStr) this._specialPlaneColor = specialColorStr;
+
+    const scaleFactorStr = localStorage.getItem(this.scaleFactorKey);
+    if (scaleFactorStr) this._scaleFactor = parseFloat(scaleFactorStr);
   }
 }

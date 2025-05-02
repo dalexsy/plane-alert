@@ -2,6 +2,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 @import "leaflet/dist/leaflet.css";
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
+@import "app/styles/plane-marker.scss";
+@import "app/styles/plane-tooltip.scss";
+
+:root {
+  --scale-factor: 1;
+}
 
 *,
 *::before,

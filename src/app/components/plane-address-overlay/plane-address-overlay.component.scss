@@ -1,9 +1,10 @@
 /* src/app/components/plane-address-overlay/plane-address-overlay.component.scss */
 .plane-address-overlay {
   position: absolute;
-  top: 2.75rem;
+  top: calc(2.75rem * var(--scale-factor));
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(var(--scale-factor));
+  transform-origin: top center;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(3rem); /* Add blur effect */
   -webkit-backdrop-filter: blur(3rem); /* For Safari support */

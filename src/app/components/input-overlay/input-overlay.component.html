@@ -19,6 +19,25 @@
       [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
       (click)="toggleDateTimeOverlays.emit()"
     ></app-button>
+    <!-- Scale controls -->
+    <app-button
+      class="scale-up"
+      icon="text_increase"
+      type="tertiary"
+      size="medium"
+      ariaLabel="Increase UI size"
+      title="Increase UI size"
+      (click)="onIncreaseScale()"
+    ></app-button>
+    <app-button
+      class="scale-down"
+      icon="text_decrease"
+      type="tertiary"
+      size="medium"
+      ariaLabel="Decrease UI size"
+      title="Decrease UI size"
+      (click)="onDecreaseScale()"
+    ></app-button>
   </app-tab>
   <form
     *ngIf="!collapsed"

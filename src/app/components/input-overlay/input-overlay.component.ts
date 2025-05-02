@@ -56,7 +56,19 @@ export class InputOverlayComponent implements OnDestroy {
     public settings: SettingsService,
     private cdr: ChangeDetectorRef,
     private scanService: ScanService
-  ) {}
+  ) {
+    // Initialize and subscribe to scale factor changes
+    document.documentElement.style.setProperty(
+      '--scale-factor',
+      this.settings.scaleFactor.toString()
+    );
+    this.settings.scaleFactorChanged.subscribe((value) => {
+      document.documentElement.style.setProperty(
+        '--scale-factor',
+        value.toString()
+      );
+    });
+  }
 
   ngAfterViewInit(): void {
     this.sub = combineLatest([
@@ -146,5 +158,21 @@ export class InputOverlayComponent implements OnDestroy {
   onShowCloudCoverChange(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     this.cloudToggleChange.emit(checked);
+  }
+
+  // Increase UI scale
+  public onIncreaseScale(): void {
+    const step = 0.5;
+    const max = 2;
+    const newScale = Math.min(this.settings.scaleFactor + step, max);
+    this.settings.setScaleFactor(newScale);
+  }
+
+  // Decrease UI scale
+  public onDecreaseScale(): void {
+    const step = 0.5;
+    const min = 1;
+    const newScale = Math.max(this.settings.scaleFactor - step, min);
+    this.settings.setScaleFactor(newScale);
   }
 }
