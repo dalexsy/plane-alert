@@ -4,6 +4,8 @@
   left: 0.25rem;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3rem); /* Add blur effect */
+  -webkit-backdrop-filter: blur(3rem); /* For Safari support */
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   max-height: calc(100% - 0.5rem);
@@ -21,6 +23,8 @@
     flex-direction: column;
     z-index: 900;
     background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3rem); /* Add blur effect */
+    -webkit-backdrop-filter: blur(3rem); /* For Safari support */
     border-radius: 0 0.5rem 0.5rem 0;
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-left: none;

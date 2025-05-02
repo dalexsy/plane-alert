@@ -40,7 +40,7 @@ export class ClosestPlaneOverlayComponent {
     }
     const m = Math.floor(this.secondsAway / 60);
     const s = this.secondsAway % 60;
-    return `${m}m ${s}s`;
+    return `${m}m${s}s`;
   }
 
   /** Handle user click to select this plane */

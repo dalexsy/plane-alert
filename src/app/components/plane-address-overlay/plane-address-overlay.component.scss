@@ -1,10 +1,12 @@
 /* src/app/components/plane-address-overlay/plane-address-overlay.component.scss */
 .plane-address-overlay {
   position: absolute;
-  top: calc(0.5rem + 3rem);
+  top: 2.75rem;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3rem); /* Add blur effect */
+  -webkit-backdrop-filter: blur(3rem); /* For Safari support */
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
@@ -15,4 +17,34 @@
   text-overflow: ellipsis;
   max-width: 90%;
   text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+
+  &:hover {
+    border-color: white;
+  }
+
+  &.selected {
+    border-color: cyan;
+    color: cyan;
+    background: linear-gradient(
+        to right,
+        rgba(0, 255, 255, 0.1),
+        rgba(255, 0, 242, 0.1)
+      ),
+      rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+  }
+}
+
+.plane-address-overlay.military-plane.selected {
+  border-color: #89d138;
+  color: #89d138;
+  background: linear-gradient(
+      to right,
+      rgba(137, 209, 56, 0.1),
+      rgba(137, 209, 56, 0.1)
+    ),
+    rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
 }

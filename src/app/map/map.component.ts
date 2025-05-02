@@ -38,6 +38,7 @@ import { DOCUMENT } from '@angular/common';
 import { ClockComponent } from '../components/ui/clock.component';
 import { TemperatureComponent } from '../components/ui/temperature.component';
 import { ClosestPlaneOverlayComponent } from '../components/closest-plane-overlay/closest-plane-overlay.component';
+import { PlaneAddressOverlayComponent } from '../components/plane-address-overlay/plane-address-overlay.component';
 
 // OpenWeatherMap tile service API key - replace with your own key
 const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
@@ -66,6 +67,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     ClockComponent,
     TemperatureComponent,
     ClosestPlaneOverlayComponent,
+    PlaneAddressOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -708,6 +710,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     lon: number
   ): Promise<{
     street: string;
+    suburb: string;
     locality: string;
     cityDistrict: string;
     municipality: string;
@@ -728,6 +731,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       addr.path ||
       ''
     ).trim();
+    const suburb = (addr.suburb || addr.neighbourhood || '').trim();
     // Locality fallback: hamlet, village, town
     const locality = (addr.hamlet || addr.village || addr.town || '').trim();
     const cityDistrict = (addr.city_district || '').trim();
@@ -737,6 +741,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const displayName = data.display_name || '';
     return {
       street,
+      suburb,
       locality,
       cityDistrict,
       municipality,
@@ -992,7 +997,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.lastClosestIcao = candidate.icao;
       this.reverseGeocodeParts(candidate.lat!, candidate.lon!).then(
         ({
-          street,
+          street: s,
+          suburb,
           locality,
           cityDistrict,
           municipality,
@@ -1001,13 +1007,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           displayName,
         }) => {
           // Filter out non-street path names
-          let filteredStreet = street;
+          let filteredStreet = s;
           if (/^durchfahrt/i.test(filteredStreet)) {
             filteredStreet = '';
           }
-          // Build short address: prioritize borough and municipality
+          // Build short address: prioritize street and district
           let shortAddr = '';
-          if (filteredStreet && locality) {
+          if (filteredStreet && suburb) {
+            shortAddr = `${filteredStreet}, ${suburb}`;
+          } else if (filteredStreet && locality) {
             shortAddr = `${filteredStreet}, ${locality}`;
           } else if (filteredStreet && cityDistrict) {
             shortAddr = `${filteredStreet}, ${cityDistrict}`;
@@ -1523,69 +1531,67 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       const radiusMeters = radiusKm * 1000;
       const overpassUrl = 'https://overpass-api.de/api/interpreter';
-      // Query for nodes, ways, and relations tagged as aerodromes within the radius
+      // Combined query for aerodromes and runways within the radius
       const query = `
         [out:json][timeout:25];
         (
           node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
           way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
           relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+          way["aeroway"="runway"](around:${radiusMeters},${lat},${lon});
+          node["aeroway"="runway"](around:${radiusMeters},${lat},${lon});
         );
-        out center;
+        out center geom;
       `;
-
-      const response = await fetch(overpassUrl, {
-        method: 'POST',
-        body: query,
-      });
-      if (!response.ok) {
-        throw new Error(`Overpass API error: ${response.statusText}`);
-      }
+      const response = await fetch(overpassUrl, { method: 'POST', body: query });
+      if (!response.ok) throw new Error(`Overpass API error: ${response.statusText}`);
       const data = await response.json();
-
+      const elements = data.elements || [];
+      // separate airport and runway elements
+      const airportElements = elements.filter((e: any) => e.tags?.aeroway === 'aerodrome');
+      const runwayElements = elements.filter((e: any) => e.tags?.aeroway === 'runway');
       const foundAirportIds = new Set<number>();
 
-      for (const element of data.elements || []) {
-        if (element.type === 'node' || element.center) {
-          const airportLat = element.lat ?? element.center?.lat;
-          const airportLon = element.lon ?? element.center?.lon;
-          const airportId = element.id;
+      // process airport elements
+      for (const element of airportElements) {
+        const airportLat = element.lat ?? element.center?.lat;
+        const airportLon = element.lon ?? element.center?.lon;
+        const airportId = element.id;
 
-          if (airportLat !== undefined && airportLon !== undefined) {
-            const name = element.tags?.['name'] || 'Unknown Airport';
-            const code = element.tags?.['iata'] || ''; // airport IATA code
-            // store metadata
-            this.airportData.set(airportId, { name, code });
+        if (airportLat !== undefined && airportLon !== undefined) {
+          const name = element.tags?.['name'] || 'Unknown Airport';
+          const code = element.tags?.['iata'] || ''; // airport IATA code
+          // store metadata
+          this.airportData.set(airportId, { name, code });
 
-            foundAirportIds.add(airportId);
+          foundAirportIds.add(airportId);
 
-            // Determine radius: use runway lengths if available, fallback to IATA presence
-            const defaultKm = code
-              ? MAJOR_AIRPORT_RADIUS_KM
-              : MINOR_AIRPORT_RADIUS_KM;
-            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;
+          // Determine radius: use runway lengths if available, fallback to IATA presence
+          const defaultKm = code
+            ? MAJOR_AIRPORT_RADIUS_KM
+            : MINOR_AIRPORT_RADIUS_KM;
+          const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;
 
-            // Check if circle already exists
-            if (!this.airportCircles.has(airportId)) {
-              const circle = L.circle([airportLat, airportLon], {
-                radius: useKm * 1000,
-                color: 'cyan',
-                weight: 2,
-                fill: true,
-                fillColor: 'url(#airportStripedPattern)',
-                fillOpacity: 0.3, // initial low opacity
-                className: 'airport-radius',
-                interactive: false,
-              }).addTo(this.map);
-              this.airportCircles.set(airportId, circle);
+          // Check if circle already exists
+          if (!this.airportCircles.has(airportId)) {
+            const circle = L.circle([airportLat, airportLon], {
+              radius: useKm * 1000,
+              color: 'cyan',
+              weight: 2,
+              fill: true,
+              fillColor: 'url(#airportStripedPattern)',
+              fillOpacity: 0.3, // initial low opacity
+              className: 'airport-radius',
+              interactive: false,
+            }).addTo(this.map);
+            this.airportCircles.set(airportId, circle);
 
-              // Use default radius until bulk runway query updates it
-              if (!this.airportRadiusCache.has(airportId)) {
-                const defaultKm = code
-                  ? MAJOR_AIRPORT_RADIUS_KM
-                  : MINOR_AIRPORT_RADIUS_KM;
-                this.airportRadiusCache.set(airportId, defaultKm);
-              }
+            // Use default radius until bulk runway query updates it
+            if (!this.airportRadiusCache.has(airportId)) {
+              const defaultKm = code
+                ? MAJOR_AIRPORT_RADIUS_KM
+                : MINOR_AIRPORT_RADIUS_KM;
+              this.airportRadiusCache.set(airportId, defaultKm);
             }
           }
         }
@@ -1601,90 +1607,54 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         }
       });
 
-      // --- Bulk fetch runway data for all airports at once ---
-      if (this.airportCircles.size > 0) {
-        const airportList = Array.from(this.airportCircles.entries()).map(
-          ([id, circle]) => ({
-            id,
-            lat: circle.getLatLng().lat,
-            lon: circle.getLatLng().lng,
-            hasIata: !!this.airportData.get(id)?.code,
-          })
-        );
-        // compute bbox covering all airports plus margin
-        const lats = airportList.map((a) => a.lat);
-        const lons = airportList.map((a) => a.lon);
-        const minLat = Math.min(...lats) - radiusKm / 111;
-        const maxLat = Math.max(...lats) + radiusKm / 111;
-        const minLon = Math.min(...lons) - radiusKm / 111;
-        const maxLon = Math.max(...lons) + radiusKm / 111;
-        const runwayQuery = `
-          [out:json][timeout:25];
-          (
-            way[\"aeroway\"=\"runway\"](${minLat},${minLon},${maxLat},${maxLon});
-            node[\"aeroway\"=\"runway\"](${minLat},${minLon},${maxLat},${maxLon});
-          );
-          out geom;
-        `;
-        const runwayPromise = fetch(overpassUrl, {
-          method: 'POST',
-          body: runwayQuery,
+      // compute runway-based radii in one go
+      const airportList = Array.from(this.airportCircles.entries()).map(
+        ([id, circle]) => ({
+          id,
+          lat: circle.getLatLng().lat,
+          lon: circle.getLatLng().lng,
+          hasIata: !!this.airportData.get(id)?.code,
         })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (!data?.elements) return;
-            const lengthsByAirport = new Map<number, number>();
-            data.elements.forEach((elem: any) => {
-              const coords = elem.geometry;
-              if (!coords || coords.length < 2) return;
-              // compute runway length between first and last point
-              const start = coords[0];
-              const end = coords[coords.length - 1];
-              const lenKm = haversineDistance(
-                start.lat,
-                start.lon,
-                end.lat,
-                end.lon
-              );
-              // find nearest airport center
-              let bestId = null;
-              let bestDist = Infinity;
-              airportList.forEach((a) => {
-                const d = haversineDistance(
-                  a.lat,
-                  a.lon,
-                  (start.lat + end.lat) / 2,
-                  (start.lon + end.lon) / 2
-                );
-                if (d < bestDist) {
-                  bestDist = d;
-                  bestId = a.id;
-                }
-              });
-              if (bestId != null) {
-                const prev = lengthsByAirport.get(bestId) || 0;
-                lengthsByAirport.set(bestId, Math.max(prev, lenKm));
-              }
-            });
-            // apply computed radii
-            airportList.forEach((a) => {
-              const circle = this.airportCircles.get(a.id);
-              const maxLen = lengthsByAirport.get(a.id) || 0;
-              const radius =
-                maxLen > 0
-                  ? maxLen / 2 + 0.5
-                  : a.hasIata
-                  ? MAJOR_AIRPORT_RADIUS_KM
-                  : MINOR_AIRPORT_RADIUS_KM;
-              this.airportRadiusCache.set(a.id, radius);
-              if (circle) circle.setRadius(radius * 1000);
-            });
-          })
-          .catch(() => {});
-        radiusPromises.push(runwayPromise);
+      );
+      if (runwayElements.length > 0 && airportList.length > 0) {
+        const lengthsByAirport = new Map<number, number>();
+        for (const elem of runwayElements) {
+          const coords = elem.geometry as Array<{ lat: number; lon: number }>;
+          if (!coords || coords.length < 2) continue;
+          const start = coords[0];
+          const end = coords[coords.length - 1];
+          const lenKm = haversineDistance(start.lat, start.lon, end.lat, end.lon);
+          // find nearest airport center
+          let bestId: number | null = null;
+          let bestDist = Infinity;
+          airportList.forEach((a) => {
+            const midLat = (start.lat + end.lat) / 2;
+            const midLon = (start.lon + end.lon) / 2;
+            const d = haversineDistance(a.lat, a.lon, midLat, midLon);
+            if (d < bestDist) {
+              bestDist = d;
+              bestId = a.id;
+            }
+          });
+          if (bestId != null) {
+            const prev = lengthsByAirport.get(bestId) || 0;
+            lengthsByAirport.set(bestId, Math.max(prev, lenKm));
+          }
+        }
+        // apply computed radii
+        airportList.forEach((a) => {
+          const circle = this.airportCircles.get(a.id);
+          const maxLen = lengthsByAirport.get(a.id) || 0;
+          const radius =
+            maxLen > 0
+              ? maxLen / 2 + 0.5
+              : a.hasIata
+              ? MAJOR_AIRPORT_RADIUS_KM
+              : MINOR_AIRPORT_RADIUS_KM;
+          this.airportRadiusCache.set(a.id, radius);
+          circle?.setRadius(radius * 1000);
+        });
       }
-      // wait for all runway radius updates before hiding spinner
-      await Promise.all(radiusPromises);
       // Increase opacity of all airport circles after resizing
       this.airportCircles.forEach((circle) =>
         circle.setStyle({ fillOpacity: 0.6 })

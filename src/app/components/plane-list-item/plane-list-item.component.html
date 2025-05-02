@@ -81,7 +81,7 @@
           (click)="onCenterAirport($event)"
           class="airport-code no-underline"
           *ngIf="listType === 'airport' && plane.airportCode"
-          [title]="plane.airportName"
+          [title]="'Go to ' + plane.airportName"
         >
           {{ plane.airportCode }}
         </a>
@@ -99,7 +99,7 @@
           href="#"
           (click)="onCenterAirport($event)"
           class="airport-code no-underline"
-          [title]="plane.airportName"
+          [title]="'Go to ' + plane.airportName"
         >
           {{ plane.airportCode }}
         </a></span

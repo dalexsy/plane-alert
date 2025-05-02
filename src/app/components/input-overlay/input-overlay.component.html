@@ -1,27 +1,25 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
 <div class="options-overlay" [class.collapsed]="collapsed">
-  <div class="top-buttons">
-    <app-tab side="right">
-      <app-button
-        class="collapse-toggle"
-        [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
-        [title]="collapsed ? 'Expand options' : 'Collapse options'"
-        (click)="toggleCollapsed()"
-      ></app-button>
-      <app-button
-        class="toggle-datetime"
-        [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="showDateTime ? 'Hide date/time' : 'Show date/time'"
-        [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
-        (click)="toggleDateTimeOverlays.emit()"
-      ></app-button>
-    </app-tab>
-  </div>
+  <app-tab side="right">
+    <app-button
+      class="collapse-toggle"
+      [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
+      [title]="collapsed ? 'Expand options' : 'Collapse options'"
+      (click)="toggleCollapsed()"
+    ></app-button>
+    <app-button
+      class="toggle-datetime"
+      [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+      [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+      (click)="toggleDateTimeOverlays.emit()"
+    ></app-button>
+  </app-tab>
   <form
     *ngIf="!collapsed"
     class="options-form"

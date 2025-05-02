@@ -7,7 +7,6 @@ $followed-plane-color: #00ffff;
   flex-direction: column;
   border-bottom: 1px solid rgba(255, 255, 255, 0.4);
   padding: 0.5rem 1rem; // restore overlay item padding
-  margin-right: 0.25rem; // match overlay spacing
   mix-blend-mode: plus-lighter; // overlay blend mode
   font-family: "JetBrains Mono", monospace;
   align-items: center;
@@ -83,7 +82,8 @@ $followed-plane-color: #00ffff;
     display: flex;
     justify-content: space-between;
     width: 100%;
-    align-items: center; // Vertically center items in both rows
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .flag-callsign,
@@ -152,6 +152,12 @@ $followed-plane-color: #00ffff;
     position: relative;
     right: 0.25rem;
     border-radius: 0.25rem;
+    display: inline-block;
+
+    &:hover {
+      transform: scale(1.02);
+      opacity: 0.9;
+    }
   }
 
   .model {

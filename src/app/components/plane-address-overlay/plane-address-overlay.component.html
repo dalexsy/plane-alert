@@ -1,3 +1,9 @@
-<div *ngIf="address" class="plane-address-overlay">
+<div
+  *ngIf="address"
+  class="plane-address-overlay"
+  [class.selected]="isSelected"
+  (click)="onClick()"
+  title="Center plane"
+>
   {{ address }}
 </div>

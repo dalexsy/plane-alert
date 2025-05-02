@@ -1,5 +1,13 @@
 // src/app/components/ui/button.component.ts
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ElementRef,
+  Renderer2,
+  HostBinding,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 
@@ -11,13 +19,13 @@ export type ButtonType = 'primary' | 'secondary' | 'tertiary';
   imports: [CommonModule, IconComponent],
   template: `
     <button
-      [class]="
-        type +
-        (icon ? ' icon' : '') +
-        (icon && text ? ' has-text' : '') +
-        ' ' +
-        size
-      "
+      [ngClass]="[
+        type,
+        icon ? 'icon' : '',
+        icon && text ? 'has-text' : '',
+        size,
+        class
+      ]"
       [attr.aria-label]="ariaLabel"
       [type]="nativeType"
       [disabled]="disabled"
@@ -37,7 +45,14 @@ export class ButtonComponent {
   @Input() type: ButtonType = 'primary';
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
   @Input() disabled: boolean = false;
+  @Input() class: string = '';
   @Output() click = new EventEmitter<Event>();
+  @HostBinding('class') hostClass = '';
+
+  constructor(private el: ElementRef, private renderer: Renderer2) {
+    // Collect all classes on the host element
+    this.hostClass = (el.nativeElement as HTMLElement).className;
+  }
 
   onClick(event?: Event) {
     // Guard against missing event

@@ -1,47 +1,47 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
-<div class="results-overlay" [class.collapsed]="collapsed">
-  <div class="top-buttons">
-    <app-tab side="left">
-      <app-button
-        class="collapse-toggle"
-        [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          collapsed ? 'Expand results overlay' : 'Collapse results overlay'
-        "
-        [title]="collapsed ? 'Expand results' : 'Collapse results'"
-        (click)="toggleCollapsed()"
-      ></app-button>
-      <app-button
-        [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          settings.excludeDiscount
-            ? 'Show commercial planes'
-            : 'Hide commercial planes'
-        "
-        [title]="
-          settings.excludeDiscount ? 'Show commercial' : 'Hide commercial'
-        "
-        (click)="onToggleCommercialFilter()"
-      ></app-button>
-      <app-button
-        [icon]="commercialMute ? 'volume_off' : 'volume_up'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
-        "
-        [title]="
-          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
-        "
-        (click)="onToggleCommercialMute()"
-      ></app-button>
-    </app-tab>
-  </div>
-  <ng-container *ngIf="!collapsed">
+<div
+  class="results-overlay"
+  [class.collapsed]="collapsed"
+  [class.seen-collapsed]="seenCollapsed"
+>
+  <app-tab side="left">
+    <app-button
+      class="collapse-toggle"
+      [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="
+        collapsed ? 'Expand results overlay' : 'Collapse results overlay'
+      "
+      [title]="collapsed ? 'Expand results' : 'Collapse results'"
+      (click)="toggleCollapsed()"
+    ></app-button>
+    <app-button
+      [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="
+        settings.excludeDiscount
+          ? 'Show commercial planes'
+          : 'Hide commercial planes'
+      "
+      [title]="settings.excludeDiscount ? 'Show commercial' : 'Hide commercial'"
+      (click)="onToggleCommercialFilter()"
+    ></app-button>
+    <app-button
+      [icon]="commercialMute ? 'volume_off' : 'volume_up'"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="
+        commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+      "
+      [title]="
+        commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
+      "
+      (click)="onToggleCommercialMute()"
+    ></app-button>
+  </app-tab>
+  <div class="overlay-content" *ngIf="!collapsed">
     <!-- Options buttons - moved to the top -->
 
     <div class="middle-section">
@@ -158,5 +158,5 @@
         </ng-template>
       </ng-container>
     </div>
-  </ng-container>
+  </div>
 </div>
