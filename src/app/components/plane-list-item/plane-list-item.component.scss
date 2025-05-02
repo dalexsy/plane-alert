@@ -27,10 +27,6 @@ $followed-plane-color: #00ffff;
       rgba(0, 255, 255, 0.05) 100%
     );
     font-variation-settings: none;
-    a,
-    .direction-info {
-      font-variation-settings: normal;
-    }
   }
   &.military-plane {
     color: #89d138;
@@ -51,6 +47,16 @@ $followed-plane-color: #00ffff;
   }
   &.special-plane {
     color: gold;
+    &.followed-plane {
+      // Override followed styling for special tracked planes
+      color: gold;
+      border-left: 3px solid gold;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 215, 0, 0.2) 0%,
+        rgba(255, 215, 0, 0.05) 100%
+      );
+    }
   }
   &.filtered-out,
   &.hide-commercial {
@@ -153,11 +159,6 @@ $followed-plane-color: #00ffff;
     right: 0.25rem;
     border-radius: 0.25rem;
     display: inline-block;
-
-    &:hover {
-      transform: scale(1.02);
-      opacity: 0.9;
-    }
   }
 
   .model {
