@@ -28,6 +28,9 @@ export class PlaneAddressOverlayComponent {
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.plane?.isMilitary === true;
   }
+  @HostBinding('class.special-plane') get hostSpecial() {
+    return this.plane?.isSpecial === true;
+  }
 
   @Output() selectPlane = new EventEmitter<PlaneModel>();
 

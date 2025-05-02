@@ -23,6 +23,9 @@ export class ClosestPlaneOverlayComponent {
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.plane?.isMilitary === true;
   }
+  @HostBinding('class.special-plane') get hostSpecial() {
+    return this.plane?.isSpecial === true;
+  }
   @Input() distanceKm: number | null = null;
   @Input() operator: string | null = null;
   @Input() secondsAway: number | null = null;

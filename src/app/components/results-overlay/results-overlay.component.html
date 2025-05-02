@@ -40,6 +40,18 @@
       "
       (click)="onToggleCommercialMute()"
     ></app-button>
+    <app-button
+      class="shuffle-button"
+      [icon]="shuffleActive ? 'shuffle' : 'shuffle'"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="
+        shuffleActive ? 'Stop following random planes' : 'Follow random planes'
+      "
+      [title]="shuffleActive ? 'Disable shuffle' : 'Enable shuffle'"
+      (click)="toggleShuffle()"
+      [class.active]="shuffleActive"
+    ></app-button>
   </app-tab>
   <div class="overlay-content" *ngIf="!collapsed">
     <!-- Options buttons - moved to the top -->

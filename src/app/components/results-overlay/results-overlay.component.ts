@@ -65,6 +65,10 @@ export interface PlaneLogEntry {
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
 {
+  // Shuffle follow feature state
+  public shuffleActive = false;
+  private shuffleTimer?: Subscription;
+
   constructor(
     public settings: SettingsService,
     public countryService: CountryService,
@@ -257,6 +261,8 @@ export class ResultsOverlayComponent
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
     this.scanSub?.unsubscribe();
+    // cleanup shuffle timer
+    this.shuffleTimer?.unsubscribe();
     document.title = this.baseTitle;
   }
 
@@ -629,6 +635,54 @@ export class ResultsOverlayComponent
     planes.forEach((plane) => {
       plane.isSpecial = this.specialListService.isSpecial(plane.icao);
     });
+  }
+
+  /** Toggle shuffle follow random planes every 5 minutes */
+  public toggleShuffle(): void {
+    this.shuffleActive = !this.shuffleActive;
+    if (this.shuffleActive) {
+      this.pickRandomPlane();
+      // every 5 minutes
+      this.shuffleTimer = interval(30 * 1000).subscribe(() => {
+        this.pickRandomPlane();
+      });
+    } else {
+      this.shuffleTimer?.unsubscribe();
+    }
+  }
+
+  /** Pick a random visible plane and emit center event */
+  private pickRandomPlane(): void {
+    const sky = this.filteredSkyPlaneLog;
+    const airport = this.filteredAirportPlaneLog;
+    const all = [...sky, ...airport];
+    if (all.length === 0) return;
+    // find military or special planes
+    const priority = all.filter(p => p.isMilitary || p.isSpecial);
+    // home centering when priority near home
+    const home = this.settings.getHomeLocation();
+    if (home && priority.length > 0) {
+      const nearHome = priority.some(p => {
+        return p.lat != null && p.lon != null &&
+          haversineDistance(home.lat, home.lon, p.lat, p.lon) <= 50;
+      });
+      if (nearHome) {
+        // center on home until planes leave
+        this.centerPlane.emit({
+          icao: 'HOME',
+          callsign: 'Home',
+          origin: '',
+          firstSeen: Date.now(),
+          lat: home.lat,
+          lon: home.lon,
+        } as any);
+        return;
+      }
+    }
+    // if any priority planes, pick one of them
+    const pool = priority.length > 0 ? priority : all;
+    const idx = Math.floor(Math.random() * pool.length);
+    this.centerPlane.emit(pool[idx]);
   }
 
   public collapsed = localStorage.getItem('resultsOverlayCollapsed') === 'true';

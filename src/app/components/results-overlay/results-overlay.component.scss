@@ -17,6 +17,10 @@
 
   .overlay-content {
     margin-top: -0.25rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   h3 {
@@ -246,6 +250,7 @@
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 
     .plane-list-wrapper {
       flex: 1 1 auto;
@@ -357,6 +362,11 @@
   .collapse-toggle {
     position: static;
   }
+
+  .shuffle-button.active {
+    color: cyan !important;
+    background-color: rgba(0, 255, 255, 0.2) !important;
+  }
 }
 
 .results-overlay.seen-collapsed {
@@ -411,4 +421,17 @@
     rgba(255, 0, 242, 0.1)
   );
   color: cyan;
+}
+
+.app-tab {
+  // Ensure shuffle button icon can inherit color
+  .shuffle-button.active {
+    color: cyan;
+    background-color: rgba(0, 255, 255, 0.2);
+  }
+}
+
+.middle-section {
+  /* keep top section from stretching */
+  flex: 0 0 auto;
 }

@@ -49,3 +49,15 @@
     rgba(0, 0, 0, 0.7);
   box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
 }
+
+.closest-plane-overlay.special-plane.selected {
+  border-color: gold;
+  color: gold;
+  background: linear-gradient(
+      to right,
+      rgba(255, 215, 0, 0.1),
+      rgba(255, 215, 0, 0.1)
+    ),
+    rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+}

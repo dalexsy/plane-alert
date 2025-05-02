@@ -615,6 +615,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number, // This is the MAIN search radius
     zoomLevel?: number
   ): void {
+    // If following a plane, keep map centered on that plane
+    let viewLat = lat;
+    let viewLon = lon;
+    if (this.followNearest && this.highlightedPlaneIcao) {
+      const pm = this.planeLog.get(this.highlightedPlaneIcao);
+      if (pm?.lat != null && pm?.lon != null) {
+        viewLat = pm.lat;
+        viewLon = pm.lon;
+      }
+    }
     // Clamp radius to a maximum of 500km
     let mainRadius = radiusKm ?? this.settings.radius ?? 5;
     if (mainRadius > 500) {
@@ -626,7 +636,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.manualUpdate = true;
     // Update view first to recalc internal transforms, keep current zoom if none provided
     const targetZoom = zoomLevel != null ? zoomLevel : this.map.getZoom();
-    this.map.setView([lat, lon], targetZoom);
+    this.map.setView([viewLat, viewLon], targetZoom);
 
     // Then draw main radius so it projects correctly
     this.mapService.setMainRadius(lat, lon, mainRadius);
@@ -1543,13 +1553,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         );
         out center geom;
       `;
-      const response = await fetch(overpassUrl, { method: 'POST', body: query });
-      if (!response.ok) throw new Error(`Overpass API error: ${response.statusText}`);
+      const response = await fetch(overpassUrl, {
+        method: 'POST',
+        body: query,
+      });
+      if (!response.ok)
+        throw new Error(`Overpass API error: ${response.statusText}`);
       const data = await response.json();
       const elements = data.elements || [];
       // separate airport and runway elements
-      const airportElements = elements.filter((e: any) => e.tags?.aeroway === 'aerodrome');
-      const runwayElements = elements.filter((e: any) => e.tags?.aeroway === 'runway');
+      const airportElements = elements.filter(
+        (e: any) => e.tags?.aeroway === 'aerodrome'
+      );
+      const runwayElements = elements.filter(
+        (e: any) => e.tags?.aeroway === 'runway'
+      );
       const foundAirportIds = new Set<number>();
 
       // process airport elements
@@ -1623,7 +1641,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           if (!coords || coords.length < 2) continue;
           const start = coords[0];
           const end = coords[coords.length - 1];
-          const lenKm = haversineDistance(start.lat, start.lon, end.lat, end.lon);
+          const lenKm = haversineDistance(
+            start.lat,
+            start.lon,
+            end.lat,
+            end.lon
+          );
           // find nearest airport center
           let bestId: number | null = null;
           let bestDist = Infinity;
