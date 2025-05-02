@@ -29,6 +29,24 @@ export class SettingsService {
   private viewAxesKey = 'showViewAxes';
   private _showViewAxes: boolean = false;
 
+  // Style settings with defaults
+  private _planeColor: string = '#ffffff'; // Default white
+  private _altitudeColor: boolean = true; // Enable altitude coloring by default
+  private _groundPlaneColor: string = '#aaaaaa'; // Default gray for grounded
+  private _militaryColorOverride: boolean = true; // Enable military override
+  private _militaryPlaneColor: string = '#ff0000'; // Default red for military
+  private _specialColorOverride: boolean = true; // Enable special override
+  private _specialPlaneColor: string = '#ffa500'; // Default orange for special
+
+  // Keys for localStorage
+  private planeColorKey = 'planeColor';
+  private altitudeColorKey = 'altitudeColor';
+  private groundPlaneColorKey = 'groundPlaneColor';
+  private militaryColorOverrideKey = 'militaryColorOverride';
+  private militaryPlaneColorKey = 'militaryPlaneColor';
+  private specialColorOverrideKey = 'specialColorOverride';
+  private specialPlaneColorKey = 'specialPlaneColor';
+
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
     return this._showDateTimeOverlay;
@@ -80,6 +98,64 @@ export class SettingsService {
   setCommercialMute(value: boolean): void {
     this._commercialMute = value;
     localStorage.setItem(this.commercialMuteKey, value.toString());
+  }
+
+  // --- Style Getters/Setters ---
+
+  get planeColor(): string {
+    return this._planeColor;
+  }
+  setPlaneColor(value: string): void {
+    this._planeColor = value;
+    localStorage.setItem(this.planeColorKey, value);
+  }
+
+  get altitudeColor(): boolean {
+    return this._altitudeColor;
+  }
+  setAltitudeColor(value: boolean): void {
+    this._altitudeColor = value;
+    localStorage.setItem(this.altitudeColorKey, value.toString());
+  }
+
+  get groundPlaneColor(): string {
+    return this._groundPlaneColor;
+  }
+  setGroundPlaneColor(value: string): void {
+    this._groundPlaneColor = value;
+    localStorage.setItem(this.groundPlaneColorKey, value);
+  }
+
+  get militaryColorOverride(): boolean {
+    return this._militaryColorOverride;
+  }
+  setMilitaryColorOverride(value: boolean): void {
+    this._militaryColorOverride = value;
+    localStorage.setItem(this.militaryColorOverrideKey, value.toString());
+  }
+
+  get militaryPlaneColor(): string {
+    return this._militaryPlaneColor;
+  }
+  setMilitaryPlaneColor(value: string): void {
+    this._militaryPlaneColor = value;
+    localStorage.setItem(this.militaryPlaneColorKey, value);
+  }
+
+  get specialColorOverride(): boolean {
+    return this._specialColorOverride;
+  }
+  setSpecialColorOverride(value: boolean): void {
+    this._specialColorOverride = value;
+    localStorage.setItem(this.specialColorOverrideKey, value.toString());
+  }
+
+  get specialPlaneColor(): string {
+    return this._specialPlaneColor;
+  }
+  setSpecialPlaneColor(value: string): void {
+    this._specialPlaneColor = value;
+    localStorage.setItem(this.specialPlaneColorKey, value);
   }
 
   // Event emitted when exclude discount setting changes
@@ -255,5 +331,34 @@ export class SettingsService {
     if (axesStr !== null) {
       this._showViewAxes = axesStr === 'true';
     }
+
+    // Load style preferences
+    const planeColorStr = localStorage.getItem(this.planeColorKey);
+    if (planeColorStr) this._planeColor = planeColorStr;
+
+    const altitudeColorStr = localStorage.getItem(this.altitudeColorKey);
+    if (altitudeColorStr !== null)
+      this._altitudeColor = altitudeColorStr === 'true';
+
+    const groundPlaneColorStr = localStorage.getItem(this.groundPlaneColorKey);
+    if (groundPlaneColorStr) this._groundPlaneColor = groundPlaneColorStr;
+
+    const militaryOverrideStr = localStorage.getItem(
+      this.militaryColorOverrideKey
+    );
+    if (militaryOverrideStr !== null)
+      this._militaryColorOverride = militaryOverrideStr === 'true';
+
+    const militaryColorStr = localStorage.getItem(this.militaryPlaneColorKey);
+    if (militaryColorStr) this._militaryPlaneColor = militaryColorStr;
+
+    const specialOverrideStr = localStorage.getItem(
+      this.specialColorOverrideKey
+    );
+    if (specialOverrideStr !== null)
+      this._specialColorOverride = specialOverrideStr === 'true';
+
+    const specialColorStr = localStorage.getItem(this.specialPlaneColorKey);
+    if (specialColorStr) this._specialPlaneColor = specialColorStr;
   }
 }

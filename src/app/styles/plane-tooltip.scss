@@ -9,7 +9,7 @@ $new-plane-color: #ff6161;
   border: 3px solid #333;
   text-decoration: none;
   pointer-events: auto;
-  margin-left: 1.5rem;
+  margin-left: 1.5rem; // Default margin for 3rem icon + 10px offset
   color: #fff;
   box-shadow: 0 1px 3px rgb(0 0 0);
   font-family: "JetBrains Mono", monospace;
@@ -88,8 +88,11 @@ $new-plane-color: #ff6161;
 
   &.grounded-plane-tooltip {
     border-color: grey;
-    margin-left: 1rem;
+    // Adjust margin for 2rem icon + -20px offset: (2rem / 2) - 20px = 1rem - 20px = 16px - 20px = -4px
+    // Let's use a small positive value for better spacing, e.g., 0.25rem
+    margin-left: 0.25rem;
     background: #333;
+    margin-left: 2rem;
   }
 
   &.new-plane-tooltip {

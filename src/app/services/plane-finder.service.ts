@@ -19,6 +19,7 @@ import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
+import { PlaneStyleService } from './plane-style.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -61,7 +62,8 @@ export class PlaneFinderService {
     private helicopterListService: HelicopterListService,
     private specialListService: SpecialListService,
     private operatorCallSignService: OperatorCallSignService, // inject our service
-    private militaryPrefixService: MilitaryPrefixService
+    private militaryPrefixService: MilitaryPrefixService,
+    private planeStyleService: PlaneStyleService // Inject PlaneStyleService
   ) {}
 
   private randomizeBrightness(): string {
@@ -696,8 +698,9 @@ export class PlaneFinderService {
       );
       const extraStyle = this.computeExtraStyle(altitude, onGround);
 
-      // Custom icon mapping removed, always use default icon
-      const customPlaneIcon = '';
+      // Get the SVG icon string from PlaneStyleService
+      const planeSvg = this.planeStyleService.getPlaneIcon(planeModelInstance);
+
       const followed = !!(followNearest && followedIcao && id === followedIcao);
       const { marker } = createOrUpdatePlaneMarker(
         planeModelInstance.marker, // Pass existing marker from model
@@ -709,12 +712,13 @@ export class PlaneFinderService {
         isNew,
         onGround,
         tooltip,
-        customPlaneIcon, // Pass custom icon HTML if ICAO matches
-        isMilitary,
-        model,
-        this.helicopterListService.isHelicopter(id),
-        isSpecial,
-        followed // <-- pass followed flag
+        planeSvg, // Pass the generated SVG string
+        isMilitary, // boolean
+        '', // category (string) - Pass empty string as category isn't directly available here
+        model, // model (string)
+        this.helicopterListService.isHelicopter(id), // isCustomHelicopter (boolean)
+        isSpecial, // isSpecial (boolean)
+        followed // followed (boolean)
       );
       planeModelInstance.marker = marker; // Update marker reference on model
 

@@ -27,3 +27,17 @@ export function ensureStripedPattern(
     svg.insertBefore(defs, svg.firstChild);
   }
 }
+
+/**
+ * Creates an SVG string from a path data string and dimensions.
+ * @param pathData The SVG path data (the 'd' attribute).
+ * @param size The [width, height] of the SVG viewBox.
+ * @returns A string containing the complete SVG element.
+ */
+export function svgPathToSvg(pathData: string, size: [number, number]): string {
+  const [width, height] = size;
+  // Use currentColor for fill so it inherits from CSS
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+            <path d="${pathData}" fill="currentColor" />
+          </svg>`;
+}
