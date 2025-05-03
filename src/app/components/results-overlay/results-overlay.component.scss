@@ -1,3 +1,5 @@
+@use "../../styles/overlay" as *;
+
 .results-overlay {
   position: absolute;
   top: 0.25rem;
@@ -109,7 +111,6 @@
     .plane-list {
       display: flex;
       flex-direction: column;
-      margin-right: 0.25rem;
       position: relative;
       padding-bottom: 0;
       min-height: 10vh;
@@ -386,4 +387,8 @@
     rgba(255, 0, 242, 0.1)
   );
   color: cyan;
+}
+
+#seenResults.collapsed h3 {
+  border-color: transparent;
 }
