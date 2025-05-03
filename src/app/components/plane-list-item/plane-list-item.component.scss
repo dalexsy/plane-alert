@@ -148,9 +148,21 @@ $followed-plane-color: #00ffff;
     font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20;
     font-size: 0.75rem;
     padding: 0 0.25rem;
+    display: block;
 
     margin-right: 0.25rem;
     border-radius: 0.25rem;
+
+    &:hover {
+      opacity: 0.8;
+      transform: scale(1.03);
+    }
+  }
+
+  // Cursor pointer for clickable airport elements
+  .airport-code.clickable,
+  .airport-name.clickable {
+    cursor: pointer;
   }
 
   .model {

@@ -47,6 +47,8 @@ export interface PlaneLogEntry {
   isSpecial?: boolean; // Add special plane flag
   airportName?: string; // Name of airport if plane is on ground near one
   airportCode?: string; // IATA code for airport if available
+  airportLat?: number;
+  airportLon?: number;
 }
 
 @Component({
@@ -110,6 +112,7 @@ export class ResultsOverlayComponent
   @Output() exportFilterList = new EventEmitter<void>();
   @Output() clearHistoricalList = new EventEmitter<void>();
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
 
@@ -158,6 +161,11 @@ export class ResultsOverlayComponent
   // Handle clear seen list click
   public onClearHistoricalList(): void {
     this.clearHistoricalList.emit();
+  }
+
+  // Handle airport center click from child
+  public handleCenterAirport(coords: { lat: number; lon: number }): void {
+    this.centerAirport.emit(coords);
   }
 
   // Provide getTimeAgo to template

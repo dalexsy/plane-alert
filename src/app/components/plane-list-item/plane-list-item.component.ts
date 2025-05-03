@@ -78,6 +78,7 @@ export class PlaneListItemComponent {
   }
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
@@ -116,5 +117,15 @@ export class PlaneListItemComponent {
   onToggleSpecial(event: Event): void {
     event.stopPropagation();
     this.toggleSpecial.emit(this.plane);
+  }
+
+  onCenterAirport(event: Event): void {
+    event.stopPropagation();
+    if (this.plane.airportLat != null && this.plane.airportLon != null) {
+      this.centerAirport.emit({
+        lat: this.plane.airportLat,
+        lon: this.plane.airportLon,
+      });
+    }
   }
 }

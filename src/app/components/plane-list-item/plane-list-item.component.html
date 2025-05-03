@@ -77,25 +77,28 @@
       <!-- Display IATA code (Airport only) -->
       <span
         ><span
-          class="airport-code"
+          class="airport-code clickable"
           *ngIf="listType === 'airport' && plane.airportCode"
           [title]="plane.airportName"
+          (click)="onCenterAirport($event)"
         >
           {{ plane.airportCode }}
         </span>
         <span
-          class="airport-name"
+          class="airport-name clickable"
           *ngIf="
             listType === 'airport' && !plane.airportCode && plane.airportName
           "
+          (click)="onCenterAirport($event)"
         >
           {{ plane.airportName }}
         </span>
-        <!-- Show airport code if available before direction -->
+        <!-- Clickable airport code for sky list -->
         <span
-          *ngIf="plane.airportCode"
-          class="airport-code"
+          *ngIf="listType === 'sky' && plane.airportCode"
+          class="airport-code clickable"
           [title]="plane.airportName"
+          (click)="onCenterAirport($event)"
         >
           {{ plane.airportCode }}
         </span></span

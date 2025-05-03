@@ -52,6 +52,11 @@ a:active {
   color: inherit;
 }
 
+a:hover {
+  opacity: 0.8;
+  transform: scale(1.02);
+}
+
 // Font family variables
 $font-body: "Instrument Sans", sans-serif;
 $font-header: "Instrument Sans", sans-serif;

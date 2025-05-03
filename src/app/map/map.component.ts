@@ -1024,6 +1024,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             if (data) {
               p.airportCode = data.code || undefined;
               p.airportName = data.name;
+              p.airportLat = center.lat;
+              p.airportLon = center.lng;
             }
           }
         }
@@ -1035,7 +1037,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Sort sky list by firstSeen for display (newest bottom)
     visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
     this.resultsOverlayComponent.skyPlaneLog = visiblePlanes;
-    this.resultsOverlayComponent.airportPlaneLog = [];
+    // Show planes at airports (those with assigned airportCode)
+    const airportPlanes = visiblePlanes.filter((p) => p.airportCode != null);
+    this.resultsOverlayComponent.airportPlaneLog = airportPlanes;
+
     // Compute nearest (or followed) plane for overlay
     this.computeClosestPlane();
 
@@ -1430,6 +1435,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public followNearestPlane(plane: PlaneModel): void {
     // Always center and highlight, just like results overlay
     this.centerOnPlane(plane);
+  }
+
+  /** Handle centering map on selected airport coordinates */
+  public onCenterAirport(coords: { lat: number; lon: number }): void {
+    // Pan map to airport coordinates
+    this.map.panTo([coords.lat, coords.lon]);
   }
 
   // New function to find and display airports
