@@ -9,7 +9,7 @@
 ></app-closest-plane-overlay>
 
 <app-input-overlay
-  (resolveAndUpdate)="onUpdateNow()"
+  (resolveAndUpdate)="resolveAndUpdateFromAddress()"
   (excludeDiscountChange)="onExcludeDiscountChange()"
   (useCurrentLocation)="useCurrentLocation()"
   (goToAirport)="goToAirport()"
@@ -31,7 +31,7 @@
   [loadingAirports]="loadingAirports"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [activePlaneIcaos]="activePlaneIcaos"
-  (centerPlane)="centerOnPlane($event)"
+  (centerPlane)="centerOnPlane($event, true)"
   (centerAirport)="onCenterAirport($event)"
   (hoverPlane)="onHoverOverlayPlane($event)"
   (unhoverPlane)="onUnhoverOverlayPlane($event)"

@@ -45,10 +45,12 @@ export interface PlaneLogEntry {
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
   isSpecial?: boolean; // Add special plane flag
+  onGround?: boolean; // Indicates if plane is on the ground
   airportName?: string; // Name of airport if plane is on ground near one
   airportCode?: string; // IATA code for airport if available
   airportLat?: number;
   airportLon?: number;
+  altitude?: number | null; // plane altitude in meters, nullable to match PlaneModel
 }
 
 @Component({
@@ -662,13 +664,19 @@ export class ResultsOverlayComponent
 
   /** Choose a random visible plane and emit centerPlane to follow */
   private pickAndCenterRandomPlane(): void {
-    const candidates = [
-      ...this.filteredSkyPlaneLog,
-      ...this.filteredAirportPlaneLog,
-    ];
+    // Only consider high‑flying sky planes (not on ground) above 200m
+    const candidates = this.filteredSkyPlaneLog.filter(
+      (p) => !p.onGround && p.altitude != null && p.altitude > 200
+    );
     if (candidates.length === 0) return;
-    const idx = Math.floor(Math.random() * candidates.length);
-    const selected = candidates[idx];
+    // If shuffle active and there are priority planes, prefer them
+    let pool = candidates;
+    const priority = pool.filter((p) => p.isMilitary || p.isSpecial);
+    if (this.shuffleMode && priority.length > 0) {
+      pool = priority;
+    }
+    const idx = Math.floor(Math.random() * pool.length);
+    const selected = pool[idx];
     // Keep highlighting the picked plane
     this.highlightedPlaneIcao = selected.icao;
     this.centerPlane.emit(selected);

@@ -37,6 +37,7 @@ export class PlaneModel implements Plane {
   airportCode?: string; // Optional short code (IATA) for airport
   airportLat?: number; // Latitude of center of airport circle assigned when plane is at airport
   airportLon?: number; // Longitude of center of airport circle assigned when plane is at airport
+  altitude?: number | null; // Current altitude in meters
 
   // Store position history for path prediction (limited to last 5 positions)
   positionHistory: PositionHistory[] = [];

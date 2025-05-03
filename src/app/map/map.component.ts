@@ -1036,10 +1036,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
     // Sort sky list by firstSeen for display (newest bottom)
     visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
-    this.resultsOverlayComponent.skyPlaneLog = visiblePlanes;
+    this.resultsOverlayComponent.skyPlaneLog =
+      visiblePlanes as unknown as PlaneLogEntry[];
     // Show planes at airports (those with assigned airportCode)
     const airportPlanes = visiblePlanes.filter((p) => p.airportCode != null);
-    this.resultsOverlayComponent.airportPlaneLog = airportPlanes;
+    this.resultsOverlayComponent.airportPlaneLog =
+      airportPlanes as unknown as PlaneLogEntry[];
 
     // Compute nearest (or followed) plane for overlay
     this.computeClosestPlane();
@@ -1068,7 +1070,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.resultsOverlayComponent.seenPlaneLog = [
       ...militaryPlanes,
       ...otherPlanes,
-    ];
+    ] as unknown as PlaneLogEntry[];
 
     // Only clear follow state if the followed plane is gone
     if (this.followNearest && this.highlightedPlaneIcao) {
@@ -1384,7 +1386,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
-  centerOnPlane(plane: PlaneLogEntry, preserveFollowNearest = false): void {
+  centerOnPlane(
+    plane: PlaneLogEntry | PlaneModel,
+    preserveFollowNearest = false
+  ): void {
     // Always follow when a plane is centered from the results list or overlay
     this.followNearest = true;
 
