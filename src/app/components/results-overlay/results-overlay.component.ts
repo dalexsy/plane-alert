@@ -120,10 +120,12 @@ export class ResultsOverlayComponent
   // Shuffle mode: pick random plane to follow every interval
   shuffleMode = false;
   private shuffleSub: Subscription | null = null;
+  // --- Add persistent shuffle follow state ---
+  private shuffleFollowedIcao: string | null = null;
 
   // Filtered versions of the plane logs
   filteredSkyPlaneLog: PlaneLogEntry[] = [];
-  filteredAirportPlaneLog: PlaneLogEntry[] = [];
+  filteredAirportPlaneLog: PlaneLogEntry[] = []; // Will be kept empty
   filteredSeenPlaneLog: PlaneLogEntry[] = [];
 
   now = Date.now();
@@ -375,16 +377,8 @@ export class ResultsOverlayComponent
       .filter((plane) => !plane.filteredOut)
       .sort(militaryThenDistance);
 
-    // Exclude airport planes over 300km from settings center, then sort military first
-    this.filteredAirportPlaneLog = this.airportPlaneLog
-      .filter(
-        (plane) =>
-          !plane.filteredOut &&
-          plane.lat != null &&
-          plane.lon != null &&
-          haversineDistance(centerLat, centerLon, plane.lat, plane.lon) <= 300
-      )
-      .sort(militaryThenDistance);
+    // Remove airport planes from overlay: set filteredAirportPlaneLog to empty
+    this.filteredAirportPlaneLog = [];
 
     // Sort seen planes: military first, then by distance
     this.filteredSeenPlaneLog = this.seenPlaneLog
@@ -657,27 +651,51 @@ export class ResultsOverlayComponent
   private stopShuffle(): void {
     this.shuffleSub?.unsubscribe();
     this.shuffleSub = null;
-    // Clear highlight when shuffle stops
+    // Clear highlight and persistent ICAO when shuffle stops
     this.highlightedPlaneIcao = null;
+    this.shuffleFollowedIcao = null;
     this.cdr.markForCheck();
   }
 
   /** Choose a random visible plane and emit centerPlane to follow */
   private pickAndCenterRandomPlane(): void {
-    // Only consider high‑flying sky planes (not on ground) above 200m
-    const candidates = this.filteredSkyPlaneLog.filter(
-      (p) => !p.onGround && p.altitude != null && p.altitude > 200
-    );
-    if (candidates.length === 0) return;
-    // If shuffle active and there are priority planes, prefer them
-    let pool = candidates;
-    const priority = pool.filter((p) => p.isMilitary || p.isSpecial);
-    if (this.shuffleMode && priority.length > 0) {
+    const priority = this.filteredSkyPlaneLog.filter((p) => p.isMilitary || p.isSpecial);
+    let pool: PlaneLogEntry[] = [];
+    const hasMilitary = this.filteredSkyPlaneLog.some(p => p.isMilitary);
+
+    if (priority.length > 0) {
       pool = priority;
+    } else {
+      pool = this.filteredSkyPlaneLog.filter(
+        (p) => !p.onGround && p.altitude != null && p.altitude > 200
+      );
     }
+
+    if (pool.length === 0) {
+      console.log('[ShuffleFollow] No candidate planes to follow. Keeping previous highlight:', this.highlightedPlaneIcao);
+      // Do NOT clear highlightedPlaneIcao here!
+      return;
+    }
+
+    // If we already have a followed ICAO and it's still present, keep following it
+    if (this.shuffleFollowedIcao) {
+      const stillPresent = pool.find(p => p.icao === this.shuffleFollowedIcao);
+      if (stillPresent) {
+        console.log(`[ShuffleFollow] Continuing to follow plane:`, stillPresent, `Military on map:`, hasMilitary);
+        this.highlightedPlaneIcao = stillPresent.icao;
+        this.centerPlane.emit(stillPresent);
+        this.cdr.markForCheck();
+        return;
+      } else {
+        console.log('[ShuffleFollow] Previously followed plane is gone. Picking a new one.');
+      }
+    }
+
+    // Pick a new one at random
     const idx = Math.floor(Math.random() * pool.length);
     const selected = pool[idx];
-    // Keep highlighting the picked plane
+    console.log(`[ShuffleFollow] Changing followed plane to:`, selected, `Military on map:`, hasMilitary);
+    this.shuffleFollowedIcao = selected.icao;
     this.highlightedPlaneIcao = selected.icao;
     this.centerPlane.emit(selected);
     this.cdr.markForCheck();

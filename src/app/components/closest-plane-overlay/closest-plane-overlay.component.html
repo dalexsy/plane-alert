@@ -2,6 +2,8 @@
   *ngIf="plane"
   class="closest-plane-overlay"
   [class.selected]="isSelected"
+  [class.military-plane]="isSelected && plane?.isMilitary"
+  [class.special-plane]="isSelected && plane?.isSpecial"
   (click)="onClick()"
   title="Center plane"
 >

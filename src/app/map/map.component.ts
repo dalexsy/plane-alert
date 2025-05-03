@@ -1232,6 +1232,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           ); // Triggers airport search
         }
       });
+    // Always force a scan at the end
+    this.scanService.forceScan();
   }
 
   onExcludeDiscountChange(): void {
