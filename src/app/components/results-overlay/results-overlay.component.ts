@@ -115,6 +115,9 @@ export class ResultsOverlayComponent
   @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+  // Shuffle mode: pick random plane to follow every interval
+  shuffleMode = false;
+  private shuffleSub: Subscription | null = null;
 
   // Filtered versions of the plane logs
   filteredSkyPlaneLog: PlaneLogEntry[] = [];
@@ -628,5 +631,47 @@ export class ResultsOverlayComponent
     this.collapsed = !this.collapsed;
     localStorage.setItem('resultsOverlayCollapsed', this.collapsed.toString());
     this.cdr.detectChanges();
+  }
+
+  /** Toggle shuffle mode on/off */
+  toggleShuffle(): void {
+    this.shuffleMode = !this.shuffleMode;
+    if (this.shuffleMode) {
+      this.startShuffle();
+    } else {
+      this.stopShuffle();
+    }
+  }
+
+  /** Begin shuffle: immediately pick a plane, then every 30s */
+  private startShuffle(): void {
+    this.pickAndCenterRandomPlane();
+    this.shuffleSub = interval(30000).subscribe(() =>
+      this.pickAndCenterRandomPlane()
+    );
+  }
+
+  /** Stop shuffle mode */
+  private stopShuffle(): void {
+    this.shuffleSub?.unsubscribe();
+    this.shuffleSub = null;
+    // Clear highlight when shuffle stops
+    this.highlightedPlaneIcao = null;
+    this.cdr.markForCheck();
+  }
+
+  /** Choose a random visible plane and emit centerPlane to follow */
+  private pickAndCenterRandomPlane(): void {
+    const candidates = [
+      ...this.filteredSkyPlaneLog,
+      ...this.filteredAirportPlaneLog,
+    ];
+    if (candidates.length === 0) return;
+    const idx = Math.floor(Math.random() * candidates.length);
+    const selected = candidates[idx];
+    // Keep highlighting the picked plane
+    this.highlightedPlaneIcao = selected.icao;
+    this.centerPlane.emit(selected);
+    this.cdr.markForCheck();
   }
 }

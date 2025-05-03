@@ -40,6 +40,11 @@
     border-radius: 0.5rem 0 0 0.5rem;
     border: 1px solid rgb(255 255 255 / 40%);
     border-right: none;
+
+    .shuffle-toggle.active {
+      color: #00ffff;
+      background-color: rgba(0, 255, 255, 0.2);
+    }
   }
 
   // Remove gap for the first overlay content item when not collapsed

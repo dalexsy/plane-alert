@@ -39,6 +39,19 @@
         "
         (click)="onToggleCommercialMute()"
       ></app-button>
+      <!-- Shuffle follow mode toggle -->
+      <app-button
+        class="shuffle-toggle"
+        [icon]="'shuffle'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'
+        "
+        [title]="shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'"
+        [ngClass]="{ active: shuffleMode }"
+        (click)="toggleShuffle()"
+      ></app-button>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">
