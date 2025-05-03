@@ -8,6 +8,14 @@
   [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
 ></app-closest-plane-overlay>
 
+<app-location-overlay
+  [plane]="closestPlane"
+  [street]="locationStreet"
+  [district]="locationDistrict"
+  (selectPlane)="followNearestPlane($event)"
+  [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
+></app-location-overlay>
+
 <app-input-overlay
   (resolveAndUpdate)="resolveAndUpdateFromAddress()"
   (excludeDiscountChange)="onExcludeDiscountChange()"

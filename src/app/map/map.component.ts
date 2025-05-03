@@ -38,6 +38,8 @@ import { DOCUMENT } from '@angular/common';
 import { ClockComponent } from '../components/ui/clock.component';
 import { TemperatureComponent } from '../components/ui/temperature.component';
 import { ClosestPlaneOverlayComponent } from '../components/closest-plane-overlay/closest-plane-overlay.component';
+import { LocationOverlayComponent } from '../components/location-overlay/location-overlay.component';
+import { LocationService } from '../services/location.service';
 
 // OpenWeatherMap tile service API key - replace with your own key
 const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
@@ -66,6 +68,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     ClockComponent,
     TemperatureComponent,
     ClosestPlaneOverlayComponent,
+    LocationOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -143,6 +146,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   private _initialScanDone = false; // Flag to prevent double scan
 
+  // New properties for location-overlay component
+  locationStreet: string | null = null;
+  locationDistrict: string | null = null;
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -156,7 +163,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private mapPanService: MapPanService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
-    private militaryPrefixService: MilitaryPrefixService
+    private militaryPrefixService: MilitaryPrefixService,
+    private locationService: LocationService
   ) {
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -943,6 +951,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     } else {
       this.closestVelocity = null;
       this.closestSecondsAway = null;
+    }
+
+    // Update location info if we're following a plane
+    if (this.followNearest && this.highlightedPlaneIcao) {
+      this.updatePlaneLocationInfo();
+    } else {
+      // Clear location data when not following a plane
+      this.locationStreet = null;
+      this.locationDistrict = null;
     }
   }
 
@@ -1754,5 +1771,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onUpdateNow(): void {
     this.scanService.forceScan();
+  }
+
+  /** Update location information for the followed plane */
+  private updatePlaneLocationInfo(): void {
+    // Only fetch location when a plane is being followed
+    if (this.followNearest && this.highlightedPlaneIcao && this.closestPlane) {
+      const plane = this.closestPlane;
+      if (plane && plane.lat !== null && plane.lon !== null) {
+        this.locationService
+          .getLocationInfo(plane.lat, plane.lon)
+          .subscribe((locationInfo) => {
+            this.locationStreet = locationInfo.street;
+            this.locationDistrict = locationInfo.district;
+            this.cdr.detectChanges();
+          });
+      }
+    }
   }
 }

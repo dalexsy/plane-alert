@@ -1,0 +1,25 @@
+<div
+  *ngIf="plane && (street || district)"
+  class="location-overlay"
+  [class.selected]="isSelected"
+  [class.military-plane]="isSelected && plane.isMilitary"
+  [class.special-plane]="isSelected && plane.isSpecial"
+  (click)="onClick()"
+  title="Center plane"
+>
+  <app-icon
+    icon="location_on"
+    variant="sharp"
+    size="small"
+    ariaLabel="Plane location"
+  ></app-icon>
+  <ng-container *ngIf="street && district">
+    <span class="street">{{ street }}</span> in <span class="district">{{ district }}</span>
+  </ng-container>
+  <ng-container *ngIf="street && !district">
+    <span class="street">{{ street }}</span>
+  </ng-container>
+  <ng-container *ngIf="!street && district">
+    <span class="district">{{ district }}</span>
+  </ng-container>
+</div>
