@@ -18,12 +18,20 @@ describe('LocationOverlayComponent', () => {
     fixture = TestBed.createComponent(LocationOverlayComponent);
     component = fixture.componentInstance;
 
-    // Create mock plane data
+    // Create mock plane data with all required properties
     const mockPlane = new PlaneModel({
       icao: 'ABC123',
       callsign: 'TEST123',
       lat: 51.5074,
       lon: -0.1278,
+      origin: 'UK',
+      firstSeen: Date.now(),
+      model: 'B737',
+      operator: 'Test Airways',
+      bearing: 90,
+      cardinal: 'E',
+      arrow: '→',
+      isNew: false,
     });
 
     component.plane = mockPlane;
@@ -76,6 +84,14 @@ describe('LocationOverlayComponent', () => {
       callsign: 'TEST123',
       lat: 51.5074,
       lon: -0.1278,
+      origin: 'UK',
+      firstSeen: Date.now(),
+      model: 'B737',
+      operator: 'Test Airways',
+      bearing: 90,
+      cardinal: 'E',
+      arrow: '→',
+      isNew: false,
     });
     component.plane = mockPlane;
     fixture.detectChanges();

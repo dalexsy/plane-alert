@@ -228,11 +228,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  onToggleDateTimeOverlays(): void {
-    this.showDateTime = !this.showDateTime;
-    this.settings.setShowDateTimeOverlay(this.showDateTime);
-  }
-
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
     await this.aircraftDb.load();
@@ -370,6 +365,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Initialize map panning service
     this.mapPanService.init(this.map);
+
+    // Periodic debug log to check shuffle/follow state
+    this.ngZone.runOutsideAngular(() => {
+      setInterval(() => {
+        console.log(
+          `[ShuffleCheck] shuffleMode=${this.resultsOverlayComponent.shuffleMode}, ` +
+            `followNearest=${this.followNearest}, highlightedPlaneIcao=${this.highlightedPlaneIcao}`
+        );
+      }, 20000);
+    });
   }
 
   ngOnDestroy(): void {
@@ -953,13 +958,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.closestSecondsAway = null;
     }
 
-    // Update location info if we're following a plane
-    if (this.followNearest && this.highlightedPlaneIcao) {
-      this.updatePlaneLocationInfo();
-    } else {
-      // Clear location data when not following a plane
-      this.locationStreet = null;
-      this.locationDistrict = null;
+    // Always update location information for the closest plane,
+    // even if we're not following it yet
+    if (candidate && candidate.lat !== null && candidate.lon !== null) {
+      this.locationService
+        .getLocationInfo(candidate.lat, candidate.lon)
+        .subscribe((locationInfo) => {
+          this.locationStreet = locationInfo.street;
+          this.locationDistrict = locationInfo.district;
+          this.cdr.detectChanges();
+        });
     }
   }
 
@@ -1011,6 +1019,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const tooltipEl = followed.marker.getTooltip()?.getElement();
         followed.marker.setZIndexOffset(20000);
         markerEl?.classList.add('highlighted-marker');
+        // Add followed-plane class for cyan border unless military or special
+        if (
+          markerEl &&
+          !markerEl.classList.contains('military-plane') &&
+          !markerEl.classList.contains('special-plane')
+        ) {
+          markerEl.classList.add('followed-plane');
+        }
         if (tooltipEl) {
           tooltipEl.classList.add('highlighted-tooltip');
           tooltipEl.classList.add('followed-plane-tooltip');
@@ -1089,13 +1105,38 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       ...otherPlanes,
     ] as unknown as PlaneLogEntry[];
 
-    // Only clear follow state if the followed plane is gone
+    // Store the current followed ICAO to check if we need to find a replacement
+    const wasFollowing = this.followNearest && this.highlightedPlaneIcao;
+    const previousFollowedIcao = this.highlightedPlaneIcao;
+
+    // Only clear follow state if the followed plane is gone and not in shuffle mode
     if (this.followNearest && this.highlightedPlaneIcao) {
+      // Check if this is a shuffle-followed plane by looking for a property on the results component
+      const isShuffleMode = this.resultsOverlayComponent.shuffleMode;
+
       if (!this.planeLog.has(this.highlightedPlaneIcao)) {
-        this.followNearest = false;
-        this.highlightedPlaneIcao = null;
+        if (isShuffleMode) {
+          // In shuffle mode, we need to pick a new plane instead of unfollowing
+          console.log(
+            '[updatePlaneLog] Shuffle-followed plane lost, requesting new shuffle...'
+          );
+          // Trigger a new shuffle via the component (will pick a new plane)
+          this.ngZone.run(() => {
+            setTimeout(() => {
+              this.resultsOverlayComponent.triggerNewShuffle();
+            }, 100);
+          });
+        } else {
+          // Normal mode - unfollow if plane is gone
+          console.log(
+            '[updatePlaneLog] Followed plane lost, clearing follow state'
+          );
+          this.followNearest = false;
+          this.highlightedPlaneIcao = null;
+        }
       }
     }
+
     this.updateFollowedStyles(); // <-- ensure all planes update
   }
 
@@ -1409,14 +1450,66 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     plane: PlaneLogEntry | PlaneModel,
     preserveFollowNearest = false
   ): void {
-    // Always follow when a plane is centered from the results list or overlay
-    this.followNearest = true;
+    // If user manually follows a plane while shuffle is active, stop shuffle mode
+    if (this.resultsOverlayComponent.shuffleMode && !('followMe' in plane)) {
+      console.log(
+        '[CenterOnPlane] Manual follow detected, stopping shuffle mode'
+      );
+      this.resultsOverlayComponent.toggleShuffle();
+    }
+
+    console.log('[CenterOnPlane] Starting centerOnPlane...', {
+      planeIcao: plane.icao,
+      preserveFollowNearest,
+      followMeFlag: 'followMe' in plane && plane.followMe === true,
+      currentFollowNearest: this.followNearest,
+      currentHighlightedPlaneIcao: this.highlightedPlaneIcao,
+    });
+
+    // Check if this is a request from shuffle mode (has a followMe flag)
+    const isFromShuffle = 'followMe' in plane && plane.followMe === true;
+    console.log('[CenterOnPlane] Is from shuffle:', isFromShuffle);
+
+    // Update followNearest flag if needed
+    if (isFromShuffle) {
+      // If the plane has the followMe flag, ALWAYS enable tracking regardless of preserveFollowNearest
+      this.followNearest = true;
+      console.log(
+        '[CenterOnPlane] Setting followNearest=true because plane has followMe flag'
+      );
+    } else if (!preserveFollowNearest) {
+      // For normal centering without preserveFollowNearest, turn tracking off
+      this.followNearest = false;
+      console.log(
+        '[CenterOnPlane] Setting followNearest=false (normal centering without preserveFollowNearest)'
+      );
+    } else {
+      // When preserveFollowNearest is true, keep the current value
+      console.log(
+        '[CenterOnPlane] Preserving current followNearest value:',
+        this.followNearest
+      );
+    }
 
     const icao = plane.icao;
-    // If already highlighted, remove highlight
-    if (this.highlightedPlaneIcao === icao) {
+
+    // If already highlighted, we should NOT unfollow the plane unless it's from a tooltip
+    // This prevents unintentional unfollowing when clicking on the overlays
+    if (this.highlightedPlaneIcao === icao && !preserveFollowNearest) {
+      // Don't do anything if we're just clicking the same plane in the overlays
+      console.log(
+        '[CenterOnPlane] Already highlighted the same plane and preserveFollowNearest is false, doing nothing'
+      );
+      return;
+    } else if (this.highlightedPlaneIcao === icao) {
+      // Only tooltip clicks should unfollow (preserveFollowNearest will be true)
+      console.log(
+        '[CenterOnPlane] Already highlighted same plane with preserveFollowNearest true, unfollowing plane'
+      );
       this.unhighlightPlane(icao);
       this.highlightedPlaneIcao = null;
+      this.followNearest = false;
+
       // Refresh lists to reflect removal of highlight
       this.updatePlaneLog(Array.from(this.planeLog.values()));
       this.resultsOverlayComponent.sortLogs();
@@ -1427,14 +1520,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Unhighlight previously highlighted plane
     if (this.highlightedPlaneIcao) {
+      console.log(
+        '[CenterOnPlane] Unhighlighting previous plane:',
+        this.highlightedPlaneIcao
+      );
       this.unhighlightPlane(this.highlightedPlaneIcao);
     }
 
     // Highlight new plane
+    console.log('[CenterOnPlane] Setting new highlightedPlaneIcao:', icao);
     this.highlightedPlaneIcao = icao;
     const pm = this.planeLog.get(icao);
     if (pm?.marker && plane.lat != null && plane.lon != null) {
       // Pan map to plane location without changing zoom
+      console.log(
+        `[CenterOnPlane] Panning to plane at [${plane.lat}, ${plane.lon}]`
+      );
       this.map.panTo([plane.lat, plane.lon]);
       // Bring marker to front above all tooltips
       pm.marker.setZIndexOffset(20000);
@@ -1447,18 +1548,51 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
+
+      console.log('[CenterOnPlane] Applied highlighting styles. Final state:', {
+        followNearest: this.followNearest,
+        highlightedPlaneIcao: this.highlightedPlaneIcao,
+      });
+
       // Refresh lists so this plane moves to the top
       this.updatePlaneLog(Array.from(this.planeLog.values()));
       this.resultsOverlayComponent.sortLogs();
       this.resultsOverlayComponent.updateFilteredLogs();
       this.cdr.detectChanges();
+    } else {
+      console.warn(
+        '[CenterOnPlane] Could not highlight plane - marker missing or coordinates invalid',
+        {
+          hasMarker: !!pm?.marker,
+          lat: plane.lat,
+          lon: plane.lon,
+        }
+      );
     }
   }
 
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: PlaneModel): void {
-    // Always center and highlight, just like results overlay
-    this.centerOnPlane(plane);
+    console.log('[followNearestPlane] Called with plane:', plane);
+
+    // Check if this plane comes from the shuffle feature
+    const isFromShuffle = 'followMe' in plane && plane.followMe === true;
+    console.log('[followNearestPlane] Is from shuffle:', isFromShuffle);
+
+    // Always set followNearest to true for planes from shuffle
+    if (isFromShuffle) {
+      this.followNearest = true;
+      console.log(
+        '[followNearestPlane] Setting followNearest=true for shuffled plane'
+      );
+
+      // We need to call centerOnPlane with preserveFollowNearest=false so that
+      // it doesn't skip updating the followNearest flag inside centerOnPlane
+      this.centerOnPlane(plane, false);
+    } else {
+      // For regular plane selection, use the standard behavior
+      this.centerOnPlane(plane, false);
+    }
   }
 
   /** Handle centering map on selected airport coordinates */
@@ -1788,5 +1922,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           });
       }
     }
+  }
+
+  onToggleDateTimeOverlays(): void {
+    this.showDateTime = !this.showDateTime;
+    this.settings.setShowDateTimeOverlay(this.showDateTime);
+    this.cdr.detectChanges();
   }
 }

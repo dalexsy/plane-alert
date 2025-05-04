@@ -377,6 +377,17 @@ export class ResultsOverlayComponent
       .filter((plane) => !plane.filteredOut)
       .sort(militaryThenDistance);
 
+    // Bring manually followed plane to top
+    if (this.highlightedPlaneIcao) {
+      const idx = this.filteredSkyPlaneLog.findIndex(
+        (p) => p.icao === this.highlightedPlaneIcao
+      );
+      if (idx > 0) {
+        const [followed] = this.filteredSkyPlaneLog.splice(idx, 1);
+        this.filteredSkyPlaneLog.unshift(followed);
+      }
+    }
+
     // Remove airport planes from overlay: set filteredAirportPlaneLog to empty
     this.filteredAirportPlaneLog = [];
 
@@ -659,45 +670,65 @@ export class ResultsOverlayComponent
 
   /** Choose a random visible plane and emit centerPlane to follow */
   private pickAndCenterRandomPlane(): void {
-    const priority = this.filteredSkyPlaneLog.filter((p) => p.isMilitary || p.isSpecial);
+    console.log('[ShuffleFollow] Starting pickAndCenterRandomPlane...');
+    const priority = this.filteredSkyPlaneLog.filter(
+      (p) => p.isMilitary || p.isSpecial
+    );
     let pool: PlaneLogEntry[] = [];
-    const hasMilitary = this.filteredSkyPlaneLog.some(p => p.isMilitary);
+    const hasMilitary = this.filteredSkyPlaneLog.some((p) => p.isMilitary);
+
+    console.log(
+      `[ShuffleFollow] Found ${priority.length} priority planes (military/special), ${this.filteredSkyPlaneLog.length} total planes`
+    );
 
     if (priority.length > 0) {
       pool = priority;
+      console.log('[ShuffleFollow] Using priority planes pool');
     } else {
       pool = this.filteredSkyPlaneLog.filter(
         (p) => !p.onGround && p.altitude != null && p.altitude > 200
       );
+      console.log(
+        `[ShuffleFollow] Using filtered airborne planes pool: ${pool.length} planes`
+      );
     }
 
     if (pool.length === 0) {
-      console.log('[ShuffleFollow] No candidate planes to follow. Keeping previous highlight:', this.highlightedPlaneIcao);
-      // Do NOT clear highlightedPlaneIcao here!
+      console.log(
+        '[ShuffleFollow] No candidate planes to follow. Keeping previous highlight:',
+        this.highlightedPlaneIcao
+      );
       return;
     }
 
-    // If we already have a followed ICAO and it's still present, keep following it
-    if (this.shuffleFollowedIcao) {
-      const stillPresent = pool.find(p => p.icao === this.shuffleFollowedIcao);
-      if (stillPresent) {
-        console.log(`[ShuffleFollow] Continuing to follow plane:`, stillPresent, `Military on map:`, hasMilitary);
-        this.highlightedPlaneIcao = stillPresent.icao;
-        this.centerPlane.emit(stillPresent);
-        this.cdr.markForCheck();
-        return;
-      } else {
-        console.log('[ShuffleFollow] Previously followed plane is gone. Picking a new one.');
-      }
-    }
-
-    // Pick a new one at random
+    // Always pick a new random plane
     const idx = Math.floor(Math.random() * pool.length);
     const selected = pool[idx];
-    console.log(`[ShuffleFollow] Changing followed plane to:`, selected, `Military on map:`, hasMilitary);
+    console.log(
+      `[ShuffleFollow] Randomly selected plane: ${selected.icao}, callsign: ${selected.callsign}. Military on map: ${hasMilitary}`
+    );
     this.shuffleFollowedIcao = selected.icao;
     this.highlightedPlaneIcao = selected.icao;
-    this.centerPlane.emit(selected);
+
+    const planeToFollow = { ...selected, followMe: true };
+    console.log(
+      '[ShuffleFollow] Emitting centerPlane event with followMe flag for new plane:',
+      planeToFollow
+    );
+    this.centerPlane.emit(planeToFollow);
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Trigger a new shuffle selection, called when a shuffled plane disappears
+   * Public method to be called from the map component
+   */
+  public triggerNewShuffle(): void {
+    console.log(
+      '[ResultsOverlay] triggerNewShuffle called - picking new random plane'
+    );
+    if (this.shuffleMode) {
+      this.pickAndCenterRandomPlane();
+    }
   }
 }

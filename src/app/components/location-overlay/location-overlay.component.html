@@ -14,7 +14,8 @@
     ariaLabel="Plane location"
   ></app-icon>
   <ng-container *ngIf="street && district">
-    <span class="street">{{ street }}</span> in <span class="district">{{ district }}</span>
+    <span class="street">{{ street }}</span> in
+    <span class="district">{{ district }}</span>
   </ng-container>
   <ng-container *ngIf="street && !district">
     <span class="street">{{ street }}</span>
