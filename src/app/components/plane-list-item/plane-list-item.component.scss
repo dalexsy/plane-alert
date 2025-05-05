@@ -16,6 +16,10 @@ $followed-plane-color: #00ffff;
     border-bottom: none;
   }
 
+  .none-callsign {
+    font-style: italic;
+  }
+
   &.new-plane {
     color: $new-plane-color;
   }
@@ -178,10 +182,6 @@ $followed-plane-color: #00ffff;
     font-size: 1rem;
     width: 1rem;
     height: 1rem;
-  }
-
-  .none-callsign {
-    color: gray;
   }
 
   .call-sign {
