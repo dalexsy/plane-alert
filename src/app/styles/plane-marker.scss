@@ -81,11 +81,6 @@ $followed-plane-color: #00ffff;
     animation: none;
   }
 
-  // &.new-plane color overridden to use altitude color instead of red
-  &.new-plane {
-    // color: $new-plane-color;
-  }
-
   &.followed-plane {
     color: $followed-plane-color;
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));

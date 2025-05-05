@@ -85,7 +85,12 @@
             else noSkyPlanes
           "
         >
-          <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
+          <div
+            class="plane-list"
+            #skyList
+            (scroll)="onSkyScroll($event)"
+            [@listAnimation]="highlightedPlaneIcao"
+          >
             <app-plane-list-item
               *ngFor="let plane of filteredSkyPlaneLog"
               [plane]="plane"
@@ -124,6 +129,7 @@
             class="plane-list"
             #airportList
             (scroll)="onAirportScroll($event)"
+            [@listAnimation]="highlightedPlaneIcao"
           >
             <app-plane-list-item
               *ngFor="let plane of filteredAirportPlaneLog"
@@ -183,6 +189,7 @@
             class="seen-list plane-list"
             #seenList
             (scroll)="onSeenScroll($event)"
+            [@listAnimation]="highlightedPlaneIcao"
           >
             <app-plane-list-item
               *ngFor="let plane of filteredSeenPlaneLog"

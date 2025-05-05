@@ -28,6 +28,13 @@ import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
 import { MilitaryPrefixService } from '../../services/military-prefix.service';
 import { haversineDistance } from '../../utils/geo-utils';
+import {
+  trigger,
+  transition,
+  style,
+  query,
+  animate,
+} from '@angular/animations';
 
 export interface PlaneLogEntry {
   callsign: string;
@@ -65,6 +72,35 @@ export interface PlaneLogEntry {
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('listAnimation', [
+      transition('* <=> *', [
+        // animate new items entering
+        query(
+          ':enter',
+          [
+            style({ opacity: 0, transform: 'translateX(-10px)' }),
+            animate(
+              '200ms ease-out',
+              style({ opacity: 1, transform: 'translateX(0)' })
+            ),
+          ],
+          { optional: true }
+        ),
+        // animate items leaving
+        query(
+          ':leave',
+          [
+            animate(
+              '200ms ease-in',
+              style({ opacity: 0, transform: 'translateX(10px)' })
+            ),
+          ],
+          { optional: true }
+        ),
+      ]),
+    ]),
+  ],
 })
 export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
