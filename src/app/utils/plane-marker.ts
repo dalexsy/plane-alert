@@ -1,6 +1,6 @@
 /* src/app/utils/plane-marker.ts */
 import * as L from 'leaflet';
-import { GENERIC_PLANE_SVG } from './plane-icons';
+import { getIconPathForModel } from './plane-icons';
 
 // We can't inject services directly in a utility function, so we'll accept the helicopter check as a parameter
 export function createOrUpdatePlaneMarker(
@@ -30,9 +30,10 @@ export function createOrUpdatePlaneMarker(
     modelLower.includes('chopper');
 
   // Inline SVG for non-helicopters, CSS ::before for helicopters
+  const svgPath = isCopter ? '' : getIconPathForModel(model);
   const iconInner = isCopter
     ? ''
-    : `<svg class="inline-plane" viewBox="0 0 64 64"><path d="${GENERIC_PLANE_SVG}"/></svg>`;
+    : `<svg class="inline-plane" viewBox="0 0 64 64"><path d="${svgPath}"/></svg>`;
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon
   // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class

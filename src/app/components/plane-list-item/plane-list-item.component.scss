@@ -16,7 +16,9 @@ $followed-plane-color: #00ffff;
     border-bottom: none;
   }
 
-  .none-callsign {
+  .none-callsign,
+  .unknown-operator {
+    opacity: 0.8;
     font-style: italic;
   }
 
@@ -113,12 +115,6 @@ $followed-plane-color: #00ffff;
     app-button {
       align-self: center;
     } // Keep button centered vertically
-
-    // Style unknown operator text
-    .operator.unknown-operator {
-      color: gray;
-      font-style: italic;
-    }
   }
 
   .direction-info {
