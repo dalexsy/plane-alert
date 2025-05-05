@@ -83,6 +83,13 @@ export class PlaneListItemComponent {
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+
+  // Make the whole item clickable: clicking the host emits centerPlane
+  @HostListener('click')
+  onHostClick(): void {
+    this.centerPlane.emit(this.plane);
+  }
+
   // Keep hover/unhover in parent for simplicity for now
 
   // Keep getTimeAgo logic here as it's specific to the 'seen' variant display

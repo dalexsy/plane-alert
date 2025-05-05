@@ -11,6 +11,7 @@ $followed-plane-color: #00ffff;
   mix-blend-mode: plus-lighter; // overlay blend mode
   font-family: "JetBrains Mono", monospace;
   align-items: center;
+  cursor: pointer;
 
   &:last-of-type {
     border-bottom: none;
@@ -189,6 +190,21 @@ $followed-plane-color: #00ffff;
 
   .military-star {
     color: #89d138; // Match military color
+  }
+
+  // Tint background on hover using CSS Color Module if supported
+  &:hover {
+    background-color: color-mix(in srgb, currentColor 20%, transparent);
+  }
+
+  // Fallback for browsers without color-mix support
+  @supports not (
+    background-color: color-mix(in srgb, currentColor 20%, transparent)
+  ) {
+    &:hover {
+      background-color: currentColor;
+      opacity: 0.2;
+    }
   }
 }
 

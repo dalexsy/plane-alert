@@ -961,9 +961,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
     this.closestDistance = Math.round(dist * 10) / 10;
     this.closestOperator = candidate.operator || null;
-    // Only show ETA if velocity > 0
+    // Only show ETA if velocity >= 200
     const vel = candidate.velocity ?? null;
-    if (vel != null && vel > 100) {
+    if (vel != null && vel >= 200) {
       this.closestVelocity = vel;
       this.closestSecondsAway = Math.round((dist * 1000) / vel);
     } else {
@@ -1463,6 +1463,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     plane: PlaneLogEntry | PlaneModel,
     preserveFollowNearest = false
   ): void {
+    // If shuffle mode is active, disable it on manual follow
+    if (this.resultsOverlayComponent.shuffleMode) {
+      this.resultsOverlayComponent.toggleShuffle();
+    }
     // If clicking the already highlighted plane, unfollow it
     if (this.highlightedPlaneIcao === plane.icao && !preserveFollowNearest) {
       console.log(`Unfollowing plane: ICAO=${plane.icao}`);

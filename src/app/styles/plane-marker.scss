@@ -32,7 +32,7 @@ $followed-plane-color: #00ffff;
   }
   // Apply fill to the path element so it inherits the marker color
   &.svg-plane .inline-plane path {
-    fill: currentColor;
+    fill: white;
   }
   // Grounded planes: grey and smaller (32px)
   &.svg-plane.grounded-plane .inline-plane {
