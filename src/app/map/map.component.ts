@@ -1463,7 +1463,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     plane: PlaneLogEntry | PlaneModel,
     preserveFollowNearest = false
   ): void {
-    // Unfollow if clicking the already highlighted plane
+    // If clicking the already highlighted plane, unfollow it
     if (this.highlightedPlaneIcao === plane.icao && !preserveFollowNearest) {
       console.log(`Unfollowing plane: ICAO=${plane.icao}`);
       this.unhighlightPlane(plane.icao);
