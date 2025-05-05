@@ -1,5 +1,5 @@
 <div
-  *ngIf="plane && (street || district)"
+  *ngIf="plane && (plane.airportName || street || district)"
   class="location-overlay"
   [class.selected]="isSelected"
   [class.military-plane]="isSelected && plane.isMilitary"
@@ -13,14 +13,21 @@
     size="small"
     ariaLabel="Plane location"
   ></app-icon>
-  <ng-container *ngIf="street && district">
-    <span class="street">{{ street }}</span> in
-    <span class="district">{{ district }}</span>
+  <!-- If at an airport, show airportName only -->
+  <ng-container *ngIf="plane.airportName">
+    <span class="airport-name">{{ plane.airportName }}</span>
   </ng-container>
-  <ng-container *ngIf="street && !district">
-    <span class="street">{{ street }}</span>
-  </ng-container>
-  <ng-container *ngIf="!street && district">
-    <span class="district">{{ district }}</span>
+  <!-- Otherwise, show street and/or district -->
+  <ng-container *ngIf="!plane.airportName">
+    <ng-container *ngIf="street && district">
+      <span class="street">{{ street }}</span> in
+      <span class="district">{{ district }}</span>
+    </ng-container>
+    <ng-container *ngIf="street && !district">
+      <span class="street">{{ street }}</span>
+    </ng-container>
+    <ng-container *ngIf="!street && district">
+      <span class="district">{{ district }}</span>
+    </ng-container>
   </ng-container>
 </div>
