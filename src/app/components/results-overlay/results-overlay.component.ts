@@ -9,7 +9,6 @@ import {
   OnChanges,
   SimpleChanges,
   AfterViewInit,
-  AfterViewChecked,
   ViewChild,
   ElementRef,
   ChangeDetectionStrategy,
@@ -22,7 +21,7 @@ import { SettingsService } from '../../services/settings.service';
 import { SpecialListService } from '../../services/special-list.service';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
-import { PlaneListItemComponent } from '../plane-list-item/plane-list-item.component';
+import { PlaneListItemComponent } from '../plane-list-item/plane-list-item.component'; // Add import for list-item component
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
@@ -35,6 +34,7 @@ import {
   query,
   animate,
 } from '@angular/animations';
+import { IconComponent } from '../ui/icon.component';
 
 export interface PlaneLogEntry {
   callsign: string;
@@ -67,7 +67,7 @@ export interface PlaneLogEntry {
     CommonModule,
     ButtonComponent,
     TabComponent,
-    PlaneListItemComponent,
+    PlaneListItemComponent, // Re-add PlaneListItemComponent import for template usage
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
@@ -103,7 +103,7 @@ export interface PlaneLogEntry {
   ],
 })
 export class ResultsOverlayComponent
-  implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
+  implements OnInit, OnChanges, OnDestroy, AfterViewInit
 {
   constructor(
     public settings: SettingsService,
@@ -149,7 +149,7 @@ export class ResultsOverlayComponent
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() exportFilterList = new EventEmitter<void>();
   @Output() clearHistoricalList = new EventEmitter<void>();
-  @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() centerPlane = new EventEmitter<any>();
   @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
@@ -269,10 +269,6 @@ export class ResultsOverlayComponent
     this.updateFilteredLogs();
     this.updatePageTitle();
     setTimeout(() => this.updateScrollFadeStates(), 0);
-  }
-
-  ngAfterViewChecked(): void {
-    this.updateScrollFadeStates();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -677,80 +673,78 @@ export class ResultsOverlayComponent
   }
 
   /** Toggle shuffle mode on/off */
-  toggleShuffle(): void {
+  public toggleShuffle(): void {
+    const now = Date.now();
+    if (now - this.lastToggleTime < this.DEBOUNCE_TIME) return;
+    this.lastToggleTime = now;
+    this.logShuffleModeChange(!this.shuffleMode, 'toggleShuffle');
     this.shuffleMode = !this.shuffleMode;
     if (this.shuffleMode) {
       this.startShuffle();
     } else {
       this.stopShuffle();
     }
+    this.cdr.detectChanges();
+  }
+
+  private logShuffleModeChange(newValue: boolean, source: string) {
+    if (newValue === false) {
+      // Only log stack for disables
+      console.warn(`[ShuffleMode] shuffleMode set to FALSE by ${source}`);
+      console.warn(new Error().stack);
+    } else {
+      console.info(`[ShuffleMode] shuffleMode set to TRUE by ${source}`);
+    }
   }
 
   /** Begin shuffle: immediately pick a plane, then every 30s */
   private startShuffle(): void {
+    const ts = new Date().toISOString();
     this.pickAndCenterRandomPlane();
     this.shuffleSub = interval(30000).subscribe(() =>
       this.pickAndCenterRandomPlane()
     );
+    console.log(`[${ts}] Shuffle started -> mode=${this.shuffleMode}`);
   }
 
   /** Stop shuffle mode */
   private stopShuffle(): void {
+    const ts = new Date().toISOString();
     this.shuffleSub?.unsubscribe();
     this.shuffleSub = null;
-    // Clear highlight and persistent ICAO when shuffle stops
     this.highlightedPlaneIcao = null;
     this.shuffleFollowedIcao = null;
-    this.cdr.markForCheck();
+    console.log(`[${ts}] Shuffle stopped -> mode=${this.shuffleMode}`);
+    this.cdr.detectChanges();
   }
 
   /** Choose a random visible plane and emit centerPlane to follow */
   private pickAndCenterRandomPlane(): void {
-    console.log('[ShuffleFollow] Starting pickAndCenterRandomPlane...');
     const priority = this.filteredSkyPlaneLog.filter(
       (p) => p.isMilitary || p.isSpecial
     );
     let pool: PlaneLogEntry[] = [];
     const hasMilitary = this.filteredSkyPlaneLog.some((p) => p.isMilitary);
 
-    console.log(
-      `[ShuffleFollow] Found ${priority.length} priority planes (military/special), ${this.filteredSkyPlaneLog.length} total planes`
-    );
-
     if (priority.length > 0) {
       pool = priority;
-      console.log('[ShuffleFollow] Using priority planes pool');
     } else {
       pool = this.filteredSkyPlaneLog.filter(
         (p) => !p.onGround && p.altitude != null && p.altitude > 200
       );
-      console.log(
-        `[ShuffleFollow] Using filtered airborne planes pool: ${pool.length} planes`
-      );
     }
 
     if (pool.length === 0) {
-      console.log(
-        '[ShuffleFollow] No candidate planes to follow. Keeping previous highlight:',
-        this.highlightedPlaneIcao
-      );
       return;
     }
 
     // Always pick a new random plane
     const idx = Math.floor(Math.random() * pool.length);
     const selected = pool[idx];
-    console.log(
-      `[ShuffleFollow] Randomly selected plane: ${selected.icao}, callsign: ${selected.callsign}. Military on map: ${hasMilitary}`
-    );
     this.shuffleFollowedIcao = selected.icao;
     this.highlightedPlaneIcao = selected.icao;
 
     const planeToFollow = { ...selected, followMe: true };
-    console.log(
-      '[ShuffleFollow] Emitting centerPlane event with followMe flag for new plane:',
-      planeToFollow
-    );
     this.centerPlane.emit(planeToFollow);
     this.cdr.markForCheck();
   }
@@ -760,9 +754,6 @@ export class ResultsOverlayComponent
    * Public method to be called from the map component
    */
   public triggerNewShuffle(): void {
-    console.log(
-      '[ResultsOverlay] triggerNewShuffle called - picking new random plane'
-    );
     if (this.shuffleMode) {
       this.pickAndCenterRandomPlane();
     }

@@ -8,9 +8,14 @@
   border: 1px solid rgb(255 255 255 / 40%);
 }
 
+.left,
+.right {
+  top: -0.5px;
+  overflow: hidden;
+}
+
 .left {
   left: -2px;
-  top: -0.5px;
   border-radius: 0.5rem 0 0 0.5rem;
   border-right: none;
 }

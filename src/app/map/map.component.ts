@@ -1461,14 +1461,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
   centerOnPlane(
     plane: PlaneLogEntry | PlaneModel,
-    preserveFollowNearest = false
+    preserveFollowNearest = false,
+    fromShuffle = false
   ): void {
-    // If shuffle mode is active, disable it on manual follow
-    if (this.resultsOverlayComponent.shuffleMode) {
-      this.resultsOverlayComponent.toggleShuffle();
-    }
     // If clicking the already highlighted plane, unfollow it
-    if (this.highlightedPlaneIcao === plane.icao && !preserveFollowNearest) {
+    if (
+      !fromShuffle &&
+      this.highlightedPlaneIcao === plane.icao &&
+      !preserveFollowNearest
+    ) {
       console.log(`Unfollowing plane: ICAO=${plane.icao}`);
       this.unhighlightPlane(plane.icao);
       this.highlightedPlaneIcao = null;
@@ -1543,11 +1544,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   /** Follow and center on overlay-selected nearest plane */
-  public followNearestPlane(plane: PlaneModel): void {
-    console.log('[followNearestPlane] Called with plane:', plane);
-
-    // Check if this plane comes from the shuffle feature
-    const isFromShuffle = 'followMe' in plane && plane.followMe === true;
+  public followNearestPlane(plane: any): void {
+    console.log('[followNearestPlane] payload:', plane);
+    console.log('[followNearestPlane] followMe flag:', plane.followMe);
+    const isFromShuffle = !!plane.followMe;
     console.log('[followNearestPlane] Is from shuffle:', isFromShuffle);
 
     // Always set followNearest to true for planes from shuffle
@@ -1559,10 +1559,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       // We need to call centerOnPlane with preserveFollowNearest=false so that
       // it doesn't skip updating the followNearest flag inside centerOnPlane
-      this.centerOnPlane(plane, false);
+      this.centerOnPlane(plane, false, true); // pass fromShuffle=true
     } else {
       // For regular plane selection, use the standard behavior
-      this.centerOnPlane(plane, false);
+      this.centerOnPlane(plane, false, false);
     }
   }
 
