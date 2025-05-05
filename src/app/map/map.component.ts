@@ -203,6 +203,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           const pm = this.planeLog.get(icao);
           if (pm && pm.lat != null && pm.lon != null) {
             this.map.panTo([pm.lat, pm.lon]);
+            // Update address input overlay to this plane's location
+            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.inputOverlayComponent.addressInputRef.nativeElement.value =
+                address;
+            });
+            // Update location overlay info
+            this.locationService
+              .getLocationInfo(pm.lat, pm.lon)
+              .subscribe((info) => {
+                this.locationStreet = info.street;
+                this.locationDistrict = info.district;
+                this.cdr.detectChanges();
+              });
           }
         }
         this.updatePlaneLog(Array.from(this.planeLog.values()));
@@ -1450,96 +1463,39 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     plane: PlaneLogEntry | PlaneModel,
     preserveFollowNearest = false
   ): void {
-    // If user manually follows a plane while shuffle is active, stop shuffle mode
-    if (this.resultsOverlayComponent.shuffleMode && !('followMe' in plane)) {
-      console.log(
-        '[CenterOnPlane] Manual follow detected, stopping shuffle mode'
-      );
-      this.resultsOverlayComponent.toggleShuffle();
-    }
-
-    console.log('[CenterOnPlane] Starting centerOnPlane...', {
-      planeIcao: plane.icao,
-      preserveFollowNearest,
-      followMeFlag: 'followMe' in plane && plane.followMe === true,
-      currentFollowNearest: this.followNearest,
-      currentHighlightedPlaneIcao: this.highlightedPlaneIcao,
-    });
-
-    // Check if this is a request from shuffle mode (has a followMe flag)
-    const isFromShuffle = 'followMe' in plane && plane.followMe === true;
-    console.log('[CenterOnPlane] Is from shuffle:', isFromShuffle);
-
-    // Update followNearest flag if needed
-    if (isFromShuffle) {
-      // If the plane has the followMe flag, ALWAYS enable tracking regardless of preserveFollowNearest
-      this.followNearest = true;
-      console.log(
-        '[CenterOnPlane] Setting followNearest=true because plane has followMe flag'
-      );
-    } else if (!preserveFollowNearest) {
-      // For normal centering without preserveFollowNearest, turn tracking off
-      this.followNearest = false;
-      console.log(
-        '[CenterOnPlane] Setting followNearest=false (normal centering without preserveFollowNearest)'
-      );
-    } else {
-      // When preserveFollowNearest is true, keep the current value
-      console.log(
-        '[CenterOnPlane] Preserving current followNearest value:',
-        this.followNearest
-      );
-    }
-
-    const icao = plane.icao;
-
-    // If already highlighted, we should NOT unfollow the plane unless it's from a tooltip
-    // This prevents unintentional unfollowing when clicking on the overlays
-    if (this.highlightedPlaneIcao === icao && !preserveFollowNearest) {
-      // Don't do anything if we're just clicking the same plane in the overlays
-      console.log(
-        '[CenterOnPlane] Already highlighted the same plane and preserveFollowNearest is false, doing nothing'
-      );
-      return;
-    } else if (this.highlightedPlaneIcao === icao) {
-      // Only tooltip clicks should unfollow (preserveFollowNearest will be true)
-      console.log(
-        '[CenterOnPlane] Already highlighted same plane with preserveFollowNearest true, unfollowing plane'
-      );
-      this.unhighlightPlane(icao);
+    // Unfollow if clicking the already highlighted plane
+    if (this.highlightedPlaneIcao === plane.icao && !preserveFollowNearest) {
+      console.log(`Unfollowing plane: ICAO=${plane.icao}`);
+      this.unhighlightPlane(plane.icao);
       this.highlightedPlaneIcao = null;
       this.followNearest = false;
-
-      // Refresh lists to reflect removal of highlight
       this.updatePlaneLog(Array.from(this.planeLog.values()));
-      this.resultsOverlayComponent.sortLogs();
-      this.resultsOverlayComponent.updateFilteredLogs();
       this.cdr.detectChanges();
       return;
     }
+    // When manually centering/following a plane, enable tracking override
+    this.followNearest = true;
+    // Log manual center/follow action
+    console.log(
+      `CenterOnPlane called: ICAO=${plane.icao}, preserveFollowNearest=${preserveFollowNearest}, followNearest=${this.followNearest}`
+    );
 
-    // Unhighlight previously highlighted plane
+    // Determine followNearest based on preserve flag or shuffle (handled above)
+
+    const icao = plane.icao;
+
     if (this.highlightedPlaneIcao) {
-      console.log(
-        '[CenterOnPlane] Unhighlighting previous plane:',
-        this.highlightedPlaneIcao
-      );
       this.unhighlightPlane(this.highlightedPlaneIcao);
     }
 
-    // Highlight new plane
-    console.log('[CenterOnPlane] Setting new highlightedPlaneIcao:', icao);
     this.highlightedPlaneIcao = icao;
     const pm = this.planeLog.get(icao);
     if (pm?.marker && plane.lat != null && plane.lon != null) {
       // Pan map to plane location without changing zoom
-      console.log(
-        `[CenterOnPlane] Panning to plane at [${plane.lat}, ${plane.lon}]`
-      );
       this.map.panTo([plane.lat, plane.lon]);
-      // Bring marker to front above all tooltips
+      console.log(`map.panTo for ICAO=${icao} at [${plane.lat}, ${plane.lon}]`);
+
       pm.marker.setZIndexOffset(20000);
-      // Open tooltip and apply highlight styling
       pm.marker.openTooltip();
       const tooltip = pm.marker.getTooltip();
       if (tooltip) {
@@ -1549,15 +1505,26 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
 
-      console.log('[CenterOnPlane] Applied highlighting styles. Final state:', {
-        followNearest: this.followNearest,
-        highlightedPlaneIcao: this.highlightedPlaneIcao,
+      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+        this.inputOverlayComponent.addressInputRef.nativeElement.value =
+          address;
+        console.log(`Address overlay updated: ${address}`);
       });
 
-      // Refresh lists so this plane moves to the top
+      this.locationService
+        .getLocationInfo(plane.lat!, plane.lon!)
+        .subscribe((locationInfo) => {
+          this.locationStreet = locationInfo.street;
+          this.locationDistrict = locationInfo.district;
+          this.cdr.detectChanges();
+          console.log(
+            `Location overlay updated: street='${locationInfo.street}', district='${locationInfo.district}'`
+          );
+        });
+
+      // Refresh logs and overlays
+      this.closestPlane = pm;
       this.updatePlaneLog(Array.from(this.planeLog.values()));
-      this.resultsOverlayComponent.sortLogs();
-      this.resultsOverlayComponent.updateFilteredLogs();
       this.cdr.detectChanges();
     } else {
       console.warn(

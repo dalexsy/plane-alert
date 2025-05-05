@@ -1,5 +1,6 @@
 /* src/app/utils/plane-marker.ts */
 import * as L from 'leaflet';
+import { GENERIC_PLANE_SVG } from './plane-icons';
 
 // We can't inject services directly in a utility function, so we'll accept the helicopter check as a parameter
 export function createOrUpdatePlaneMarker(
@@ -28,25 +29,30 @@ export function createOrUpdatePlaneMarker(
     modelLower.includes('heli') ||
     modelLower.includes('chopper');
 
-  const markerHtml = `<div class="plane-marker ${
+  // Inline SVG for non-helicopters, CSS ::before for helicopters
+  const iconInner = isCopter
+    ? ''
+    : `<svg class="inline-plane" viewBox="0 0 64 64"><path d="${GENERIC_PLANE_SVG}"/></svg>`;
+
+  // Build class list: non-helicopters get svg-plane to hide pseudo-icon
+  // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class
+  const classString = `plane-marker ${!isCopter ? 'svg-plane ' : ''}${
     isNew && isGrounded
       ? 'new-and-grounded'
-      : isNew
-      ? 'new-plane'
       : isGrounded
       ? 'grounded-plane'
       : ''
   } ${isMilitary ? 'military-plane' : ''} ${isCopter ? 'copter-plane' : ''}${
     followed ? ' followed-plane' : ''
-  }" style="transform: rotate(${
+  }`;
+  const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation
-  }deg); ${extraStyle}">${planeIcon}</div>`;
+  }deg); ${extraStyle}">${iconInner}</div>`;
 
+  // Let CSS handle container sizing: omit iconSize/iconAnchor to avoid inline styles
   const icon = L.divIcon({
     className: 'plane-marker-container',
     html: markerHtml,
-    iconSize: [48, 48], // 3rem
-    iconAnchor: [24, 24], // center
   });
 
   // Define tooltip options with the correct classes and ensure offset is a proper PointTuple

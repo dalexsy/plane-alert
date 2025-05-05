@@ -2,21 +2,44 @@ $new-plane-color: #ff6161;
 $followed-plane-color: #00ffff;
 
 .plane-marker-container {
-  width: 3rem;
-  height: 3rem;
+  width: 3rem !important;
+  height: 3rem !important;
+  margin-left: -1.5rem !important;
+  margin-top: -1.5rem !important;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none; // Let the .plane-marker handle pointer events
 }
 
-.leaflet-marker-icon .plane-marker {
+.plane-marker-container .plane-marker {
   font-size: 3rem;
 
   display: flex; /* Use flexbox to center the ::before content */
   justify-content: center;
   align-items: center;
   pointer-events: auto; /* Ensure the marker can be clicked/selected */
+
+  // For non-helicopter plane markers, hide default ::before and show inline SVG
+  &.svg-plane::before {
+    content: none;
+  }
+  // SVG plane silhouette: default size (48px) and color
+  &.svg-plane .inline-plane {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+  }
+  // Apply fill to the path element so it inherits the marker color
+  &.svg-plane .inline-plane path {
+    fill: currentColor;
+  }
+  // Grounded planes: grey and smaller (32px)
+  &.svg-plane.grounded-plane .inline-plane {
+    width: 32px;
+    height: 32px;
+    fill: #ededed;
+  }
 
   &::before {
     font-family: "Material Symbols Sharp", "Material Icons"; /* Add Material Symbols Sharp for better icon support */
@@ -29,6 +52,14 @@ $followed-plane-color: #00ffff;
     white-space: nowrap;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
       1px 1px 0 #000;
+  }
+
+  &.new-and-grounded {
+    margin-right: 2rem;
+
+    &::before {
+      font-size: 2rem;
+    }
   }
 
   &.copter-plane::before {
@@ -50,8 +81,9 @@ $followed-plane-color: #00ffff;
     animation: none;
   }
 
+  // &.new-plane color overridden to use altitude color instead of red
   &.new-plane {
-    color: $new-plane-color;
+    // color: $new-plane-color;
   }
 
   &.followed-plane {
