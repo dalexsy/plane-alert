@@ -91,8 +91,8 @@ $new-plane-color: #ff6161;
   }
 
   &.grounded-plane-tooltip:not(.new-plane-tooltip) {
-    border-color: grey;
-    margin-left: 1rem;
+    border-color: #636363;
+    margin-left: 1.5rem;
     background: #333;
   }
 
@@ -102,7 +102,6 @@ $new-plane-color: #ff6161;
 
   &.military-plane-tooltip {
     border-color: #89d138;
-    z-index: 10;
   }
 
   // Only apply white border on hover/hovered unless special or followed
@@ -151,8 +150,7 @@ $new-plane-color: #ff6161;
   }
 
   &.followed-plane-tooltip {
-    border-color: $followed-plane-color;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 0px 3px #00ffff7d;
     color: $followed-plane-color;
     z-index: 1000;
 
@@ -172,10 +170,6 @@ $new-plane-color: #ff6161;
   }
 
   &.military-plane-tooltip.followed-plane-tooltip.highlighted-tooltip {
-    border-color: #89d138;
-    box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
-    color: #89d138;
-
     a {
       color: #89d138;
     }

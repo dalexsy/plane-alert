@@ -131,19 +131,7 @@ export function createOrUpdatePlaneMarker(
       );
       newMarker.bindTooltip(tooltip, tooltipOptions);
       if (wasOnMap) newMarker.addTo(map);
-      // Copy over follow styles and event handlers
-      if (followed) {
-        const el = newMarker.getElement();
-        if (el) {
-          el.style.borderColor = '#00ffff';
-          el.style.color = '#00ffff';
-        }
-        const tel = newMarker.getTooltip()?.getElement();
-        if (tel) {
-          tel.style.borderColor = '#00ffff';
-          tel.style.color = '#00ffff';
-        }
-      }
+      // Event handlers will be re-attached
       const bring = () => manageZIndex(newMarker, true);
       const send = () => manageZIndex(newMarker, false);
       newMarker.on('mouseover', bring);
@@ -189,18 +177,18 @@ export function createOrUpdatePlaneMarker(
     oldMarker.bindTooltip(tooltip, tooltipOptions);
 
     // --- Set followed style immediately ---
-    if (followed) {
-      const markerEl = oldMarker.getElement();
-      if (markerEl) {
-        markerEl.style.borderColor = '#00ffff';
-        markerEl.style.color = '#00ffff';
-      }
-      const tooltipEl = oldMarker.getTooltip()?.getElement();
-      if (tooltipEl) {
-        tooltipEl.style.borderColor = '#00ffff';
-        tooltipEl.style.color = '#00ffff';
-      }
-    }
+    // if (followed) {
+    //   const markerEl = oldMarker.getElement();
+    //   if (markerEl) {
+    //     // markerEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // markerEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    //   const tooltipEl = oldMarker.getTooltip()?.getElement();
+    //   if (tooltipEl) {
+    //     // tooltipEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // tooltipEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    // }
 
     // --- Event Handling for Existing Markers ---
     const bringForwardHandler = () => manageZIndex(oldMarker, true);
@@ -258,18 +246,18 @@ export function createOrUpdatePlaneMarker(
     marker.addTo(map);
 
     // --- Set followed style immediately ---
-    if (followed) {
-      const markerEl = marker.getElement();
-      if (markerEl) {
-        markerEl.style.borderColor = '#00ffff';
-        markerEl.style.color = '#00ffff';
-      }
-      const tooltipEl = marker.getTooltip()?.getElement();
-      if (tooltipEl) {
-        tooltipEl.style.borderColor = '#00ffff';
-        tooltipEl.style.color = '#00ffff';
-      }
-    }
+    // if (followed) {
+    //   const markerEl = marker.getElement();
+    //   if (markerEl) {
+    //     // markerEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // markerEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    //   const tooltipEl = marker.getTooltip()?.getElement();
+    //   if (tooltipEl) {
+    //     // tooltipEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // tooltipEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    // }
 
     // --- Event Handling for New Markers ---
     const bringForwardHandler = () => manageZIndex(marker, true);
