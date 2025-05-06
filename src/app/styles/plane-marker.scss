@@ -93,7 +93,7 @@ $new-plane-color: #ff6161;
   }
 
   &.followed-plane {
-    filter: drop-shadow(0px 0px 3px cyan) !important;
+    stroke: rgba(0, 255, 255, 0.5);
   }
 
   &:hover {
