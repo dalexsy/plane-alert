@@ -30,14 +30,18 @@ export function createOrUpdatePlaneMarker(
     modelLower.includes('chopper');
 
   // Inline SVG for non-helicopters, CSS ::before for helicopters
-  const svgPath = isCopter ? '' : getIconPathForModel(model);
+  const iconData = isCopter
+    ? { path: '', iconType: 'copter' as const }
+    : getIconPathForModel(model);
   const iconInner = isCopter
     ? ''
-    : `<svg class="inline-plane" viewBox="0 0 64 64"><path d="${svgPath}"/></svg>`;
+    : `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`;
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon
   // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class
   const classString = `plane-marker ${!isCopter ? 'svg-plane ' : ''}${
+    !isCopter ? iconData.iconType + ' ' : ''
+  }${
     isNew && isGrounded
       ? 'new-and-grounded'
       : isGrounded

@@ -29,16 +29,40 @@ $followed-plane-color: #00ffff;
     display: inline-block;
     width: 48px;
     height: 48px;
+
+    path {
+      fill: white;
+      stroke: black;
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    &.single_engine {
+      transform: scale(0.8);
+    }
+
+    &.balloon {
+      transform: scale(1.2);
+    }
   }
   // Apply fill to the path element so it inherits the marker color
   &.svg-plane .inline-plane path {
     fill: white;
+    stroke: black;
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
   }
   // Grounded planes: grey and smaller (32px)
   &.svg-plane.grounded-plane .inline-plane {
     width: 32px;
     height: 32px;
-    fill: #ededed;
+
+    path {
+      // Style the path within the grounded plane's SVG
+      fill: #ededed; // Override fill for grounded planes
+    }
   }
 
   &::before {
@@ -55,10 +79,10 @@ $followed-plane-color: #00ffff;
   }
 
   &.new-and-grounded {
-    margin-right: 2rem;
+    margin-right: 1rem;
 
     &::before {
-      font-size: 2rem;
+      font-size: 1rem;
     }
   }
 
@@ -69,10 +93,10 @@ $followed-plane-color: #00ffff;
 
   &.grounded-plane {
     color: #ededed;
-    margin-right: 2rem;
+    margin-right: 1rem;
 
     &::before {
-      font-size: 2rem;
+      font-size: 1rem;
     }
   }
 
