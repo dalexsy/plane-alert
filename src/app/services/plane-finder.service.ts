@@ -716,6 +716,7 @@ export class PlaneFinderService {
         model,
         this.helicopterListService.isHelicopter(id),
         isSpecial,
+        altitude, // pass altitude for shadow scaling
         followed // <-- pass followed flag
       );
       planeModelInstance.marker = marker; // Update marker reference on model

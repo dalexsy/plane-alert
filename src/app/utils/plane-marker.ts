@@ -1,6 +1,7 @@
 /* src/app/utils/plane-marker.ts */
 import * as L from 'leaflet';
 import { getIconPathForModel } from './plane-icons';
+import SunCalc from 'suncalc';
 
 // We can't inject services directly in a utility function, so we'll accept the helicopter check as a parameter
 export function createOrUpdatePlaneMarker(
@@ -18,7 +19,8 @@ export function createOrUpdatePlaneMarker(
   model: string = '',
   isCustomHelicopter: boolean = false,
   isSpecial: boolean = false,
-  followed: boolean = false // <-- new param
+  altitude: number | null = null,
+  followed: boolean = false
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Check if this is a helicopter based on model name or our custom list
   const modelLower = model.toLowerCase();
@@ -37,6 +39,30 @@ export function createOrUpdatePlaneMarker(
     ? ''
     : `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`;
 
+  // Calculate sun-based shadow offset
+  const center = map.getCenter();
+  const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
+  const az = sunPos.azimuth; // azimuth in radians
+  const alt = sunPos.altitude; // altitude in radians
+  const baseLength = alt > 0 ? Math.min(20, 10 / Math.tan(alt)) : 0;
+  const altMeters = altitude ?? 0;
+  const altFactor = Math.min(altMeters / 12000, 1);
+  const length = baseLength * (1 + altFactor);
+  // Global shadow vector (map-relative)
+  const globalDx = -length * Math.sin(az);
+  const globalDy = -length * Math.cos(az);
+  // Convert global shadow vector into local coordinates to offset rotation
+  const rotRad = ((isCopter ? 0 : rotation) * Math.PI) / 180;
+  const localDx = globalDx * Math.cos(rotRad) + globalDy * Math.sin(rotRad);
+  const localDy = -globalDx * Math.sin(rotRad) + globalDy * Math.cos(rotRad);
+  // Only apply shadow for non-grounded planes
+  const shadowStyle =
+    !isGrounded && length > 0
+      ? `filter: drop-shadow(${localDx.toFixed(1)}px ${localDy.toFixed(
+          1
+        )}px 1px rgba(0,0,0,0.8));`
+      : '';
+
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon
   // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class
   const classString = `plane-marker ${!isCopter ? 'svg-plane ' : ''}${
@@ -52,7 +78,7 @@ export function createOrUpdatePlaneMarker(
   }`;
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation
-  }deg); ${extraStyle}">${iconInner}</div>`;
+  }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
 
   // Let CSS handle container sizing: omit iconSize/iconAnchor to avoid inline styles
   const icon = L.divIcon({

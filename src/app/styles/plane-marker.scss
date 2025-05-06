@@ -46,34 +46,21 @@ $followed-plane-color: #00ffff;
       transform: scale(1.2);
     }
   }
-  // Apply fill to the path element so it inherits the marker color
-  &.svg-plane .inline-plane path {
-    fill: white;
-    stroke: black;
-    stroke-width: 1.5;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-  }
+
   // Grounded planes: grey and smaller (32px)
   &.svg-plane.grounded-plane .inline-plane {
     width: 32px;
     height: 32px;
 
     path {
-      // Style the path within the grounded plane's SVG
       fill: #ededed; // Override fill for grounded planes
     }
   }
 
   &::before {
     font-family: "Material Symbols Sharp", "Material Icons"; /* Add Material Symbols Sharp for better icon support */
-    content: "flight";
-
     display: inline-block;
-    font-style: normal;
-    font-weight: normal;
     line-height: 1;
-    white-space: nowrap;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
       1px 1px 0 #000;
   }
@@ -89,6 +76,7 @@ $followed-plane-color: #00ffff;
   &.copter-plane::before {
     content: "toys_fan";
     animation: spin 1.5s linear infinite;
+    color: white;
   }
 
   &.grounded-plane {
