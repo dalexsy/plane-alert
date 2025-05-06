@@ -19,15 +19,11 @@
   </ng-container>
   <!-- Otherwise, show street and/or district -->
   <ng-container *ngIf="!plane.airportName">
-    <ng-container *ngIf="street && district">
-      <span class="street">{{ street }}</span> in
-      <span class="district">{{ district }}</span>
-    </ng-container>
-    <ng-container *ngIf="street && !district">
+    <ng-container *ngIf="street; else showDistrict">
       <span class="street">{{ street }}</span>
     </ng-container>
-    <ng-container *ngIf="!street && district">
+    <ng-template #showDistrict>
       <span class="district">{{ district }}</span>
-    </ng-container>
+    </ng-template>
   </ng-container>
 </div>

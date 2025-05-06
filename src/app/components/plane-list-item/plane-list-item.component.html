@@ -15,12 +15,12 @@
       type="tertiary"
       [size]="'small'"
       (click)="onCenterPlane($event)"
-      [ariaLabel]="'Center plane on map'"
+      [ariaLabel]="'Follow plane'"
       [disabled]="!activePlaneIcaos.has(plane.icao)"
       [title]="
         !activePlaneIcaos.has(plane.icao)
           ? 'No longer in range.'
-          : 'Center plane on map'
+          : 'Follow plane'
       "
     ></app-button>
     <!-- Flag -->

@@ -209,13 +209,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 address;
             });
             // Update location overlay info
-            this.locationService
-              .getLocationInfo(pm.lat, pm.lon)
-              .subscribe((info) => {
-                this.locationStreet = info.street;
-                this.locationDistrict = info.district;
-                this.cdr.detectChanges();
-              });
+            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.locationStreet = address;
+              this.locationDistrict = '';
+              this.cdr.detectChanges();
+            });
           }
         }
         this.updatePlaneLog(Array.from(this.planeLog.values()));
@@ -729,9 +727,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
     )
       .then((res) => res.json())
-      .then(
-        (data) => data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`
-      );
+      .then((data) => {
+        const addr = data.address || {};
+        const district = addr.suburb || addr.city_district || addr.county || addr.state || '';
+        const state = addr.state || '';
+        const country = addr.country || '';
+        if (district) {
+          if (country.toLowerCase() === 'germany') {
+            return state
+              ? `Near ${district}, ${state}`
+              : `Near ${district}`;
+          } else {
+            return state
+              ? `Near ${district}, ${state}, ${country}`
+              : `Near ${district} ${country}`;
+          }
+        }
+        return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      });
   }
 
   // Helper to check if alert should be muted
@@ -974,13 +987,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Always update location information for the closest plane,
     // even if we're not following it yet
     if (candidate && candidate.lat !== null && candidate.lon !== null) {
-      this.locationService
-        .getLocationInfo(candidate.lat, candidate.lon)
-        .subscribe((locationInfo) => {
-          this.locationStreet = locationInfo.street;
-          this.locationDistrict = locationInfo.district;
-          this.cdr.detectChanges();
-        });
+      this.reverseGeocode(candidate.lat, candidate.lon).then((address) => {
+        this.locationStreet = address;
+        this.locationDistrict = '';
+        this.cdr.detectChanges();
+      });
     }
   }
 
@@ -1516,16 +1527,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         console.log(`Address overlay updated: ${address}`);
       });
 
-      this.locationService
-        .getLocationInfo(plane.lat!, plane.lon!)
-        .subscribe((locationInfo) => {
-          this.locationStreet = locationInfo.street;
-          this.locationDistrict = locationInfo.district;
-          this.cdr.detectChanges();
-          console.log(
-            `Location overlay updated: street='${locationInfo.street}', district='${locationInfo.district}'`
-          );
-        });
+      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+        this.locationStreet = address;
+        this.locationDistrict = '';
+        this.cdr.detectChanges();
+        console.log(`Location overlay updated: ${address}`);
+      });
 
       // Refresh logs and overlays
       this.closestPlane = pm;
@@ -1884,13 +1891,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (this.followNearest && this.highlightedPlaneIcao && this.closestPlane) {
       const plane = this.closestPlane;
       if (plane && plane.lat !== null && plane.lon !== null) {
-        this.locationService
-          .getLocationInfo(plane.lat, plane.lon)
-          .subscribe((locationInfo) => {
-            this.locationStreet = locationInfo.street;
-            this.locationDistrict = locationInfo.district;
-            this.cdr.detectChanges();
-          });
+        this.reverseGeocode(plane.lat, plane.lon).then((address) => {
+          this.locationStreet = address;
+          this.locationDistrict = '';
+          this.cdr.detectChanges();
+        });
       }
     }
   }

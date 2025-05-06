@@ -23,9 +23,9 @@ import { PlaneLogEntry } from '../results-overlay/results-overlay.component';
       [title]="
         !plane.lat || !plane.lon || !activePlaneIcaos.has(plane.icao)
           ? 'No longer in range.'
-          : 'Center plane on map'
+          : 'Follow plane'
       "
-      ariaLabel="Center plane on map"
+      ariaLabel="Follow plane"
     ></app-button>
   `,
 })
