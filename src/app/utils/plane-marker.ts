@@ -63,7 +63,7 @@ export function createOrUpdatePlaneMarker(
     !isGrounded && length > 0
       ? `filter: drop-shadow(${localDx.toFixed(1)}px ${localDy.toFixed(
           1
-        )}px 1px rgba(0,0,0,0.8));`
+        )}px 1px rgba(0,0,1,0.6));`
       : '';
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon

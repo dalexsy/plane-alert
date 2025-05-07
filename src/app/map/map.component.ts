@@ -375,10 +375,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Subscribe to radius changes: clear markers and paths outside new radius
     this.settings.radiusChanged.subscribe((newRadius) => {
+      // Get current center coordinates
       const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+      const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
 
+      // Redraw the main radius circle without re-centering
+      this.mapService.setMainRadius(lat, lon, newRadius);
+
+      // Remove planes outside new radius and update airports
       this.removeOutOfRangePlanes(lat, lon, newRadius);
-      // Also update airports when main radius changes
       this.findAndDisplayAirports(lat, lon, newRadius);
     });
 
