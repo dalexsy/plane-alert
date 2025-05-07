@@ -699,7 +699,7 @@ export class ResultsOverlayComponent
     this.militaryPriority = !this.militaryPriority;
     this.resultsUpdated = true;
     // Only re-sort and reshuffle if there are military planes visible
-    const hasMilitary = this.filteredSkyPlaneLog.some(p => p.isMilitary);
+    const hasMilitary = this.filteredSkyPlaneLog.some((p) => p.isMilitary);
     if (hasMilitary) {
       this.updateFilteredLogs();
       if (this.shuffleMode) {
@@ -707,6 +707,11 @@ export class ResultsOverlayComponent
       }
     }
     this.cdr.detectChanges();
+  }
+
+  /** Number of military planes currently visible in the sky list */
+  get militaryCount(): number {
+    return this.filteredSkyPlaneLog.filter((p) => p.isMilitary).length;
   }
 
   /** Log shuffle mode changes for debugging */

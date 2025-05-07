@@ -53,24 +53,27 @@
         (click)="toggleShuffle()"
       ></app-button>
       <!-- Military priority toggle -->
-      <app-button
-        class="military-priority-toggle"
-        [icon]="militaryPriority ? 'star_shine' : 'star'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          militaryPriority
-            ? 'Disable military priority'
-            : 'Enable military priority'
-        "
-        [title]="
-          militaryPriority
-            ? 'Disable military priority'
-            : 'Enable military priority'
-        "
-        [ngClass]="{ active: militaryPriority }"
-        (click)="toggleMilitaryPriority()"
-      ></app-button>
+      <div class="military-toggle-wrapper">
+        <app-button
+          class="military-priority-toggle"
+          [icon]="militaryPriority ? 'star_shine' : 'star'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="
+            militaryPriority
+              ? 'Disable military priority'
+              : 'Enable military priority'
+          "
+          [title]="
+            militaryPriority
+              ? 'Disable military priority'
+              : 'Enable military priority'
+          "
+          [ngClass]="{ active: militaryPriority }"
+          (click)="toggleMilitaryPriority()"
+        ></app-button>
+        <span class="military-badge">{{ militaryCount }}</span>
+      </div>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">

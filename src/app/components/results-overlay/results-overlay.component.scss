@@ -47,8 +47,30 @@
       background-color: rgba(0, 255, 255, 0.2);
     }
     .military-priority-toggle.active {
-      color: cyan;
-      background-color: rgba(0, 255, 255, 0.2);
+      color: #89d138;
+      background-color: rgb(138 209 56 / 35%);
+    }
+
+    .military-toggle-wrapper {
+      position: relative;
+      display: inline-block;
+
+      .military-badge {
+        position: absolute;
+        bottom: 0.25rem;
+        right: 0.25rem;
+        background-color: #ffffff;
+        color: #000000;
+        border-radius: 50%;
+        width: 1rem;
+        height: 1rem;
+        font-weight: 600;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
     }
   }
 
