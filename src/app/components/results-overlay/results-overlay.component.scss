@@ -46,6 +46,10 @@
       color: cyan;
       background-color: rgba(0, 255, 255, 0.2);
     }
+    .military-priority-toggle.active {
+      color: cyan;
+      background-color: rgba(0, 255, 255, 0.2);
+    }
   }
 
   // Remove gap for the first overlay content item when not collapsed

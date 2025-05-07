@@ -155,6 +155,8 @@ export class ResultsOverlayComponent
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
   // Shuffle mode: pick random plane to follow every interval
   shuffleMode = false;
+  // Military priority toggle: whether to prioritize military planes in sorting
+  militaryPriority = true;
   private shuffleSub: Subscription | null = null;
   // --- Add persistent shuffle follow state ---
   private shuffleFollowedIcao: string | null = null;
@@ -397,17 +399,22 @@ export class ResultsOverlayComponent
     // Filter sky planes and sort: military first, then by ascending distance
     const centerLat = this.settings.lat ?? 0;
     const centerLon = this.settings.lon ?? 0;
-    const militaryThenDistance = (a: PlaneLogEntry, b: PlaneLogEntry) => {
-      if (a.isMilitary && !b.isMilitary) return -1;
-      if (!a.isMilitary && b.isMilitary) return 1;
-      return (
-        haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
-        haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
-      );
-    };
+    // Choose comparator based on militaryPriority flag
+    const comparator = this.militaryPriority
+      ? (a: PlaneLogEntry, b: PlaneLogEntry) => {
+          if (a.isMilitary && !b.isMilitary) return -1;
+          if (!a.isMilitary && b.isMilitary) return 1;
+          return (
+            haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+            haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
+          );
+        }
+      : (a: PlaneLogEntry, b: PlaneLogEntry) =>
+          haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+          haversineDistance(centerLat, centerLon, b.lat!, b.lon!);
     this.filteredSkyPlaneLog = this.skyPlaneLog
       .filter((plane) => !plane.filteredOut)
-      .sort(militaryThenDistance);
+      .sort(comparator);
 
     // Bring manually followed plane to top
     if (this.highlightedPlaneIcao) {
@@ -426,7 +433,7 @@ export class ResultsOverlayComponent
     // Sort seen planes: military first, then by distance
     this.filteredSeenPlaneLog = this.seenPlaneLog
       .filter((plane) => !plane.filteredOut)
-      .sort(militaryThenDistance);
+      .sort(comparator);
 
     // Clear isNew if plane is older than NEW_PLANE_MINUTES
     const now = Date.now();
@@ -687,9 +694,24 @@ export class ResultsOverlayComponent
     this.cdr.detectChanges();
   }
 
-  private logShuffleModeChange(newValue: boolean, source: string) {
-    if (newValue === false) {
-      // Only log stack for disables
+  /** Toggle military priority sorting on/off */
+  public toggleMilitaryPriority(): void {
+    this.militaryPriority = !this.militaryPriority;
+    this.resultsUpdated = true;
+    // Only re-sort and reshuffle if there are military planes visible
+    const hasMilitary = this.filteredSkyPlaneLog.some(p => p.isMilitary);
+    if (hasMilitary) {
+      this.updateFilteredLogs();
+      if (this.shuffleMode) {
+        this.pickAndCenterRandomPlane();
+      }
+    }
+    this.cdr.detectChanges();
+  }
+
+  /** Log shuffle mode changes for debugging */
+  private logShuffleModeChange(newValue: boolean, source: string): void {
+    if (!newValue) {
       console.warn(`[ShuffleMode] shuffleMode set to FALSE by ${source}`);
       console.warn(new Error().stack);
     } else {
@@ -720,15 +742,19 @@ export class ResultsOverlayComponent
 
   /** Choose a random visible plane and emit centerPlane to follow */
   private pickAndCenterRandomPlane(): void {
-    const priority = this.filteredSkyPlaneLog.filter(
-      (p) => p.isMilitary || p.isSpecial
-    );
-    let pool: PlaneLogEntry[] = [];
-    const hasMilitary = this.filteredSkyPlaneLog.some((p) => p.isMilitary);
-
-    if (priority.length > 0) {
-      pool = priority;
+    let pool: PlaneLogEntry[];
+    // If military priority enabled, pick military/special first; otherwise use all visible planes
+    if (this.militaryPriority) {
+      const priority = this.filteredSkyPlaneLog.filter(
+        (p) => p.isMilitary || p.isSpecial
+      );
+      pool = priority.length
+        ? priority
+        : this.filteredSkyPlaneLog.filter(
+            (p) => !p.onGround && p.altitude != null && p.altitude > 200
+          );
     } else {
+      // no prioritization: pick from all visible airborne planes
       pool = this.filteredSkyPlaneLog.filter(
         (p) => !p.onGround && p.altitude != null && p.altitude > 200
       );
