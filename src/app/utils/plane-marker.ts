@@ -3,8 +3,9 @@ import * as L from 'leaflet';
 import { getIconPathForModel } from './plane-icons';
 import SunCalc from 'suncalc';
 
-// Add a small manual offset to the sun azimuth for shadow placement (in radians)
-const SHADOW_AZIMUTH_OFFSET = (90 * Math.PI) / 180; // adjust degrees as needed
+// --- SHADOW CALCULATION ---
+// Instead of a fixed offset, calculate the shadow direction based on the sun's azimuth and the plane's rotation.
+// The shadow should be cast in the direction opposite to the sun, relative to the plane's heading.
 
 // We can't inject services directly in a utility function, so we'll accept the helicopter check as a parameter
 export function createOrUpdatePlaneMarker(
@@ -38,32 +39,33 @@ export function createOrUpdatePlaneMarker(
   const iconData = isCopter
     ? { path: '', iconType: 'copter' as const }
     : getIconPathForModel(model);
-  const iconInner = isCopter
-    ? ''
-    : `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`;
+  // Only render SVG for non-helicopters
+  const iconInner = !isCopter
+    ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
+    : '';
 
-  // Calculate sun-based shadow offset
-  const center = map.getCenter();
-  const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
-  const az = sunPos.azimuth + SHADOW_AZIMUTH_OFFSET; // azimuth in radians, adjusted
-  const alt = sunPos.altitude; // altitude in radians
-  const baseLength = alt > 0 ? Math.min(20, 10 / Math.tan(alt)) : 0;
+  // --- Accurate shadow calculation ---
+  // Get sun position at the marker's location
+  const sunPos = SunCalc.getPosition(new Date(), lat, lon);
+  // Convert SunCalc azimuth (from south, eastward) to map azimuth (from north, clockwise)
+  const sunAzimuthMap = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
+  // Plane rotation: degrees from north, clockwise. Convert to radians.
+  const planeRotRad = ((isCopter ? 0 : rotation) * Math.PI) / 180;
+  // Shadow direction: from plane toward the opposite of the sun's azimuth, relative to the plane's heading
+  const shadowAngle = sunAzimuthMap + Math.PI - planeRotRad;
+  // Shadow length: longer when sun is low, shorter when high
   const altMeters = altitude ?? 0;
+  const sunAlt = sunPos.altitude;
+  const baseLength = sunAlt > 0 ? Math.min(20, 10 / Math.tan(sunAlt)) : 0;
   const altFactor = Math.min(altMeters / 12000, 1);
   const length = baseLength * (1 + altFactor);
-  // Global shadow vector (map-relative)
-  const globalDx = -length * Math.sin(az);
-  const globalDy = -length * Math.cos(az);
-  // Convert global shadow vector into local coordinates to offset rotation
-  const rotRad = ((isCopter ? 0 : rotation) * Math.PI) / 180;
-  const localDx = globalDx * Math.cos(rotRad) + globalDy * Math.sin(rotRad);
-  const localDy = -globalDx * Math.sin(rotRad) + globalDy * Math.cos(rotRad);
+  // Shadow vector in marker's local coordinates
+  const shadowDx = length * Math.cos(shadowAngle);
+  const shadowDy = length * Math.sin(shadowAngle);
   // Only apply shadow for non-grounded planes
   const shadowStyle =
     !isGrounded && length > 0
-      ? `filter: drop-shadow(${localDx.toFixed(1)}px ${localDy.toFixed(
-          1
-        )}px 1px rgba(0,0,1,0.6));`
+      ? `filter: drop-shadow(${shadowDx.toFixed(1)}px ${shadowDy.toFixed(1)}px 1px rgba(0,0,1,0.6));`
       : '';
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon
