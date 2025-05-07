@@ -3,6 +3,9 @@ import * as L from 'leaflet';
 import { getIconPathForModel } from './plane-icons';
 import SunCalc from 'suncalc';
 
+// Add a small manual offset to the sun azimuth for shadow placement (in radians)
+const SHADOW_AZIMUTH_OFFSET = (90 * Math.PI) / 180; // adjust degrees as needed
+
 // We can't inject services directly in a utility function, so we'll accept the helicopter check as a parameter
 export function createOrUpdatePlaneMarker(
   oldMarker: L.Marker | undefined,
@@ -42,7 +45,7 @@ export function createOrUpdatePlaneMarker(
   // Calculate sun-based shadow offset
   const center = map.getCenter();
   const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
-  const az = sunPos.azimuth; // azimuth in radians
+  const az = sunPos.azimuth + SHADOW_AZIMUTH_OFFSET; // azimuth in radians, adjusted
   const alt = sunPos.altitude; // altitude in radians
   const baseLength = alt > 0 ? Math.min(20, 10 / Math.tan(alt)) : 0;
   const altMeters = altitude ?? 0;

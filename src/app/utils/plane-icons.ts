@@ -120,16 +120,25 @@ export function getIconPathForModel(model: string): PlaneIconData {
     } else if (m.includes('ctls') || m.includes('ct ls')) {
       result = { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
     } else if (
-      m.includes('tr182') || m.includes('turbo skylane') ||
-      m.includes('p.2008') || m.includes('p2008') ||
-      m.includes('da-40') || m.includes('da40') ||
-      m.includes('sr-22t') || m.includes('sr22t') ||
-      m.includes('a.210') || m.includes('a210') ||
-      m.includes('a.211') || m.includes('a211') ||
-      m.includes('c-42') || m.includes('c42') ||
+      m.includes('tr182') ||
+      m.includes('turbo skylane') ||
+      m.includes('p.2008') ||
+      m.includes('p2008') ||
+      m.includes('da-40') ||
+      m.includes('da40') ||
+      m.includes('sr-22t') ||
+      m.includes('sr22t') ||
+      m.includes('a.210') ||
+      m.includes('a210') ||
+      m.includes('a.211') ||
+      m.includes('a211') ||
+      m.includes('c-42') ||
+      m.includes('c42') ||
       m.includes('katana') ||
-      m.includes('p.2002') || m.includes('p2002') ||
-      m.includes('pc-12') || m.includes('pc12')
+      m.includes('p.2002') ||
+      m.includes('p2002') ||
+      m.includes('pc-12') ||
+      m.includes('pc12')
     ) {
       result = { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
     } else if (m.trim() === '') {
@@ -315,8 +324,6 @@ export function getIconPathForModel(model: string): PlaneIconData {
       }
     }
   }
-  // Log the model and selected icon type
-  // eslint-disable-next-line no-console
-  console.log(`[plane-icons] model: '${model}' iconType: '${result.iconType}'`);
+
   return result;
 }

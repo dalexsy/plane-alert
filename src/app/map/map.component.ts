@@ -40,6 +40,8 @@ import { TemperatureComponent } from '../components/ui/temperature.component';
 import { ClosestPlaneOverlayComponent } from '../components/closest-plane-overlay/closest-plane-overlay.component';
 import { LocationOverlayComponent } from '../components/location-overlay/location-overlay.component';
 import { LocationService } from '../services/location.service';
+import SunCalc from 'suncalc';
+import { IconComponent } from '../components/ui/icon.component';
 
 // OpenWeatherMap tile service API key - replace with your own key
 const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
@@ -69,6 +71,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     TemperatureComponent,
     ClosestPlaneOverlayComponent,
     LocationOverlayComponent,
+    IconComponent, // added for sun angle overlay
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -149,6 +152,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // New properties for location-overlay component
   locationStreet: string | null = null;
   locationDistrict: string | null = null;
+
+  // Sun angle for solar position overlay
+  public sunAngle: number = 0;
+  private sunAngleInterval: any;
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
@@ -257,7 +264,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.settings.excludeDiscount = storedExclude === 'true';
     }
 
-    this.initMap(lat, lon, radius); // Pass main radius
+    // Initialize map and overlays
+    this.initMap(lat, lon, radius);
     // Provide the created map instance to the service
     this.mapService.setMapInstance(this.map);
     // Main radius will be drawn by updateMap to avoid duplicate initial draw
@@ -386,6 +394,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         );
       }, 20000);
     });
+
+    // Initialize sun angle overlay
+    this.updateSunAngle();
+    this.sunAngleInterval = setInterval(() => {
+      this.updateSunAngle();
+      this.cdr.detectChanges();
+    }, 60000); // update every minute
   }
 
   ngOnDestroy(): void {
@@ -396,6 +411,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.airportCircles.clear();
     if (this.svgPatternRetryTimeout) {
       clearTimeout(this.svgPatternRetryTimeout);
+    }
+    if (this.sunAngleInterval) {
+      clearInterval(this.sunAngleInterval);
     }
   }
 
@@ -1904,5 +1922,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.showDateTime = !this.showDateTime;
     this.settings.setShowDateTimeOverlay(this.showDateTime);
     this.cdr.detectChanges();
+  }
+
+  private updateSunAngle(): void {
+    if (!this.map) return;
+    const center = this.map.getCenter();
+    const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
+    // Convert azimuth to degrees for CSS rotation (arrow points toward sun)
+    this.sunAngle = (sunPos.azimuth * 180) / Math.PI;
   }
 }

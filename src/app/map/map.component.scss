@@ -43,3 +43,12 @@ app-map.map-panning app-results-overlay,
 app-map.map-panning app-input-overlay {
   pointer-events: none;
 }
+
+.sun-angle-overlay {
+  position: fixed;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+}
