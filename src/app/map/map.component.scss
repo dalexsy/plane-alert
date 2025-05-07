@@ -48,7 +48,14 @@ app-map.map-panning app-input-overlay {
   position: fixed;
   top: 0.25rem;
   z-index: 1000;
-  pointer-events: none;
+
+  .sun-angle-icon {
+    pointer-events: none;
+    span {
+      font-size: 4rem !important;
+      font-variation-settings: "FILL" 0, "wght" 160, "GRAD" 0, "opsz" 20 !important;
+    }
+  }
 
   // Position to the left of results overlay by 0.5rem
   &.collapsed {
