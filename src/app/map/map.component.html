@@ -62,8 +62,15 @@
 ></app-cone>
 
 <!-- Sun angle indicator overlay -->
-<div class="sun-angle-overlay" [title]="'Sun azimuth: ' + sunAngle.toFixed(1) + '°'">
-  <app-icon icon="arrow_upward" size="large" variant="outlined"
+<div
+  class="sun-angle-overlay"
+  [class.collapsed]="resultsOverlayComponent.collapsed"
+  [title]="'Sun azimuth: ' + sunAngle.toFixed(1) + '°'"
+>
+  <app-icon
+    icon="arrow_upward"
+    size="large"
+    variant="outlined"
     [style.transform]="'rotate(' + sunAngle + 'deg)'"
     color="yellow"
     ariaLabel="Sun direction"

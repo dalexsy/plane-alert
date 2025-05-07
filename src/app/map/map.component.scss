@@ -46,9 +46,15 @@ app-map.map-panning app-input-overlay {
 
 .sun-angle-overlay {
   position: fixed;
-  top: 5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0.25rem;
   z-index: 1000;
   pointer-events: none;
+
+  // Position to the left of results overlay by 0.5rem
+  &.collapsed {
+    right: 3rem; // collapsed overlay width (~2.5rem) + 0.5rem gap
+  }
+  &:not(.collapsed) {
+    right: calc(25rem + 3.5rem); // results width + right offset + gap
+  }
 }
