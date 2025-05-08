@@ -7,13 +7,19 @@ $followed-plane-color: #00ffff;
   flex-direction: column;
   border-bottom: 1px solid rgba(255, 255, 255, 0.4);
   padding: 0.5rem 1rem; // restore overlay item padding
-  margin-right: 0.25rem; // match overlay spacing
   mix-blend-mode: plus-lighter; // overlay blend mode
   font-family: "JetBrains Mono", monospace;
   align-items: center;
+  cursor: pointer;
 
   &:last-of-type {
     border-bottom: none;
+  }
+
+  .none-callsign,
+  .unknown-operator {
+    opacity: 0.8;
+    font-style: italic;
   }
 
   &.new-plane {
@@ -109,12 +115,6 @@ $followed-plane-color: #00ffff;
     app-button {
       align-self: center;
     } // Keep button centered vertically
-
-    // Style unknown operator text
-    .operator.unknown-operator {
-      color: gray;
-      font-style: italic;
-    }
   }
 
   .direction-info {
@@ -148,9 +148,20 @@ $followed-plane-color: #00ffff;
     font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20;
     font-size: 0.75rem;
     padding: 0 0.25rem;
+    display: block;
 
-    margin-right: 0.25rem;
     border-radius: 0.25rem;
+
+    &:hover {
+      opacity: 0.8;
+      transform: scale(1.03);
+    }
+  }
+
+  // Cursor pointer for clickable airport elements
+  .airport-code.clickable,
+  .airport-name.clickable {
+    cursor: pointer;
   }
 
   .model {
@@ -168,10 +179,6 @@ $followed-plane-color: #00ffff;
     height: 1rem;
   }
 
-  .none-callsign {
-    color: gray;
-  }
-
   .call-sign {
     display: flex;
     flex-direction: row;
@@ -181,6 +188,21 @@ $followed-plane-color: #00ffff;
 
   .military-star {
     color: #89d138; // Match military color
+  }
+
+  // Tint background on hover using CSS Color Module if supported
+  &:hover {
+    background-color: color-mix(in srgb, currentColor 20%, transparent);
+  }
+
+  // Fallback for browsers without color-mix support
+  @supports not (
+    background-color: color-mix(in srgb, currentColor 20%, transparent)
+  ) {
+    &:hover {
+      background-color: currentColor;
+      opacity: 0.2;
+    }
   }
 }
 

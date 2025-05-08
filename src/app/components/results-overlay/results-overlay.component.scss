@@ -1,3 +1,5 @@
+@use "../../styles/overlay" as *;
+
 .results-overlay {
   position: absolute;
   top: 0.25rem;
@@ -13,6 +15,7 @@
   gap: 0.5rem;
   border-radius: 0 0.5rem 0.5rem 0.5rem;
   padding: 0.25rem 0;
+  backdrop-filter: blur(0.5rem);
 
   h3 {
     padding: 1rem;
@@ -38,6 +41,37 @@
     border-radius: 0.5rem 0 0 0.5rem;
     border: 1px solid rgb(255 255 255 / 40%);
     border-right: none;
+
+    .shuffle-toggle.active {
+      color: cyan;
+      background-color: rgba(0, 255, 255, 0.2);
+    }
+    .military-priority-toggle.active {
+      color: #89d138;
+      background-color: rgb(138 209 56 / 35%);
+    }
+
+    .military-toggle-wrapper {
+      position: relative;
+      display: inline-block;
+
+      .military-badge {
+        position: absolute;
+        bottom: 0.25rem;
+        right: 0.25rem;
+        background-color: #ffffff;
+        color: #000000;
+        border-radius: 50%;
+        width: 1rem;
+        height: 1rem;
+        font-weight: 600;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+    }
   }
 
   // Remove gap for the first overlay content item when not collapsed
@@ -60,6 +94,7 @@
       position: static;
       margin: 0;
       border-radius: 0.5rem;
+      border-color: transparent;
     }
     > :not(.top-buttons) {
       display: none;
@@ -108,7 +143,6 @@
     .plane-list {
       display: flex;
       flex-direction: column;
-      margin-right: 0.25rem;
       position: relative;
       padding-bottom: 0;
       min-height: 10vh;
@@ -126,101 +160,6 @@
       a {
         display: flex;
         gap: 0.25rem;
-      }
-
-      .plane-item {
-        display: flex;
-        flex-direction: column;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-        padding: 0.5rem 1rem;
-        mix-blend-mode: plus-lighter;
-
-        // merge common styles
-        align-items: center;
-        font-family: "JetBrains Mono", monospace;
-
-        .flag-callsign,
-        .direction-info {
-          display: grid;
-          gap: 0.25rem;
-          align-items: center;
-        }
-
-        .direction-info {
-          grid-template-columns: auto auto 1.75rem 3.5rem;
-          justify-items: end;
-          text-align: right;
-          font-variation-settings: "FILL" 0, "wght" 320, "GRAD" 0, "opsz" 20;
-          transform-origin: center;
-
-          .direction-icon {
-            width: 1.75rem;
-            height: 1.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform-origin: center;
-          }
-        }
-        .flag-callsign {
-          grid-template-columns: 2rem 1.75rem auto auto auto;
-          margin-left: -0.5rem;
-          // Align button to the top of its grid cell
-          app-button {
-            align-self: start;
-          }
-        }
-
-        &.filtered-out,
-        &.hide-commercial {
-          display: none !important;
-        }
-        .icon.small {
-          font-size: 1rem;
-          width: 1rem;
-          height: 1rem;
-        }
-
-        &:last-of-type {
-          border-bottom: none;
-        }
-
-        &.military-plane {
-          color: #89d138;
-        }
-        &.special-plane {
-          color: gold;
-          .favorite-icon {
-            color: #ff6161;
-          }
-        }
-
-        .top {
-          display: flex;
-          justify-content: space-between;
-          width: 100%;
-          align-items: flex-start;
-          gap: 0.25rem;
-
-          // Grid layout for operator with center button
-          .operator-center {
-            display: grid;
-            grid-template-columns: 2rem auto; // first column aligns under visibility icon width
-            align-items: start;
-            gap: 0.25rem;
-            margin-left: -0.5rem; // align with flag-callsign icons
-            // Align button to the top of its grid cell
-            app-button {
-              align-self: start;
-              margin-top: -0.25rem;
-            }
-          }
-
-          .center-icon-active {
-            color: white; // Or your desired highlight color
-            font-variation-settings: "FILL" 1; // Make icon filled when active
-          }
-        }
       }
     }
   }
@@ -417,4 +356,8 @@
     rgba(255, 0, 242, 0.1)
   );
   color: cyan;
+}
+
+#seenResults.collapsed h3 {
+  border-color: transparent;
 }

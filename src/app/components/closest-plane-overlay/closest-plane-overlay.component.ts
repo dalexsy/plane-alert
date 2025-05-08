@@ -21,7 +21,10 @@ import { PlaneModel } from '../../models/plane-model';
 export class ClosestPlaneOverlayComponent {
   @Input() plane: PlaneModel | null = null;
   @HostBinding('class.military-plane') get hostMilitary() {
-    return this.plane?.isMilitary === true;
+    return this.isSelected && this.plane?.isMilitary === true;
+  }
+  @HostBinding('class.special-plane') get hostSpecial() {
+    return this.isSelected && this.plane?.isSpecial === true;
   }
   @Input() distanceKm: number | null = null;
   @Input() operator: string | null = null;

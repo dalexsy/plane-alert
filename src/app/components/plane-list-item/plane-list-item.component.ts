@@ -78,10 +78,18 @@ export class PlaneListItemComponent {
   }
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+
+  // Make the whole item clickable: clicking the host emits centerPlane
+  @HostListener('click')
+  onHostClick(): void {
+    this.centerPlane.emit(this.plane);
+  }
+
   // Keep hover/unhover in parent for simplicity for now
 
   // Keep getTimeAgo logic here as it's specific to the 'seen' variant display
@@ -116,5 +124,15 @@ export class PlaneListItemComponent {
   onToggleSpecial(event: Event): void {
     event.stopPropagation();
     this.toggleSpecial.emit(this.plane);
+  }
+
+  onCenterAirport(event: Event): void {
+    event.stopPropagation();
+    if (this.plane.airportLat != null && this.plane.airportLon != null) {
+      this.centerAirport.emit({
+        lat: this.plane.airportLat,
+        lon: this.plane.airportLon,
+      });
+    }
   }
 }

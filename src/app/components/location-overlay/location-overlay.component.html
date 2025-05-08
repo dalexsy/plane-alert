@@ -1,0 +1,29 @@
+<div
+  *ngIf="plane && (plane.airportName || street || district)"
+  class="location-overlay"
+  [class.selected]="isSelected"
+  [class.military-plane]="isSelected && plane.isMilitary"
+  [class.special-plane]="isSelected && plane.isSpecial"
+  (click)="onClick()"
+  title="Center plane"
+>
+  <app-icon
+    icon="location_on"
+    variant="sharp"
+    size="small"
+    ariaLabel="Plane location"
+  ></app-icon>
+  <!-- If at an airport, show airportName only -->
+  <ng-container *ngIf="plane.airportName">
+    <span class="airport-name">{{ plane.airportName }}</span>
+  </ng-container>
+  <!-- Otherwise, show street and/or district -->
+  <ng-container *ngIf="!plane.airportName">
+    <ng-container *ngIf="street; else showDistrict">
+      <span class="street">{{ street }}</span>
+    </ng-container>
+    <ng-template #showDistrict>
+      <span class="district">{{ district }}</span>
+    </ng-template>
+  </ng-container>
+</div>

@@ -1,5 +1,11 @@
 /* src/app/utils/plane-marker.ts */
 import * as L from 'leaflet';
+import { getIconPathForModel } from './plane-icons';
+import SunCalc from 'suncalc';
+
+// --- SHADOW CALCULATION ---
+// Instead of a fixed offset, calculate the shadow direction based on the sun's azimuth and the plane's rotation.
+// The shadow should be cast in the direction opposite to the sun, relative to the plane's heading.
 
 // We can't inject services directly in a utility function, so we'll accept the helicopter check as a parameter
 export function createOrUpdatePlaneMarker(
@@ -17,7 +23,8 @@ export function createOrUpdatePlaneMarker(
   model: string = '',
   isCustomHelicopter: boolean = false,
   isSpecial: boolean = false,
-  followed: boolean = false // <-- new param
+  altitude: number | null = null,
+  followed: boolean = false
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Check if this is a helicopter based on model name or our custom list
   const modelLower = model.toLowerCase();
@@ -28,25 +35,60 @@ export function createOrUpdatePlaneMarker(
     modelLower.includes('heli') ||
     modelLower.includes('chopper');
 
-  const markerHtml = `<div class="plane-marker ${
+  // Inline SVG for non-helicopters, CSS ::before for helicopters
+  const iconData = isCopter
+    ? { path: '', iconType: 'copter' as const }
+    : getIconPathForModel(model);
+  // Only render SVG for non-helicopters
+  const iconInner = !isCopter
+    ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
+    : '';
+
+  // --- Accurate shadow calculation ---
+  // Get sun position at the marker's location
+  const sunPos = SunCalc.getPosition(new Date(), lat, lon);
+  // Convert SunCalc azimuth (from south, eastward) to map azimuth (from north, clockwise)
+  const sunAzimuthMap = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
+  // Plane rotation: degrees from north, clockwise. Convert to radians.
+  const planeRotRad = ((isCopter ? 0 : rotation) * Math.PI) / 180;
+  // Shadow direction: from plane toward the opposite of the sun's azimuth, relative to the plane's heading
+  const shadowAngle = sunAzimuthMap + Math.PI - planeRotRad;
+  // Shadow length: longer when sun is low, shorter when high
+  const altMeters = altitude ?? 0;
+  const sunAlt = sunPos.altitude;
+  const baseLength = sunAlt > 0 ? Math.min(20, 10 / Math.tan(sunAlt)) : 0;
+  const altFactor = Math.min(altMeters / 12000, 1);
+  const length = baseLength * (1 + altFactor);
+  // Shadow vector in marker's local coordinates
+  const shadowDx = length * Math.cos(shadowAngle);
+  const shadowDy = length * Math.sin(shadowAngle);
+  // Only apply shadow for non-grounded planes
+  const shadowStyle =
+    !isGrounded && length > 0
+      ? `filter: drop-shadow(${shadowDx.toFixed(1)}px ${shadowDy.toFixed(1)}px 1px rgba(0,0,1,0.6));`
+      : '';
+
+  // Build class list: non-helicopters get svg-plane to hide pseudo-icon
+  // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class
+  const classString = `plane-marker ${!isCopter ? 'svg-plane ' : ''}${
+    !isCopter ? iconData.iconType + ' ' : ''
+  }${
     isNew && isGrounded
       ? 'new-and-grounded'
-      : isNew
-      ? 'new-plane'
       : isGrounded
       ? 'grounded-plane'
       : ''
   } ${isMilitary ? 'military-plane' : ''} ${isCopter ? 'copter-plane' : ''}${
     followed ? ' followed-plane' : ''
-  }" style="transform: rotate(${
+  }`;
+  const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation
-  }deg); ${extraStyle}">${planeIcon}</div>`;
+  }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
 
+  // Let CSS handle container sizing: omit iconSize/iconAnchor to avoid inline styles
   const icon = L.divIcon({
     className: 'plane-marker-container',
     html: markerHtml,
-    iconSize: [48, 48], // 3rem
-    iconAnchor: [24, 24], // center
   });
 
   // Define tooltip options with the correct classes and ensure offset is a proper PointTuple
@@ -94,19 +136,7 @@ export function createOrUpdatePlaneMarker(
       );
       newMarker.bindTooltip(tooltip, tooltipOptions);
       if (wasOnMap) newMarker.addTo(map);
-      // Copy over follow styles and event handlers
-      if (followed) {
-        const el = newMarker.getElement();
-        if (el) {
-          el.style.borderColor = '#00ffff';
-          el.style.color = '#00ffff';
-        }
-        const tel = newMarker.getTooltip()?.getElement();
-        if (tel) {
-          tel.style.borderColor = '#00ffff';
-          tel.style.color = '#00ffff';
-        }
-      }
+      // Event handlers will be re-attached
       const bring = () => manageZIndex(newMarker, true);
       const send = () => manageZIndex(newMarker, false);
       newMarker.on('mouseover', bring);
@@ -152,18 +182,18 @@ export function createOrUpdatePlaneMarker(
     oldMarker.bindTooltip(tooltip, tooltipOptions);
 
     // --- Set followed style immediately ---
-    if (followed) {
-      const markerEl = oldMarker.getElement();
-      if (markerEl) {
-        markerEl.style.borderColor = '#00ffff';
-        markerEl.style.color = '#00ffff';
-      }
-      const tooltipEl = oldMarker.getTooltip()?.getElement();
-      if (tooltipEl) {
-        tooltipEl.style.borderColor = '#00ffff';
-        tooltipEl.style.color = '#00ffff';
-      }
-    }
+    // if (followed) {
+    //   const markerEl = oldMarker.getElement();
+    //   if (markerEl) {
+    //     // markerEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // markerEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    //   const tooltipEl = oldMarker.getTooltip()?.getElement();
+    //   if (tooltipEl) {
+    //     // tooltipEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // tooltipEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    // }
 
     // --- Event Handling for Existing Markers ---
     const bringForwardHandler = () => manageZIndex(oldMarker, true);
@@ -221,18 +251,18 @@ export function createOrUpdatePlaneMarker(
     marker.addTo(map);
 
     // --- Set followed style immediately ---
-    if (followed) {
-      const markerEl = marker.getElement();
-      if (markerEl) {
-        markerEl.style.borderColor = '#00ffff';
-        markerEl.style.color = '#00ffff';
-      }
-      const tooltipEl = marker.getTooltip()?.getElement();
-      if (tooltipEl) {
-        tooltipEl.style.borderColor = '#00ffff';
-        tooltipEl.style.color = '#00ffff';
-      }
-    }
+    // if (followed) {
+    //   const markerEl = marker.getElement();
+    //   if (markerEl) {
+    //     // markerEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // markerEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    //   const tooltipEl = marker.getTooltip()?.getElement();
+    //   if (tooltipEl) {
+    //     // tooltipEl.style.borderColor = '#00ffff'; // Handled by SCSS
+    //     // tooltipEl.style.color = '#00ffff'; // Handled by SCSS
+    //   }
+    // }
 
     // --- Event Handling for New Markers ---
     const bringForwardHandler = () => manageZIndex(marker, true);

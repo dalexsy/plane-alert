@@ -8,8 +8,16 @@
   [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
 ></app-closest-plane-overlay>
 
+<app-location-overlay
+  [plane]="closestPlane"
+  [street]="locationStreet"
+  [district]="locationDistrict"
+  (selectPlane)="followNearestPlane($event)"
+  [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
+></app-location-overlay>
+
 <app-input-overlay
-  (resolveAndUpdate)="onUpdateNow()"
+  (resolveAndUpdate)="resolveAndUpdateFromAddress()"
   (excludeDiscountChange)="onExcludeDiscountChange()"
   (useCurrentLocation)="useCurrentLocation()"
   (goToAirport)="goToAirport()"
@@ -31,7 +39,8 @@
   [loadingAirports]="loadingAirports"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [activePlaneIcaos]="activePlaneIcaos"
-  (centerPlane)="centerOnPlane($event)"
+  (centerPlane)="followNearestPlane($event)"
+  (centerAirport)="onCenterAirport($event)"
   (hoverPlane)="onHoverOverlayPlane($event)"
   (unhoverPlane)="onUnhoverOverlayPlane($event)"
 ></app-results-overlay>
@@ -51,3 +60,18 @@
   [lon]="homeLocationValue!.lon"
   [distanceKm]="radiusKm"
 ></app-cone>
+
+<!-- Sun angle indicator overlay -->
+<div
+  class="sun-angle-overlay"
+  [class.collapsed]="resultsOverlayComponent.collapsed"
+  [title]="'Sun azimuth: ' + sunAngle.toFixed(1) + '°'"
+>
+  <app-icon
+    icon="sunny_snowing"
+    class="sun-angle-icon"
+    variant="outlined"
+    [style.transform]="'rotate(' + sunAngle + 'deg)'"
+    ariaLabel="Sun direction"
+  ></app-icon>
+</div>

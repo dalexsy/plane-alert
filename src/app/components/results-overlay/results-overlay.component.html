@@ -39,6 +39,41 @@
         "
         (click)="onToggleCommercialMute()"
       ></app-button>
+      <!-- Shuffle follow mode toggle -->
+      <app-button
+        class="shuffle-toggle"
+        [icon]="shuffleMode ? 'pause' : 'shuffle'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'
+        "
+        [title]="shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'"
+        [ngClass]="{ active: shuffleMode }"
+        (click)="toggleShuffle()"
+      ></app-button>
+      <!-- Military priority toggle -->
+      <div class="military-toggle-wrapper">
+        <app-button
+          class="military-priority-toggle"
+          [icon]="militaryPriority ? 'star_shine' : 'star'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="
+            militaryPriority
+              ? 'Disable military priority'
+              : 'Enable military priority'
+          "
+          [title]="
+            militaryPriority
+              ? 'Disable military priority'
+              : 'Enable military priority'
+          "
+          [ngClass]="{ active: militaryPriority }"
+          (click)="toggleMilitaryPriority()"
+        ></app-button>
+        <span class="military-badge">{{ militaryCount }}</span>
+      </div>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">
@@ -72,7 +107,12 @@
             else noSkyPlanes
           "
         >
-          <div class="plane-list" #skyList (scroll)="onSkyScroll($event)">
+          <div
+            class="plane-list"
+            #skyList
+            (scroll)="onSkyScroll($event)"
+            [@listAnimation]="highlightedPlaneIcao"
+          >
             <app-plane-list-item
               *ngFor="let plane of filteredSkyPlaneLog"
               [plane]="plane"
@@ -83,6 +123,7 @@
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
               (centerPlane)="handleCenterPlane($event)"
+              (centerAirport)="handleCenterAirport($event)"
               (filterPrefix)="handleFilterPrefix($event)"
               (toggleSpecial)="handleToggleSpecial($event)"
               (hoverPlane)="onHoverPlane($event, 'sky')"
@@ -110,6 +151,7 @@
             class="plane-list"
             #airportList
             (scroll)="onAirportScroll($event)"
+            [@listAnimation]="highlightedPlaneIcao"
           >
             <app-plane-list-item
               *ngFor="let plane of filteredAirportPlaneLog"
@@ -121,6 +163,7 @@
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
               (centerPlane)="handleCenterPlane($event)"
+              (centerAirport)="handleCenterAirport($event)"
               (filterPrefix)="handleFilterPrefix($event)"
               (toggleSpecial)="handleToggleSpecial($event)"
               (hoverPlane)="onHoverPlane($event, 'airport')"
@@ -132,7 +175,7 @@
     </div>
     <!-- .middle-section -->
 
-    <div id="seenResults">
+    <div id="seenResults" [class.collapsed]="seenCollapsed">
       <h3 class="top">
         All Planes Peeped ({{ seenPlaneLog.length }})<span>
           <!-- Collapse toggle button -->
@@ -168,6 +211,7 @@
             class="seen-list plane-list"
             #seenList
             (scroll)="onSeenScroll($event)"
+            [@listAnimation]="highlightedPlaneIcao"
           >
             <app-plane-list-item
               *ngFor="let plane of filteredSeenPlaneLog"
