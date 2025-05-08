@@ -26,6 +26,8 @@
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
   (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
+  [brightness]="brightness"
+  (brightnessToggle)="toggleBrightness()"
   [showViewAxes]="coneVisible"
   [showDateTime]="showDateTime"
   [showCloudCover]="cloudVisible"

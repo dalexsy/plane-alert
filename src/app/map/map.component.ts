@@ -155,6 +155,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Sun angle for solar position overlay
   public sunAngle: number = 0;
+  public brightness: number = 1;
   private sunAngleInterval: any;
 
   constructor(
@@ -244,6 +245,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         );
       }
     });
+  }
+
+  /** Toggle map brightness between normal and dimmed */
+  public toggleBrightness(): void {
+    this.brightness = this.brightness === 1 ? 0.3 : 1;
+    const container = this.map.getContainer();
+    if (container) {
+      container.style.filter = `brightness(${this.brightness})`;
+    }
   }
 
   async ngAfterViewInit(): Promise<void> {

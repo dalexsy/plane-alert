@@ -42,6 +42,8 @@ export class InputOverlayComponent implements OnDestroy {
   @Output() cloudToggleChange = new EventEmitter<boolean>();
   @Input() showDateTime = true;
   @Output() toggleDateTimeOverlays = new EventEmitter<void>();
+  @Input() brightness: number = 1;
+  @Output() brightnessToggle = new EventEmitter<void>();
   /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
 
@@ -55,6 +57,11 @@ export class InputOverlayComponent implements OnDestroy {
     private cdr: ChangeDetectorRef,
     private scanService: ScanService
   ) {}
+
+  /** Emit when brightness toggle button is clicked */
+  onBrightnessToggle(): void {
+    this.brightnessToggle.emit();
+  }
 
   ngAfterViewInit(): void {
     this.sub = combineLatest([
