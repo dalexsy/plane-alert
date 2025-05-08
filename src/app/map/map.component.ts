@@ -752,14 +752,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       .then((res) => res.json())
       .then((data) => {
         const addr = data.address || {};
-        const district = addr.suburb || addr.city_district || addr.county || addr.state || '';
+        const district =
+          addr.suburb || addr.city_district || addr.county || addr.state || '';
         const state = addr.state || '';
         const country = addr.country || '';
         if (district) {
           if (country.toLowerCase() === 'germany') {
-            return state
-              ? `Near ${district}, ${state}`
-              : `Near ${district}`;
+            return state ? `Near ${district}, ${state}` : `Near ${district}`;
           } else {
             return state
               ? `Near ${district}, ${state}, ${country}`
@@ -1099,7 +1098,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (p.lat != null && p.lon != null && p.airportCode == null) {
           const dist =
             haversineDistance(p.lat, p.lon, center.lat, center.lng) * 1000;
-          if (dist <= radiusMeters) {
+          // allow assignment for planes within circle or within 3km outside
+          if (dist <= radiusMeters + 3000) {
             const data = this.airportData.get(id);
             if (data) {
               p.airportCode = data.code || undefined;

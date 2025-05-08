@@ -71,6 +71,7 @@
         align-items: center;
         justify-content: center;
         pointer-events: none;
+        line-height: 3px;
       }
     }
   }
@@ -91,6 +92,8 @@
     min-width: 0;
     min-height: 0;
     border-radius: 0.5rem;
+    overflow: hidden;
+
     .top-buttons {
       position: static;
       margin: 0;

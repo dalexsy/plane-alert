@@ -21,7 +21,12 @@
     size="small"
     ariaLabel="ETA"
   ></app-icon>
-  <span class="distance">{{ distanceKm | number : "1.1-1" }}km </span>
+  <ng-container *ngIf="plane.airportName; else showDistance">
+    <span class="airport">Near {{ plane.airportName }}</span>
+  </ng-container>
+  <ng-template #showDistance>
+    <span class="distance">{{ distanceKm | number : "1.1-1" }}km</span>
+  </ng-template>
   <span
     class="eta"
     *ngIf="secondsAway !== null && velocity !== null && velocity > 0"
