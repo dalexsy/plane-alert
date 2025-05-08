@@ -1,0 +1,62 @@
+.location-overlay {
+  position: absolute;
+  top: 2.75rem; // Positioned below the closest plane overlay
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  z-index: 1001;
+  font-family: "JetBrains Mono", monospace;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(0.5rem);
+
+  .divider {
+    color: rgb(255 255 255 / 50%);
+  }
+
+  &:hover {
+    border-color: white;
+  }
+
+  &.selected {
+    border-color: #00ffff;
+    color: #00ffff;
+    background: linear-gradient(
+        to right,
+        rgba(0, 255, 255, 0.1),
+        rgba(255, 0, 242, 0.1)
+      ),
+      rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+  }
+
+  &.selected.military-plane {
+    border-color: #89d138;
+    color: #89d138;
+    background: linear-gradient(
+        to right,
+        rgba(137, 209, 56, 0.1),
+        rgba(137, 209, 56, 0.1)
+      ),
+      rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
+  }
+
+  &.selected.special-plane {
+    border-color: gold;
+    color: gold;
+    background: linear-gradient(
+        to right,
+        rgba(255, 215, 0, 0.12),
+        rgba(255, 215, 0, 0.12)
+      ),
+      rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.18);
+  }
+}

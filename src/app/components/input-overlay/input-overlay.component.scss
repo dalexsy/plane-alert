@@ -12,6 +12,7 @@
   gap: 0.5rem;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   width: 20rem;
+  backdrop-filter: blur(0.5rem);
 
   .top-buttons {
     position: absolute;
@@ -85,6 +86,7 @@
       align-items: center;
       margin: 0;
       border-radius: 0.5rem;
+      border-color: transparent;
     }
 
     form,

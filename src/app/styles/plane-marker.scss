@@ -1,16 +1,17 @@
 $new-plane-color: #ff6161;
-$followed-plane-color: #00ffff;
 
 .plane-marker-container {
-  width: 3rem;
-  height: 3rem;
+  width: 3rem !important;
+  height: 3rem !important;
+  margin-left: -1.5rem !important;
+  margin-top: -1.5rem !important;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none; // Let the .plane-marker handle pointer events
 }
 
-.leaflet-marker-icon .plane-marker {
+.plane-marker-container .plane-marker {
   font-size: 3rem;
 
   display: flex; /* Use flexbox to center the ::before content */
@@ -18,30 +19,71 @@ $followed-plane-color: #00ffff;
   align-items: center;
   pointer-events: auto; /* Ensure the marker can be clicked/selected */
 
+  // For non-helicopter plane markers, hide default ::before and show inline SVG
+  &.svg-plane::before {
+    content: none;
+  }
+  // SVG plane silhouette: default size (48px) and color
+  &.svg-plane .inline-plane {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+
+    path {
+      fill: white;
+      stroke: black; // Default stroke color
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    &.single_engine {
+      transform: scale(0.8);
+    }
+
+    &.balloon {
+      transform: scale(1.2);
+    }
+  }
+
+  // Grounded planes: grey and smaller (32px)
+  &.svg-plane.grounded-plane .inline-plane {
+    width: 32px;
+    height: 32px;
+
+    path {
+      fill: #ededed; // Override fill for grounded planes
+    }
+  }
+
   &::before {
     font-family: "Material Symbols Sharp", "Material Icons"; /* Add Material Symbols Sharp for better icon support */
-    content: "flight";
-
     display: inline-block;
-    font-style: normal;
-    font-weight: normal;
     line-height: 1;
-    white-space: nowrap;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
       1px 1px 0 #000;
+  }
+
+  &.new-and-grounded {
+    margin-right: 1rem;
+
+    &::before {
+      font-size: 1rem;
+    }
   }
 
   &.copter-plane::before {
     content: "toys_fan";
     animation: spin 1.5s linear infinite;
+    color: white;
   }
 
   &.grounded-plane {
     color: #ededed;
-    margin-right: 2rem;
+    margin-right: 1rem;
 
     &::before {
-      font-size: 2rem;
+      font-size: 1rem;
     }
   }
 
@@ -50,13 +92,8 @@ $followed-plane-color: #00ffff;
     animation: none;
   }
 
-  &.new-plane {
-    color: $new-plane-color;
-  }
-
   &.followed-plane {
-    color: $followed-plane-color;
-    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+    stroke: rgba(0, 255, 255, 0.5);
   }
 
   &:hover {

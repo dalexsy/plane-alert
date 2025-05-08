@@ -8,9 +8,14 @@
   border: 1px solid rgb(255 255 255 / 40%);
 }
 
+.left,
+.right {
+  top: -0.5px;
+  overflow: hidden;
+}
+
 .left {
   left: -2px;
-  top: -0.5px;
   border-radius: 0.5rem 0 0 0.5rem;
   border-right: none;
 }
@@ -25,9 +30,6 @@
 /* When overlay is collapsed, make the tab fully rounded and position it flush with the overlay */
 :host-context(.collapsed) .top-buttons,
 .collapsed > .top-buttons {
-  position: static !important;
-  margin: 0 auto !important;
-  border-radius: 0.5rem !important;
-  left: 0 !important;
-  right: 0 !important;
+  position: static;
+  border-color: transparent;
 }

@@ -1,5 +1,13 @@
 // src/app/components/ui/button.component.ts
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 
@@ -29,7 +37,7 @@ export type ButtonType = 'primary' | 'secondary' | 'tertiary';
   `,
   styleUrls: ['./button.component.scss'],
 })
-export class ButtonComponent {
+export class ButtonComponent implements OnChanges {
   @Input() text: string | null = null;
   @Input() icon: string | null = null;
   @Input() ariaLabel?: string;
@@ -38,6 +46,17 @@ export class ButtonComponent {
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
   @Input() disabled: boolean = false;
   @Output() click = new EventEmitter<Event>();
+
+  constructor(private el: ElementRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes['icon'] &&
+      this.el.nativeElement.classList.contains('shuffle-toggle')
+    ) {
+      console.log(`[ShuffleButton] icon changed to: ${this.icon}`);
+    }
+  }
 
   onClick(event: Event) {
     // Stop event propagation FIRST to prevent any parent handlers

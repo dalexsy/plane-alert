@@ -636,6 +636,8 @@ export class PlaneFinderService {
       planeModelInstance.bearing = bearing;
       planeModelInstance.cardinal = cardinal;
       planeModelInstance.arrow = arrow;
+      // Assign current altitude for overlay and shuffle mode
+      planeModelInstance.altitude = altitude;
 
       // *** FIX: Explicitly add position to history for existing planes ***
       // The constructor handles the very first point for new planes.
@@ -714,6 +716,7 @@ export class PlaneFinderService {
         model,
         this.helicopterListService.isHelicopter(id),
         isSpecial,
+        altitude, // pass altitude for shadow scaling
         followed // <-- pass followed flag
       );
       planeModelInstance.marker = marker; // Update marker reference on model
