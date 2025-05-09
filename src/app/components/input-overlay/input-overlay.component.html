@@ -29,6 +29,25 @@
         [title]="'Toggle map brightness'"
         (click)="onBrightnessToggle()"
       ></app-button>
+      <!-- Zoom controls -->
+      <app-button
+        class="zoom-in"
+        icon="add"
+        type="tertiary"
+        size="medium"
+        ariaLabel="Zoom in"
+        title="Zoom in"
+        (click)="onZoomIn()"
+      ></app-button>
+      <app-button
+        class="zoom-out"
+        icon="remove"
+        type="tertiary"
+        size="medium"
+        ariaLabel="Zoom out"
+        title="Zoom out"
+        (click)="onZoomOut()"
+      ></app-button>
     </app-tab>
   </div>
   <form

@@ -255,6 +255,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       container.style.filter = `brightness(${this.brightness})`;
     }
   }
+  /** Zoom in the map */
+  public onZoomIn(): void {
+    if (this.map) {
+      this.map.zoomIn();
+    }
+  }
+
+  /** Zoom out the map */
+  public onZoomOut(): void {
+    if (this.map) {
+      this.map.zoomOut();
+    }
+  }
 
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();

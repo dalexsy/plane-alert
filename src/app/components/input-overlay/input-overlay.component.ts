@@ -44,6 +44,10 @@ export class InputOverlayComponent implements OnDestroy {
   @Output() toggleDateTimeOverlays = new EventEmitter<void>();
   @Input() brightness: number = 1;
   @Output() brightnessToggle = new EventEmitter<void>();
+  /** Emit when zoom in button is clicked */
+  @Output() zoomIn = new EventEmitter<void>();
+  /** Emit when zoom out button is clicked */
+  @Output() zoomOut = new EventEmitter<void>();
   /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
 
@@ -61,6 +65,15 @@ export class InputOverlayComponent implements OnDestroy {
   /** Emit when brightness toggle button is clicked */
   onBrightnessToggle(): void {
     this.brightnessToggle.emit();
+  }
+  /** Emit when zoom in button is clicked */
+  onZoomIn(): void {
+    this.zoomIn.emit();
+  }
+
+  /** Emit when zoom out button is clicked */
+  onZoomOut(): void {
+    this.zoomOut.emit();
   }
 
   ngAfterViewInit(): void {
