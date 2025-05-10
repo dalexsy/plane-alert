@@ -155,7 +155,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Sun angle for solar position overlay
   public sunAngle: number = 0;
+  public isNight: boolean = false;
   public brightness: number = 1;
+  public moonIcon: string = 'dark_mode';
+  public moonPhaseName: string = '';
   private sunAngleInterval: any;
 
   constructor(
@@ -1956,7 +1959,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (!this.map) return;
     const center = this.map.getCenter();
     const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
-    // Convert azimuth to degrees for CSS rotation (arrow points toward sun)
-    this.sunAngle = (sunPos.azimuth * 180) / Math.PI;
+    // determine if the sun is below the horizon
+    this.isNight = sunPos.altitude < 0;
+    // compute moon phase and icon if night
+    const moonIllum = SunCalc.getMoonIllumination(new Date());
+    const p = moonIllum.phase;
+    const tol = 0.05;
+    if (Math.abs(p - 0.5) < tol) {
+      this.moonIcon = 'brightness_1';
+      this.moonPhaseName = 'Full Moon';
+    } else if (Math.abs(p - 0.25) < tol || Math.abs(p - 0.75) < tol) {
+      this.moonIcon = 'tonality';
+      this.moonPhaseName = Math.abs(p - 0.25) < tol ? 'First Quarter' : 'Last Quarter';
+    } else {
+      this.moonIcon = 'ev_shadow';
+      this.moonPhaseName = p < 0.5 ? 'Waxing Crescent' : 'Waning Crescent';
+    }
+    // Convert SunCalc azimuth (from south, eastward) to map azimuth (from north, clockwise)
+    const mapAzimuth = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
+    this.sunAngle = (mapAzimuth * 180) / Math.PI;
   }
 }

@@ -69,13 +69,17 @@
 <div
   class="sun-angle-overlay"
   [class.collapsed]="resultsOverlayComponent.collapsed"
-  [title]="'Sun azimuth: ' + sunAngle.toFixed(1) + '°'"
+  [title]="isNight
+    ? moonPhaseName + ' - Moon azimuth: ' + sunAngle.toFixed(1) + '°'
+    : 'Sun azimuth: ' + sunAngle.toFixed(1) + '°'"
 >
   <app-icon
-    icon="sunny_snowing"
+    [icon]="isNight ? moonIcon : 'sunny_snowing'"
     class="sun-angle-icon"
     variant="outlined"
-    [style.transform]="'rotate(' + sunAngle + 'deg)'"
-    ariaLabel="Sun direction"
+    [style.transform]="isNight
+      ? 'rotate(' + (sunAngle + 90) + 'deg)'
+      : 'rotate(' + sunAngle + 'deg)'"
+    [ariaLabel]="isNight ? moonPhaseName + ' direction' : 'Sun direction'"
   ></app-icon>
 </div>
