@@ -416,16 +416,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Initialize map panning service
     this.mapPanService.init(this.map);
 
-    // Periodic debug log to check shuffle/follow state
-    this.ngZone.runOutsideAngular(() => {
-      setInterval(() => {
-        console.log(
-          `[ShuffleCheck] shuffleMode=${this.resultsOverlayComponent.shuffleMode}, ` +
-            `followNearest=${this.followNearest}, highlightedPlaneIcao=${this.highlightedPlaneIcao}`
-        );
-      }, 20000);
-    });
-
     // Initialize sun angle overlay
     this.updateSunAngle();
     this.sunAngleInterval = setInterval(() => {
@@ -1957,12 +1947,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   private updateSunAngle(): void {
     if (!this.map) return;
+    const now = new Date();
     const center = this.map.getCenter();
-    const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
+    const sunPos = SunCalc.getPosition(now, center.lat, center.lng);
+
     // determine if the sun is below the horizon
     this.isNight = sunPos.altitude < 0;
     // compute moon phase and icon if night
-    const moonIllum = SunCalc.getMoonIllumination(new Date());
+    const moonIllum = SunCalc.getMoonIllumination(now);
     const p = moonIllum.phase;
     const tol = 0.05;
     if (Math.abs(p - 0.5) < tol) {
@@ -1970,12 +1962,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.moonPhaseName = 'Full Moon';
     } else if (Math.abs(p - 0.25) < tol || Math.abs(p - 0.75) < tol) {
       this.moonIcon = 'tonality';
-      this.moonPhaseName = Math.abs(p - 0.25) < tol ? 'First Quarter' : 'Last Quarter';
+      this.moonPhaseName =
+        Math.abs(p - 0.25) < tol ? 'First Quarter' : 'Last Quarter';
     } else {
       this.moonIcon = 'ev_shadow';
       this.moonPhaseName = p < 0.5 ? 'Waxing Crescent' : 'Waning Crescent';
     }
-    // Convert SunCalc azimuth (from south, eastward) to map azimuth (from north, clockwise)
+    // Convert SunCalc.azimuth (0 = south, eastward positive) to map azimuth (0 = north, clockwise)
     const mapAzimuth = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
     this.sunAngle = (mapAzimuth * 180) / Math.PI;
   }

@@ -110,7 +110,7 @@
       >
         navigation
       </span>
-      <span>{{ distanceKm }} km</span>
+      <span>{{ distanceKm | number : "1.1-1" }} km</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">
