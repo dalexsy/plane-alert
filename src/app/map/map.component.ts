@@ -1723,8 +1723,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 fillColor: 'url(#airportStripedPattern)',
                 fillOpacity: 0.3, // initial low opacity
                 className: 'airport-radius',
-                interactive: false,
+                interactive: true,  // changed to allow hover events
               }).addTo(this.map);
+              // Bind a non-permanent tooltip to show airport name on hover
+              typeof circle.bindTooltip === 'function' && circle.bindTooltip(name, {
+                direction: 'center',
+                className: 'airport-tooltip',
+                opacity: 0.8,
+                offset: [0, 0],
+              });
               this.airportCircles.set(airportId, circle);
 
               // Use default radius until bulk runway query updates it
@@ -1984,7 +1991,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // compute moon phase and icon if night
     const moonIllum = SunCalc.getMoonIllumination(now);
     const p = moonIllum.phase;
-    const tol = 0.05;
+    const tol =  0.05;
     if (Math.abs(p - 0.5) < tol) {
       this.moonIcon = 'brightness_1';
       this.moonPhaseName = 'Full Moon';

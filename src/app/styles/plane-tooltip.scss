@@ -175,3 +175,13 @@ $new-plane-color: #ff6161;
     }
   }
 }
+
+// Airport tooltips share plane tooltip styles
+.leaflet-tooltip.airport-tooltip {
+  @extend .leaflet-tooltip;
+  @extend .plane-tooltip;
+  pointer-events: none;
+  margin-left: 0;
+  text-align: center;
+  font-family: "Instrument Sans", sans-serif;
+}
