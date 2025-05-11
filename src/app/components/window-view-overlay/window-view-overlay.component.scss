@@ -1,0 +1,81 @@
+.window-view-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10rem;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 70%) 90%,
+    rgb(0 0 0 / 30%) 100%
+  );
+  z-index: 1000;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(0.5rem);
+  backdrop-filter: blur(0.5rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+.compass-labels {
+  display: flex;
+  justify-content: space-between;
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  color: #ffe066;
+  font-weight: 600;
+  font-size: 1.1em;
+  letter-spacing: 2.5em;
+  opacity: 0.85;
+  padding: 0 16px 4px 16px;
+  pointer-events: none;
+  text-shadow: none;
+}
+.planes-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  top: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.plane-dot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.1em;
+  color: #fff;
+  pointer-events: auto;
+  transition: left 0.3s, bottom 0.3s;
+  z-index: 2;
+}
+.plane-icon {
+  color: #ffe066;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 2px;
+  border: none;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.plane-label {
+  font-size: 0.93em;
+  color: #fff;
+  background: none;
+  border-radius: 0;
+  padding: 0 4px;
+  margin-top: 2px;
+  box-shadow: none;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}

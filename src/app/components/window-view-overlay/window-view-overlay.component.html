@@ -1,0 +1,28 @@
+<div class="window-view-overlay">
+  <div class="compass-labels">
+    <span class="compass-label">S</span>
+    <span class="compass-label">W</span>
+    <span class="compass-label">N</span>
+    <span class="compass-label">E</span>
+    <span class="compass-label">S</span>
+  </div>
+  <div class="planes-container">
+    <ng-container *ngFor="let plane of windowViewPlanes">
+      <div
+        class="plane-dot"
+        [style.left]="plane.x + '%'"
+        [style.bottom]="plane.y + '%'"
+        [title]="plane.callsign + ' (' + plane.altitude + 'm)'"
+      >
+        <app-icon
+          [icon]="'airplanemode_active'"
+          class="plane-icon"
+          variant="outlined"
+          [style.fontSize]="'1.3em'"
+          [ariaLabel]="plane.callsign + ' at ' + plane.altitude + 'm'"
+        ></app-icon>
+        <span class="plane-label">{{ plane.callsign }}</span>
+      </div>
+    </ng-container>
+  </div>
+</div>

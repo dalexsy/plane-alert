@@ -42,6 +42,8 @@ import { LocationOverlayComponent } from '../components/location-overlay/locatio
 import { LocationService } from '../services/location.service';
 import SunCalc from 'suncalc';
 import { IconComponent } from '../components/ui/icon.component';
+import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
+import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -72,6 +74,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     ClosestPlaneOverlayComponent,
     LocationOverlayComponent,
     IconComponent, // added for sun angle overlay
+    WindowViewOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -171,6 +174,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Label for next sun event (Sunset during day, Sunrise at night)
   public sunEventText: string = '';
+
+  // New property for window view planes
+  windowViewPlanes: WindowViewPlane[] = [];
+
+  // Example: set these to the azimuth ranges (in degrees) for your cones
+  balconyAzimuth: [number, number] = [210, 250]; // South-west example
+  streetsideAzimuth: [number, number] = [120, 160]; // South-east example
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
@@ -1254,6 +1264,29 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.resultsOverlayComponent.airportPlaneLog =
       airportPlanes as unknown as PlaneLogEntry[];
 
+    // Update the window view overlay with visible planes in the sky
+    this.windowViewPlanes = visiblePlanes.map(plane => {
+      // Calculate azimuth (bearing) from homeLocationValue to plane
+      const azimuth = this.calculateAzimuth(
+        this.settings.lat ?? this.DEFAULT_COORDS[0],
+        this.settings.lon ?? this.DEFAULT_COORDS[1],
+        plane.lat,
+        plane.lon
+      ); // 0 = North, 90 = East, etc.
+      // Map azimuth so 0 = South, 90 = West, 180 = North, 270 = East, 360 = South
+      const azimuthFromSouth = (azimuth + 180) % 360;
+      const x = azimuthFromSouth / 360 * 100;
+      // Altitude: map 0-12000m to 0-100% (cap at 12km)
+      const alt = plane.altitude ?? 0;
+      const y = Math.min(alt, 12000) / 12000 * 100;
+      return {
+        x,
+        y,
+        callsign: plane.callsign || plane.icao,
+        altitude: alt
+      };
+    });
+
     // Compute nearest (or followed) plane for overlay
     this.computeClosestPlane();
 
@@ -1962,7 +1995,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const data = await res.json();
       let maxLen = 0;
       for (const w of data.elements || []) {
-        const coords = w.geometry as Array<{ lat: number; lon: number }>;
+                       const coords = w.geometry as Array<{ lat: number; lon: number }>;
         if (coords.length < 2) continue;
         // approximate runway length by first-to-last node
         const start = coords[0];
@@ -2112,5 +2145,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.sunEventText =
       label +
       eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private calculateAzimuth(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    // Returns azimuth in degrees from (lat1, lon1) to (lat2, lon2), 0 = North
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const toDeg = (rad: number) => (rad * 180) / Math.PI;
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+      Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    let brng = Math.atan2(y, x);
+    brng = toDeg(brng);
+    return (brng + 360) % 360;
   }
 }
