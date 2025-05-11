@@ -1,5 +1,6 @@
 @use "../styles/plane-tooltip.scss" as *;
 @use "../styles/plane-marker.scss" as *;
+@use "../styles/overlay.scss" as *;
 
 #map {
   position: fixed;
@@ -78,14 +79,25 @@ app-map.map-panning app-input-overlay {
   @extend %angle-overlay;
   top: 0.25rem;
 
+  .sun-info {
+    @extend %overlay-info;
+    left: -7.5rem;
+  }
+
   .sun-angle-icon {
     @extend %angle-icon;
+    left: -6.5rem;
   }
 }
 
 .wind-angle-overlay {
   @extend %angle-overlay;
   top: 5.5rem;
+
+  // Position wind-info text to the left of the icon
+  .wind-info {
+    @extend %overlay-info;
+  }
 
   .wind-intensity-icon {
     @extend %angle-icon;

@@ -77,6 +77,8 @@
       : 'Sun azimuth: ' + sunAngle.toFixed(1) + '°'
   "
 >
+  <!-- Sun event info on left (transparent background, white text) -->
+  <span class="sun-info">{{ sunEventText }}</span>
   <app-icon
     [icon]="isNight ? moonIcon : 'sunny_snowing'"
     class="sun-angle-icon"
@@ -90,9 +92,17 @@
 <div
   class="wind-angle-overlay"
   [class.collapsed]="resultsOverlayComponent.collapsed"
-  [title]="'Wind direction: ' + windAngle.toFixed(1) + '°'"
+  [title]="
+    'Wind: ' +
+    windSpeed.toFixed(1) +
+    ' m/s from ' +
+    getWindFromDirection(windAngle)
+  "
 >
-  <!-- Wind intensity icon (stat_0 through stat_3) replacing direction arrow -->
+  <!-- Wind info on left, transparent background and white text -->
+  <span class="wind-info">
+    {{ windSpeed.toFixed(1) }} m/s {{ getWindFromDirection(windAngle) }}
+  </span>
   <app-icon
     [icon]="'stat_' + windStat"
     class="wind-intensity-icon"

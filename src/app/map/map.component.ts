@@ -43,8 +43,8 @@ import { LocationService } from '../services/location.service';
 import SunCalc from 'suncalc';
 import { IconComponent } from '../components/ui/icon.component';
 
-// OpenWeatherMap tile service API key - replace with your own key
-const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
+// OpenWeatherMap tile service API key
+const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -157,6 +157,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public sunAngle: number = 0;
   // Wind direction for wind indicator overlay
   public windAngle: number = 0;
+  // Latest wind speed in m/s
+  public windSpeed: number = 0;
   public windStat: number = 0; // intensity level 0-3
   public isNight: boolean = false;
   public brightness: number = 1;
@@ -166,6 +168,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Toggle for airport labels tooltips
   showAirportLabels: boolean = true;
+
+  // Label for next sun event (Sunset during day, Sunrise at night)
+  public sunEventText: string = '';
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
@@ -450,10 +455,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Initialize map panning service
     this.mapPanService.init(this.map);
 
-    // Initialize sun angle overlay
+    // Initialize sun angle overlay and kick off periodic updates
     this.updateSunAngle();
-    // Fetch initial wind direction
-    this.fetchWindDirection(lat, lon);
+    // note: initial wind fetch occurs in updateMap, so no extra one here
     this.sunAngleInterval = setInterval(() => {
       this.updateSunAngle();
       // Update wind direction periodically
@@ -796,6 +800,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       .then((data) => {
         // debug wind values from API
         const speed = data.wind?.speed ?? 0;
+        this.windSpeed = speed;
         const windFrom = data.wind?.deg ?? 0;
         console.log(`Wind data: speed=${speed} m/s, direction=${windFrom}°`);
         // compute stat 0-3 based on speed
@@ -811,6 +816,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       .catch((err) => {
         console.log('Wind fetch failed, using last values:', err);
       });
+  }
+
+  /** Convert wind direction in degrees to compass point (e.g. N, NE, E, etc.) */
+  public getWindFromDirection(deg: number): string {
+    const directions = [
+      'N',
+      'NNE',
+      'NE',
+      'ENE',
+      'E',
+      'ESE',
+      'SE',
+      'SSE',
+      'S',
+      'SSW',
+      'SW',
+      'WSW',
+      'W',
+      'WNW',
+      'NW',
+      'NNW',
+    ];
+    const index = Math.round((deg % 360) / 22.5);
+    return directions[index % directions.length];
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
@@ -1992,6 +2021,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Update location information for the followed plane */
   private updatePlaneLocationInfo(): void {
     // Only fetch location when a plane is being followed
+
     if (this.followNearest && this.highlightedPlaneIcao && this.closestPlane) {
       const plane = this.closestPlane;
       if (plane && plane.lat !== null && plane.lon !== null) {
@@ -2035,8 +2065,35 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.moonIcon = 'ev_shadow';
       this.moonPhaseName = p < 0.5 ? 'Waxing Crescent' : 'Waning Crescent';
     }
-    // Convert SunCalc.azimuth (0 = south, eastward positive) to map azimuth (0 = north, clockwise)
+    // Convert SunCalc.azimuth to map azimuth
     const mapAzimuth = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
     this.sunAngle = (mapAzimuth * 180) / Math.PI;
+
+    // Determine next sun event time
+    const timesToday = SunCalc.getTimes(now, center.lat, center.lng);
+    let eventTime: Date;
+    let label: string;
+    if (!this.isNight) {
+      // Daytime: show sunset
+      eventTime = timesToday.sunset;
+      label = 'Sunset: ';
+    } else {
+      // Nighttime: show next sunrise
+      const sunriseToday = timesToday.sunrise;
+      const sunsetToday = timesToday.sunset;
+      if (now > sunsetToday) {
+        // after today's sunset, use tomorrow's sunrise
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        eventTime = SunCalc.getTimes(tomorrow, center.lat, center.lng).sunrise;
+      } else {
+        // before today's sunrise
+        eventTime = sunriseToday;
+      }
+      label = 'Sunrise: ';
+    }
+    // Format as HH:MM
+    this.sunEventText =
+      label +
+      eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 }
