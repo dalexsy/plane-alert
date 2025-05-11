@@ -69,9 +69,14 @@ app-map.map-panning app-input-overlay {
   border: 3px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   transition: transform 0.3s ease;
+  white-space: normal;
+  width: 100%;
+
   span {
     font-size: 4rem !important;
     font-variation-settings: "FILL" 0, "wght" 140, "GRAD" 0, "opsz" 20 !important;
+    position: relative;
+    top: -2px;
   }
 }
 
@@ -81,7 +86,6 @@ app-map.map-panning app-input-overlay {
 
   .sun-info {
     @extend %overlay-info;
-    left: -7.5rem;
   }
 
   .sun-angle-icon {

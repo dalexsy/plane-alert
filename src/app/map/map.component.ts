@@ -571,8 +571,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
 
       this.reverseGeocode(lat, lng).then((address) => {
-        this.inputOverlayComponent.addressInputRef.nativeElement.value =
-          address;
+        // Guard against missing input reference
+        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
+          this.inputOverlayComponent.addressInputRef.nativeElement.value =
+            address;
+        }
       });
       this.scanService.forceScan(); // Restart the scan
     });
@@ -796,8 +799,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPEN_WEATHER_MAP_API_KEY}`
     )
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 429) {
+          // Too Many Requests: skip update, optionally show warning
+          console.warn(
+            'OpenWeatherMap API rate limit (429) hit. Skipping wind update.'
+          );
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (!data) return; // skip if rate-limited
         // debug wind values from API
         const speed = data.wind?.speed ?? 0;
         this.windSpeed = speed;
@@ -1655,8 +1668,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       markerEl?.classList.add('highlighted-marker');
 
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
-        this.inputOverlayComponent.addressInputRef.nativeElement.value =
-          address;
+        // Guard against missing input reference
+        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
+          this.inputOverlayComponent.addressInputRef.nativeElement.value =
+            address;
+        }
       });
 
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
@@ -1992,6 +2008,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       pm.marker.openTooltip();
       pm.marker
         .getTooltip()
+
         ?.getElement()
         ?.classList.add('highlighted-tooltip'); // Use correct class
     }

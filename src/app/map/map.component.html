@@ -107,7 +107,7 @@
     [icon]="'stat_' + windStat"
     class="wind-intensity-icon"
     variant="outlined"
-    [style.transform]="'rotate(' + windAngle + 'deg)'"
+    [style.transform]="windStat > 0 ? 'rotate(' + windAngle + 'deg)' : ''"
     ariaLabel="Wind intensity level {{ windStat }}"
   ></app-icon>
 </div>

@@ -256,7 +256,7 @@ export class PlaneFinderService {
           html: `<div style="transform: rotate(${rotation}deg); color: ${arrowColor};">▶</div>`,
           className: 'predicted-path-arrowhead',
           iconSize: [20, 20],
-          iconAnchor: [10, 10],
+          iconAnchor: [11, 11],
         });
 
         if (plane.predictedPathArrowhead) {
