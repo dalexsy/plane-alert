@@ -83,3 +83,19 @@
     [ariaLabel]="isNight ? moonPhaseName + ' direction' : 'Sun direction'"
   ></app-icon>
 </div>
+
+<!-- Wind direction indicator overlay -->
+<div
+  class="wind-angle-overlay"
+  [class.collapsed]="resultsOverlayComponent.collapsed"
+  [title]="'Wind direction: ' + windAngle.toFixed(1) + '°'"
+>
+  <!-- Wind intensity icon (stat_0 through stat_3) replacing direction arrow -->
+  <app-icon
+    [icon]="'stat_' + windStat"
+    class="wind-intensity-icon"
+    variant="outlined"
+    [style.transform]="'rotate(' + windAngle + 'deg)'"
+    ariaLabel="Wind intensity level {{ windStat }}"
+  ></app-icon>
+</div>

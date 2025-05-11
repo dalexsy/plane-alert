@@ -364,6 +364,7 @@ export class PlaneFinderService {
           }
           const segAlt1 = rawHistory[rawIdx1]?.alt ?? 0;
           const segAlt2 = rawHistory[rawIdx2]?.alt ?? 0;
+          // compute hues for segment start/end
           const hue1 = Math.min(segAlt1 / maxAltitude, 1) * 300;
           const hue2 = Math.min(segAlt2 / maxAltitude, 1) * 300;
           // Initialize previous point for gradient segments
@@ -513,284 +514,299 @@ export class PlaneFinderService {
     const lamax = centerLat + latDelta;
     const lomin = centerLon - lonDelta;
     const lomax = centerLon + lonDelta;
-    const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lamax=${lamax}&lomin=${lomin}&lomax=${lomax}&extended=1`;
+    try {
+      const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lamax=${lamax}&lomin=${lomin}&lomax=${lomax}&extended=1`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Fetch error ${response.status}`);
+      const data = await response.json();
+      const currentUpdateSet = new Set<string>();
+      const updatedLogModels: PlaneModel[] = [];
+      let anyNew = false;
+      data.states?.forEach((state: any[]) => {
+        const id = state[0];
+        const callsign = state[1]?.trim() || ''; // Define callsign early
+        const origin: string = state[2] || 'Unknown';
+        const lat = state[6];
+        const lon = state[5];
+        const track = state[10];
+        const velocity = state[9];
+        const altitude = state[13];
+        const onGround = Boolean(state[8]); // Use descriptive variable
+        const isSpecial = this.specialListService.isSpecial(id);
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch plane data');
-    const data = await response.json();
-    const currentUpdateSet = new Set<string>();
-    const updatedLogModels: PlaneModel[] = []; // Store models
-    let anyNew = false;
+        // Define isFiltered early after getting necessary info
+        const aircraft = getAircraftInfo(id);
+        // Treat any callsign matching configured prefixes as military
+        const prefixIsMil =
+          this.militaryPrefixService.isMilitaryCallsign(callsign);
+        const isMilitary = prefixIsMil || aircraft?.mil || false;
+        const wouldBeFiltered = filterPlaneByPrefix(
+          callsign,
+          excludeDiscount,
+          blockedPrefixes
+        );
+        const isFiltered = this.isInitialLoad
+          ? false
+          : isMilitary
+          ? false
+          : wouldBeFiltered;
 
-    data.states?.forEach((state: any[]) => {
-      const id = state[0];
-      const callsign = state[1]?.trim() || ''; // Define callsign early
-      const origin: string = state[2] || 'Unknown';
-      const lat = state[6];
-      const lon = state[5];
-      const track = state[10];
-      const velocity = state[9];
-      const altitude = state[13];
-      const onGround = Boolean(state[8]); // Use descriptive variable
-      const isSpecial = this.specialListService.isSpecial(id);
+        currentUpdateSet.add(id);
 
-      // Define isFiltered early after getting necessary info
-      const aircraft = getAircraftInfo(id);
-      // Treat any callsign matching configured prefixes as military
-      const prefixIsMil =
-        this.militaryPrefixService.isMilitaryCallsign(callsign);
-      const isMilitary = prefixIsMil || aircraft?.mil || false;
-      const wouldBeFiltered = filterPlaneByPrefix(
-        callsign,
-        excludeDiscount,
-        blockedPrefixes
-      );
-      const isFiltered = this.isInitialLoad
-        ? false
-        : isMilitary
-        ? false
-        : wouldBeFiltered;
-
-      currentUpdateSet.add(id);
-
-      const dist = haversineDistance(centerLat, centerLon, lat, lon);
-      if (dist > radiusKm) {
-        // Clean up plane if it moved out of range
-        const existingPlane = previousLog.get(id);
-        if (existingPlane) {
-          this.removePlaneVisuals(existingPlane, map); // Use helper
-          previousLog.delete(id);
+        const dist = haversineDistance(centerLat, centerLon, lat, lon);
+        if (dist > radiusKm) {
+          // Clean up plane if it moved out of range
+          const existingPlane = previousLog.get(id);
+          if (existingPlane) {
+            this.removePlaneVisuals(existingPlane, map); // Use helper
+            previousLog.delete(id);
+          }
+          return;
         }
-        return;
-      }
 
-      const isNew = this.newPlaneService.isNew(id);
-      if (isNew && !isFiltered) {
-        // Simplified new plane logic
-        anyNew = true;
+        const isNew = this.newPlaneService.isNew(id);
+        if (isNew && !isFiltered) {
+          // Simplified new plane logic
+          anyNew = true;
 
-        onNewPlane();
-      }
+          onNewPlane();
+        }
 
-      // Get or create PlaneModel instance
-      let planeModelInstance = previousLog.get(id);
-      const isExistingPlane = !!planeModelInstance; // Check if it existed before this scan
+        // Get or create PlaneModel instance
+        let planeModelInstance = previousLog.get(id);
+        const isExistingPlane = !!planeModelInstance; // Check if it existed before this scan
 
-      if (!planeModelInstance) {
-        // Create new PlaneModel if it doesn't exist
-        const firstSeen = Date.now();
-        const initialPlaneData: Plane = {
-          // Create initial data structure (Type Plane, not PlaneModel)
-          icao: id,
-          callsign: callsign,
-          origin: origin,
-          firstSeen: firstSeen,
-          model: '', // Will be updated below
-          operator: '', // Will be updated below
-          bearing: 0, // Will be updated below
-          cardinal: '', // Will be updated below
-          arrow: '', // Will be updated below
-          isNew: isNew,
-          lat: lat,
-          lon: lon,
-          marker: undefined, // Will be created below
-          path: undefined, // Will be created below
-          filteredOut: isFiltered,
-          onGround: onGround,
-          // Add track and velocity if available during creation
-          track: track,
-          velocity: velocity,
-          isSpecial: isSpecial,
-        };
-        planeModelInstance = new PlaneModel(initialPlaneData);
-        // Apply forced military flag on the model (not part of Plane interface)
-        planeModelInstance.isMilitary = isMilitary;
-        previousLog.set(id, planeModelInstance);
-      } else {
-        // If instance exists, update its core properties before visual updates
-        planeModelInstance.callsign = callsign;
-        planeModelInstance.origin = origin;
-        planeModelInstance.lat = lat;
-        planeModelInstance.lon = lon;
-        planeModelInstance.filteredOut = isFiltered;
-        planeModelInstance.onGround = onGround;
-        planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
-        planeModelInstance.isSpecial = isSpecial;
-        planeModelInstance.isMilitary = isMilitary; // update forced military flag
-      }
+        if (!planeModelInstance) {
+          // Create new PlaneModel if it doesn't exist
+          const firstSeen = Date.now();
+          const initialPlaneData: Plane = {
+            // Create initial data structure (Type Plane, not PlaneModel)
+            icao: id,
+            callsign: callsign,
+            origin: origin,
+            firstSeen: firstSeen,
+            model: '', // Will be updated below
+            operator: '', // Will be updated below
+            bearing: 0, // Will be updated below
+            cardinal: '', // Will be updated below
+            arrow: '', // Will be updated below
+            isNew: isNew,
+            lat: lat,
+            lon: lon,
+            marker: undefined, // Will be created below
+            path: undefined, // Will be created below
+            filteredOut: isFiltered,
+            onGround: onGround,
+            // Add track and velocity if available during creation
+            track: track,
+            velocity: velocity,
+            isSpecial: isSpecial,
+          };
+          planeModelInstance = new PlaneModel(initialPlaneData);
+          // Apply forced military flag on the model (not part of Plane interface)
+          planeModelInstance.isMilitary = isMilitary;
+          previousLog.set(id, planeModelInstance);
+        } else {
+          // If instance exists, update its core properties before visual updates
+          planeModelInstance.callsign = callsign;
+          planeModelInstance.origin = origin;
+          planeModelInstance.lat = lat;
+          planeModelInstance.lon = lon;
+          planeModelInstance.filteredOut = isFiltered;
+          planeModelInstance.onGround = onGround;
+          planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
+          planeModelInstance.isSpecial = isSpecial;
+          planeModelInstance.isMilitary = isMilitary; // update forced military flag
+        }
 
-      // Update PlaneModel with potentially fetched aircraft data
-      // Determine operator via prefix mapping or fallback to ownop from aircraft info
-      const prefixOperator = this.operatorCallSignService.getOperator(callsign);
-      const operator = prefixOperator ?? (aircraft?.ownop || '');
-      const model = aircraft?.model || '';
-      // isMilitary already defined above
+        // Update PlaneModel with potentially fetched aircraft data
+        // Determine operator via prefix mapping or fallback to ownop from aircraft info
+        const prefixOperator =
+          this.operatorCallSignService.getOperator(callsign);
+        const operator = prefixOperator ?? (aircraft?.ownop || '');
+        const model = aircraft?.model || '';
+        // isMilitary already defined above
 
-      planeModelInstance.model = model;
-      planeModelInstance.operator = operator;
+        planeModelInstance.model = model;
+        planeModelInstance.operator = operator;
 
-      // Calculate derived properties
-      const bearing = computeBearing(centerLat, centerLon, lat, lon);
-      const cardinal = getCardinalDirection(bearing);
-      const arrow = getArrowForDirection(cardinal);
-      planeModelInstance.bearing = bearing;
-      planeModelInstance.cardinal = cardinal;
-      planeModelInstance.arrow = arrow;
-      // Assign current altitude for overlay and shuffle mode
-      planeModelInstance.altitude = altitude;
+        // Calculate derived properties
+        const bearing = computeBearing(centerLat, centerLon, lat, lon);
+        const cardinal = getCardinalDirection(bearing);
+        const arrow = getArrowForDirection(cardinal);
+        planeModelInstance.bearing = bearing;
+        planeModelInstance.cardinal = cardinal;
+        planeModelInstance.arrow = arrow;
+        // Assign current altitude for overlay and shuffle mode
+        planeModelInstance.altitude = altitude;
 
-      // *** FIX: Explicitly add position to history for existing planes ***
-      // The constructor handles the very first point for new planes.
-      // This call handles all subsequent points for existing planes.
-      // We need to ensure lat/lon are valid before adding.
-      if (
-        isExistingPlane &&
-        typeof lat === 'number' &&
-        typeof lon === 'number'
-      ) {
-        planeModelInstance.addPositionToHistory(
+        // *** FIX: Explicitly add position to history for existing planes ***
+        // The constructor handles the very first point for new planes.
+        // This call handles all subsequent points for existing planes.
+        // We need to ensure lat/lon are valid before adding.
+        if (
+          isExistingPlane &&
+          typeof lat === 'number' &&
+          typeof lon === 'number'
+        ) {
+          planeModelInstance.addPositionToHistory(
+            lat,
+            lon,
+            track,
+            velocity,
+            altitude
+          );
+        } else if (
+          !isExistingPlane &&
+          (typeof lat !== 'number' || typeof lon !== 'number')
+        ) {
+          // Log if a new plane is created without valid initial coordinates
+          console.warn(
+            `[PlaneFinderService ${id}] New plane created without valid initial lat/lon:`,
+            lat,
+            lon
+          );
+        } else if (
+          isExistingPlane &&
+          (typeof lat !== 'number' || typeof lon !== 'number')
+        ) {
+          // Log if an existing plane receives invalid coordinates
+          console.warn(
+            `[PlaneFinderService ${id}] Existing plane received invalid lat/lon:`,
+            lat,
+            lon
+          );
+        }
+
+        // Create/Update Marker
+        const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
+        const altText = altitude ? altitude.toFixed(0) + 'm' : '';
+        const verticalRate = state[11] ?? null;
+        const tooltip = planeTooltip(
+          id,
+          callsign,
+          origin,
+          model,
+          operator,
+          speedText,
+          altText,
+          getFlagHTML,
+          isNew,
+          onGround,
+          isMilitary,
+          isSpecial,
+          verticalRate
+        );
+        const extraStyle = this.computeExtraStyle(altitude, onGround);
+
+        // Custom icon mapping removed, always use default icon
+        const customPlaneIcon = '';
+        const followed = !!(
+          followNearest &&
+          followedIcao &&
+          id === followedIcao
+        );
+        const { marker } = createOrUpdatePlaneMarker(
+          planeModelInstance.marker, // Pass existing marker from model
+          map,
+          lat,
+          lon,
+          track ?? 0,
+          extraStyle,
+          isNew,
+          onGround,
+          tooltip,
+          customPlaneIcon, // Pass custom icon HTML if ICAO matches
+          isMilitary,
+          model,
+          this.helicopterListService.isHelicopter(id),
+          isSpecial,
+          altitude, // pass altitude for shadow scaling
+          followed // <-- pass followed flag
+        );
+        planeModelInstance.marker = marker; // Update marker reference on model
+
+        // Update Predicted and Historical Paths (pass the model instance)
+        this.updatePlanePath(
+          map,
+          planeModelInstance, // Pass the model
           lat,
           lon,
           track,
           velocity,
-          altitude
+          altitude,
+          onGround
         );
-      } else if (
-        !isExistingPlane &&
-        (typeof lat !== 'number' || typeof lon !== 'number')
-      ) {
-        // Log if a new plane is created without valid initial coordinates
-        console.warn(
-          `[PlaneFinderService ${id}] New plane created without valid initial lat/lon:`,
-          lat,
-          lon
-        );
-      } else if (
-        isExistingPlane &&
-        (typeof lat !== 'number' || typeof lon !== 'number')
-      ) {
-        // Log if an existing plane receives invalid coordinates
-        console.warn(
-          `[PlaneFinderService ${id}] Existing plane received invalid lat/lon:`,
-          lat,
-          lon
-        );
-      }
+        // Note: updatePlanePath now modifies planeModelInstance.path and planeModelInstance.historyTrailSegments directly
 
-      // Create/Update Marker
-      const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
-      const altText = altitude ? altitude.toFixed(0) + 'm' : '';
-      const verticalRate = state[11] ?? null;
-      const tooltip = planeTooltip(
-        id,
-        callsign,
-        origin,
-        model,
-        operator,
-        speedText,
-        altText,
-        getFlagHTML,
-        isNew,
-        onGround,
-        isMilitary,
-        isSpecial,
-        verticalRate
-      );
-      const extraStyle = this.computeExtraStyle(altitude, onGround);
+        updatedLogModels.push(planeModelInstance); // Add the updated model to the list for this scan
+      });
 
-      // Custom icon mapping removed, always use default icon
-      const customPlaneIcon = '';
-      const followed = !!(followNearest && followedIcao && id === followedIcao);
-      const { marker } = createOrUpdatePlaneMarker(
-        planeModelInstance.marker, // Pass existing marker from model
-        map,
-        lat,
-        lon,
-        track ?? 0,
-        extraStyle,
-        isNew,
-        onGround,
-        tooltip,
-        customPlaneIcon, // Pass custom icon HTML if ICAO matches
-        isMilitary,
-        model,
-        this.helicopterListService.isHelicopter(id),
-        isSpecial,
-        altitude, // pass altitude for shadow scaling
-        followed // <-- pass followed flag
-      );
-      planeModelInstance.marker = marker; // Update marker reference on model
-
-      // Update Predicted and Historical Paths (pass the model instance)
-      this.updatePlanePath(
-        map,
-        planeModelInstance, // Pass the model
-        lat,
-        lon,
-        track,
-        velocity,
-        altitude,
-        onGround
-      );
-      // Note: updatePlanePath now modifies planeModelInstance.path and planeModelInstance.historyTrailSegments directly
-
-      updatedLogModels.push(planeModelInstance); // Add the updated model to the list for this scan
-    });
-
-    // Remove planes that are no longer in the API response
-    for (const [id, plane] of previousLog.entries()) {
-      if (!currentUpdateSet.has(id)) {
-        // Check against the set of IDs found in this scan
-        this.removePlaneVisuals(plane, map); // Use helper
-        previousLog.delete(id);
-      }
-    }
-
-    // Update 'isNew' and rebind tooltips so styling always reflects the PlaneModel state
-    updatedLogModels.forEach((plane) => {
-      const stillNew = this.newPlaneService.isNew(plane.icao);
-      plane.isNew = stillNew;
-      const aircraft = getAircraftInfo(plane.icao);
-      const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
-        plane.callsign
-      );
-      const isMilitary = prefixIsMil2 || aircraft?.mil || false;
-      if (plane.marker) {
-        // Rebind tooltip fully to ensure classes are in sync with plane state
-        const tooltip = plane.marker.getTooltip();
-        if (tooltip) {
-          const rawContent = tooltip.getContent();
-          const content = rawContent ?? '';
-          // Build new className string
-          const className = [
-            'plane-tooltip',
-            plane.onGround ? 'grounded-plane-tooltip' : '',
-            stillNew ? 'new-plane-tooltip' : '',
-            isMilitary ? 'military-plane-tooltip' : '',
-            plane.isSpecial ? 'special-plane-tooltip' : '',
-          ]
-            .filter(Boolean)
-            .join(' ');
-          // Unbind and rebind with updated options
-          plane.marker.unbindTooltip();
-          plane.marker.bindTooltip(content, {
-            permanent: true,
-            direction: 'right',
-            offset: plane.onGround ? L.point(-10, 0) : L.point(10, 0),
-            interactive: true,
-            className: className,
-            pane: 'tooltipPane',
-          });
-          plane.marker.openTooltip();
+      // Remove planes that are no longer in the API response
+      for (const [id, plane] of previousLog.entries()) {
+        if (!currentUpdateSet.has(id)) {
+          // Check against the set of IDs found in this scan
+          this.removePlaneVisuals(plane, map); // Use helper
+          previousLog.delete(id);
         }
       }
-    });
 
-    this.newPlaneService.updatePlanes(currentUpdateSet);
-    return {
-      anyNew,
-      currentIDs: Array.from(currentUpdateSet),
-      updatedLog: Array.from(previousLog.values()), // Return the updated models
-    };
+      // Update 'isNew' and rebind tooltips so styling always reflects the PlaneModel state
+      updatedLogModels.forEach((plane) => {
+        const stillNew = this.newPlaneService.isNew(plane.icao);
+        plane.isNew = stillNew;
+        const aircraft = getAircraftInfo(plane.icao);
+        const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
+          plane.callsign
+        );
+        const isMilitary = prefixIsMil2 || aircraft?.mil || false;
+        if (plane.marker) {
+          // Rebind tooltip fully to ensure classes are in sync with plane state
+          const tooltip = plane.marker.getTooltip();
+          if (tooltip) {
+            const rawContent = tooltip.getContent();
+            const content = rawContent ?? '';
+            // Build new className string
+            const className = [
+              'plane-tooltip',
+              plane.onGround ? 'grounded-plane-tooltip' : '',
+              stillNew ? 'new-plane-tooltip' : '',
+              isMilitary ? 'military-plane-tooltip' : '',
+              plane.isSpecial ? 'special-plane-tooltip' : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+            // Unbind and rebind with updated options
+            plane.marker.unbindTooltip();
+            plane.marker.bindTooltip(content, {
+              permanent: true,
+              direction: 'right',
+              offset: plane.onGround ? L.point(-10, 0) : L.point(10, 0),
+              interactive: true,
+              className: className,
+              pane: 'tooltipPane',
+            });
+            plane.marker.openTooltip();
+          }
+        }
+      });
+
+      this.newPlaneService.updatePlanes(currentUpdateSet);
+      return {
+        anyNew,
+        currentIDs: Array.from(currentUpdateSet),
+        updatedLog: Array.from(previousLog.values()), // Return the updated models
+      };
+    } catch (err) {
+      console.warn(
+        '[PlaneFinderService] Error fetching plane data, continuing with previous data',
+        err
+      );
+      return {
+        anyNew: false,
+        currentIDs: Array.from(previousLog.keys()),
+        updatedLog: Array.from(previousLog.values()),
+      };
+    }
   }
 }

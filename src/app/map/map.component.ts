@@ -155,6 +155,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Sun angle for solar position overlay
   public sunAngle: number = 0;
+  // Wind direction for wind indicator overlay
+  public windAngle: number = 0;
+  public windStat: number = 0; // intensity level 0-3
   public isNight: boolean = false;
   public brightness: number = 1;
   public moonIcon: string = 'dark_mode';
@@ -418,8 +421,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Initialize sun angle overlay
     this.updateSunAngle();
+    // Fetch initial wind direction
+    this.fetchWindDirection(lat, lon);
     this.sunAngleInterval = setInterval(() => {
       this.updateSunAngle();
+      // Update wind direction periodically
+      const center = this.map.getCenter();
+      this.fetchWindDirection(center.lat, center.lng);
       this.cdr.detectChanges();
     }, 60000); // update every minute
   }
@@ -486,9 +494,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     )
       .addTo(this.map)
-      .on('tileerror', (error) =>
-        console.error('Cloud tile load error:', error)
-      );
+      .on('tileerror', () => {
+        // ignore cloud tile errors in console
+      });
     // Ensure clouds render above base tiles
     this.cloudLayer.setZIndex(650);
 
@@ -741,6 +749,37 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.scanService.forceScan();
       }
     });
+
+    // fetch and update current wind direction
+    this.fetchWindDirection(lat, lon);
+  }
+
+  /** Fetch wind direction from OpenWeatherMap and update windAngle */
+  private fetchWindDirection(lat: number, lon: number): void {
+    // debug fetch invocation for wind data
+    console.log(`Wind fetch at lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}`);
+    fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPEN_WEATHER_MAP_API_KEY}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        // debug wind values from API
+        const speed = data.wind?.speed ?? 0;
+        const windFrom = data.wind?.deg ?? 0;
+        console.log(`Wind data: speed=${speed} m/s, direction=${windFrom}°`);
+        // compute stat 0-3 based on speed
+        let stat = 0;
+        if (speed >= 6) stat = 3;
+        else if (speed >= 3) stat = 2;
+        else if (speed >= 0.5) stat = 1;
+        // update both intensity stat and wind direction
+        this.windStat = stat;
+        this.windAngle = windFrom;
+        this.cdr.detectChanges();
+      })
+      .catch((err) => {
+        console.log('Wind fetch failed, using last values:', err);
+      });
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
@@ -970,6 +1009,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           tooltipEl?.classList.add('highlighted-tooltip');
         }
         this.cdr.detectChanges();
+      })
+      .catch((err) => {
+        console.warn('[MapComponent] Error in findPlanes:', err);
       });
   }
 
@@ -1520,7 +1562,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.highlightedPlaneIcao === plane.icao &&
       !preserveFollowNearest
     ) {
-      console.log(`Unfollowing plane: ICAO=${plane.icao}`);
       this.unhighlightPlane(plane.icao);
       this.highlightedPlaneIcao = null;
       this.followNearest = false;
@@ -1530,12 +1571,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
     // When manually centering/following a plane, enable tracking override
     this.followNearest = true;
-    // Log manual center/follow action
-    console.log(
-      `CenterOnPlane called: ICAO=${plane.icao}, preserveFollowNearest=${preserveFollowNearest}, followNearest=${this.followNearest}`
-    );
-
-    // Determine followNearest based on preserve flag or shuffle (handled above)
 
     const icao = plane.icao;
 
@@ -1548,7 +1583,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (pm?.marker && plane.lat != null && plane.lon != null) {
       // Pan map to plane location without changing zoom
       this.map.panTo([plane.lat, plane.lon]);
-      console.log(`map.panTo for ICAO=${icao} at [${plane.lat}, ${plane.lon}]`);
 
       pm.marker.setZIndexOffset(20000);
       pm.marker.openTooltip();
@@ -1563,14 +1597,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
         this.inputOverlayComponent.addressInputRef.nativeElement.value =
           address;
-        console.log(`Address overlay updated: ${address}`);
       });
 
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
         this.locationStreet = address;
         this.locationDistrict = '';
         this.cdr.detectChanges();
-        console.log(`Location overlay updated: ${address}`);
       });
 
       // Refresh logs and overlays
@@ -1591,17 +1623,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: any): void {
-    console.log('[followNearestPlane] payload:', plane);
-    console.log('[followNearestPlane] followMe flag:', plane.followMe);
     const isFromShuffle = !!plane.followMe;
-    console.log('[followNearestPlane] Is from shuffle:', isFromShuffle);
 
     // Always set followNearest to true for planes from shuffle
     if (isFromShuffle) {
       this.followNearest = true;
-      console.log(
-        '[followNearestPlane] Setting followNearest=true for shuffled plane'
-      );
 
       // We need to call centerOnPlane with preserveFollowNearest=false so that
       // it doesn't skip updating the followNearest flag inside centerOnPlane
@@ -1941,12 +1967,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onToggleDateTimeOverlays(): void {
     this.showDateTime = !this.showDateTime;
+
     this.settings.setShowDateTimeOverlay(this.showDateTime);
     this.cdr.detectChanges();
   }
 
   private updateSunAngle(): void {
     if (!this.map) return;
+
     const now = new Date();
     const center = this.map.getCenter();
     const sunPos = SunCalc.getPosition(now, center.lat, center.lng);
