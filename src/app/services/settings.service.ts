@@ -25,9 +25,12 @@ export class SettingsService {
   private _commercialMute: boolean = false;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = true;
-  // Key for persisting show view axes (cone visibility)
+  // Key and backing store for showing view axes (cones)
   private viewAxesKey = 'showViewAxes';
   private _showViewAxes: boolean = false;
+  // Key and backing store for airport labels visibility
+  private airportLabelsKey = 'showAirportLabels';
+  private _showAirportLabels: boolean = true;
 
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
@@ -202,7 +205,22 @@ export class SettingsService {
     return null;
   }
 
+  /** Whether airport labels are permanently visible or only on hover */
+  get showAirportLabels(): boolean {
+    return this._showAirportLabels;
+  }
+  /** Persist airport labels visibility preference */
+  setShowAirportLabels(value: boolean): void {
+    this._showAirportLabels = value;
+    localStorage.setItem(this.airportLabelsKey, value.toString());
+  }
+
   load(): void {
+    // Load airport labels visibility preference
+    const labelsStr = localStorage.getItem(this.airportLabelsKey);
+    if (labelsStr !== null) {
+      this._showAirportLabels = labelsStr === 'true';
+    }
     const lat = parseFloat(localStorage.getItem('lastLat') || '');
     const lon = parseFloat(localStorage.getItem('lastLon') || '');
     const radius = parseFloat(localStorage.getItem('lastSearchRadius') || '');

@@ -164,6 +164,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public moonPhaseName: string = '';
   private sunAngleInterval: any;
 
+  // Toggle for airport labels tooltips
+  showAirportLabels: boolean = true;
+
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -275,6 +278,32 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  /** Toggle display of airport labels tooltips universally (permanent on map) */
+  public onToggleAirportLabels(): void {
+    this.showAirportLabels = !this.showAirportLabels;
+    // Persist preference
+    this.settings.setShowAirportLabels(this.showAirportLabels);
+    this.airportCircles.forEach((circle, id) => {
+      const data = this.airportData.get(id);
+      if (!data) return;
+      // Rebind tooltip with permanent flag toggled
+      circle.unbindTooltip();
+      circle.bindTooltip(data.name, {
+        direction: 'center',
+        className: 'airport-tooltip',
+        opacity: 0.8,
+        offset: [0, 0],
+        permanent: this.showAirportLabels,
+      });
+      // Open or close tooltip based on permanent flag
+      if (this.showAirportLabels) {
+        circle.openTooltip();
+      } else {
+        circle.closeTooltip();
+      }
+    });
+  }
+
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
     await this.aircraftDb.load();
@@ -284,6 +313,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Restore saved show/hide date-time overlay setting
     this.showDateTime = this.settings.showDateTimeOverlay;
 
+    // Load airport labels preference
+    this.showAirportLabels = this.settings.showAirportLabels;
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
@@ -683,7 +714,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // Central update function
+  /** Central update function */
   updateMap(
     lat: number,
     lon: number,
@@ -1721,16 +1752,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 weight: 2,
                 fill: true,
                 fillColor: 'url(#airportStripedPattern)',
-                fillOpacity: 0.3, // initial low opacity
+                fillOpacity: 0.3,
                 className: 'airport-radius',
-                interactive: true,  // changed to allow hover events
+                interactive: true,
               }).addTo(this.map);
-              // Bind a non-permanent tooltip to show airport name on hover
-              typeof circle.bindTooltip === 'function' && circle.bindTooltip(name, {
+              // Always bind tooltip; use `permanent` to show/hide labels
+              circle.bindTooltip(name, {
                 direction: 'center',
                 className: 'airport-tooltip',
                 opacity: 0.8,
                 offset: [0, 0],
+                permanent: this.showAirportLabels,
               });
               this.airportCircles.set(airportId, circle);
 
@@ -1991,7 +2023,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // compute moon phase and icon if night
     const moonIllum = SunCalc.getMoonIllumination(now);
     const p = moonIllum.phase;
-    const tol =  0.05;
+    const tol = 0.05;
     if (Math.abs(p - 0.5) < tol) {
       this.moonIcon = 'brightness_1';
       this.moonPhaseName = 'Full Moon';

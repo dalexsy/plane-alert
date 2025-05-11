@@ -16,6 +16,7 @@ $new-plane-color: #ff6161;
   position: absolute;
   z-index: 1;
   outline: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(0.5rem);
 
   &.leaflet-tooltip-right:before {
     border-right-color: inherit;
@@ -184,4 +185,5 @@ $new-plane-color: #ff6161;
   margin-left: 0;
   text-align: center;
   font-family: "Instrument Sans", sans-serif;
+  backdrop-filter: blur(0.5rem);
 }

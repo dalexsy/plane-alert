@@ -25,6 +25,8 @@ import { TabComponent } from '../ui/tab.component';
   styleUrls: ['./input-overlay.component.scss'],
 })
 export class InputOverlayComponent implements OnDestroy {
+  @Input() showAirportLabels: boolean = true;
+  @Output() toggleAirportLabels = new EventEmitter<boolean>();
   @ViewChild('addressInput', { static: false })
   addressInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('searchRadiusInput', { static: false })
@@ -159,5 +161,11 @@ export class InputOverlayComponent implements OnDestroy {
   onShowCloudCoverChange(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     this.cloudToggleChange.emit(checked);
+  }
+
+  onToggleAirportLabels(): void {
+    // Toggle the internal flag and emit new state
+    this.showAirportLabels = !this.showAirportLabels;
+    this.toggleAirportLabels.emit(this.showAirportLabels);
   }
 }

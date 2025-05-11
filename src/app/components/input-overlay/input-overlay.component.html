@@ -29,6 +29,19 @@
         [title]="'Toggle map brightness'"
         (click)="onBrightnessToggle()"
       ></app-button>
+      <app-button
+        class="toggle-airport-labels"
+        [icon]="showAirportLabels ? 'label' : 'label_off'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          showAirportLabels ? 'Hide airport labels' : 'Show airport labels'
+        "
+        [title]="
+          showAirportLabels ? 'Hide airport labels' : 'Show airport labels'
+        "
+        (click)="toggleAirportLabels.emit()"
+      ></app-button>
       <!-- Zoom controls -->
       <app-button
         class="zoom-in"
