@@ -60,16 +60,15 @@
     position: absolute;
     height: 2px;
     // align chemtrail start to back center of plane
-    left: 0;
+    left: 50%; // Adjusted from 0 to center the trail
     bottom: calc(50% - 1px); // center of 2px line
     opacity: 0.8;
-    pointer-events: none;
     // Add subtle blur for perspective
     filter: blur(1px);
     // Allow rounded ends
     border-radius: 1px;
     transform-origin: left center;
-    z-index: 1; // below icon (icon has z-index:2)
+    // z-index: 1; // Removed to ensure trail is behind the icon
   }
 }
 .plane-dot.balcony-marker,

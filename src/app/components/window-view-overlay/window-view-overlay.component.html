@@ -54,7 +54,11 @@
           </ng-container>
           <!-- fixed-wing planes with chemtrail and icon -->
           <ng-container *ngIf="!plane.isHelicopter">
-            <div class="icon-wrapper">
+            <div
+              class="icon-wrapper"
+              [style.transform]="'perspective(300px) rotateX(60deg)'"
+              [style.transformOrigin]="'center center'"
+            >
               <div
                 class="chemtrail"
                 [style.width.px]="plane.trailLength"
@@ -62,8 +66,8 @@
                   'rgba(255,255,255,' + plane.trailOpacity + ')'
                 "
                 [style.transform]="
-                  'perspective(300px) rotateX(60deg) rotateZ(' +
-                  ((plane.bearing ?? 0) + 180) +
+                  'rotateZ(' +
+                  ((plane.bearing ?? 0) + 90) +
                   'deg)'
                 "
               ></div>
@@ -74,7 +78,7 @@
                   plane.callsign + ' at ' + plane.altitude + 'm'
                 "
                 [style.transform]="
-                  'perspective(300px) rotateX(60deg) rotateZ(' +
+                  'rotateZ(' +
                   plane.bearing +
                   'deg)'
                 "

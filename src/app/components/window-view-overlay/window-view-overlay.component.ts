@@ -17,6 +17,11 @@ export interface WindowViewPlane {
   velocity?: number;
   trailLength?: number;
   trailOpacity?: number;
+  trailPivotLeft?: string; // For dynamic style.left
+  trailPivotTop?: string;  // For dynamic style.top
+  trailRotation?: number;  // For dynamic style.transform rotateZ
+  trailPivotOffsetX?: number; // For dynamic style.left, offset from center in px
+  trailPivotOffsetY?: number; // For dynamic style.top, offset from center in px
 }
 
 @Component({
