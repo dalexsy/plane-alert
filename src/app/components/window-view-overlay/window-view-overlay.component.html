@@ -6,22 +6,98 @@
     <span class="compass-label">E</span>
     <span class="compass-label">S</span>
   </div>
+  <!-- full-height start/end lines (absolute in overlay) -->
+  <ng-container *ngFor="let plane of windowViewPlanes">
+    <ng-container
+      *ngIf="
+        plane.isMarker &&
+        (plane.callsign.endsWith('Start') || plane.callsign.endsWith('End'))
+      "
+    >
+      <div
+        class="vertical-line"
+        [ngClass]="{
+          'balcony-marker': plane.callsign.startsWith('Balcony'),
+          'streetside-marker': plane.callsign.startsWith('Streetside')
+        }"
+        [style.left]="plane.x + '%'"
+      ></div>
+    </ng-container>
+  </ng-container>
   <div class="planes-container">
     <ng-container *ngFor="let plane of windowViewPlanes">
       <div
         class="plane-dot"
+        [ngClass]="{
+          'balcony-marker':
+            plane.isMarker && plane.callsign.startsWith('Balcony'),
+          'streetside-marker':
+            plane.isMarker && plane.callsign.startsWith('Streetside')
+        }"
         [style.left]="plane.x + '%'"
         [style.bottom]="plane.y + '%'"
-        [title]="plane.callsign + ' (' + plane.altitude + 'm)'"
+        [title]="
+          plane.isMarker ? '' : plane.callsign + ' (' + plane.altitude + 'm)'
+        "
       >
-        <app-icon
-          [icon]="'airplanemode_active'"
-          class="plane-icon"
-          variant="outlined"
-          [style.fontSize]="'1.3em'"
-          [ariaLabel]="plane.callsign + ' at ' + plane.altitude + 'm'"
-        ></app-icon>
-        <span class="plane-label">{{ plane.callsign }}</span>
+        <!-- real planes -->
+        <ng-container *ngIf="!plane.isMarker">
+          <!-- use helicopter icon for helicopters -->
+          <ng-container *ngIf="plane.isHelicopter">
+            <span
+              class="copter-plane-icon"
+              [attr.aria-label]="plane.callsign + ' helicopter'"
+              [style.transform]="'perspective(300px) rotateX(60deg)'"
+              [style.transformOrigin]="'center center'"
+              >toys_fan</span
+            >
+          </ng-container>
+          <!-- fixed-wing planes with chemtrail and icon -->
+          <ng-container *ngIf="!plane.isHelicopter">
+            <div class="icon-wrapper">
+              <div
+                class="chemtrail"
+                [style.width.px]="plane.trailLength"
+                [style.background]="
+                  'rgba(255,255,255,' + plane.trailOpacity + ')'
+                "
+                [style.transform]="
+                  'perspective(300px) rotateX(60deg) rotateZ(' +
+                  ((plane.bearing ?? 0) + 180) +
+                  'deg)'
+                "
+              ></div>
+              <svg
+                class="plane-icon {{ plane.iconType }}"
+                viewBox="0 0 64 64"
+                [attr.aria-label]="
+                  plane.callsign + ' at ' + plane.altitude + 'm'
+                "
+                [style.transform]="
+                  'perspective(300px) rotateX(60deg) rotateZ(' +
+                  plane.bearing +
+                  'deg)'
+                "
+                [style.transformOrigin]="'center center'"
+              >
+                <path [attr.d]="plane.iconPath"></path>
+              </svg>
+            </div>
+          </ng-container>
+          <span class="plane-label">{{ plane.callsign }}</span>
+        </ng-container>
+        <!-- cone markers -->
+        <ng-container *ngIf="plane.isMarker">
+          <!-- midpoint label -->
+          <ng-container
+            *ngIf="
+              !plane.callsign.endsWith('Start') &&
+              !plane.callsign.endsWith('End')
+            "
+          >
+            <div class="line-label">{{ plane.callsign }}</div>
+          </ng-container>
+        </ng-container>
       </div>
     </ng-container>
   </div>

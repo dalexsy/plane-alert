@@ -44,6 +44,8 @@ import SunCalc from 'suncalc';
 import { IconComponent } from '../components/ui/icon.component';
 import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
 import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
+import { getIconPathForModel } from '../utils/plane-icons';
+import { HelicopterListService } from '../services/helicopter-list.service';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -179,8 +181,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   windowViewPlanes: WindowViewPlane[] = [];
 
   // Example: set these to the azimuth ranges (in degrees) for your cones
-  balconyAzimuth: [number, number] = [210, 250]; // South-west example
-  streetsideAzimuth: [number, number] = [120, 160]; // South-east example
+  balconyAzimuth: [number, number] = [75, 190]; // South-west example
+  streetsideAzimuth: [number, number] = [245, 345]; // South-east example
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
@@ -196,7 +198,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private militaryPrefixService: MilitaryPrefixService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private helicopterListService: HelicopterListService
   ) {
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -1222,6 +1225,89 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // Add window view markers for cone boundaries and midpoints
+  private updateWindowViewMarkers(): void {
+    // Define the azimuth ranges directly matching ConeComponent angles
+    const cones = [
+      { label: 'Balcony', start: 75, end: 190 }, // ENE to S
+      { label: 'Streetside', start: 245, end: 345 }, // SW to N
+    ];
+    // Use a fixed radius for window view markers (e.g., 10km)
+    const markerRadiusKm = 10;
+    // Get home location as the anchor
+    const home = this.homeLocationValue;
+    if (!home) return;
+    const lat = home.lat;
+    const lon = home.lon;
+    // Helper to convert azimuth (deg, 0=N) to window view x (0-100, 0=left, 100=right)
+    // 0° = North at center (50), 90° E at right (75), 270° W at left (25)
+    const azToX = (az: number) => (((az + 180) % 360) / 360) * 100;
+    // Helper to convert azimuth to compass direction
+    const azToCompass = (az: number) => {
+      const dirs = [
+        'N',
+        'NNE',
+        'NE',
+        'ENE',
+        'E',
+        'ESE',
+        'SE',
+        'SSE',
+        'S',
+        'SSW',
+        'SW',
+        'WSW',
+        'W',
+        'WNW',
+        'NW',
+        'NNW',
+      ];
+      return dirs[Math.round((az % 360) / 22.5) % 16];
+    };
+    // Helper to convert radius to y (altitude) for window view (fixed at 10km)
+    const y = (10 / 12) * 70; // 10km out of 12km max altitude (scaled down to avoid clipping)
+
+    // Build marker objects
+    const markers = cones.flatMap(({ label, start, end }) => {
+      const mid = (start + end) / 2;
+      const width = (end - start + 360) % 360;
+      return [
+        {
+          x: azToX(start),
+          y,
+          callsign: `${label} Start`,
+          altitude: -1, // negative altitude to indicate not a real plane
+          isMarker: true,
+          azimuth: start,
+          compass: azToCompass(start),
+        },
+        {
+          x: azToX(mid),
+          y,
+          callsign: label,
+          altitude: -1,
+          isMarker: true,
+          azimuth: mid,
+          compass: azToCompass(mid),
+        },
+        {
+          x: azToX(end),
+          y,
+          callsign: `${label} End`,
+          altitude: -1,
+          isMarker: true,
+          azimuth: end,
+          compass: azToCompass(end),
+        },
+      ];
+    });
+    // Merge with actual planes for overlay, but do not show icon for markers with altitude < 0
+    this.windowViewPlanes = [
+      ...this.windowViewPlanes.filter((p) => p.altitude >= 0), // keep real planes only
+      ...markers,
+    ];
+  }
+
   private updatePlaneLog(planes: PlaneModel[]): void {
     // Assign airport code/name for planes within airport circles
     planes.forEach((p) => {
@@ -1264,31 +1350,41 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.resultsOverlayComponent.airportPlaneLog =
       airportPlanes as unknown as PlaneLogEntry[];
 
-    // Update the window view overlay with visible planes in the sky
-    this.windowViewPlanes = visiblePlanes.map(plane => {
-      // Calculate azimuth (bearing) from homeLocationValue to plane
-      const azimuth = this.calculateAzimuth(
-        this.settings.lat ?? this.DEFAULT_COORDS[0],
-        this.settings.lon ?? this.DEFAULT_COORDS[1],
-        plane.lat,
-        plane.lon
-      ); // 0 = North, 90 = East, etc.
-      // Map azimuth so 0 = South, 90 = West, 180 = North, 270 = East, 360 = South
-      const azimuthFromSouth = (azimuth + 180) % 360;
-      const x = azimuthFromSouth / 360 * 100;
-      // Altitude: map 0-12000m to 0-100% (cap at 12km)
-      const alt = plane.altitude ?? 0;
-      const y = Math.min(alt, 12000) / 12000 * 100;
-      return {
-        x,
-        y,
-        callsign: plane.callsign || plane.icao,
-        altitude: alt
-      };
-    });
-
-    // Compute nearest (or followed) plane for overlay
-    this.computeClosestPlane();
+    // Update the window view overlay with airborne planes only
+    this.windowViewPlanes = visiblePlanes
+      .filter((p) => (p.altitude ?? 0) > 0)
+      .map((plane) => {
+        // Calculate azimuth (bearing) from homeLocationValue to plane
+        const azimuth = this.calculateAzimuth(
+          this.settings.lat ?? this.DEFAULT_COORDS[0],
+          this.settings.lon ?? this.DEFAULT_COORDS[1],
+          plane.lat,
+          plane.lon
+        ); // 0 = North, 90 = East, etc.
+        const azimuthFromSouth = (azimuth + 180) % 360;
+        const x = (azimuthFromSouth / 360) * 100;
+        // Altitude: map 0-12000m to 0-100% (cap at 12km)
+        const alt = plane.altitude ?? 0;
+        const y = (Math.min(alt, 12000) / 12000) * 60;
+        // Get the shared plane icon data for consistency
+        const iconData = getIconPathForModel(plane.model);
+        return {
+          x,
+          y,
+          callsign: plane.callsign || plane.icao,
+          altitude: alt,
+          bearing: plane.track ?? 0,
+          iconPath: iconData.path,
+          iconType: iconData.iconType,
+          isHelicopter: this.helicopterListService.isHelicopter(plane.icao),
+          velocity: plane.velocity ?? 0,
+          // chemtrail properties
+          trailLength: Math.min((plane.velocity ?? 0) * 0.5, 150),
+          trailOpacity: Math.min((plane.velocity ?? 0) / 300, 1) * 0.8,
+        };
+      });
+    // Add window view markers for cone boundaries and midpoints
+    this.updateWindowViewMarkers();
 
     // Merge into historical log
     const mergedMap = new Map<string, PlaneModel>();
@@ -1867,6 +1963,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       });
 
       // --- Bulk fetch runway data for all airports at once ---
+
       if (this.airportCircles.size > 0) {
         const airportList = Array.from(this.airportCircles.entries()).map(
           ([id, circle]) => ({
@@ -1931,6 +2028,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 lengthsByAirport.set(bestId, Math.max(prev, lenKm));
               }
             });
+
             // apply computed radii
             airportList.forEach((a) => {
               const circle = this.airportCircles.get(a.id);
@@ -1995,7 +2093,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const data = await res.json();
       let maxLen = 0;
       for (const w of data.elements || []) {
-                       const coords = w.geometry as Array<{ lat: number; lon: number }>;
+        const coords = w.geometry as Array<{ lat: number; lon: number }>;
         if (coords.length < 2) continue;
         // approximate runway length by first-to-last node
         const start = coords[0];
@@ -2147,13 +2245,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  private calculateAzimuth(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  private calculateAzimuth(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
     // Returns azimuth in degrees from (lat1, lon1) to (lat2, lon2), 0 = North
     const toRad = (deg: number) => (deg * Math.PI) / 180;
     const toDeg = (rad: number) => (rad * 180) / Math.PI;
     const dLon = toRad(lon2 - lon1);
     const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    const x =
+      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
       Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
     let brng = Math.atan2(y, x);
     brng = toDeg(brng);

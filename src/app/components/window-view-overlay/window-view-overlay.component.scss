@@ -14,6 +14,7 @@
   -webkit-backdrop-filter: blur(0.5rem);
   backdrop-filter: blur(0.5rem);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
 }
 .compass-labels {
   display: flex;
@@ -50,6 +51,32 @@
   pointer-events: auto;
   transition: left 0.3s, bottom 0.3s;
   z-index: 2;
+
+  .icon-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+  .chemtrail {
+    position: absolute;
+    height: 2px;
+    // align chemtrail start to back center of plane
+    left: 0;
+    bottom: calc(50% - 1px); // center of 2px line
+    opacity: 0.8;
+    pointer-events: none;
+    // Add subtle blur for perspective
+    filter: blur(1px);
+    // Allow rounded ends
+    border-radius: 1px;
+    transform-origin: left center;
+    z-index: 1; // below icon (icon has z-index:2)
+  }
+}
+.plane-dot.balcony-marker,
+.plane-dot.streetside-marker {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .plane-icon {
   color: #ffe066;
@@ -65,6 +92,9 @@
   align-items: center;
   justify-content: center;
 }
+.plane-icon path {
+  fill: currentColor;
+}
 .plane-label {
   font-size: 0.93em;
   color: #fff;
@@ -78,4 +108,63 @@
   font-family: inherit;
   font-weight: 500;
   letter-spacing: 0.01em;
+}
+.marker-az {
+  font-size: 0.8em;
+  color: #ffe066;
+  margin-top: 2px;
+}
+.vertical-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin: 0;
+  background-color: transparent; /* remove default */
+}
+.vertical-line.balcony-marker {
+  background-color: #4caf50; /* Balcony green */
+}
+.vertical-line.streetside-marker {
+  background-color: #2196f3; /* Streetside blue */
+}
+.balcony-marker .vertical-line,
+.balcony-marker .dot {
+  background-color: #4caf50; /* Balcony green */
+}
+.streetside-marker .vertical-line,
+.streetside-marker .dot {
+  background-color: #2196f3; /* Streetside blue */
+}
+.dot {
+  display: none;
+}
+.line-label {
+  font-size: 0.9em;
+  color: #ffe066;
+  white-space: nowrap;
+  margin-top: 0.25rem;
+}
+.balcony-marker .line-label {
+  color: #4caf50; /* Balcony green */
+}
+.streetside-marker .line-label {
+  color: #2196f3; /* Streetside blue */
+}
+.copter-plane-icon {
+  font-family: "Material Symbols Sharp", sans-serif;
+  font-variation-settings: "FILL" 1;
+  font-size: 1.3em;
+  color: currentColor;
+  display: inline-block;
+  animation: spin 1.5s linear infinite;
+  margin-bottom: 2px;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
