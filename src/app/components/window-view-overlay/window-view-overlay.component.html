@@ -34,8 +34,10 @@
           'streetside-marker':
             plane.isMarker && plane.callsign.startsWith('Streetside')
         }"
+        [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
         [style.left]="plane.x + '%'"
         [style.bottom]="plane.y + '%'"
+        [style.transformOrigin]="'bottom center'"
         [title]="
           plane.isMarker ? '' : plane.callsign + ' (' + plane.altitude + 'm)'
         "
@@ -45,46 +47,58 @@
           <!-- use helicopter icon for helicopters -->
           <ng-container *ngIf="plane.isHelicopter">
             <span
-              class="copter-plane-icon material-symbols-sharp"
-              [attr.aria-label]="plane.callsign + ' helicopter'"
+              class="copter-wrapper"
+              [style.transform]="'scale(' + (plane.scale || 1) + ')'"
               [style.transformOrigin]="'center center'"
-              >toys_fan</span
             >
+              <span
+                class="copter-plane-icon material-symbols-sharp"
+                [attr.aria-label]="plane.callsign + ' helicopter'"
+                [style.transformOrigin]="'center center'"
+                >toys_fan</span
+              >
+            </span>
           </ng-container>
           <!-- fixed-wing planes with chemtrail and icon -->
           <ng-container *ngIf="!plane.isHelicopter">
             <div
-              class="icon-wrapper"
-              [style.transform]="'perspective(300px) rotateX(60deg)'"
-              [style.transformOrigin]="'center center'"
+              class="icon-scale-wrapper"
+              [style.transform]="'scale(' + (plane.scale || 1) + ')'"
+              [style.transformOrigin]="'bottom center'"
             >
               <div
-                class="chemtrail"
-                [style.width.px]="plane.trailLength"
-                [style.background]="
-                  'rgba(255,255,255,' + plane.trailOpacity + ')'
-                "
-                [style.transform]="
-                  'rotateZ(' +
-                  ((plane.bearing ?? 0) + (plane.x < 50 ? 45 : 0)) +
-                  'deg)'
-                "
-              ></div>
-              <svg
-                class="plane-icon {{ plane.iconType }}"
-                viewBox="0 0 64 64"
-                [attr.aria-label]="
-                  plane.callsign + ' at ' + plane.altitude + 'm'
-                "
-                [style.transform]="
-                  'rotateZ(' +
-                  ((plane.bearing ?? 0) + (plane.x > 50 ? -90 : -45)) +
-                  'deg)'
-                "
+                class="icon-wrapper"
+                [style.transform]="'perspective(300px) rotateX(60deg)'"
                 [style.transformOrigin]="'center center'"
               >
-                <path [attr.d]="plane.iconPath"></path>
-              </svg>
+                <div
+                  class="chemtrail"
+                  [style.width.px]="plane.trailLength"
+                  [style.background]="
+                    'rgba(255,255,255,' + plane.trailOpacity + ')'
+                  "
+                  [style.transform]="
+                    'rotateZ(' +
+                    ((plane.bearing ?? 0) + (plane.x < 50 ? 45 : 0)) +
+                    'deg)'
+                  "
+                ></div>
+                <svg
+                  class="plane-icon {{ plane.iconType }}"
+                  viewBox="0 0 64 64"
+                  [attr.aria-label]="
+                    plane.callsign + ' at ' + plane.altitude + 'm'
+                  "
+                  [style.transform]="
+                    'rotateZ(' +
+                    ((plane.bearing ?? 0) + (plane.x > 50 ? -90 : -45)) +
+                    'deg)'
+                  "
+                  [style.transformOrigin]="'center center'"
+                >
+                  <path [attr.d]="plane.iconPath"></path>
+                </svg>
+              </div>
             </div>
           </ng-container>
           <span

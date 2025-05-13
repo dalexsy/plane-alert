@@ -22,7 +22,10 @@ export interface WindowViewPlane {
   trailRotation?: number; // For dynamic style.transform rotateZ
   trailPivotOffsetX?: number; // For dynamic style.left, offset from center in px
   trailPivotOffsetY?: number; // For dynamic style.top, offset from center in px
+  isCelestial?: boolean; // Added for Sun/Moon
   celestialBodyType?: 'sun' | 'moon'; // Added for Sun/Moon
+  scale?: number; // Scale relative to viewer distance
+  distanceKm?: number; // Distance from viewer in km for dimming
 }
 
 @Component({

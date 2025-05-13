@@ -1351,7 +1351,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.windowViewPlanes = visiblePlanes
       .filter((p) => (p.altitude ?? 0) > 0)
       .map((plane) => {
-        // Calculate azimuth (bearing) from homeLocationValue to plane
+        // Calculate azimuth (bearing) from homeLocation to plane
         const azimuth = this.calculateAzimuth(
           this.settings.lat ?? this.DEFAULT_COORDS[0],
           this.settings.lon ?? this.DEFAULT_COORDS[1],
@@ -1363,8 +1363,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Altitude: map 0-20000m to 0-100% (cap at 20km, consistent with window view visual scale)
         const alt = plane.altitude ?? 0;
         const y = (Math.min(alt, 20000) / 20000) * 100;
-        // Get the shared plane icon data for consistency
         const iconData = getIconPathForModel(plane.model);
+        // Calculate scale based on distance
+        const distKm = haversineDistance(
+          centerLat,
+          centerLon,
+          plane.lat!,
+          plane.lon!
+        );
+        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
+        // scale from 1 at center to 0.5 at max radius
+        const scale = Math.max(0.5, 1 - (distKm / maxRadius) * 0.5);
+
         return {
           x,
           y,
@@ -1375,9 +1385,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           iconType: iconData.iconType,
           isHelicopter: this.helicopterListService.isHelicopter(plane.icao),
           velocity: plane.velocity ?? 0,
-          // chemtrail properties
-          trailLength: Math.min((plane.velocity ?? 0) * 0.5, 150),
-          trailOpacity: Math.min((plane.velocity ?? 0) / 300, 1) * 0.8,
+          scale,
+          distanceKm: distKm,
         };
       });
     // Add window view markers for cone boundaries and midpoints

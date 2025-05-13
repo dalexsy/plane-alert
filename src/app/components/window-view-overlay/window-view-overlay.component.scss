@@ -103,7 +103,9 @@
       .line-label {
         position: absolute;
         left: 50%;
-        top: 0;
+        transform: translateX(-25%);
+        white-space: nowrap;
+        pointer-events: none;
       }
       &.balcony-marker {
         .line-label {
@@ -114,6 +116,10 @@
         .line-label {
           color: #2196f3;
         }
+      }
+
+      &.dimmed {
+        opacity: 0.5;
       }
     }
   }
