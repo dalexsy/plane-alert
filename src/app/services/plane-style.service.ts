@@ -4,14 +4,26 @@ import { WindowViewPlane } from '../components/window-view-overlay/window-view-o
 @Injectable({ providedIn: 'root' })
 export class PlaneStyleService {
   /**
-   * Determine the color for plane labels based on plane status.
+   * Determine the color for plane labels based on plane status and followed state.
+   * @param plane The plane object (WindowViewPlane or PlaneLogEntry)
+   * @param isFollowed Whether this plane is currently followed/highlighted
    */
-  getLabelColor(plane: WindowViewPlane): string {
+  getLabelColor(
+    plane: { isMarker?: boolean; isCelestial?: boolean; isNew?: boolean; isMilitary?: boolean; isSpecial?: boolean },
+    isFollowed: boolean = false
+  ): string {
     if (plane.isMarker) {
       return ''; // markers use vertical-line color, not label
     }
     if (plane.isCelestial) {
       return ''; // celestial use default or own styling
+    }
+    // Followed plane overrides most other states except military
+    if (isFollowed) {
+      if (plane.isMilitary) {
+        return '#89d138';
+      }
+      return '#00ffff'; // followed-plane-color
     }
     // New plane state
     if (plane.isNew) {
@@ -25,7 +37,6 @@ export class PlaneStyleService {
     if (plane.isSpecial) {
       return 'gold';
     }
-    // Dimmed due to distance, reduce opacity instead of color
     // Default color
     return '#fff';
   }

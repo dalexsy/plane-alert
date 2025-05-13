@@ -1280,6 +1280,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isMarker: true,
           azimuth: start,
           compass: azToCompass(start),
+          icao: `marker-${label}-start`, // Assign dummy icao for type safety
         },
         {
           x: azToX(mid),
@@ -1289,6 +1290,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isMarker: true,
           azimuth: mid,
           compass: azToCompass(mid),
+          icao: `marker-${label}-mid`, // Assign dummy icao for type safety
         },
         {
           x: azToX(end),
@@ -1298,6 +1300,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isMarker: true,
           azimuth: end,
           compass: azToCompass(end),
+          icao: `marker-${label}-end`, // Assign dummy icao for type safety
         },
       ];
     });
@@ -1396,6 +1399,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isNew: plane.isNew,
           isMilitary: plane.isMilitary,
           isSpecial: plane.isSpecial,
+          icao: plane.icao, // Ensure icao is present for type safety
         };
       });
     // Add window view markers for cone boundaries and midpoints
@@ -1843,12 +1847,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: any): void {
+    // If this is a marker (not a real plane), do nothing
+    if (plane.isMarker) {
+      return;
+    }
     const isFromShuffle = !!plane.followMe;
-
     // Always set followNearest to true for planes from shuffle
     if (isFromShuffle) {
       this.followNearest = true;
-
       // We need to call centerOnPlane with preserveFollowNearest=false so that
       // it doesn't skip updating the followNearest flag inside centerOnPlane
       this.centerOnPlane(plane, false, true); // pass fromShuffle=true
@@ -1984,7 +1990,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           ([id, circle]) => ({
             id,
             lat: circle.getLatLng().lat,
-                                             lon: circle.getLatLng().lng,
+            lon: circle.getLatLng().lng,
             hasIata: !!this.airportData.get(id)?.code,
           })
         );
@@ -2110,7 +2116,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const data = await res.json();
       let maxLen = 0;
       for (const w of data.elements || []) {
-        const coords = w.geometry as Array<{ lat: number; lon: number }>;
+        const coords = w.geometry as Array<{ lat: number; lon: number }> ;
         if (coords.length < 2) continue;
         // approximate runway length by first-to-last node
         const start = coords[0];
@@ -2274,7 +2280,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const dLon = toRad(lon2 - lon1);
     const y = Math.sin(dLon) * Math.cos(toRad(lat2));
     const x =
-      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - 
       Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
     let brng = Math.atan2(y, x);
     brng = toDeg(brng);

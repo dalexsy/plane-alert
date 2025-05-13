@@ -1,4 +1,11 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EngineIconType } from '../../../app/utils/plane-icons';
 import { PlaneStyleService } from '../../../app/services/plane-style.service';
@@ -7,6 +14,7 @@ export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
   y: number; // 0-100, bottom-up position (altitude)
   callsign: string;
+  icao: string; // ICAO code for plane identification
   altitude: number;
   bearing?: number;
   isMarker?: boolean;
@@ -40,8 +48,16 @@ export interface WindowViewPlane {
   styleUrls: ['./window-view-overlay.component.scss'],
 })
 export class WindowViewOverlayComponent implements OnChanges {
+  /** Currently highlighted/followed plane ICAO */
+  @Input() highlightedPlaneIcao: string | null = null;
+  /** Emit selection when a plane label is clicked */
+  @Output() selectPlane = new EventEmitter<WindowViewPlane>();
   constructor(public planeStyle: PlaneStyleService) {} // Inject styling service
-
+  /** Emit selection event when user clicks a plane label */
+  handleLabelClick(plane: WindowViewPlane, event: MouseEvent): void {
+    event.stopPropagation();
+    this.selectPlane.emit(plane);
+  }
   @Input() windowViewPlanes: WindowViewPlane[] = [];
 
   // Precompute altitude ticks once to avoid recalculation and flicker
@@ -103,12 +119,6 @@ export class WindowViewOverlayComponent implements OnChanges {
       const bandLabel = bandIdx >= 0 ? bands[bandIdx].label : 'below';
       const bandColor =
         bandIdx >= 0 ? this.getAltitudeColor(bands[bandIdx], bandIdx) : 'none';
-      // eslint-disable-next-line no-console
-      console.log(
-        `[WINDOW VIEW] Plane ${plane.callsign} at ${
-          plane.altitude
-        }m (y=${plane.y.toFixed(2)}%) in band ${bandLabel} (${bandColor})`
-      );
     }
   }
 }

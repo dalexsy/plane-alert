@@ -16,6 +16,7 @@ import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComponent is standalone
 import { haversineDistance } from '../../utils/geo-utils';
+import { PlaneStyleService } from '../../services/plane-style.service';
 
 @Component({
   selector: 'app-plane-list-item',
@@ -29,7 +30,8 @@ export class PlaneListItemComponent {
   constructor(
     public countryService: CountryService,
     public planeFilter: PlaneFilterService,
-    private settings: SettingsService
+    private settings: SettingsService,
+    public planeStyle: PlaneStyleService // Inject style service
   ) {}
   /** Distance from center, in km rounded to nearest tenth */
   get distanceKm(): number {

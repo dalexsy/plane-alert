@@ -42,7 +42,7 @@
       align-items: center;
       font-family: "JetBrains Mono", monospace;
       color: #fff;
-      z-index: 2;
+      z-index: 1;
 
       &.balcony-marker,
       &.streetside-marker {
@@ -110,10 +110,18 @@
         color: #fff;
         padding: 0 4px;
         margin-top: 2px;
-        pointer-events: none;
+        pointer-events: auto;
         white-space: nowrap;
         font-weight: 500;
         letter-spacing: 0.01em;
+
+        // Add a class for followed/highlighted state
+        &.followed {
+          z-index: 10;
+          position: relative;
+          color: #00ffff;
+          background: white;
+        }
       }
 
       .marker-az {
@@ -127,7 +135,7 @@
         left: 50%;
         transform: translateX(-25%);
         white-space: nowrap;
-        pointer-events: none;
+        pointer-events: auto;
       }
       &.balcony-marker {
         .line-label {
@@ -142,6 +150,12 @@
 
       &.dimmed {
         opacity: 0.5;
+      }
+
+      // If you want the whole dot (icon + label) to come forward when highlighted:
+      &.followed-plane {
+        z-index: 20;
+        background: white;
       }
     }
   }

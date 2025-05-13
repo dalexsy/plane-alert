@@ -35,6 +35,7 @@
           target="_blank"
           title="Open in ADS-B Exchange"
           rel="noopener noreferrer"
+          [style.color]="planeStyle.getLabelColor(plane, plane.icao === followedPlaneIcao)"
         >
           {{ plane.callsign }}
         </a>

@@ -103,7 +103,14 @@
           </ng-container>
           <span
             class="plane-label"
-            [style.color]="planeStyle.getLabelColor(plane)"
+            [class.followed]="plane.icao === highlightedPlaneIcao"
+            [style.color]="
+              planeStyle.getLabelColor(
+                plane,
+                plane.icao === highlightedPlaneIcao
+              )
+            "
+            (click)="handleLabelClick(plane, $event)"
             >{{ plane.callsign }}</span
           >
         </ng-container>
@@ -122,20 +129,28 @@
                 plane.celestialBodyType === 'sun' ? 'Sun marker' : 'Moon marker'
               "
             >
-              {{ plane.celestialBodyType === 'sun' ? 'light_mode' : 'dark_mode' }}
+              {{
+                plane.celestialBodyType === "sun" ? "light_mode" : "dark_mode"
+              }}
             </span>
           </span>
         </ng-container>
         <!-- cone markers -->
         <ng-container *ngIf="plane.isMarker && !plane.isCelestial">
-          <!-- midpoint label -->
+          <!-- clickable midpoint label to toggle follow -->
           <ng-container
             *ngIf="
               !plane.callsign.endsWith('Start') &&
               !plane.callsign.endsWith('End')
             "
           >
-            <div class="line-label">{{ plane.callsign }}</div>
+            <div
+              class="line-label"
+              [class.selected]="plane.callsign === (highlightedPlaneIcao || '')"
+              (click)="handleLabelClick(plane, $event)"
+            >
+              {{ plane.callsign }}
+            </div>
           </ng-container>
         </ng-container>
       </div>

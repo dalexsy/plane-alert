@@ -114,4 +114,6 @@
 
 <app-window-view-overlay
   [windowViewPlanes]="windowViewPlanes"
+  [highlightedPlaneIcao]="highlightedPlaneIcao"
+  (selectPlane)="followNearestPlane($event)"
 ></app-window-view-overlay>
