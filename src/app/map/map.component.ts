@@ -807,8 +807,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Fetch wind direction from OpenWeatherMap and update windAngle */
   private fetchWindDirection(lat: number, lon: number): void {
-    // debug fetch invocation for wind data
-    console.log(`Wind fetch at lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}`);
     fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPEN_WEATHER_MAP_API_KEY}`
     )
@@ -828,7 +826,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const speed = data.wind?.speed ?? 0;
         this.windSpeed = speed;
         const windFrom = data.wind?.deg ?? 0;
-        console.log(`Wind data: speed=${speed} m/s, direction=${windFrom}°`);
         // compute stat 0-3 based on speed
         let stat = 0;
         if (speed >= 6) stat = 3;
@@ -1363,9 +1360,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         ); // 0 = North, 90 = East, etc.
         const azimuthFromSouth = (azimuth + 180) % 360;
         const x = (azimuthFromSouth / 360) * 100;
-        // Altitude: map 0-12000m to 0-100% (cap at 12km)
+        // Altitude: map 0-20000m to 0-100% (cap at 20km, consistent with window view visual scale)
         const alt = plane.altitude ?? 0;
-        const y = (Math.min(alt, 12000) / 12000) * 60;
+        const y = (Math.min(alt, 20000) / 20000) * 100;
         // Get the shared plane icon data for consistency
         const iconData = getIconPathForModel(plane.model);
         return {
@@ -1980,7 +1977,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const maxLat = Math.max(...lats) + radiusKm / 111;
         const minLon = Math.min(...lons) - radiusKm / 111;
         const maxLon = Math.max(...lons) + radiusKm / 111;
+
         const runwayQuery = `
+         
           [out:json][timeout:25];
           (
             way[\"aeroway\"=\"runway\"](${minLat},${minLon},${maxLat},${maxLon});

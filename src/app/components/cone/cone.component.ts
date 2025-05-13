@@ -154,7 +154,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // --- Define Practical Visibility Bands ---
 
     // 1. Define distance bands (km) - these are the primary structure
-    const distancesKm = [5, 10, 20, 30, 40, 50]; // Outer edges of bands
+    const distancesKm = [5, 10, 20, 30, 40, 70]; // Outer edges of bands
     const maxDistanceKm = distancesKm[distancesKm.length - 1]; // e.g., 50km
 
     // 2. Define a realistic maximum altitude threshold for the furthest band

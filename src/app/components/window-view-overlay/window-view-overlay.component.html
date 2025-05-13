@@ -45,9 +45,8 @@
           <!-- use helicopter icon for helicopters -->
           <ng-container *ngIf="plane.isHelicopter">
             <span
-              class="copter-plane-icon"
+              class="copter-plane-icon material-symbols-sharp"
               [attr.aria-label]="plane.callsign + ' helicopter'"
-              [style.transform]="'perspective(300px) rotateX(60deg)'"
               [style.transformOrigin]="'center center'"
               >toys_fan</span
             >
@@ -67,7 +66,7 @@
                 "
                 [style.transform]="
                   'rotateZ(' +
-                  ((plane.bearing ?? 0) + 90) +
+                  ((plane.bearing ?? 0) + (plane.x < 50 ? 45 : 0)) +
                   'deg)'
                 "
               ></div>
@@ -79,7 +78,7 @@
                 "
                 [style.transform]="
                   'rotateZ(' +
-                  plane.bearing +
+                  ((plane.bearing ?? 0) + (plane.x > 50 ? -90 : -45)) +
                   'deg)'
                 "
                 [style.transformOrigin]="'center center'"
@@ -88,7 +87,11 @@
               </svg>
             </div>
           </ng-container>
-          <span class="plane-label">{{ plane.callsign }}</span>
+          <span
+            class="plane-label"
+            [style.color]="plane.x <= 50 ? 'red' : null"
+            >{{ plane.callsign }}</span
+          >
         </ng-container>
         <!-- cone markers -->
         <ng-container *ngIf="plane.isMarker">
@@ -103,6 +106,18 @@
           </ng-container>
         </ng-container>
       </div>
+    </ng-container>
+  </div>
+  <!-- Altitude bands across the entire window view -->
+  <div class="altitude-bands-overlay full">
+    <ng-container *ngFor="let tick of altitudeTicks; let i = index">
+      <div
+        *ngIf="i < altitudeTicks.length - 1"
+        class="altitude-band"
+        [style.bottom]="tick.y + '%'"
+        [style.height]="altitudeTicks[i + 1].y - tick.y + '%'"
+        [ngStyle]="{ background: getAltitudeColor(tick, i) }"
+      ></div>
     </ng-container>
   </div>
 </div>
