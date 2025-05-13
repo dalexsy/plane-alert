@@ -106,21 +106,22 @@
       }
 
       .plane-label {
-        font-size: 0.93em;
-        color: #fff;
-        padding: 0 4px;
+        cursor: pointer;
+        color: white;
+        padding: 0 5px;
         margin-top: 2px;
         pointer-events: auto;
         white-space: nowrap;
         font-weight: 500;
-        letter-spacing: 0.01em;
 
-        // Add a class for followed/highlighted state
         &.followed {
           z-index: 10;
           position: relative;
           color: #00ffff;
-          background: white;
+          background: black;
+          border: 1px solid cyan;
+          border-radius: 0.25rem;
+          box-shadow: 0 0 0px 3px #00ffff7d;
         }
       }
 
@@ -152,10 +153,11 @@
         opacity: 0.5;
       }
 
-      // If you want the whole dot (icon + label) to come forward when highlighted:
-      &.followed-plane {
-        z-index: 20;
-        background: white;
+      &.half-left .icon-wrapper {
+        transform: perspective(300px) rotateX(60deg) rotateY(20deg);
+      }
+      &.half-right .icon-wrapper {
+        transform: perspective(300px) rotateX(60deg) rotateY(-20deg);
       }
     }
   }

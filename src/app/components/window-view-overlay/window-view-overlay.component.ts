@@ -81,6 +81,15 @@ export class WindowViewOverlayComponent implements OnChanges {
     }
   }
 
+  /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
+  getPerspectiveTransform(plane: WindowViewPlane): string {
+    const x = plane.x;
+    const ratio = (x - 50) / 50; // -1 to 1
+    const maxAngle = 20; // maximum Y rotation in degrees
+    const angleY = ratio * maxAngle;
+    return `perspective(300px) rotateX(60deg) rotateY(${angleY}deg)`;
+  }
+
   // Updated to use a predefined sequence of ratios to match ConeComponent's color progression
   getAltitudeColor(tick: { y: number; label: string }, i: number): string {
     const coneRatios = [0.01, 0.04, 0.16, 0.36, 0.64, 1.0]; // Ratios for Orange, Yellow, Green, Cyan, Blue, Magenta

@@ -32,7 +32,9 @@
           'balcony-marker':
             plane.isMarker && plane.callsign.startsWith('Balcony'),
           'streetside-marker':
-            plane.isMarker && plane.callsign.startsWith('Streetside')
+            plane.isMarker && plane.callsign.startsWith('Streetside'),
+          'half-left': plane.x < 50,
+          'half-right': plane.x >= 50
         }"
         [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
         [style.left]="plane.x + '%'"
@@ -54,9 +56,9 @@
               <span
                 class="copter-plane-icon material-symbols-sharp"
                 [attr.aria-label]="plane.callsign + ' helicopter'"
-                [style.transformOrigin]="'center center'"
-                >toys_fan</span
               >
+                toys_fan
+              </span>
             </span>
           </ng-container>
           <!-- fixed-wing planes with chemtrail and icon -->
@@ -68,7 +70,7 @@
             >
               <div
                 class="icon-wrapper"
-                [style.transform]="'perspective(300px) rotateX(60deg)'"
+                [style.transform]="getPerspectiveTransform(plane)"
                 [style.transformOrigin]="'center center'"
               >
                 <div
@@ -111,8 +113,9 @@
               )
             "
             (click)="handleLabelClick(plane, $event)"
-            >{{ plane.callsign }}</span
           >
+            {{ plane.callsign }}
+          </span>
         </ng-container>
         <!-- celestial markers (Sun/Moon icons) -->
         <ng-container *ngIf="plane.isCelestial">
@@ -123,7 +126,7 @@
           >
             <span
               class="celestial-icon material-symbols-sharp"
-              [style.transform]="'perspective(300px) rotateX(60deg)'"
+              [style.transform]="getPerspectiveTransform(plane)"
               [style.transformOrigin]="'center center'"
               [attr.aria-label]="
                 plane.celestialBodyType === 'sun' ? 'Sun marker' : 'Moon marker'
