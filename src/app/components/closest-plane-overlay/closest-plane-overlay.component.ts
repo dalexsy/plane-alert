@@ -31,7 +31,11 @@ export class ClosestPlaneOverlayComponent {
     const lat = this.settings.lat ?? 0;
     const lon = this.settings.lon ?? 0;
     // Round to nearest 0.1km
-    return Math.round(haversineDistance(lat, lon, this.plane.lat, this.plane.lon) * 10) / 10;
+    return (
+      Math.round(
+        haversineDistance(lat, lon, this.plane.lat, this.plane.lon) * 10
+      ) / 10
+    );
   }
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.isSelected && this.plane?.isMilitary === true;

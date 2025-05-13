@@ -9,7 +9,13 @@ export class PlaneStyleService {
    * @param isFollowed Whether this plane is currently followed/highlighted
    */
   getLabelColor(
-    plane: { isMarker?: boolean; isCelestial?: boolean; isNew?: boolean; isMilitary?: boolean; isSpecial?: boolean },
+    plane: {
+      isMarker?: boolean;
+      isCelestial?: boolean;
+      isNew?: boolean;
+      isMilitary?: boolean;
+      isSpecial?: boolean;
+    },
     isFollowed: boolean = false
   ): string {
     if (plane.isMarker) {

@@ -25,7 +25,7 @@
   </ng-container>
   <!-- Otherwise, show street (fallback to Unknown) and optional district -->
   <ng-container *ngIf="!plane.airportName">
-    <span class="street">{{ street || 'Unknown' }}</span>
+    <span class="street">{{ street || "Unknown" }}</span>
     <span *ngIf="district" class="district">{{ district }}</span>
   </ng-container>
 </div>

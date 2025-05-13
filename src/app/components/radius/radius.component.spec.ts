@@ -8,9 +8,8 @@ describe('RadiusComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RadiusComponent]
-    })
-    .compileComponents();
+      imports: [RadiusComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(RadiusComponent);
     component = fixture.componentInstance;

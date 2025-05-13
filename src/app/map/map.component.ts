@@ -2116,7 +2116,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const data = await res.json();
       let maxLen = 0;
       for (const w of data.elements || []) {
-        const coords = w.geometry as Array<{ lat: number; lon: number }> ;
+        const coords = w.geometry as Array<{ lat: number; lon: number }>;
         if (coords.length < 2) continue;
         // approximate runway length by first-to-last node
         const start = coords[0];
@@ -2280,7 +2280,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const dLon = toRad(lon2 - lon1);
     const y = Math.sin(dLon) * Math.cos(toRad(lat2));
     const x =
-      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - 
+      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
       Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
     let brng = Math.atan2(y, x);
     brng = toDeg(brng);
