@@ -8,7 +8,7 @@ describe('RadiusComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [RadiusComponent]
+      imports: [RadiusComponent]
     })
     .compileComponents();
 

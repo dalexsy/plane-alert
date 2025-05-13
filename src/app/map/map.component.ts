@@ -1084,6 +1084,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
         // Update both the overlay and lists via updatePlaneLog
         this.updatePlaneLog(updatedPlaneModels);
+        // Update the closest-plane-overlay with latest distance/operator/ETA info
+        this.computeClosestPlane();
         this.manualUpdate = false;
         // Reapply tooltip highlight after updates if a plane is followed
         if (this.highlightedPlaneIcao) {
@@ -1136,6 +1138,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       candidate.lon!
     );
     this.closestDistance = Math.round(dist * 10) / 10;
+
     this.closestOperator = candidate.operator || null;
     // Only show ETA if velocity >= 200
     const vel = candidate.velocity ?? null;
@@ -1364,7 +1367,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const alt = plane.altitude ?? 0;
         const y = (Math.min(alt, 20000) / 20000) * 100;
         const iconData = getIconPathForModel(plane.model);
-        // Calculate scale based on distance
+        // Calculate scale, distance
         const distKm = haversineDistance(
           centerLat,
           centerLon,
@@ -1385,8 +1388,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           iconType: iconData.iconType,
           isHelicopter: this.helicopterListService.isHelicopter(plane.icao),
           velocity: plane.velocity ?? 0,
+          // chemtrail properties
+          trailLength: Math.min((plane.velocity ?? 0) * 0.5, 150),
+          trailOpacity: Math.min((plane.velocity ?? 0) / 300, 1) * 0.8,
           scale,
           distanceKm: distKm,
+          isNew: plane.isNew,
+          isMilitary: plane.isMilitary,
+          isSpecial: plane.isSpecial,
         };
       });
     // Add window view markers for cone boundaries and midpoints
@@ -1975,7 +1984,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           ([id, circle]) => ({
             id,
             lat: circle.getLatLng().lat,
-            lon: circle.getLatLng().lng,
+                                             lon: circle.getLatLng().lng,
             hasIata: !!this.airportData.get(id)?.code,
           })
         );

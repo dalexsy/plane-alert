@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EngineIconType } from '../../../app/utils/plane-icons';
+import { PlaneStyleService } from '../../../app/services/plane-style.service';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -26,6 +27,9 @@ export interface WindowViewPlane {
   celestialBodyType?: 'sun' | 'moon'; // Added for Sun/Moon
   scale?: number; // Scale relative to viewer distance
   distanceKm?: number; // Distance from viewer in km for dimming
+  isNew?: boolean; // Flag for new planes
+  isMilitary?: boolean;
+  isSpecial?: boolean;
 }
 
 @Component({
@@ -36,6 +40,8 @@ export interface WindowViewPlane {
   styleUrls: ['./window-view-overlay.component.scss'],
 })
 export class WindowViewOverlayComponent implements OnChanges {
+  constructor(public planeStyle: PlaneStyleService) {} // Inject styling service
+
   @Input() windowViewPlanes: WindowViewPlane[] = [];
 
   // Precompute altitude ticks once to avoid recalculation and flicker

@@ -33,6 +33,8 @@ export class PlaneModel implements Plane {
   onGround?: boolean;
   isSpecial?: boolean;
   isMilitary?: boolean;
+  /** Distance from home in km, for closest-plane overlay */
+  distanceKm?: number;
   airportName?: string; // Optional airport name assigned in MapComponent
   airportCode?: string; // Optional short code (IATA) for airport
   airportLat?: number; // Latitude of center of airport circle assigned when plane is at airport

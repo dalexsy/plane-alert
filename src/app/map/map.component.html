@@ -1,11 +1,11 @@
 <app-closest-plane-overlay
+  *ngIf="closestPlane"
   [plane]="closestPlane"
-  [distanceKm]="closestDistance"
   [operator]="closestOperator"
   [secondsAway]="closestSecondsAway"
   [velocity]="closestVelocity"
   (selectPlane)="followNearestPlane($event)"
-  [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
+  [isSelected]="closestPlane.icao === highlightedPlaneIcao"
 ></app-closest-plane-overlay>
 
 <app-location-overlay

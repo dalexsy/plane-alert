@@ -1,12 +1,5 @@
 <div
-  *ngIf="
-    plane &&
-    ((plane.airportName &&
-      (plane.onGround === true ||
-        (plane.altitude != null && plane.altitude <= 200))) ||
-      street ||
-      district)
-  "
+  *ngIf="plane"
   class="location-overlay"
   [class.selected]="isSelected"
   [class.military-plane]="isSelected && plane.isMilitary"
@@ -30,13 +23,9 @@
   >
     <span class="airport-name">{{ plane.airportName }}</span>
   </ng-container>
-  <!-- Otherwise, show street and/or district -->
+  <!-- Otherwise, show street (fallback to Unknown) and optional district -->
   <ng-container *ngIf="!plane.airportName">
-    <ng-container *ngIf="street; else showDistrict">
-      <span class="street">{{ street }}</span>
-    </ng-container>
-    <ng-template #showDistrict>
-      <span class="district">{{ district }}</span>
-    </ng-template>
+    <span class="street">{{ street || 'Unknown' }}</span>
+    <span *ngIf="district" class="district">{{ district }}</span>
   </ng-container>
 </div>

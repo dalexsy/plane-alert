@@ -42,8 +42,8 @@
           plane.isMarker ? '' : plane.callsign + ' (' + plane.altitude + 'm)'
         "
       >
-        <!-- real planes -->
-        <ng-container *ngIf="!plane.isMarker">
+        <!-- real planes (aircraft icons) -->
+        <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
           <!-- use helicopter icon for helicopters -->
           <ng-container *ngIf="plane.isHelicopter">
             <span
@@ -103,12 +103,31 @@
           </ng-container>
           <span
             class="plane-label"
-            [style.color]="plane.x <= 50 ? 'red' : null"
+            [style.color]="planeStyle.getLabelColor(plane)"
             >{{ plane.callsign }}</span
           >
         </ng-container>
+        <!-- celestial markers (Sun/Moon icons) -->
+        <ng-container *ngIf="plane.isCelestial">
+          <span
+            class="celestial-wrapper"
+            [style.transform]="'scale(' + (plane.scale || 1) + ')'"
+            [style.transformOrigin]="'center center'"
+          >
+            <span
+              class="celestial-icon material-symbols-sharp"
+              [style.transform]="'perspective(300px) rotateX(60deg)'"
+              [style.transformOrigin]="'center center'"
+              [attr.aria-label]="
+                plane.celestialBodyType === 'sun' ? 'Sun marker' : 'Moon marker'
+              "
+            >
+              {{ plane.celestialBodyType === 'sun' ? 'light_mode' : 'dark_mode' }}
+            </span>
+          </span>
+        </ng-container>
         <!-- cone markers -->
-        <ng-container *ngIf="plane.isMarker">
+        <ng-container *ngIf="plane.isMarker && !plane.isCelestial">
           <!-- midpoint label -->
           <ng-container
             *ngIf="

@@ -8,7 +8,7 @@ describe('ResultsOverlayComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ResultsOverlayComponent]
+      imports: [ResultsOverlayComponent]
     })
     .compileComponents();
 
