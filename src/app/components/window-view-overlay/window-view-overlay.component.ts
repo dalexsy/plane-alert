@@ -17,6 +17,8 @@ export interface WindowViewPlane {
   callsign: string;
   icao: string; // ICAO code for plane identification
   altitude: number;
+  lat?: number; // Optional geographic coordinates for centering
+  lon?: number;
   bearing?: number;
   isMarker?: boolean;
   azimuth?: number;
@@ -58,18 +60,20 @@ export interface WindowViewPlane {
 export class WindowViewOverlayComponent implements OnChanges {
   /** Currently highlighted/followed plane ICAO */
   @Input() highlightedPlaneIcao: string | null = null;
-  /** Emit selection when a plane label is clicked */
+  @Input() windowViewPlanes: WindowViewPlane[] = [];
+
+  @Input() observerLat!: number;
+  @Input() observerLon!: number;
+
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
+
   constructor(public planeStyle: PlaneStyleService) {} // Inject styling service
+
   /** Emit selection event when user clicks a plane label */
   handleLabelClick(plane: WindowViewPlane, event: MouseEvent): void {
     event.stopPropagation();
     this.selectPlane.emit(plane);
   }
-  @Input() windowViewPlanes: WindowViewPlane[] = [];
-
-  @Input() observerLat!: number;
-  @Input() observerLon!: number;
 
   // Precompute altitude ticks once to avoid recalculation and flicker
   readonly altitudeTicks = (() => {

@@ -1386,6 +1386,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           y,
           callsign: plane.callsign || plane.icao,
           altitude: alt,
+          lat: plane.lat!, // Include geographic coords for centering
+          lon: plane.lon!, // Include geographic coords for centering
           bearing: plane.track ?? 0,
           iconPath: iconData.path,
           iconType: iconData.iconType,
@@ -1399,7 +1401,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isNew: plane.isNew,
           isMilitary: plane.isMilitary,
           isSpecial: plane.isSpecial,
-          icao: plane.icao, // Ensure icao is present for type safety
+          icao: plane.icao, // for type safety
         };
       });
     // Add window view markers for cone boundaries and midpoints

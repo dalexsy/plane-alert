@@ -30,7 +30,7 @@
         <div
           class="altitude-band-color"
           [style.bottom]="tick.y + '%'"
-          [style.height]="(altitudeTicks[i + 1].y - tick.y) + '%'"
+          [style.height]="altitudeTicks[i + 1].y - tick.y + '%'"
           [style.background]="tick.color"
         ></div>
       </ng-container>
@@ -52,9 +52,7 @@
         [style.left]="plane.x + '%'"
         [style.bottom]="plane.y + '%'"
         [style.transformOrigin]="'bottom center'"
-        [title]="
-          plane.isMarker ? '' : plane.callsign + ' (' + plane.altitude + 'm)'
-        "
+        [title]="plane.isMarker ? '' : ' (' + plane.altitude + 'm)'"
       >
         <!-- real planes (aircraft icons) -->
         <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
