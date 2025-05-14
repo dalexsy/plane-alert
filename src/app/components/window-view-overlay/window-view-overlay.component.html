@@ -54,6 +54,10 @@
         [style.transformOrigin]="'bottom center'"
         [title]="plane.isMarker ? '' : ' (' + plane.altitude + 'm)'"
       >
+        <!-- Marker label for midpoints (Balcony/Streetside) -->
+        <ng-container *ngIf="plane.isMarker && !(plane.callsign.endsWith('Start') || plane.callsign.endsWith('End'))">
+          <span class="line-label">{{ plane.callsign }}</span>
+        </ng-container>
         <!-- real planes (aircraft icons) -->
         <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
           <!-- use helicopter icon for helicopters -->
