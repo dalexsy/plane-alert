@@ -42,6 +42,16 @@
         "
         (click)="toggleAirportLabels.emit()"
       ></app-button>
+      <!-- Force scan button -->
+      <app-button
+        class="force-scan"
+        icon="refresh"
+        type="tertiary"
+        size="medium"
+        ariaLabel="Force scan now"
+        title="Force scan now"
+        (click)="onResolveAndUpdate($event)"
+      ></app-button>
       <!-- Zoom controls -->
       <app-button
         class="zoom-in"
