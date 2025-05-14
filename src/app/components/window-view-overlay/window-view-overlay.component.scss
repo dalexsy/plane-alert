@@ -17,6 +17,10 @@
   text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
     1px 1px 0 #000;
 
+  // Enable 3D perspective and tilt overlay contents
+  perspective: 400px;
+  transform-style: preserve-3d;
+
   .compass-labels {
     display: flex;
     justify-content: space-between;
@@ -275,6 +279,23 @@
       background-clip: padding-box;
       height: unset; // Remove fixed height, let height be set by style
     }
+  }
+
+  .cloud-background {
+    position: absolute;
+    transform: rotateX(-54deg);
+    transform-origin: top center;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: linear-gradient(to top, transparent 10%, black 100%);
+    -webkit-mask-image: linear-gradient(to top, transparent 10%, black 100%);
   }
 }
 

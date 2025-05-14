@@ -62,10 +62,17 @@ export class WindowViewOverlayComponent implements OnChanges {
   @Input() highlightedPlaneIcao: string | null = null;
   @Input() windowViewPlanes: WindowViewPlane[] = [];
 
+  // OWM tile URL for window overlay
+  windowCloudUrl: string | null = null;
   @Input() observerLat!: number;
   @Input() observerLon!: number;
 
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
+
+  /** Cloud tile URL for window view background */
+  private readonly OWM_TILE_ZOOM = 3;
+  private readonly OPEN_WEATHER_MAP_API_KEY =
+    'ffcc03a274b2d049bf4633584e7b5699';
 
   constructor(public planeStyle: PlaneStyleService) {} // Inject styling service
 
@@ -167,13 +174,6 @@ export class WindowViewOverlayComponent implements OnChanges {
     // Log the actual sun and moon altitude in degrees and their belowHorizon status
     const sunAltDeg = (sunPos.altitude * 180) / Math.PI;
     const moonAltDeg = (moonPos.altitude * 180) / Math.PI;
-    console.log(
-      `[WindowViewOverlay] Sun: ${
-        sunBelowHorizon ? 'below' : 'above'
-      } horizon (alt: ${sunAltDeg.toFixed(2)}°), Moon: ${
-        moonBelowHorizon ? 'below' : 'above'
-      } horizon (alt: ${moonAltDeg.toFixed(2)}°)`
-    );
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -183,8 +183,28 @@ export class WindowViewOverlayComponent implements OnChanges {
       changes['observerLon']
     ) {
       this.injectCelestialMarkers();
-      this.logPlaneBands();
+      this.updateWindowCloud();
     }
+  }
+
+  /** Calculate and set cloud cover tile for window overlay */
+  private updateWindowCloud(): void {
+    if (
+      !Number.isFinite(this.observerLat) ||
+      !Number.isFinite(this.observerLon)
+    ) {
+      this.windowCloudUrl = null;
+      return;
+    }
+    const z = 3;
+    const n = 1 << z;
+    const latRad = (this.observerLat * Math.PI) / 180;
+    const x = Math.floor(((this.observerLon + 180) / 360) * n);
+    const y = Math.floor(
+      ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) *
+        n
+    );
+    this.windowCloudUrl = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=ffcc03a274b2d049bf4633584e7b5699`;
   }
 
   /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */

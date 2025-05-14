@@ -1,4 +1,9 @@
 <div class="window-view-overlay">
+  <div
+    *ngIf="windowCloudUrl"
+    class="cloud-background"
+    [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
+  ></div>
   <div class="compass-labels">
     <span class="compass-label">S</span>
     <span class="compass-label">W</span>
@@ -55,7 +60,14 @@
         [title]="plane.isMarker ? '' : ' (' + plane.altitude + 'm)'"
       >
         <!-- Marker label for midpoints (Balcony/Streetside) -->
-        <ng-container *ngIf="plane.isMarker && !(plane.callsign.endsWith('Start') || plane.callsign.endsWith('End'))">
+        <ng-container
+          *ngIf="
+            plane.isMarker &&
+            !(
+              plane.callsign.endsWith('Start') || plane.callsign.endsWith('End')
+            )
+          "
+        >
           <span class="line-label">{{ plane.callsign }}</span>
         </ng-container>
         <!-- real planes (aircraft icons) -->
