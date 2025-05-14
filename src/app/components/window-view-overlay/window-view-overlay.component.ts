@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { EngineIconType } from '../../../app/utils/plane-icons';
 import { PlaneStyleService } from '../../../app/services/plane-style.service';
+import SunCalc from 'suncalc';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -38,6 +39,13 @@ export interface WindowViewPlane {
   isNew?: boolean; // Flag for new planes
   isMilitary?: boolean;
   isSpecial?: boolean;
+  // Moon phase properties for celestialBodyType === 'moon'
+  moonPhase?: number;
+  moonFraction?: number;
+  moonAngle?: number;
+  moonIsWaning?: boolean;
+  /** True if the celestial body is below the horizon (altitude < 0) */
+  belowHorizon?: boolean;
 }
 
 @Component({
@@ -60,6 +68,9 @@ export class WindowViewOverlayComponent implements OnChanges {
   }
   @Input() windowViewPlanes: WindowViewPlane[] = [];
 
+  @Input() observerLat!: number;
+  @Input() observerLon!: number;
+
   // Precompute altitude ticks once to avoid recalculation and flicker
   readonly altitudeTicks = (() => {
     const maxAltitudeVisual = 20000; // New maximum altitude for the view
@@ -68,15 +79,106 @@ export class WindowViewOverlayComponent implements OnChanges {
     for (let alt = 0; alt <= maxAltitudeVisual; alt += tickIncrement) {
       ticksAltitudeValues.push(alt);
     }
-
-    return ticksAltitudeValues.map((tick) => ({
+    return ticksAltitudeValues.map((tick, i) => ({
       y: (tick / maxAltitudeVisual) * 100, // Scale y position to the new maxAltitudeVisual
       label: tick === 0 ? '0' : tick / 1000 + 'km',
+      color: this.getAltitudeColor(
+        {
+          y: (tick / maxAltitudeVisual) * 100,
+          label: tick === 0 ? '0' : tick / 1000 + 'km',
+        },
+        i
+      ),
     }));
   })();
 
+  injectCelestialMarkers() {
+    if (
+      typeof this.observerLat !== 'number' ||
+      typeof this.observerLon !== 'number'
+    )
+      return;
+    const now = new Date();
+    const sunPos = SunCalc.getPosition(now, this.observerLat, this.observerLon);
+    const moonPos = SunCalc.getMoonPosition(
+      now,
+      this.observerLat,
+      this.observerLon
+    );
+    const moonIllum = SunCalc.getMoonIllumination(now);
+    // Map SunCalc azimuth (0=south, 90=west, 180=north, 270=east, 360=south) to x=0-100 (0=south, 25=west, 50=north, 75=east, 100=south)
+    const azToX = (az: number) => {
+      let azDeg = (az * 180) / Math.PI;
+      azDeg = (azDeg + 360) % 360; // Normalize to 0-360
+      return (azDeg / 360) * 100;
+    };
+    // Altitude: 0 (horizon) = 0%, π/2 (zenith) = 100%
+    const altToY = (alt: number) =>
+      Math.max(0, Math.min(100, (alt / (Math.PI / 2)) * 100));
+    const sunBelowHorizon = sunPos.altitude < 0;
+    const moonBelowHorizon = moonPos.altitude < 0;
+    const sunMarker: WindowViewPlane = {
+      x: azToX(sunPos.azimuth),
+      y: altToY(sunPos.altitude),
+      callsign: 'Sun',
+      icao: 'SUN',
+      altitude: 0,
+      isCelestial: true,
+      celestialBodyType: 'sun',
+      scale: 1.0,
+      isMarker: false,
+      belowHorizon: sunPos.altitude < 0,
+    };
+    // Add moon phase data for rendering
+    // The SunCalc phase is 0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter, 1=new
+    // The fraction is illuminated fraction (0=new, 1=full)
+    // For the SVG mask, the illuminated side should always face the sun
+    // Compute the correct orientation: angle from moon to sun in azimuth
+    const moonToSunAz = sunPos.azimuth - moonPos.azimuth;
+    // The mask should be flipped if waning (phase > 0.5)
+    const isWaning = moonIllum.phase > 0.5;
+    const moonAngle = (moonToSunAz * 180) / Math.PI; // degrees, positive = rotate CCW
+    const moonMarker: WindowViewPlane = {
+      x: azToX(moonPos.azimuth),
+      y: altToY(moonPos.altitude),
+      callsign: 'Moon',
+      icao: 'MOON',
+      altitude: 0,
+      isCelestial: true,
+      celestialBodyType: 'moon',
+      scale: 1.0,
+      isMarker: false,
+      // Add moon phase info for template
+      moonPhase: moonIllum.phase, // 0=new, 0.25=first quarter, 0.5=full, 0.75=last quarter
+      moonFraction: moonIllum.fraction, // 0=new, 1=full
+      moonAngle: moonAngle, // degrees, for SVG rotation
+      moonIsWaning: isWaning,
+      belowHorizon: moonPos.altitude < 0,
+    };
+    // Remove any existing celestial markers
+    this.windowViewPlanes = this.windowViewPlanes.filter((p) => !p.isCelestial);
+    // Add sun and moon
+    this.windowViewPlanes = [...this.windowViewPlanes, sunMarker, moonMarker];
+
+    // Log the actual sun and moon altitude in degrees and their belowHorizon status
+    const sunAltDeg = (sunPos.altitude * 180) / Math.PI;
+    const moonAltDeg = (moonPos.altitude * 180) / Math.PI;
+    console.log(
+      `[WindowViewOverlay] Sun: ${
+        sunBelowHorizon ? 'below' : 'above'
+      } horizon (alt: ${sunAltDeg.toFixed(2)}°), Moon: ${
+        moonBelowHorizon ? 'below' : 'above'
+      } horizon (alt: ${moonAltDeg.toFixed(2)}°)`
+    );
+  }
+
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['windowViewPlanes']) {
+    if (
+      changes['windowViewPlanes'] ||
+      changes['observerLat'] ||
+      changes['observerLon']
+    ) {
+      this.injectCelestialMarkers();
       this.logPlaneBands();
     }
   }

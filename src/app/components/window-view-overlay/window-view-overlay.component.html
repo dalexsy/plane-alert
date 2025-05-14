@@ -24,6 +24,18 @@
       ></div>
     </ng-container>
   </ng-container>
+  <div class="altitude-bands">
+    <ng-container *ngFor="let tick of altitudeTicks; let i = index">
+      <ng-container *ngIf="i < altitudeTicks.length - 1">
+        <div
+          class="altitude-band-color"
+          [style.bottom]="tick.y + '%'"
+          [style.height]="(altitudeTicks[i + 1].y - tick.y) + '%'"
+          [style.background]="tick.color"
+        ></div>
+      </ng-container>
+    </ng-container>
+  </div>
   <div class="planes-container">
     <ng-container *ngFor="let plane of windowViewPlanes">
       <div
@@ -121,54 +133,61 @@
         <ng-container *ngIf="plane.isCelestial">
           <span
             class="celestial-wrapper"
-            [style.transform]="'scale(' + (plane.scale || 1) + ')'"
+            [style.transform]="'scale(1)'"
             [style.transformOrigin]="'center center'"
           >
+            <!-- Sun: simple filled circle, visually dimmed or outlined if below horizon -->
             <span
-              class="celestial-icon material-symbols-sharp"
-              [style.transform]="getPerspectiveTransform(plane)"
-              [style.transformOrigin]="'center center'"
+              *ngIf="plane.celestialBodyType === 'sun'"
+              class="celestial-circle"
+              [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+              aria-label="Sun marker"
+            ></span>
+            <!-- Moon: SVG with phase mask, orientation faces sun, visually dimmed/outlined if below horizon -->
+            <svg
+              *ngIf="plane.celestialBodyType === 'moon'"
+              class="moon-svg"
+              [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+              width="22"
+              height="22"
+              viewBox="0 0 22 22"
               [attr.aria-label]="
-                plane.celestialBodyType === 'sun' ? 'Sun marker' : 'Moon marker'
+                'Moon marker, phase: ' + (plane.moonPhase | number : '1.2-2')
               "
+              [style.transform]="'rotate(' + (plane.moonAngle || 0) + 'deg)'"
             >
-              {{
-                plane.celestialBodyType === "sun" ? "light_mode" : "dark_mode"
-              }}
-            </span>
+              <circle cx="11" cy="11" r="10" />
+              <g
+                *ngIf="
+                  plane.moonFraction !== undefined &&
+                  plane.moonPhase !== undefined &&
+                  plane.moonFraction < 0.98 &&
+                  plane.moonFraction > 0.02
+                "
+              >
+                <clipPath id="moon-clip-{{ plane.x }}-{{ plane.y }}">
+                  <rect x="0" y="0" width="22" height="22" />
+                </clipPath>
+                <ellipse
+                  [attr.cx]="
+                    11 +
+                    (plane.moonIsWaning ? -1 : 1) *
+                      10 *
+                      (1 - 2 * plane.moonFraction)
+                  "
+                  cy="11"
+                  rx="10"
+                  ry="10"
+                  class="moon-shadow"
+                  [attr.clip-path]="
+                    'url(#moon-clip-' + plane.x + '-' + plane.y + ')'
+                  "
+                />
+              </g>
+            </svg>
           </span>
         </ng-container>
-        <!-- cone markers -->
-        <ng-container *ngIf="plane.isMarker && !plane.isCelestial">
-          <!-- clickable midpoint label to toggle follow -->
-          <ng-container
-            *ngIf="
-              !plane.callsign.endsWith('Start') &&
-              !plane.callsign.endsWith('End')
-            "
-          >
-            <div
-              class="line-label"
-              [class.selected]="plane.callsign === (highlightedPlaneIcao || '')"
-              (click)="handleLabelClick(plane, $event)"
-            >
-              {{ plane.callsign }}
-            </div>
-          </ng-container>
-        </ng-container>
       </div>
-    </ng-container>
-  </div>
-  <!-- Altitude bands across the entire window view -->
-  <div class="altitude-bands-overlay full">
-    <ng-container *ngFor="let tick of altitudeTicks; let i = index">
-      <div
-        *ngIf="i < altitudeTicks.length - 1"
-        class="altitude-band"
-        [style.bottom]="tick.y + '%'"
-        [style.height]="altitudeTicks[i + 1].y - tick.y + '%'"
-        [ngStyle]="{ background: getAltitudeColor(tick, i) }"
-      ></div>
     </ng-container>
   </div>
 </div>

@@ -2286,4 +2286,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     brng = toDeg(brng);
     return (brng + 360) % 360;
   }
+
+  public get observerLat() {
+    return this.settings.lat ?? this.DEFAULT_COORDS[0];
+  }
+  public get observerLon() {
+    return this.settings.lon ?? this.DEFAULT_COORDS[1];
+  }
 }
