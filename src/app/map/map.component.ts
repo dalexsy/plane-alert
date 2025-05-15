@@ -167,8 +167,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public windStat: number = 0; // intensity level 0-3
   public isNight: boolean = false;
   public brightness: number = 1;
+  public moonFraction: number = 0;
+  public moonAngle: number = 0;
+  public moonIsWaning: boolean = false;
   public moonIcon: string = 'dark_mode';
   public moonPhaseName: string = '';
+  public moonIllumAngleDeg: number = 0;
   private sunAngleInterval: any;
 
   // Toggle for airport labels tooltips
@@ -2215,32 +2219,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateSunAngle(): void {
-    if (!this.map) return;
-
     const now = new Date();
     const center = this.map.getCenter();
     const sunPos = SunCalc.getPosition(now, center.lat, center.lng);
+    const moonIllum = SunCalc.getMoonIllumination(now);
+    const moonPos = SunCalc.getMoonPosition(now, center.lat, center.lng);
 
     // determine if the sun is below the horizon
     this.isNight = sunPos.altitude < 0;
-    // compute moon phase and icon if night
-    const moonIllum = SunCalc.getMoonIllumination(now);
+    // compute moon illumination fraction and rotation
     const p = moonIllum.phase;
-    const tol = 0.05;
-    if (Math.abs(p - 0.5) < tol) {
-      this.moonIcon = 'brightness_1';
-      this.moonPhaseName = 'Full Moon';
-    } else if (Math.abs(p - 0.25) < tol || Math.abs(p - 0.75) < tol) {
-      this.moonIcon = 'tonality';
-      this.moonPhaseName =
-        Math.abs(p - 0.25) < tol ? 'First Quarter' : 'Last Quarter';
-    } else {
-      this.moonIcon = 'ev_shadow';
-      this.moonPhaseName = p < 0.5 ? 'Waxing Crescent' : 'Waning Crescent';
-    }
-    // Convert SunCalc.azimuth to map azimuth
-    const mapAzimuth = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
-    this.sunAngle = (mapAzimuth * 180) / Math.PI;
+    this.moonFraction = moonIllum.fraction;
+    this.moonIllumAngleDeg = (moonIllum.angle * 180) / Math.PI;
+    this.moonIsWaning = p > 0.5;
+    this.moonIcon = this.moonIsWaning ? 'dark_mode' : 'light_mode';
+
+    // Convert SunCalc.azimuth (0 = south, positive westwards) to compass bearing from North (0°=N, clockwise)
+    const sunAzDeg = (sunPos.azimuth * 180) / Math.PI;
+    this.sunAngle = (sunAzDeg + 180 + 360) % 360; // adjust from south-based azimuth and normalize
 
     // Determine next sun event time
     const timesToday = SunCalc.getTimes(now, center.lat, center.lng);
