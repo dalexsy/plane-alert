@@ -396,14 +396,16 @@ export class ResultsOverlayComponent
 
   // Updates the filtered versions of the plane logs
   public updateFilteredLogs(): void {
-    // Filter sky planes and sort: military first, then by ascending distance
+    // Filter sky planes and sort: military/special first, then by ascending distance
     const centerLat = this.settings.lat ?? 0;
     const centerLon = this.settings.lon ?? 0;
-    // Choose comparator based on militaryPriority flag
+    // Updated comparator: prioritize military and special planes
     const comparator = this.militaryPriority
       ? (a: PlaneLogEntry, b: PlaneLogEntry) => {
-          if (a.isMilitary && !b.isMilitary) return -1;
-          if (!a.isMilitary && b.isMilitary) return 1;
+          // Prioritize military and special planes equally
+          const aPriority = (a.isMilitary ? 2 : 0) + (a.isSpecial ? 1 : 0);
+          const bPriority = (b.isMilitary ? 2 : 0) + (b.isSpecial ? 1 : 0);
+          if (aPriority !== bPriority) return bPriority - aPriority;
           return (
             haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
             haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
@@ -430,7 +432,7 @@ export class ResultsOverlayComponent
     // Remove airport planes from overlay: set filteredAirportPlaneLog to empty
     this.filteredAirportPlaneLog = [];
 
-    // Sort seen planes: military first, then by distance
+    // Sort seen planes: military/special first, then by distance
     this.filteredSeenPlaneLog = this.seenPlaneLog
       .filter((plane) => !plane.filteredOut)
       .sort(comparator);
@@ -544,7 +546,7 @@ export class ResultsOverlayComponent
           this.lastTitleUpdateHash = titleContent;
           document.title = `${titleContent} peeped! | ${this.baseTitle}`;
         }
-      } else {
+      } else if (topPlane.isSpecial) {
         // Special planes: same as military but without [MIL]
         const code =
           this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
@@ -553,23 +555,21 @@ export class ResultsOverlayComponent
           ? topPlane.callsign.substring(0, 3).toUpperCase()
           : 'N/A';
         const displayModel = topPlane.model?.trim() || topPlane.callsign;
-        if (topPlane.isSpecial) {
-          const specialTitle = `[${code}/${callsignPrefix}] ${displayModel} peeped!`;
-          if (specialTitle !== this.lastTitleUpdateHash) {
-            this.lastTitleUpdateHash = specialTitle;
-            document.title = `${specialTitle} | ${this.baseTitle}`;
-          }
-        } else {
-          // Non-military, non-special: stinky title variant
-          let display = '';
-          if (topPlane.operator) display = topPlane.operator;
-          else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
-            display = topPlane.callsign;
-          else if (topPlane.model) display = topPlane.model;
-          if (display && display !== this.lastTitleUpdateHash) {
-            this.lastTitleUpdateHash = display;
-            document.title = `Just stinky ${display}. | ${this.baseTitle}`;
-          }
+        const specialTitle = `[${code}/${callsignPrefix}] ${displayModel} peeped!`;
+        if (specialTitle !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = specialTitle;
+          document.title = `${specialTitle} | ${this.baseTitle}`;
+        }
+      } else {
+        // Non-military, non-special: stinky title variant
+        let display = '';
+        if (topPlane.operator) display = topPlane.operator;
+        else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
+          display = topPlane.callsign;
+        else if (topPlane.model) display = topPlane.model;
+        if (display && display !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = display;
+          document.title = `Just stinky ${display}. | ${this.baseTitle}`;
         }
       }
     } else if (this.lastTitleUpdateHash !== '') {
@@ -583,7 +583,7 @@ export class ResultsOverlayComponent
 
   /**
    * Gets the highest priority plane for display in the title
-   * Always prioritize any military plane, even if it has no model
+   * Always prioritize any military or special plane, even if it has no model
    */
   private getTopPriorityPlane(): PlaneLogEntry | undefined {
     // Use the filtered lists
@@ -596,10 +596,14 @@ export class ResultsOverlayComponent
       return undefined;
     }
 
-    // Always prioritize any military plane, regardless of model
+    // Prioritize military planes first, then special planes
     const anyMilitary = allPlanes.find((plane) => plane.isMilitary);
     if (anyMilitary) {
       return anyMilitary;
+    }
+    const anySpecial = allPlanes.find((plane) => plane.isSpecial);
+    if (anySpecial) {
+      return anySpecial;
     }
 
     // Otherwise, prefer a plane with a model
@@ -753,11 +757,18 @@ export class ResultsOverlayComponent
       const priority = this.filteredSkyPlaneLog.filter(
         (p) => p.isMilitary || p.isSpecial
       );
-      pool = priority.length
-        ? priority
-        : this.filteredSkyPlaneLog.filter(
-            (p) => !p.onGround && p.altitude != null && p.altitude > 200
-          );
+      // Exclude the currently followed plane if there are multiple options
+      if (priority.length > 1 && this.shuffleFollowedIcao) {
+        pool = priority.filter(p => p.icao !== this.shuffleFollowedIcao);
+        if (pool.length === 0) pool = priority; // fallback if all filtered out
+      } else {
+        pool = priority;
+      }
+      if (pool.length === 0) {
+        pool = this.filteredSkyPlaneLog.filter(
+          (p) => !p.onGround && p.altitude != null && p.altitude > 200
+        );
+      }
     } else {
       // no prioritization: pick from all visible airborne planes
       pool = this.filteredSkyPlaneLog.filter(
