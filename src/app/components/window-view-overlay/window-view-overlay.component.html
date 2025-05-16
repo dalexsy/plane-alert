@@ -55,7 +55,7 @@
         }"
         [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
         [style.left]="plane.x + '%'"
-        [style.bottom]="plane.y + '%'"
+        [style.bottom]="'calc(' + plane.y + '% - .5rem)'"
         [style.transformOrigin]="'bottom center'"
         [title]="plane.isMarker ? '' : ' (' + plane.altitude + 'm)'"
       >
@@ -199,7 +199,11 @@
                 "
               >
                 <defs>
-                  <mask id="moon-mask-{{ plane.x }}-{{ plane.y }}">
+                  <mask
+                    id="moon-mask-{{ plane.x }}-{{ plane.y }}"
+                    maskUnits="userSpaceOnUse"
+                    maskContentUnits="userSpaceOnUse"
+                  >
                     <rect width="22" height="22" fill="white" />
                     <circle
                       cy="11"
@@ -217,27 +221,28 @@
                   stroke="currentColor"
                   fill="currentColor"
                   [attr.mask]="
-                    'url(#moon-mask-' + plane.x + '-' + plane.y + ')+'
+                    'url(#moon-mask-' + plane.x + '-' + plane.y + ')'
                   "
                 />
               </ng-container>
-              <!-- Partial phases: mask lit portion when fraction>0.5 -->
+              <!-- Lit portion: mask shadow when fraction>0.5, using inverse mask -->
               <ng-container
                 *ngIf="
-                  plane.moonFraction !== undefined &&
-                  plane.moonFraction > 0.5 &&
-                  plane.moonFraction < 0.98
+                  plane.moonFraction !== undefined && plane.moonFraction > 0.5
                 "
               >
                 <defs>
-                  <mask id="moon-mask-lit-{{ plane.x }}-{{ plane.y }}">
-                    <rect width="22" height="22" fill="black" />
-                    <ellipse
+                  <mask
+                    id="moon-mask-lit-{{ plane.x }}-{{ plane.y }}"
+                    maskUnits="userSpaceOnUse"
+                    maskContentUnits="userSpaceOnUse"
+                  >
+                    <rect width="22" height="22" fill="white" />
+                    <circle
                       cy="11"
-                      [attr.rx]="10 * (2 * plane.moonFraction! - 1)"
-                      ry="10"
-                      cx="11"
-                      fill="white"
+                      r="10"
+                      [attr.cx]="11 - (2 * plane.moonFraction! - 1) * 10"
+                      fill="black"
                     />
                   </mask>
                 </defs>
@@ -249,7 +254,7 @@
                   stroke="currentColor"
                   fill="currentColor"
                   [attr.mask]="
-                    'url(#moon-mask-lit-' + plane.x + '-' + plane.y + ')+'
+                    'url(#moon-mask-lit-' + plane.x + '-' + plane.y + ')'
                   "
                 />
               </ng-container>

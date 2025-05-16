@@ -85,64 +85,60 @@
     <span class="sun-info">{{ sunEventText }}</span>
     <ng-container *ngIf="isNight; else sunArrow">
       <svg
-        class="moon-svg sun-angle-icon"
+        class="moon-svg"
         [style.width]="'4rem'"
         [style.height]="'4rem'"
+        [style.transform]="'rotate(' + (sunAngle + 180) + 'deg)'"
         viewBox="0 0 22 22"
         [attr.aria-label]="moonPhaseName + ' - Moon direction'"
       >
-        <!-- Full or New Moon: unmasked circle -->
-        <ng-container *ngIf="moonFraction <= 0.02 || moonFraction >= 0.98">
-          <circle cx="11" cy="11" r="10" fill="#ffe066" stroke="#fff59d" />
-        </ng-container>
-        <!-- Waxing/waning partial phases: mask shadow for fraction<=0.5 -->
-        <ng-container *ngIf="moonFraction > 0.02 && moonFraction <= 0.5">
-          <defs>
-            <mask id="moon-mask">
-              <rect width="22" height="22" fill="white" />
-              <!-- Circle shadows the dark side -->
-              <circle
-                cy="11"
-                r="10"
-                [attr.cx]="11 + (2 * moonFraction - 1) * 10"
-                fill="black"
-              />
-            </mask>
-          </defs>
-          <circle
-            cx="11"
-            cy="11"
-            r="10"
-            fill="#ffe066"
-            stroke="#fff59d"
-            mask="url(#moon-mask)"
-          />
-        </ng-container>
-        <!-- Waxing gibbous: mask light for fraction>0.5 -->
-        <ng-container *ngIf="moonFraction > 0.5 && moonFraction < 0.98">
-          <defs>
-            <mask id="moon-mask-lit">
-              <!-- Black rect hides full disk -->
-              <rect width="22" height="22" fill="black" />
-              <!-- Ellipse reveals the lit portion -->
-              <ellipse
-                cy="11"
-                [attr.rx]="10 * (2 * moonFraction - 1)"
-                ry="10"
-                cx="11"
-                fill="white"
-              />
-            </mask>
-          </defs>
-          <circle
-            cx="11"
-            cy="11"
-            r="10"
-            fill="#ffe066"
-            stroke="#fff59d"
-            mask="url(#moon-mask-lit)"
-          />
-        </ng-container>
+      <!-- Mask-based moon phase drawing from window-view-overlay -->
+      <ng-container *ngIf="moonFraction !== undefined && (moonFraction <= 0.02 || moonFraction >= 0.98)">
+        <circle cx="11" cy="11" r="10" fill="#ffe066" stroke="#fff59d" />
+      </ng-container>
+      <ng-container *ngIf="moonFraction !== undefined && moonFraction > 0.02 && moonFraction <= 0.5">
+        <defs>
+          <mask id="sun-angle-moon-mask">
+            <rect width="22" height="22" fill="white" />
+            <circle
+              cy="11"
+              r="10"
+              [attr.cx]="11 + (2 * moonFraction - 1) * 10"
+              fill="black"
+            />
+          </mask>
+        </defs>
+        <circle
+          cx="11"
+          cy="11"
+          r="10"
+          fill="#ffe066"
+          stroke="#fff59d"
+          [attr.mask]="'url(#sun-angle-moon-mask)'"
+        />
+      </ng-container>
+      <ng-container *ngIf="moonFraction !== undefined && moonFraction > 0.5 && moonFraction < 0.98">
+        <defs>
+          <mask id="sun-angle-moon-mask-lit">
+            <rect width="22" height="22" fill="black" />
+            <ellipse
+              cy="11"
+              [attr.rx]="10 * (2 * moonFraction - 1)"
+              ry="10"
+              cx="11"
+              fill="white"
+            />
+          </mask>
+        </defs>
+        <circle
+          cx="11"
+          cy="11"
+          r="10"
+          fill="#ffe066"
+          stroke="#fff59d"
+          [attr.mask]="'url(#sun-angle-moon-mask-lit)'"
+        />
+      </ng-container>
       </svg>
     </ng-container>
     <ng-template #sunArrow>
