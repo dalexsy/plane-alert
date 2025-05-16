@@ -112,6 +112,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   cloudVisible = true; // Show cloud layer by default
   cloudOpacity = 1;
 
+  rainVisible = true; // Show rain layer by default
+  rainOpacity = 0.8; // Increased opacity for better visibility
+
   // Store found airports and their circles
   private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
   private svgPatternRetryTimeout: any = null;
@@ -130,6 +133,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Tile layer for cloud coverage overlay from OpenWeatherMap
   private cloudLayer?: L.TileLayer;
+
+  // Tile layer for rain coverage overlay from OpenWeatherMap
+  private rainLayer?: L.TileLayer;
 
   // Currently highlighted plane ICAO (for persistent tooltip/marker highlight)
   highlightedPlaneIcao: string | null = null;
@@ -496,6 +502,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (this.sunAngleInterval) {
       clearInterval(this.sunAngleInterval);
     }
+    if (this.cloudLayer) {
+      this.cloudLayer.remove();
+    }
+    if (this.rainLayer) {
+      this.rainLayer.remove();
+    }
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
@@ -542,6 +554,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     cloudPane.style.zIndex = '620';
     cloudPane.style.pointerEvents = 'none';
 
+    // Create a custom pane for rain coverage above markers, below clouds
+    this.map.createPane('rainPane');
+    const rainPane = this.map.getPane('rainPane') as HTMLElement;
+    rainPane.style.zIndex = '615'; // Below cloudPane (620)
+    rainPane.style.pointerEvents = 'none';
+
     // Cloud coverage overlay from OpenWeatherMap in the cloudPane
     this.cloudLayer = L.tileLayer(
       `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
@@ -555,6 +573,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       .addTo(this.map)
       .on('tileerror', () => {
         // ignore cloud tile errors in console
+      });
+
+    // Rain coverage overlay from OpenWeatherMap in the rainPane
+    this.rainLayer = L.tileLayer(
+      `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
+      {
+        pane: 'rainPane',
+        className: 'rain-layer',
+        opacity: this.rainOpacity, // Use the rainOpacity property
+        attribution: 'Weather data © OpenWeatherMap',
+      }
+    )
+      .addTo(this.map)
+      .on('tileerror', () => {
+        // ignore rain tile errors in console
       });
 
     // Create custom marker for current location
@@ -1755,6 +1788,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  /** Adjust rain layer opacity */
+  setRainOpacity(opacity: number): void {
+    this.rainOpacity = opacity;
+    if (this.rainLayer) {
+      this.rainLayer.setOpacity(opacity);
+    }
+  }
+
   /** Toggle display of cloud coverage layer */
   toggleCloudCover(show: boolean): void {
     this.cloudVisible = show;
@@ -1763,6 +1804,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cloudLayer.addTo(this.map);
       } else {
         this.cloudLayer.remove();
+      }
+    }
+  }
+
+  /** Toggle display of rain coverage layer */
+  toggleRainCover(show: boolean): void {
+    this.rainVisible = show;
+    if (this.rainLayer) {
+      if (show) {
+        this.rainLayer.addTo(this.map);
+      } else {
+        this.rainLayer.remove();
       }
     }
   }

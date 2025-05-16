@@ -23,6 +23,7 @@
   (goToAirport)="goToAirport()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
   (cloudToggleChange)="toggleCloudCover($event)"
+  (rainToggleChange)="toggleRainCover($event)"
   (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
   (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
@@ -33,6 +34,7 @@
   [showViewAxes]="coneVisible"
   [showDateTime]="showDateTime"
   [showCloudCover]="cloudVisible"
+  [showRainCover]="rainVisible"
   [showAirportLabels]="showAirportLabels"
   (toggleAirportLabels)="onToggleAirportLabels()"
 ></app-input-overlay>
@@ -92,53 +94,70 @@
         viewBox="0 0 22 22"
         [attr.aria-label]="moonPhaseName + ' - Moon direction'"
       >
-      <!-- Mask-based moon phase drawing from window-view-overlay -->
-      <ng-container *ngIf="moonFraction !== undefined && (moonFraction <= 0.02 || moonFraction >= 0.98)">
-        <circle cx="11" cy="11" r="10" fill="#ffe066" stroke="#fff59d" />
-      </ng-container>
-      <ng-container *ngIf="moonFraction !== undefined && moonFraction > 0.02 && moonFraction <= 0.5">
-        <defs>
-          <mask id="sun-angle-moon-mask">
-            <rect width="22" height="22" fill="white" />
-            <circle
-              cy="11"
-              r="10"
-              [attr.cx]="11 + (2 * moonFraction - 1) * 10"
-              fill="black"
-            />
-          </mask>
-        </defs>
-        <circle
-          cx="11"
-          cy="11"
-          r="10"
-          fill="#ffe066"
-          stroke="#fff59d"
-          [attr.mask]="'url(#sun-angle-moon-mask)'"
-        />
-      </ng-container>
-      <ng-container *ngIf="moonFraction !== undefined && moonFraction > 0.5 && moonFraction < 0.98">
-        <defs>
-          <mask id="sun-angle-moon-mask-lit">
-            <rect width="22" height="22" fill="black" />
-            <ellipse
-              cy="11"
-              [attr.rx]="10 * (2 * moonFraction - 1)"
-              ry="10"
-              cx="11"
-              fill="white"
-            />
-          </mask>
-        </defs>
-        <circle
-          cx="11"
-          cy="11"
-          r="10"
-          fill="#ffe066"
-          stroke="#fff59d"
-          [attr.mask]="'url(#sun-angle-moon-mask-lit)'"
-        />
-      </ng-container>
+        <!-- Mask-based moon phase drawing from window-view-overlay -->
+        <ng-container
+          *ngIf="
+            moonFraction !== undefined &&
+            (moonFraction <= 0.02 || moonFraction >= 0.98)
+          "
+        >
+          <circle cx="11" cy="11" r="10" fill="#ffe066" stroke="#fff59d" />
+        </ng-container>
+        <ng-container
+          *ngIf="
+            moonFraction !== undefined &&
+            moonFraction > 0.02 &&
+            moonFraction <= 0.5
+          "
+        >
+          <defs>
+            <mask id="sun-angle-moon-mask">
+              <rect width="22" height="22" fill="white" />
+              <circle
+                cy="11"
+                r="10"
+                [attr.cx]="11 + (2 * moonFraction - 1) * 10"
+                fill="black"
+              />
+            </mask>
+          </defs>
+          <circle
+            cx="11"
+            cy="11"
+            r="10"
+            fill="#ffe066"
+            stroke="#fff59d"
+            [attr.mask]="'url(#sun-angle-moon-mask)'"
+          />
+        </ng-container>
+        <ng-container
+          *ngIf="
+            moonFraction !== undefined &&
+            moonFraction > 0.5 &&
+            moonFraction < 0.98
+          "
+        >
+          <defs>
+            <mask id="sun-angle-moon-mask-lit">
+              <rect width="22" height="22" fill="black" />
+              <ellipse
+                cy="11"
+                [attr.rx]="10 * (2 * moonFraction - 1)"
+                ry="10"
+                cx="11"
+                fill="white"
+              />
+            </mask>
+          </defs>
+          <circle
+            cx="11"
+            cy="11"
+            r="10"
+            fill="#ffe066"
+            stroke="#fff59d"
+            [attr.mask]="'url(#sun-angle-moon-mask-lit)'"
+          />
+        </ng-container>
       </svg>
     </ng-container>
     <ng-template #sunArrow>

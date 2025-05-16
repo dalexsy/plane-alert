@@ -42,6 +42,34 @@
         "
         (click)="toggleAirportLabels.emit()"
       ></app-button>
+      <app-button
+        class="toggle-cloud-cover"
+        [icon]="showCloudCover ? 'cloud' : 'cloud_off'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="showCloudCover ? 'Hide cloud cover' : 'Show cloud cover'"
+        [title]="showCloudCover ? 'Hide cloud cover' : 'Show cloud cover'"
+        (click)="cloudToggleChange.emit(!showCloudCover)"
+      ></app-button>
+      <app-button
+        class="toggle-rain-cover"
+        [icon]="showRainCover ? 'rainy_heavy' : 'rainy_snowy'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="showRainCover ? 'Hide rain cover' : 'Show rain cover'"
+        [title]="showRainCover ? 'Hide rain cover' : 'Show rain cover'"
+        (click)="rainToggleChange.emit(!showRainCover)"
+      ></app-button>
+      <!-- View axes toggle button -->
+      <app-button
+        class="toggle-view-axes"
+        [icon]="showViewAxes ? 'target' : 'filter_tilt_shift'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="showViewAxes ? 'Hide view axes' : 'Show view axes'"
+        [title]="showViewAxes ? 'Hide view axes' : 'Show view axes'"
+        (click)="coneVisibilityChange.emit(!showViewAxes)"
+      ></app-button>
       <!-- Force scan button -->
       <app-button
         class="force-scan"
@@ -119,28 +147,18 @@
         (change)="onIntervalChange($event)"
       />
     </div>
-    <div class="form-group">
+    <!-- <div class="form-group">
       <label class="checkbox-inline" for="showCone">
         <input
           type="checkbox"
           id="showCone"
           [checked]="showViewAxes"
-          (change)="onShowConeChange($event)"
+          (change)="coneVisibilityChange.emit($event.target?.checked)"
         />
         Show view axes
       </label>
-    </div>
-    <div class="form-group">
-      <label class="checkbox-inline" for="showCloud">
-        <input
-          type="checkbox"
-          id="showCloud"
-          [checked]="showCloudCover"
-          (change)="onShowCloudCoverChange($event)"
-        />
-        Show Cloud Cover
-      </label>
-    </div>
+    </div> -->
+
     <div class="button-group">
       <app-button
         id="findButton"
