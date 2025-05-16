@@ -536,10 +536,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
 
-    // Cloud coverage overlay from OpenWeatherMap
+    // Create a custom pane for cloud coverage above markers
+    this.map.createPane('cloudPane');
+    const cloudPane = this.map.getPane('cloudPane') as HTMLElement;
+    cloudPane.style.zIndex = '620';
+    cloudPane.style.pointerEvents = 'none';
+
+    // Cloud coverage overlay from OpenWeatherMap in the cloudPane
     this.cloudLayer = L.tileLayer(
       `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
       {
+        pane: 'cloudPane',
         className: 'cloud-layer',
         opacity: this.cloudOpacity,
         attribution: 'Weather data © OpenWeatherMap',
@@ -549,8 +556,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       .on('tileerror', () => {
         // ignore cloud tile errors in console
       });
-    // Ensure clouds render above base tiles
-    this.cloudLayer.setZIndex(650);
 
     // Create custom marker for current location
     const locationIcon = L.divIcon({
