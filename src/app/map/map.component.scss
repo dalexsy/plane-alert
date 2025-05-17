@@ -109,15 +109,10 @@ app-map.map-panning app-input-overlay {
 
   .sun-angle-icon {
     @extend %angle-icon;
-
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    // Rotate using custom property set in template
     transform: rotate(var(--angle, 0deg));
-
-    // Draw sun circle and directional ray
     position: relative;
     &::before {
       content: "";
@@ -143,6 +138,31 @@ app-map.map-panning app-input-overlay {
       left: 50%;
       transform: translateX(-50%);
       clip-path: polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%);
+    }
+  }
+
+  .moon-angle-icon {
+    @extend %angle-icon;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--angle, 0deg));
+    position: relative;
+    &::after {
+      content: "";
+      position: absolute;
+      width: 39px;
+      height: 35px;
+      background: linear-gradient(0deg, #ffffffcc, transparent);
+      top: -3px;
+      z-index: -1;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%) rotate(180deg);
+      clip-path: polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%);
+    }
+    svg {
+      position: relative;
+      z-index: 1;
     }
   }
 }

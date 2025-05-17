@@ -9,6 +9,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   OnDestroy,
+  HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../services/settings.service';
@@ -57,7 +58,8 @@ export class InputOverlayComponent implements OnDestroy {
 
   scanButtonText = '';
   private sub!: Subscription;
-  collapsed = localStorage.getItem('inputOverlayCollapsed') === 'true';
+  @HostBinding('class.collapsed')
+  collapsed: boolean = localStorage.getItem('inputOverlayCollapsed') === 'true';
   public currentAddress: string = '';
 
   constructor(

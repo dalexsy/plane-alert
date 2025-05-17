@@ -149,3 +149,8 @@ input {
 ::-webkit-scrollbar-track {
   background-color: transparent;
 }
+
+/* Shift date and time overlay right when input overlay is collapsed */
+app-input-overlay.collapsed ~ app-clock .clock-container {
+  left: 3.5rem;
+}

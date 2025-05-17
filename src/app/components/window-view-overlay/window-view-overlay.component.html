@@ -157,108 +157,28 @@
               [ngClass]="{ 'below-horizon': plane.belowHorizon }"
               aria-label="Sun marker"
             ></span>
-            <!-- Moon: SVG with phase mask, orientation faces sun, visually dimmed/outlined if below horizon -->
-            <svg
+            <!-- Moon: crescent with shine direction indicator -->
+            <span
               *ngIf="plane.celestialBodyType === 'moon'"
-              class="moon-svg"
-              width="22"
-              height="22"
-              viewBox="0 0 22 22"
-              [attr.aria-label]="
-                'Moon marker, phase: ' + (plane.moonPhase | number : '1.2-2')
-              "
-              [style.transform]="
-                'rotateZ(' + ((plane.moonAngle || 0) + 180) + 'deg)'
-              "
-              [style.transformOrigin]="'center center'"
+              style="position: relative; display: inline-block"
             >
-              <!-- Full or New Moon: unmasked circle -->
-              <ng-container
-                *ngIf="
-                  plane.moonFraction !== undefined &&
-                  (plane.moonFraction >= 0.98 || plane.moonFraction <= 0.02)
+              <svg
+                class="moon-svg"
+                [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+                width="22"
+                height="22"
+                viewBox="0 0 22 22"
+                aria-label="Moon marker"
+                [style.transform]="
+                  'rotateZ(' + ((plane.moonAngle || 0) + 180) + 'deg)'
                 "
+                [style.transformOrigin]="'center center'"
+                style="z-index: 1"
               >
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="10"
-                  [ngClass]="{ 'below-horizon': plane.belowHorizon }"
-                  stroke="currentColor"
-                  [attr.fill]="
-                    plane.moonFraction! >= 0.98 ? 'currentColor' : 'none'
-                  "
-                />
-              </ng-container>
-              <!-- Partial phases: mask shadow when fraction<=0.5 -->
-              <ng-container
-                *ngIf="
-                  plane.moonFraction !== undefined &&
-                  plane.moonFraction > 0.02 &&
-                  plane.moonFraction <= 0.5
-                "
-              >
-                <defs>
-                  <mask
-                    id="moon-mask-{{ plane.x }}-{{ plane.y }}"
-                    maskUnits="userSpaceOnUse"
-                    maskContentUnits="userSpaceOnUse"
-                  >
-                    <rect width="22" height="22" fill="white" />
-                    <circle
-                      cy="11"
-                      r="10"
-                      [attr.cx]="11 + (2 * plane.moonFraction! - 1) * 10"
-                      fill="black"
-                    />
-                  </mask>
-                </defs>
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="10"
-                  [ngClass]="{ 'below-horizon': plane.belowHorizon }"
-                  stroke="currentColor"
-                  fill="currentColor"
-                  [attr.mask]="
-                    'url(#moon-mask-' + plane.x + '-' + plane.y + ')'
-                  "
-                />
-              </ng-container>
-              <!-- Lit portion: mask shadow when fraction>0.5, using inverse mask -->
-              <ng-container
-                *ngIf="
-                  plane.moonFraction !== undefined && plane.moonFraction > 0.5
-                "
-              >
-                <defs>
-                  <mask
-                    id="moon-mask-lit-{{ plane.x }}-{{ plane.y }}"
-                    maskUnits="userSpaceOnUse"
-                    maskContentUnits="userSpaceOnUse"
-                  >
-                    <rect width="22" height="22" fill="white" />
-                    <circle
-                      cy="11"
-                      r="10"
-                      [attr.cx]="11 - (2 * plane.moonFraction! - 1) * 10"
-                      fill="black"
-                    />
-                  </mask>
-                </defs>
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="10"
-                  [ngClass]="{ 'below-horizon': plane.belowHorizon }"
-                  stroke="currentColor"
-                  fill="currentColor"
-                  [attr.mask]="
-                    'url(#moon-mask-lit-' + plane.x + '-' + plane.y + ')'
-                  "
-                />
-              </ng-container>
-            </svg>
+                <circle cx="11" cy="11" r="10" fill="white" />
+                <circle cx="15" cy="11" r="10" fill="white" />
+              </svg>
+            </span>
           </span>
         </ng-container>
       </div>
