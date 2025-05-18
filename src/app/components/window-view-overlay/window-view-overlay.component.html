@@ -1,4 +1,5 @@
-<div class="window-view-overlay">
+<div class="window-view-overlay" [style.background]="skyBackground">
+  <!-- dynamic sky background -->
   <div
     *ngIf="windowCloudUrl"
     class="cloud-background"
@@ -36,7 +37,8 @@
           class="altitude-band-color"
           [style.bottom]="tick.y + '%'"
           [style.height]="altitudeTicks[i + 1].y - tick.y + '%'"
-          [style.background]="tick.color"
+          [style.border]="'1px dotted ' + tick.color"
+          [style.backgroundColor]="tick.fillColor"
         ></div>
       </ng-container>
     </ng-container>
@@ -150,17 +152,17 @@
             [style.transform]="'scale(1)'"
             [style.transformOrigin]="'center center'"
           >
-            <!-- Sun: simple filled circle, visually dimmed or outlined if below horizon -->
+            <!-- Sun: simple filled circle -->
             <span
               *ngIf="plane.celestialBodyType === 'sun'"
               class="celestial-circle"
               [ngClass]="{ 'below-horizon': plane.belowHorizon }"
               aria-label="Sun marker"
             ></span>
-            <!-- Moon: crescent with shine direction indicator -->
+            <!-- Moon: crescent path -->
             <span
               *ngIf="plane.celestialBodyType === 'moon'"
-              style="position: relative; display: inline-block"
+              style="display: inline-block; position: relative"
             >
               <svg
                 class="moon-svg"
@@ -175,8 +177,12 @@
                 [style.transformOrigin]="'center center'"
                 style="z-index: 1"
               >
-                <circle cx="11" cy="11" r="10" fill="white" />
-                <circle cx="15" cy="11" r="10" fill="white" />
+                <path
+                  fill="white"
+                  stroke="white"
+                  stroke-width="2"
+                  d="M11,1 A10,10 0 1,0 11,21 A6,6 0 1,1 13,1 Z"
+                />
               </svg>
             </span>
           </span>

@@ -4,6 +4,7 @@
   right: 0;
   bottom: 0;
   height: 10rem;
+
   background: linear-gradient(
     to top,
     rgb(0 0 0 / 70%) 90%,
@@ -18,7 +19,7 @@
     1px 1px 0 #000;
 
   // Enable 3D perspective and tilt overlay contents
-  perspective: 400px;
+  perspective: 800rem;
   transform-style: preserve-3d;
 
   .compass-labels {
@@ -30,6 +31,12 @@
     left: 0;
     color: #ffe066;
     pointer-events: none;
+  }
+
+  .line-label {
+    font-family: "Instrument Sans", sans-serif;
+    font-weight: 800;
+    letter-spacing: 3px;
   }
 
   .planes-container {
@@ -237,18 +244,15 @@
     margin-bottom: 2px;
     transition: filter 0.2s, opacity 0.2s;
 
-    circle:first-child {
+    > circle:first-child {
       /* light circle */
       fill: white;
       stroke: white;
       stroke-width: 2;
       box-shadow: 0 0 12px 4px rgba(255, 255, 255, 0.6);
     }
-
-    circle:last-child {
-      /* shadow circle */
-      fill: rgba(35, 38, 58, 1);
-      stroke: none;
+    > circle:nth-child(2) {
+      display: none !important;
     }
 
     &.below-horizon {
@@ -262,7 +266,9 @@
       }
 
       circle:last-child {
-        fill: rgba(35, 38, 58, 0.5);
+        /* force shadow circle hidden on below-horizon */
+        fill: none !important;
+        stroke: none !important;
       }
     }
   }
@@ -273,18 +279,17 @@
     right: 0;
     top: 0;
     bottom: 0;
-    pointer-events: none;
     z-index: 1;
+    mix-blend-mode: lighten;
+    opacity: 0.5;
 
     .altitude-band-color {
       position: absolute;
       left: 0;
       width: 100%;
-      opacity: 0.2; // Changed from 0.7 to 0.2 for more subtle bands
-      pointer-events: none;
-      border: none;
-      background-clip: padding-box;
-      height: unset; // Remove fixed height, let height be set by style
+      background: transparent;
+      box-sizing: border-box;
+      height: unset; // height set inline
     }
   }
 

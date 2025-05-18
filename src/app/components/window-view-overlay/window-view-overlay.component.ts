@@ -7,6 +7,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { EngineIconType } from '../../../app/utils/plane-icons';
 import { PlaneStyleService } from '../../../app/services/plane-style.service';
 import { CelestialService } from '../../../app/services/celestial.service';
@@ -53,17 +54,24 @@ export interface WindowViewPlane {
 @Component({
   selector: 'app-window-view-overlay',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HttpClientModule],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
 export class WindowViewOverlayComponent implements OnChanges {
+  /** CSS background gradient reflecting current sky color */
+  public skyBackground: string = '';
+  /** Cloud tile URL for window view background */
+  windowCloudUrl: string | null = null;
+  /** Current weather condition from API */
+  public weatherCondition: string | null = null;
+  /** Detailed weather description from API */
+  private weatherDescription: string | null = null;
   /** Currently highlighted/followed plane ICAO */
   @Input() highlightedPlaneIcao: string | null = null;
+  /** Planes to display in window view */
   @Input() windowViewPlanes: WindowViewPlane[] = [];
 
-  // OWM tile URL for window overlay
-  windowCloudUrl: string | null = null;
   @Input() observerLat!: number;
   @Input() observerLon!: number;
 
@@ -76,7 +84,8 @@ export class WindowViewOverlayComponent implements OnChanges {
 
   constructor(
     private celestial: CelestialService,
-    public planeStyle: PlaneStyleService
+    public planeStyle: PlaneStyleService,
+    private http: HttpClient
   ) {}
 
   /** Emit selection event when user clicks a plane label */
@@ -93,17 +102,14 @@ export class WindowViewOverlayComponent implements OnChanges {
     for (let alt = 0; alt <= maxAltitudeVisual; alt += tickIncrement) {
       ticksAltitudeValues.push(alt);
     }
-    return ticksAltitudeValues.map((tick, i) => ({
-      y: (tick / maxAltitudeVisual) * 100, // Scale y position to the new maxAltitudeVisual
-      label: tick === 0 ? '0' : tick / 1000 + 'km',
-      color: this.getAltitudeColor(
-        {
-          y: (tick / maxAltitudeVisual) * 100,
-          label: tick === 0 ? '0' : tick / 1000 + 'km',
-        },
-        i
-      ),
-    }));
+    return ticksAltitudeValues.map((tick, i) => {
+      const y = (tick / maxAltitudeVisual) * 100;
+      const label = tick === 0 ? '0' : tick / 1000 + 'km';
+      const color = this.getAltitudeColor({ y, label }, i);
+      // derive a 10% opacity fill color from the HSL color
+      const fillColor = color.replace('hsl(', 'hsla(').replace(')', ', 0.05)');
+      return { y, label, color, fillColor };
+    });
   })();
 
   injectCelestialMarkers() {
@@ -132,6 +138,9 @@ export class WindowViewOverlayComponent implements OnChanges {
     ) {
       this.injectCelestialMarkers();
       this.updateWindowCloud();
+      // initial sky update then fetch weather
+      this.updateSkyBackground();
+      this.updateWeather();
     }
   }
 
@@ -153,6 +162,106 @@ export class WindowViewOverlayComponent implements OnChanges {
         n
     );
     this.windowCloudUrl = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=ffcc03a274b2d049bf4633584e7b5699`;
+  }
+
+  /** Fetch current weather and re-render sky */
+  private updateWeather(): void {
+    if (
+      !Number.isFinite(this.observerLat) ||
+      !Number.isFinite(this.observerLon)
+    ) {
+      return;
+    }
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${this.observerLat}&lon=${this.observerLon}&appid=${this.OPEN_WEATHER_MAP_API_KEY}`;
+    this.http.get<any>(url).subscribe(
+      (data) => {
+        if (data.weather && data.weather.length) {
+          this.weatherCondition = data.weather[0].main;
+          this.weatherDescription = data.weather[0].description;
+        } else {
+          this.weatherCondition = null;
+          this.weatherDescription = null;
+        }
+        this.updateSkyBackground();
+      },
+      () => {
+        this.weatherCondition = null;
+        this.weatherDescription = null;
+        this.updateSkyBackground();
+      }
+    );
+  }
+
+  /** Compute and set sky background gradient based on sun altitude */
+  private updateSkyBackground(): void {
+    // find sun marker for dynamic sky shading
+    const sun = this.windowViewPlanes.find(
+      (p) => p.isCelestial && p.celestialBodyType === 'sun'
+    );
+    // dark night fallback
+    if (!sun || sun.belowHorizon) {
+      this.skyBackground = 'linear-gradient(to top, #001122 0%, #001122 100%)';
+      return;
+    }
+    // heavy overcast clouds: main 'Clouds' and not just few/scattered
+    const mainCond = this.weatherCondition
+      ? this.weatherCondition.toLowerCase()
+      : '';
+    const desc = this.weatherDescription
+      ? this.weatherDescription.toLowerCase()
+      : '';
+    if (
+      mainCond === 'clouds' &&
+      !desc.includes('few') &&
+      !desc.includes('scattered')
+    ) {
+      // deep overcast: dull grey sky
+      this.skyBackground = 'linear-gradient(to top, #666666 0%, #999999 100%)';
+      return;
+    }
+    // t: 0 at horizon, 1 at zenith
+    const t = sun.y / 100;
+    const hue = 210; // standard sky hue
+    // base lightness values
+    let bottomL = 40 + t * 30; // 40% to 70%
+    let topL = 60 + t * 20; // 60% to 80%
+    // base saturation for clear sky
+    let sat = 80;
+    // adjust based on weather
+    if (this.weatherCondition) {
+      const cond = this.weatherCondition.toLowerCase();
+      const desc = this.weatherDescription
+        ? this.weatherDescription.toLowerCase()
+        : '';
+      if (
+        cond.includes('rain') ||
+        cond.includes('drizzle') ||
+        cond.includes('thunderstorm')
+      ) {
+        // rainy: dark grey sky
+        bottomL = 20;
+        topL = 40;
+        sat = 10;
+      } else if (cond.includes('snow')) {
+        bottomL = 75;
+        topL = 90;
+        sat = 40;
+      } else if (cond.includes('cloud')) {
+        // overcast or cloudy: dull, low-saturation sky
+        bottomL = 30;
+        topL = 50;
+        sat = 20;
+        // if just scattered clouds, keep a bit brighter
+        if (desc.includes('scattered') || desc.includes('few')) {
+          bottomL += 10;
+          topL += 10;
+          sat = 40;
+        }
+      }
+    }
+    const bottomColor = `hsl(${hue}, ${sat}%, ${bottomL.toFixed(0)}%)`;
+    const topColor = `hsl(${hue}, ${sat}%, ${topL.toFixed(0)}%)`;
+    this.skyBackground = `linear-gradient(to top, ${bottomColor} 0%, ${topColor} 100%)`;
   }
 
   /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
@@ -188,20 +297,17 @@ export class WindowViewOverlayComponent implements OnChanges {
   logPlaneBands() {
     const bands = this.altitudeTicks;
     for (const plane of this.windowViewPlanes) {
-      if (plane.isMarker) continue;
-      let bandIdx = -1;
-      for (let i = 0; i < bands.length - 1; i++) {
-        if (plane.y >= bands[i].y && plane.y < bands[i + 1].y) {
-          bandIdx = i;
-          break;
+      if (plane.altitude !== undefined) {
+        const altKm = Math.round(plane.altitude / 1000);
+        if (altKm >= 0 && altKm < bands.length) {
+          const band = bands[altKm];
+          console.log(
+            `Plane ${plane.callsign} (${plane.icao}) at ${
+              plane.altitude
+            }m in band ${altKm}: ${JSON.stringify(band)}`
+          );
         }
       }
-      if (bandIdx === -1 && plane.y >= bands[bands.length - 1].y) {
-        bandIdx = bands.length - 2;
-      }
-      const bandLabel = bandIdx >= 0 ? bands[bandIdx].label : 'below';
-      const bandColor =
-        bandIdx >= 0 ? this.getAltitudeColor(bands[bandIdx], bandIdx) : 'none';
     }
   }
 }
