@@ -31,6 +31,11 @@ export class SettingsService {
   // Key and backing store for airport labels visibility
   private airportLabelsKey = 'showAirportLabels';
   private _showAirportLabels: boolean = true;
+  // Keys and backing stores for cloud and rain cover visibility
+  private cloudCoverKey = 'showCloudCover';
+  private _showCloudCover: boolean = true;
+  private rainCoverKey = 'showRainCover';
+  private _showRainCover: boolean = true;
 
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
@@ -214,12 +219,40 @@ export class SettingsService {
     this._showAirportLabels = value;
     localStorage.setItem(this.airportLabelsKey, value.toString());
   }
+  /** Whether cloud coverage layer is shown */
+  get showCloudCover(): boolean {
+    return this._showCloudCover;
+  }
+  /** Persist cloud coverage visibility preference */
+  setShowCloudCover(value: boolean): void {
+    this._showCloudCover = value;
+    localStorage.setItem(this.cloudCoverKey, value.toString());
+  }
+  /** Whether rain coverage layer is shown */
+  get showRainCover(): boolean {
+    return this._showRainCover;
+  }
+  /** Persist rain coverage visibility preference */
+  setShowRainCover(value: boolean): void {
+    this._showRainCover = value;
+    localStorage.setItem(this.rainCoverKey, value.toString());
+  }
 
   load(): void {
     // Load airport labels visibility preference
     const labelsStr = localStorage.getItem(this.airportLabelsKey);
     if (labelsStr !== null) {
       this._showAirportLabels = labelsStr === 'true';
+    }
+    // Load cloud cover visibility preference
+    const cloudStr = localStorage.getItem(this.cloudCoverKey);
+    if (cloudStr !== null) {
+      this._showCloudCover = cloudStr === 'true';
+    }
+    // Load rain cover visibility preference
+    const rainStr = localStorage.getItem(this.rainCoverKey);
+    if (rainStr !== null) {
+      this._showRainCover = rainStr === 'true';
     }
     const lat = parseFloat(localStorage.getItem('lastLat') || '');
     const lon = parseFloat(localStorage.getItem('lastLon') || '');

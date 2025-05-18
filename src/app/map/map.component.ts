@@ -108,12 +108,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private toggling = false;
   private locationErrorShown = false;
 
+  // before: coneVisible = false; // Default to hidden
   coneVisible = false; // Default to hidden
+  // before: cloudVisible = true; // Show cloud layer by default
   cloudVisible = true; // Show cloud layer by default
-  cloudOpacity = 1;
-
+  // before: rainVisible = true; // Show rain layer by default
   rainVisible = true; // Show rain layer by default
-  rainOpacity = 0.8; // Increased opacity for better visibility
+
+  // Opacity settings for weather layers
+  cloudOpacity: number = 1;
+  rainOpacity: number = 0.8;
+
+  // Planes for window-view overlay
+  windowViewPlanes: WindowViewPlane[] = [];
 
   // Store found airports and their circles
   private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
@@ -156,7 +163,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private airportsLoading = false; // guard for Overpass fetches
   currentTime: string = '';
 
-  showDateTime = true;
+  // Replace showDateTime property initializer
+  public showDateTime = true; // Show date/time overlay by default
+
+  // Toggle for airport labels tooltips
+  // before: showAirportLabels: boolean = true;
+  showAirportLabels = true; // Show airport labels by default
 
   private _initialScanDone = false; // Flag to prevent double scan
 
@@ -179,20 +191,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public moonIcon: string = 'dark_mode';
   public moonPhaseName: string = '';
   public moonIllumAngleDeg: number = 0;
-  private sunAngleInterval: any;
-
-  // Toggle for airport labels tooltips
-  showAirportLabels: boolean = true;
-
   // Label for next sun event (Sunset during day, Sunrise at night)
   public sunEventText: string = '';
-
-  // New property for window view planes
-  windowViewPlanes: WindowViewPlane[] = [];
-
-  // Example: set these to the azimuth ranges (in degrees) for your cones
-  balconyAzimuth: [number, number] = [75, 190]; // South-west example
-  streetsideAzimuth: [number, number] = [245, 345]; // South-east example
+  private sunAngleInterval: any;
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
@@ -211,6 +212,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private locationService: LocationService,
     private helicopterListService: HelicopterListService
   ) {
+    // Initialize UI toggles from stored settings
+    this.cloudVisible = this.settings.showCloudCover;
+    this.rainVisible = this.settings.showRainCover;
+    this.coneVisible = this.settings.showViewAxes;
+    this.showDateTime = this.settings.showDateTimeOverlay;
+    this.showAirportLabels = this.settings.showAirportLabels;
+
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
       this.planeLog.forEach((plane) => {
@@ -338,11 +346,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Load configured military prefix list for overlay flags
     await this.militaryPrefixService.loadPrefixes();
     this.settings.load();
-    // Restore saved show/hide date-time overlay setting
+    // Apply saved toggle preferences & UI state
     this.showDateTime = this.settings.showDateTimeOverlay;
-
-    // Load airport labels preference
-    this.showAirportLabels = this.settings.showAirportLabels;
+    // Initialize input overlay component inputs if necessary
+    if (this.inputOverlayComponent) {
+      // Sync input props
+      this.inputOverlayComponent.showDateTime = this.showDateTime;
+      this.inputOverlayComponent.showCloudCover = this.settings.showCloudCover;
+      this.inputOverlayComponent.showRainCover = this.settings.showRainCover;
+      this.inputOverlayComponent.showViewAxes = this.settings.showViewAxes;
+      this.inputOverlayComponent.showAirportLabels =
+        this.settings.showAirportLabels;
+    }
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
@@ -354,6 +369,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Initialize map and overlays
     this.initMap(lat, lon, radius);
+    // Apply map layer visibility based on saved preferences
+    this.toggleCloudCover(this.settings.showCloudCover);
+    this.toggleRainCover(this.settings.showRainCover);
+    this.toggleConeVisibility(this.settings.showViewAxes);
+    // Apply airport labels visibility
+    this.showAirportLabels = this.settings.showAirportLabels;
+    this.airportCircles.forEach((circle, id) => {
+      circle[this.showAirportLabels ? 'openTooltip' : 'closeTooltip']();
+    });
     // Provide the created map instance to the service
     this.mapService.setMapInstance(this.map);
     // Main radius will be drawn by updateMap to avoid duplicate initial draw
@@ -1009,7 +1033,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Alert on any new visible plane, but suppress only when hide-commercial filter and commercial mute are both on and all new are commercial
         const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
         const hasAlertPlanes = newVisible.some(
-          (p) => this.aircraftDb.lookup(p.icao)?.mil || this.specialListService.isSpecial(p.icao)
+          (p) =>
+            this.aircraftDb.lookup(p.icao)?.mil ||
+            this.specialListService.isSpecial(p.icao)
         );
         if (hasAlertPlanes) {
           playAlertSound();
@@ -1775,6 +1801,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   toggleConeVisibility(show: boolean): void {
     // Show or hide cones regardless of current map view, always anchored at home
     this.coneVisible = show;
+    this.settings.setShowViewAxes(show);
   }
 
   /** Adjust cloud layer opacity */
@@ -1803,6 +1830,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cloudLayer.remove();
       }
     }
+    this.settings.setShowCloudCover(show);
   }
 
   /** Toggle display of rain coverage layer */
@@ -1815,6 +1843,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.rainLayer.remove();
       }
     }
+    this.settings.setShowRainCover(show);
   }
 
   /** Remove highlight from a plane's marker and tooltip */
@@ -1964,7 +1993,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         (
           node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
           way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-          relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+                   relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
         );
         out center;
       `;
