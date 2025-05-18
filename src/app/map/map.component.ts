@@ -1008,14 +1008,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         );
         // Alert on any new visible plane, but suppress only when hide-commercial filter and commercial mute are both on and all new are commercial
         const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
-        if (newVisible.length > 0) {
-          const allCommercial = newVisible.every(
-            (p) => !this.aircraftDb.lookup(p.icao)?.mil
-          );
-          // Only suppress when commercial-mute is on and ALL new visible planes are commercial
-          if (!(allCommercial && this.settings.commercialMute)) {
-            playAlertSound();
-          }
+        const hasAlertPlanes = newVisible.some(
+          (p) => this.aircraftDb.lookup(p.icao)?.mil || this.specialListService.isSpecial(p.icao)
+        );
+        if (hasAlertPlanes) {
+          playAlertSound();
         }
 
         const existing = new Set(currentIDs);
