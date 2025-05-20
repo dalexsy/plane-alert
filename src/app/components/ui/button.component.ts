@@ -54,7 +54,8 @@ export class ButtonComponent implements OnChanges {
       changes['icon'] &&
       this.el.nativeElement.classList.contains('shuffle-toggle')
     ) {
-      console.log(`[ShuffleButton] icon changed to: ${this.icon}`);
+      // Removed debug log for shuffle-toggle icon changes
+      // console.log(`[ShuffleButton] icon changed to: ${this.icon}`);
     }
   }
 

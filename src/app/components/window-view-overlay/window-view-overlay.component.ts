@@ -223,8 +223,8 @@ export class WindowViewOverlayComponent implements OnChanges {
     const t = sun.y / 100;
     const hue = 210; // standard sky hue
     // base lightness values
-    let bottomL = 40 + t * 30; // 40% to 70%
-    let topL = 60 + t * 20; // 60% to 80%
+    let bottomL = 55 + t * 30; // 40% to 70%
+    let topL = 80 + t * 20; // 60% to 80%
     // base saturation for clear sky
     let sat = 80;
     // adjust based on weather

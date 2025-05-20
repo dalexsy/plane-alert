@@ -37,7 +37,6 @@ export class ScanService {
       this.scanCallback();
     }
 
-    console.log('[ScanService] Scan started, interval:', this.intervalSeconds);
     this.tickSub = interval(1000).subscribe(() => {
       this.current--;
       this.countdownSubject.next(this.current);
