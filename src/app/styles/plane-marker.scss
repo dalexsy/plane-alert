@@ -30,7 +30,7 @@ $new-plane-color: #ff6161;
     height: 48px;
 
     path {
-      fill: white;
+      fill: currentColor;
       stroke: black; // Default stroke color
       stroke-width: 1.5;
       stroke-linejoin: round;

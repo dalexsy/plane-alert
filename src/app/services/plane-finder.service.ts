@@ -19,6 +19,7 @@ import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
+import { AltitudeColorService } from '../services/altitude-color.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -60,8 +61,9 @@ export class PlaneFinderService {
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
     private specialListService: SpecialListService,
-    private operatorCallSignService: OperatorCallSignService, // inject our service
-    private militaryPrefixService: MilitaryPrefixService
+    private operatorCallSignService: OperatorCallSignService,
+    private militaryPrefixService: MilitaryPrefixService,
+    private altitudeColor: AltitudeColorService
   ) {}
 
   private randomizeBrightness(): string {
@@ -76,12 +78,12 @@ export class PlaneFinderService {
     if (isGrounded) {
       return this.randomizeBrightness();
     }
-    const maxAltitude = 12000;
     if (altitude == null) {
       return '';
     }
-    const hue = Math.min(altitude / maxAltitude, 1) * 300;
-    return `color: hsl(${hue}, 100%, 50%);`;
+    // Use AltitudeColorService for icon color
+    const color = this.altitudeColor.getFillColor(altitude);
+    return `color: ${color};`;
   }
 
   private removePlaneVisuals(plane: PlaneModel, map: L.Map): void {
@@ -203,11 +205,9 @@ export class PlaneFinderService {
         new Set(pathPoints.map((p) => p.join(',')))
       );
       if (uniquePoints.length >= 2) {
-        // Determine color based on predicted altitude
-        const maxPredAlt = 12000;
-        const predHue =
-          altitude != null ? Math.min(altitude / maxPredAlt, 1) * 300 : 0;
-        const predColor = `hsl(${predHue},100%,50%)`;
+        // Determine color based on predicted altitude using AltitudeColorService
+        const predColor = this.altitudeColor.getFillColor(altitude ?? 0);
+
         // Update existing or create new polyline with altitude-based color
         if (plane.path) {
           plane.path.setLatLngs(pathPoints);
@@ -237,11 +237,8 @@ export class PlaneFinderService {
 
       // --- Add/Update Arrowhead ---
       if (pathPoints.length >= 2) {
-        // Compute arrow color based on predicted altitude
-        const maxPredAlt = 12000;
-        const arrowHue =
-          altitude != null ? Math.min(altitude / maxPredAlt, 1) * 300 : 0;
-        const arrowColor = `hsl(${arrowHue},100%,50%)`;
+        // Compute arrow color based on predicted altitude using service
+        const arrowColor = this.altitudeColor.getFillColor(altitude ?? 0);
         const endPoint = pathPoints[pathPoints.length - 1];
         const prevPoint = pathPoints[pathPoints.length - 2];
         const bearing = computeBearing(
@@ -286,7 +283,7 @@ export class PlaneFinderService {
       const rawHistory = plane.positionHistory.map((p) => ({
         lat: p.lat,
         lon: p.lon,
-        alt: p.altitude ?? 0,
+        alt: p.altitude ?? 0, // uses .alt property
       }));
       rawHistory.push({ lat, lon, alt: altitude ?? 0 });
       const rawPoints: [number, number][] = rawHistory.map((p) => [
@@ -346,12 +343,12 @@ export class PlaneFinderService {
             minOpacity +
             (maxOpacity - minOpacity) *
               (i / (numSegments > 1 ? numSegments - 1 : 1));
-          // Determine color by altitude at this segment (use rawHistory)
-          const segAlt = rawHistory[i + 1]?.alt ?? 0;
-          const hue = Math.min(segAlt / maxAltitude, 1) * 300;
-          const segColor = `hsl(${hue},100%,50%)`;
+          // Determine color by rawHistory altitude via service
+          const segAlt1 = rawHistory[i]?.alt ?? 0;
+          const segAlt2 = rawHistory[i + 1]?.alt ?? 0;
 
           // Color transition: interpolate between the altitudes of the segment endpoints
+          // Find raw indexes for interpolation
           let rawIdx1 = 0,
             rawIdx2 = 0;
           if (rawPoints.length > 1) {
@@ -362,18 +359,14 @@ export class PlaneFinderService {
               ((i + 1) * (rawPoints.length - 1)) / (smoothPoints.length - 1)
             );
           }
-          const segAlt1 = rawHistory[rawIdx1]?.alt ?? 0;
-          const segAlt2 = rawHistory[rawIdx2]?.alt ?? 0;
-          // compute hues for segment start/end
-          const hue1 = Math.min(segAlt1 / maxAltitude, 1) * 300;
-          const hue2 = Math.min(segAlt2 / maxAltitude, 1) * 300;
-          // Initialize previous point for gradient segments
+          // Initialize previous point for segment drawing
           let prevPt: L.LatLngExpression = interpolatedPoints[0];
-          // Draw each subsegment with interpolated color
+          // Draw each subsegment colored by service interpolation
           for (let k = 1; k < interpolatedPoints.length; k++) {
             const t = k / (interpolatedPoints.length - 1);
-            const hue = hue1 + (hue2 - hue1) * t;
-            const segColor = `hsl(${hue},100%,50%)`;
+            // Interpolate altitude
+            const altAtT = segAlt1 + (segAlt2 - segAlt1) * t;
+            const segColor = this.altitudeColor.getFillColor(altAtT);
             const segment = L.polyline([prevPt, interpolatedPoints[k]], {
               className: 'history-trail-segment',
               color: segColor,

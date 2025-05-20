@@ -8,6 +8,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import * as L from 'leaflet';
+import { AltitudeColorService } from '../../services/altitude-color.service';
 
 @Component({
   selector: 'app-cone',
@@ -15,6 +16,7 @@ import * as L from 'leaflet';
   encapsulation: ViewEncapsulation.None,
 })
 export class ConeComponent implements OnChanges, OnDestroy, OnInit {
+  constructor(private altitudeColor: AltitudeColorService) {}
   @Input() map!: L.Map;
   @Input() lat!: number;
   @Input() lon!: number;
@@ -185,13 +187,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
 
     // 5. Assign colors based on these calculated practical altitudes
     visibilityBands.forEach((band) => {
-      const hueRatio =
-        maxPracticalAltitudeM > 0
-          ? band.practicalAltM / maxPracticalAltitudeM
-          : 0;
-      // Using sqrt scaling for hue to emphasize lower altitude differences
-      const hue = Math.min(Math.sqrt(hueRatio), 1) * 300; // 0 (red) to 300 (purple)
-      band.color = `hsl(${Math.floor(hue)}, 100%, 50%)`;
+      band.color = this.altitudeColor.getFillColor(band.practicalAltM);
     });
 
     // --- Drawing Logic ---

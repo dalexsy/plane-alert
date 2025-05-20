@@ -78,6 +78,7 @@
           <ng-container *ngIf="plane.isHelicopter">
             <span
               class="copter-wrapper"
+              [style.color]="altitudeColor.getFillColor(plane.altitude)"
               [style.transform]="'scale(' + (plane.scale || 1) + ')'"
               [style.transformOrigin]="'center center'"
             >
@@ -115,6 +116,7 @@
                 ></div>
                 <svg
                   class="plane-icon {{ plane.iconType }}"
+                  [style.color]="altitudeColor.getFillColor(plane.altitude)"
                   viewBox="0 0 64 64"
                   [attr.aria-label]="
                     plane.callsign + ' at ' + plane.altitude + 'm'

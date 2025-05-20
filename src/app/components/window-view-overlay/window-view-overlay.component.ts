@@ -5,12 +5,14 @@ import {
   EventEmitter,
   OnChanges,
   SimpleChanges,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { EngineIconType } from '../../../app/utils/plane-icons';
 import { PlaneStyleService } from '../../../app/services/plane-style.service';
 import { CelestialService } from '../../../app/services/celestial.service';
+import { AltitudeColorService } from '../../../app/services/altitude-color.service';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -58,7 +60,8 @@ export interface WindowViewPlane {
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
-export class WindowViewOverlayComponent implements OnChanges {
+export class WindowViewOverlayComponent implements OnChanges, OnInit {
+  // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */
   public skyBackground: string = '';
   /** Cloud tile URL for window view background */
@@ -82,11 +85,26 @@ export class WindowViewOverlayComponent implements OnChanges {
   private readonly OPEN_WEATHER_MAP_API_KEY =
     'ffcc03a274b2d049bf4633584e7b5699';
 
+  /** Maximum altitude represented in window view (for band layout) */
+  private readonly viewMaxAltitude = 20000;
+
+  // Altitude ticks, populated in ngOnInit
+  public altitudeTicks: Array<{
+    y: number;
+    label: string;
+    color: string;
+    fillColor: string;
+  }> = [];
+
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
-    private http: HttpClient
+    private http: HttpClient,
+    public altitudeColor: AltitudeColorService
   ) {}
+  ngOnInit(): void {
+    this.altitudeTicks = this.computeAltitudeTicks();
+  }
 
   /** Emit selection event when user clicks a plane label */
   handleLabelClick(plane: WindowViewPlane, event: MouseEvent): void {
@@ -94,23 +112,35 @@ export class WindowViewOverlayComponent implements OnChanges {
     this.selectPlane.emit(plane);
   }
 
-  // Precompute altitude ticks once to avoid recalculation and flicker
-  readonly altitudeTicks = (() => {
-    const maxAltitudeVisual = 20000; // New maximum altitude for the view
-    const tickIncrement = 2000; // Increment for altitude ticks
-    const ticksAltitudeValues: number[] = [];
-    for (let alt = 0; alt <= maxAltitudeVisual; alt += tickIncrement) {
-      ticksAltitudeValues.push(alt);
+  ngOnChanges(changes: SimpleChanges) {
+    if (
+      changes['windowViewPlanes'] ||
+      changes['observerLat'] ||
+      changes['observerLon']
+    ) {
+      this.injectCelestialMarkers();
+      this.updateWindowCloud();
+      // initial sky update then fetch weather
+      this.updateSkyBackground();
+      this.updateWeather();
     }
-    return ticksAltitudeValues.map((tick, i) => {
+  }
+  /** Compute altitude ticks for bands */
+  private computeAltitudeTicks() {
+    const maxAltitudeVisual = this.viewMaxAltitude;
+    const tickIncrement = 2000;
+    const values: number[] = [];
+    for (let alt = 0; alt <= maxAltitudeVisual; alt += tickIncrement) {
+      values.push(alt);
+    }
+    return values.map((tick) => {
       const y = (tick / maxAltitudeVisual) * 100;
       const label = tick === 0 ? '0' : tick / 1000 + 'km';
-      const color = this.getAltitudeColor({ y, label }, i);
-      // derive a 10% opacity fill color from the HSL color
+      const color = this.altitudeColor.getFillColor(tick);
       const fillColor = color.replace('hsl(', 'hsla(').replace(')', ', 0.05)');
       return { y, label, color, fillColor };
     });
-  })();
+  }
 
   injectCelestialMarkers() {
     if (
@@ -128,20 +158,6 @@ export class WindowViewOverlayComponent implements OnChanges {
       ...this.windowViewPlanes.filter((p) => !p.isCelestial),
       ...markers,
     ];
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (
-      changes['windowViewPlanes'] ||
-      changes['observerLat'] ||
-      changes['observerLon']
-    ) {
-      this.injectCelestialMarkers();
-      this.updateWindowCloud();
-      // initial sky update then fetch weather
-      this.updateSkyBackground();
-      this.updateWeather();
-    }
   }
 
   /** Calculate and set cloud cover tile for window overlay */
@@ -271,43 +287,5 @@ export class WindowViewOverlayComponent implements OnChanges {
     const maxAngle = 20; // maximum Y rotation in degrees
     const angleY = ratio * maxAngle;
     return `perspective(300px) rotateX(60deg) rotateY(${angleY}deg)`;
-  }
-
-  // Updated to use a predefined sequence of ratios to match ConeComponent's color progression
-  getAltitudeColor(tick: { y: number; label: string }, i: number): string {
-    const coneRatios = [0.01, 0.04, 0.16, 0.36, 0.64, 1.0]; // Ratios for Orange, Yellow, Green, Cyan, Blue, Magenta
-    const maxIndex = coneRatios.length - 1; // 5
-    let bandIndex: number;
-    if (i < maxIndex) {
-      // intervals 0-4 (0-10km) map directly
-      bandIndex = i;
-    } else if (i === maxIndex) {
-      // interval 5 (10-12km) should still be Blue (index 4)
-      bandIndex = maxIndex - 1;
-    } else {
-      // intervals >=6 (12km+) map to Magenta (index 5)
-      bandIndex = maxIndex;
-    }
-    const ratio = coneRatios[bandIndex];
-
-    const hue = Math.sqrt(ratio) * 300;
-    return `hsl(${Math.floor(hue)}, 100%, 50%)`;
-  }
-
-  logPlaneBands() {
-    const bands = this.altitudeTicks;
-    for (const plane of this.windowViewPlanes) {
-      if (plane.altitude !== undefined) {
-        const altKm = Math.round(plane.altitude / 1000);
-        if (altKm >= 0 && altKm < bands.length) {
-          const band = bands[altKm];
-          console.log(
-            `Plane ${plane.callsign} (${plane.icao}) at ${
-              plane.altitude
-            }m in band ${altKm}: ${JSON.stringify(band)}`
-          );
-        }
-      }
-    }
   }
 }
