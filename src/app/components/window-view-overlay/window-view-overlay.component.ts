@@ -64,6 +64,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */
   public skyBackground: string = '';
+  public compassBackground: string = '#ff9753';
   /** Cloud tile URL for window view background */
   windowCloudUrl: string | null = null;
   /** Current weather condition from API */
@@ -134,6 +135,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.updateWeather();
       // compute marker spans for dimming
       this.computeSpans();
+      this.setCompassBackground();
     }
   }
   /** Compute altitude ticks for bands */
@@ -210,11 +212,13 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
           this.weatherDescription = null;
         }
         this.updateSkyBackground();
+        this.setCompassBackground();
       },
       () => {
         this.weatherCondition = null;
         this.weatherDescription = null;
         this.updateSkyBackground();
+        this.setCompassBackground();
       }
     );
   }
@@ -297,7 +301,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const ratio = (x - 50) / 50; // -1 to 1
     const maxAngle = 20; // maximum Y rotation in degrees
     const angleY = ratio * maxAngle;
-    return `perspective(300px) rotateX(60deg) rotateY(${angleY}deg)`;
+    // rotate icons an additional 90deg in 3D space
+    return `perspective(300px) rotateX(60deg) rotateY(${angleY}deg) rotateZ(90deg)`;
   }
 
   /** Compute marker spans (Balcony and Streetside) to determine dim regions */
@@ -366,5 +371,44 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
         (this.streetsideStartX > this.streetsideEndX &&
           (x >= this.streetsideStartX || x <= this.streetsideEndX)));
     return !(inBalcony || inStreetside);
+  }
+
+  /** Compute and set dynamic roof color based on weather and time of day */
+  private setCompassBackground(): void {
+    // Determine roof color based on weather and time of day
+    const sun = this.windowViewPlanes.find(
+      (p) => p.isCelestial && p.celestialBodyType === 'sun'
+    );
+    const hour = new Date().getHours();
+    let bg = '#ff9753'; // default roof color
+    if (this.weatherCondition) {
+      const cond = this.weatherCondition.toLowerCase();
+      if (
+        cond.includes('rain') ||
+        cond.includes('drizzle') ||
+        cond.includes('thunderstorm')
+      ) {
+        bg = '#6e6e6e';
+      } else if (cond.includes('snow')) {
+        bg = '#ffffff';
+      } else if (cond.includes('cloud')) {
+        bg = '#cccccc';
+      }
+    } else if (sun && !sun.belowHorizon) {
+      // Daytime roof shading by hour
+      if (hour >= 6 && hour < 12) {
+        bg = '#ffdab3';
+      } else if (hour >= 12 && hour < 18) {
+        bg = '#ff9753';
+      } else if (hour >= 18 && hour < 20) {
+        bg = '#ff7f50';
+      } else {
+        bg = '#663d25';
+      }
+    } else {
+      // Night fallback
+      bg = '#663d25';
+    }
+    this.compassBackground = bg;
   }
 }

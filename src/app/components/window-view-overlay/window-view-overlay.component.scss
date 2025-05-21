@@ -23,6 +23,14 @@
   transform-style: preserve-3d;
 
   .compass-labels {
+    /* shingle roof-like pattern */
+    background-image: linear-gradient(
+        to right,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 0.25rem 0.25rem;
     display: flex;
     justify-content: space-between;
     position: absolute;
