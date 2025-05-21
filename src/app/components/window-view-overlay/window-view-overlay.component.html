@@ -43,6 +43,13 @@
       </ng-container>
     </ng-container>
   </div>
+  <!-- dimmed regions outside marker spans -->
+  <ng-container *ngFor="let seg of dimSegments">
+    <div
+      class="dim-overlay"
+      [ngStyle]="{ left: seg.left + '%', width: seg.width + '%' }"
+    ></div>
+  </ng-container>
   <div class="planes-container">
     <ng-container *ngFor="let plane of windowViewPlanes">
       <div

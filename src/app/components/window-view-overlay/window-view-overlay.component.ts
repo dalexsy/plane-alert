@@ -96,6 +96,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     fillColor: string;
   }> = [];
 
+  // Marker span boundaries for dimming
+  public balconyStartX?: number;
+  public balconyEndX?: number;
+  public streetsideStartX?: number;
+  public streetsideEndX?: number;
+
+  /** Segments to dim outside marker spans */
+  public dimSegments: Array<{ left: number; width: number }> = [];
+
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -123,6 +132,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       // initial sky update then fetch weather
       this.updateSkyBackground();
       this.updateWeather();
+      // compute marker spans for dimming
+      this.computeSpans();
     }
   }
   /** Compute altitude ticks for bands */
@@ -287,5 +298,73 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const maxAngle = 20; // maximum Y rotation in degrees
     const angleY = ratio * maxAngle;
     return `perspective(300px) rotateX(60deg) rotateY(${angleY}deg)`;
+  }
+
+  /** Compute marker spans (Balcony and Streetside) to determine dim regions */
+  private computeSpans(): void {
+    const planes = this.windowViewPlanes.filter((p) => p.isMarker);
+    const bStart = planes.find(
+      (p) => p.callsign.startsWith('Balcony') && p.callsign.endsWith('Start')
+    );
+    const bEnd = planes.find(
+      (p) => p.callsign.startsWith('Balcony') && p.callsign.endsWith('End')
+    );
+    const sStart = planes.find(
+      (p) => p.callsign.startsWith('Streetside') && p.callsign.endsWith('Start')
+    );
+    const sEnd = planes.find(
+      (p) => p.callsign.startsWith('Streetside') && p.callsign.endsWith('End')
+    );
+
+    this.balconyStartX = bStart?.x;
+    this.balconyEndX = bEnd?.x;
+    this.streetsideStartX = sStart?.x;
+    this.streetsideEndX = sEnd?.x;
+
+    // compute dim segments outside Balcony and Streetside spans
+    if (
+      this.balconyStartX != null &&
+      this.balconyEndX != null &&
+      this.streetsideStartX != null &&
+      this.streetsideEndX != null
+    ) {
+      const bS = this.balconyStartX;
+      const bE = this.balconyEndX;
+      const sS = this.streetsideStartX;
+      const sE = this.streetsideEndX;
+      // segment1: from balconyEnd to streetsideStart
+      const seg1Left = bE % 100;
+      const seg1Width = (sS - bE + 100) % 100 || 0;
+      // segment2: from streetsideEnd to balconyStart
+      const seg2Left = sE % 100;
+      const seg2Width = (bS - sE + 100) % 100 || 0;
+      this.dimSegments = [
+        { left: seg1Left, width: seg1Width },
+        { left: seg2Left, width: seg2Width },
+      ];
+    } else {
+      this.dimSegments = [];
+    }
+  }
+
+  /** Return true if x is outside both Balcony and Streetside spans */
+  public isOutsideSpan(x: number): boolean {
+    const inBalcony =
+      this.balconyStartX != null &&
+      this.balconyEndX != null &&
+      ((this.balconyStartX <= this.balconyEndX &&
+        x >= this.balconyStartX &&
+        x <= this.balconyEndX) ||
+        (this.balconyStartX > this.balconyEndX &&
+          (x >= this.balconyStartX || x <= this.balconyEndX)));
+    const inStreetside =
+      this.streetsideStartX != null &&
+      this.streetsideEndX != null &&
+      ((this.streetsideStartX <= this.streetsideEndX &&
+        x >= this.streetsideStartX &&
+        x <= this.streetsideEndX) ||
+        (this.streetsideStartX > this.streetsideEndX &&
+          (x >= this.streetsideStartX || x <= this.streetsideEndX)));
+    return !(inBalcony || inStreetside);
   }
 }
