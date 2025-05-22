@@ -28,3 +28,8 @@ export function playAlertSound(): void {
     time += note.duration + pauseDuration;
   });
 }
+
+export function playHerculesAlert(): void {
+  const audio = new Audio('assets/alerts/hercules.mp3');
+  audio.play();
+}

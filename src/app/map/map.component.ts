@@ -27,7 +27,7 @@ import { PlaneFilterService } from '../services/plane-filter.service';
 import { AircraftDbService } from '../services/aircraft-db.service';
 import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
-import { playAlertSound } from '../utils/alert-sound';
+import { playAlertSound, playHerculesAlert } from '../utils/alert-sound';
 import { PlaneModel } from '../models/plane-model';
 import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused later
 import { SpecialListService } from '../services/special-list.service';
@@ -1032,12 +1032,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         );
         // Alert on any new visible plane, but suppress only when hide-commercial filter and commercial mute are both on and all new are commercial
         const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
+        // Determine if any new visible plane is a Hercules model
+        const hasHercules = newVisible.some(
+          (p) =>
+            p.model?.toLowerCase().includes('hercules')
+        );
+        // Determine if any other alert-worthy planes (military or special)
         const hasAlertPlanes = newVisible.some(
           (p) =>
             this.aircraftDb.lookup(p.icao)?.mil ||
             this.specialListService.isSpecial(p.icao)
         );
-        if (hasAlertPlanes) {
+        // Play appropriate alert sound: Hercules priority
+        if (hasHercules) {
+          playHerculesAlert();
+        } else if (hasAlertPlanes) {
           playAlertSound();
         }
 
