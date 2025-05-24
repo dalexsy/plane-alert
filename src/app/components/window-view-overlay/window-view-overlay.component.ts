@@ -6,6 +6,8 @@ import {
   OnChanges,
   SimpleChanges,
   OnInit,
+  HostListener,
+  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
@@ -44,6 +46,10 @@ export interface WindowViewPlane {
   isNew?: boolean; // Flag for new planes
   isMilitary?: boolean;
   isSpecial?: boolean;
+  /** True if plane is on ground (landed) */
+  isGrounded?: boolean;
+  /** Stacking order index for grounded planes */
+  groundStackOrder?: number;
   // Moon phase properties for celestialBodyType === 'moon'
   moonPhase?: number;
   moonFraction?: number;
@@ -61,6 +67,16 @@ export interface WindowViewPlane {
   styleUrls: ['./window-view-overlay.component.scss'],
 })
 export class WindowViewOverlayComponent implements OnChanges, OnInit {
+  /** Prevent context menu inside overlay when right-clicking to avoid content.js errors */
+  @HostListener('document:contextmenu', ['$event'])
+  preventContextMenu(event: MouseEvent): void {
+    const target = event.target as Node;
+    if (this.elRef.nativeElement.contains(target)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
+
   // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */
   public skyBackground: string = '';
@@ -110,7 +126,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
     private http: HttpClient,
-    public altitudeColor: AltitudeColorService
+    public altitudeColor: AltitudeColorService,
+    private elRef: ElementRef
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -136,6 +153,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       // compute marker spans for dimming
       this.computeSpans();
       this.setCompassBackground();
+      this.assignGroundStackOrder();
     }
   }
   /** Compute altitude ticks for bands */
@@ -410,5 +428,17 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       bg = '#663d25';
     }
     this.compassBackground = bg;
+  }
+
+  /** Assign incremental stack index to grounded planes */
+  private assignGroundStackOrder(): void {
+    let order = 0;
+    this.windowViewPlanes.forEach((p) => {
+      if (p.isGrounded) {
+        p.groundStackOrder = order++;
+      } else {
+        p.groundStackOrder = undefined;
+      }
+    });
   }
 }

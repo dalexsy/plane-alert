@@ -2,7 +2,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 1.5rem;
   height: 10rem;
 
   background: linear-gradient(
@@ -35,10 +35,11 @@
     justify-content: space-between;
     position: absolute;
     width: 100%;
-    bottom: 0;
+    bottom: -1.5rem;
     left: 0;
     color: #ffe066;
     pointer-events: none;
+    z-index: 3;
   }
 
   .line-label {
@@ -157,6 +158,63 @@
         opacity: 0.5;
       }
 
+      &.grounded-plane {
+        // disable 3D tilt
+        perspective: none !important;
+        transform: none !important;
+
+        // remove wrapper and icon transforms
+        .icon-wrapper,
+        .icon-scale-wrapper,
+        .copter-plane-icon {
+          transform: none !important;
+        }
+
+        // remove chemtrail
+        .chemtrail {
+          display: none !important;
+        }
+
+        // ground shadow ellipse
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 2rem;
+          height: 0.5rem;
+          background: rgba(0, 0, 0, 0.4);
+          border-radius: 50%;
+          filter: blur(2px);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        // icon ground tilt
+        .icon-wrapper {
+          transform: perspective(300px) skewX(-30deg) rotateX(50deg) scale(0.4) !important;
+          transform-origin: bottom center;
+          bottom: -1rem;
+        }
+
+        // centered label position for grounded planes; bottom set inline
+        .plane-label {
+          position: absolute !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          margin: 0 !important;
+          font-size: 0.75rem !important;
+          z-index: 2 !important;
+        }
+      }
+      // stack grounded-plane containers vertically
+      &.grounded-plane + &.grounded-plane {
+        bottom: 1.5rem !important;
+      }
+      &.grounded-plane + &.grounded-plane + &.grounded-plane {
+        bottom: 3rem !important;
+      }
       &.half-left .icon-wrapper {
         transform: perspective(300px) rotateX(60deg) rotateY(20deg);
       }

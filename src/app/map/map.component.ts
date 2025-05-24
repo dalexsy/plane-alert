@@ -1429,8 +1429,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Update the window view overlay with airborne planes only
     this.windowViewPlanes = visiblePlanes
-      .filter((p) => (p.altitude ?? 0) > 0)
+      // include grounded planes as well
+      .filter((p) => (p.altitude ?? 0) > 0 || p.onGround)
       .map((plane) => {
+        const isGrounded = !!plane.onGround;
         // Calculate azimuth (bearing) from homeLocation to plane
         const azimuth = this.calculateAzimuth(
           this.settings.lat ?? this.DEFAULT_COORDS[0],
@@ -1460,8 +1462,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           y,
           callsign: plane.callsign || plane.icao,
           altitude: alt,
-          lat: plane.lat!, // Include geographic coords for centering
-          lon: plane.lon!, // Include geographic coords for centering
+          lat: plane.lat!,
+          lon: plane.lon!,
           bearing: plane.track ?? 0,
           iconPath: iconData.path,
           iconType: iconData.iconType,
@@ -1476,6 +1478,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isMilitary: plane.isMilitary,
           isSpecial: plane.isSpecial,
           icao: plane.icao, // for type safety
+          isGrounded,
         };
       });
     // Add window view markers for cone boundaries and midpoints

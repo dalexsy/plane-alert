@@ -1,4 +1,4 @@
-<div class="window-view-overlay" [style.background]="skyBackground">
+<div class="window-view-overlay" (contextmenu)="$event.stopPropagation()" [style.background]="skyBackground">
   <!-- dynamic sky background -->
   <div
     *ngIf="windowCloudUrl"
@@ -59,12 +59,13 @@
             plane.isMarker && plane.callsign.startsWith('Balcony'),
           'streetside-marker':
             plane.isMarker && plane.callsign.startsWith('Streetside'),
+          'grounded-plane': plane.isGrounded,
           'half-left': plane.x < 50,
           'half-right': plane.x >= 50
         }"
         [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
         [style.left]="plane.x + '%'"
-        [style.bottom]="'calc(' + plane.y + '% - .5rem)'"
+        [style.bottom]="plane.isGrounded ? (plane.groundStackOrder! * 1.5) + 'rem' : 'calc(' + plane.y + '% - .5rem)'"
         [style.transformOrigin]="'bottom center'"
         [title]="plane.isMarker ? '' : ' (' + plane.altitude + 'm)'"
       >
