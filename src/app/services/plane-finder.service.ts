@@ -20,6 +20,10 @@ import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
+import registrationCountryPrefix from '../data/registration-country-prefix.json';
+
+// External registration prefix → country code map
+const REGISTRATION_COUNTRY_PREFIX: Record<string,string> = registrationCountryPrefix as Record<string,string>;
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -474,11 +478,7 @@ export class PlaneFinderService {
     previousLog: Map<string, PlaneModel>, // Use PlaneModel here
     followedIcao?: string | null, // <-- new param
     followNearest?: boolean // <-- new param
-  ): Promise<{
-    anyNew: boolean;
-    currentIDs: string[];
-    updatedLog: PlaneModel[]; // Use PlaneModel here
-  }> {
+  ): Promise<{ anyNew: boolean; currentIDs: string[]; updatedLog: PlaneModel[] }> {
     // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
     await this.specialListService.refreshSpecialList(manualUpdate);
@@ -508,31 +508,57 @@ export class PlaneFinderService {
     const lomin = centerLon - lonDelta;
     const lomax = centerLon + lonDelta;
     try {
-      const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lamax=${lamax}&lomin=${lomin}&lomax=${lomax}&extended=1`;
+      const radiusNm = radiusKm / 1.852;
+      const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Fetch error ${response.status}`);
+      if (!response.ok) throw new Error(`ADSB One API fetch error ${response.status}`);
       const data = await response.json();
+      // Using external JSON-based REGISTRATION_COUNTRY_PREFIX
+
+      // Prepare update containers for this scan
       const currentUpdateSet = new Set<string>();
       const updatedLogModels: PlaneModel[] = [];
       let anyNew = false;
-      data.states?.forEach((state: any[]) => {
-        const id = state[0];
-        const callsign = state[1]?.trim() || ''; // Define callsign early
-        const origin: string = state[2] || 'Unknown';
-        const lat = state[6];
-        const lon = state[5];
-        const track = state[10];
-        const velocity = state[9];
-        const altitude = state[13];
-        const onGround = Boolean(state[8]); // Use descriptive variable
+      // Process ADSB One API response: derive country code
+      data.ac?.forEach((ac: any) => {
+        const id = ac.hex.toUpperCase();
+        const callsign = ac.flight?.trim() || '';
+        // Use ADSB One 'r' property for registration (registration code)
+        const reg: string = ac.r?.trim() || '';
+
+        // Debug: inspect raw aircraft object and registration fields
+        console.log('[PlaneFinderService DEBUG] AC record for', id, ':', ac);
+        console.log('[PlaneFinderService DEBUG] AC keys:', Object.keys(ac));
+        console.log('[PlaneFinderService DEBUG] ac.reg:', ac.reg, ' -> prefix:', reg);
+        console.log('[PlaneFinderService DEBUG] ac.r:', ac.r, ' ac.ctry:', ac.ctry, ' ac.countryCode:', ac.countryCode);
+
+         // Fetch DB record
+         const dbAircraft = getAircraftInfo(id);
+         // Derive country or fallback to registration prefix
+         const rawCountry = ac.ctry ?? ac.countryCode;
+         const regPrefix = reg.split('-')[0].replace(/\d/g, '').toUpperCase();
+         const origin =
+           typeof rawCountry === 'string' && /^[A-Za-z]{2}$/.test(rawCountry)
+             ? rawCountry.toUpperCase()
+             : REGISTRATION_COUNTRY_PREFIX[regPrefix] || 'Unknown';
+         console.log('[PlaneFinderService DEBUG] Plane', id, 'rawCountry=', rawCountry, 'regPrefix=', regPrefix, 'derived origin=', origin);
+         console.log('[PlaneFinderService DEBUG] Flag HTML for', id, getFlagHTML(origin));
+
+        // Operator will be set later in model update
+        const lat = ac.lat;
+        const lon = ac.lon;
+        const track = ac.track;
+        const velocity = ac.gs;
+        // convert feet to meters
+        const altitudeFeet = ac.alt_baro ?? ac.alt_geom ?? 0;
+        const altitude = altitudeFeet * 0.3048;
+        const onGround = false;
         const isSpecial = this.specialListService.isSpecial(id);
 
         // Define isFiltered early after getting necessary info
-        const aircraft = getAircraftInfo(id);
         // Treat any callsign matching configured prefixes as military
-        const prefixIsMil =
-          this.militaryPrefixService.isMilitaryCallsign(callsign);
-        const isMilitary = prefixIsMil || aircraft?.mil || false;
+        const prefixIsMil = this.militaryPrefixService.isMilitaryCallsign(callsign);
+        const isMilitary = prefixIsMil || dbAircraft?.mil || false;
         const wouldBeFiltered = filterPlaneByPrefix(
           callsign,
           excludeDiscount,
@@ -613,12 +639,10 @@ export class PlaneFinderService {
         }
 
         // Update PlaneModel with potentially fetched aircraft data
-        // Determine operator via prefix mapping or fallback to ownop from aircraft info
-        const prefixOperator =
-          this.operatorCallSignService.getOperator(callsign);
-        const operator = prefixOperator ?? (aircraft?.ownop || '');
-        const model = aircraft?.model || '';
-        // isMilitary already defined above
+        // Determine operator via prefix mapping or fallback to ownop from aircraft DB
+        const prefixOperator = this.operatorCallSignService.getOperator(callsign);
+        const operator = prefixOperator ?? (dbAircraft?.ownop || '');
+        const model = dbAircraft?.model || '';
 
         planeModelInstance.model = model;
         planeModelInstance.operator = operator;
@@ -674,7 +698,7 @@ export class PlaneFinderService {
         // Create/Update Marker
         const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
         const altText = altitude ? altitude.toFixed(0) + 'm' : '';
-        const verticalRate = state[11] ?? null;
+        const verticalRate = ac.baro_rate ?? null;
         const tooltip = planeTooltip(
           id,
           callsign,
@@ -788,7 +812,7 @@ export class PlaneFinderService {
       return {
         anyNew,
         currentIDs: Array.from(currentUpdateSet),
-        updatedLog: Array.from(previousLog.values()), // Return the updated models
+        updatedLog: Array.from(previousLog.values()),
       };
     } catch (err) {
       console.warn(

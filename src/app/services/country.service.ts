@@ -23,23 +23,27 @@ export class CountryService {
     this.initialized = true;
   }
 
+  getCountryCode(origin: string): string | undefined {
+    const trimmed = origin.trim();
+    // If origin is already a two-letter country code, return it
+    if (/^[A-Za-z]{2}$/.test(trimmed)) {
+      return trimmed.toUpperCase();
+    }
+    const code = this.inverseCountryMapping[trimmed.toLowerCase()];
+    return code;
+  }
+
   getFlagHTML(origin: string): string {
+    // Determine if origin indicates a specific code or name
     if (origin.toLowerCase().includes('kingdom of the netherlands')) {
       return `<span class="fi fi-nl"></span>`;
     }
     if (origin.toLowerCase().includes('republic of moldova')) {
       return `<span class="fi fi-md"></span>`;
     }
-    const code = this.inverseCountryMapping[origin.toLowerCase()];
+    const code = this.getCountryCode(origin);
     return code
       ? `<span class="fi fi-${code.toLowerCase()}" title="${origin}"></span>`
       : `<span>${origin}</span>`;
-  }
-
-  /**
-   * Returns the two-letter country code for a given country name if available.
-   */
-  getCountryCode(origin: string): string | undefined {
-    return this.inverseCountryMapping[origin.toLowerCase()];
   }
 }
