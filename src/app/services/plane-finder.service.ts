@@ -20,7 +20,7 @@ import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
-import registrationCountryPrefix from '../data/registration-country-prefix.json';
+import registrationCountryPrefix from '../../assets/data/registration-country-prefix.json';
 
 // External registration prefix → country code map
 const REGISTRATION_COUNTRY_PREFIX: Record<string, string> =
@@ -535,13 +535,33 @@ export class PlaneFinderService {
 
         // Fetch DB record
         const dbAircraft = getAircraftInfo(id);
+        
         // Derive country or fallback to registration prefix
-        const rawCountry = ac.ctry ?? ac.countryCode;
-        const regPrefix = reg.split('-')[0].replace(/\d/g, '').toUpperCase();
-        const origin =
-          typeof rawCountry === 'string' && /^[A-Za-z]{2}$/.test(rawCountry)
-            ? rawCountry.toUpperCase()
-            : REGISTRATION_COUNTRY_PREFIX[regPrefix] || 'Unknown';
+        const rawCountry = ac.ctry ?? ac.countryCode; // API provided country code
+        let origin: string;
+
+        if (typeof rawCountry === 'string' && /^[A-Za-z]{2}$/.test(rawCountry)) {
+            origin = rawCountry.toUpperCase();
+        } else {
+            origin = 'Unknown'; // Default
+            if (reg) { // Only attempt prefix match if registration (ac.r) exists and is not empty
+                const sortedPrefixes = Object.keys(REGISTRATION_COUNTRY_PREFIX).sort(
+                    (a, b) => b.length - a.length
+                );
+                for (const prefix of sortedPrefixes) {
+                    // Ensure reg is also uppercase for comparison, as prefixes in JSON are uppercase
+                    if (reg.toUpperCase().startsWith(prefix)) { 
+                        origin = REGISTRATION_COUNTRY_PREFIX[prefix];
+                        break; 
+                    }
+                }
+            }
+        }
+
+        // Add logging for unknown origin
+        if (origin === 'Unknown' && reg !== '') {
+          console.log(`Unknown origin for registration: ${reg}`);
+        }
 
         // Operator will be set later in model update
         const lat = ac.lat;

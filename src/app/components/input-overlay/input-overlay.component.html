@@ -135,15 +135,15 @@
       />
     </div>
     <div class="form-group">
-      <label for="checkInterval">Check Interval (minutes):</label>
+      <label for="checkInterval">Check Interval (seconds):</label>
       <input
         #checkIntervalInput
         type="number"
         autocomplete="off"
         id="checkInterval"
-        placeholder="Enter check interval (minutes)"
+        placeholder="Enter check interval (seconds)"
         step="any"
-        [value]="settings.interval / 60"
+        [value]="settings.interval"
         (change)="onIntervalChange($event)"
       />
     </div>

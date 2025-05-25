@@ -100,7 +100,7 @@ export class InputOverlayComponent implements OnDestroy {
         this.searchRadiusInputRef.nativeElement.value = radius.toString();
       }
       if (this.checkIntervalInputRef?.nativeElement) {
-        const displayedInterval = (this.settings.interval / 60).toString();
+        const displayedInterval = this.settings.interval.toString();
         this.checkIntervalInputRef.nativeElement.value = displayedInterval;
       }
     }
@@ -140,11 +140,11 @@ export class InputOverlayComponent implements OnDestroy {
 
   onIntervalChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const minutes = input.valueAsNumber;
-    if (isNaN(minutes)) {
+    const seconds = input.valueAsNumber;
+    if (isNaN(seconds)) {
       return;
     }
-    const newInterval = minutes * 60;
+    const newInterval = seconds;
     this.settings.interval = newInterval;
     this.scanService.updateInterval(newInterval);
   }

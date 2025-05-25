@@ -11,7 +11,7 @@ export class SettingsService {
   private _lat: number | null = null;
   private _lon: number | null = null;
   private _radius: number | null = 50;
-  private _interval: number = 60;
+  private _interval: number = 10; // default to 10 seconds
   private _excludeDiscount: boolean = false;
   private _mapLat: number | null = null;
   private _mapLon: number | null = null;
