@@ -23,7 +23,8 @@ import { AltitudeColorService } from '../services/altitude-color.service';
 import registrationCountryPrefix from '../data/registration-country-prefix.json';
 
 // External registration prefix → country code map
-const REGISTRATION_COUNTRY_PREFIX: Record<string,string> = registrationCountryPrefix as Record<string,string>;
+const REGISTRATION_COUNTRY_PREFIX: Record<string, string> =
+  registrationCountryPrefix as Record<string, string>;
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -478,7 +479,11 @@ export class PlaneFinderService {
     previousLog: Map<string, PlaneModel>, // Use PlaneModel here
     followedIcao?: string | null, // <-- new param
     followNearest?: boolean // <-- new param
-  ): Promise<{ anyNew: boolean; currentIDs: string[]; updatedLog: PlaneModel[] }> {
+  ): Promise<{
+    anyNew: boolean;
+    currentIDs: string[];
+    updatedLog: PlaneModel[];
+  }> {
     // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
     await this.specialListService.refreshSpecialList(manualUpdate);
@@ -511,7 +516,8 @@ export class PlaneFinderService {
       const radiusNm = radiusKm / 1.852;
       const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`ADSB One API fetch error ${response.status}`);
+      if (!response.ok)
+        throw new Error(`ADSB One API fetch error ${response.status}`);
       const data = await response.json();
       // Using external JSON-based REGISTRATION_COUNTRY_PREFIX
 
@@ -522,27 +528,20 @@ export class PlaneFinderService {
       // Process ADSB One API response: derive country code
       data.ac?.forEach((ac: any) => {
         const id = ac.hex.toUpperCase();
-        const callsign = ac.flight?.trim() || '';
+        const rawCallsign = ac.flight?.trim() || '';
+        const callsign = /^@+$/.test(rawCallsign) ? '' : rawCallsign;
         // Use ADSB One 'r' property for registration (registration code)
         const reg: string = ac.r?.trim() || '';
 
-        // Debug: inspect raw aircraft object and registration fields
-        console.log('[PlaneFinderService DEBUG] AC record for', id, ':', ac);
-        console.log('[PlaneFinderService DEBUG] AC keys:', Object.keys(ac));
-        console.log('[PlaneFinderService DEBUG] ac.reg:', ac.reg, ' -> prefix:', reg);
-        console.log('[PlaneFinderService DEBUG] ac.r:', ac.r, ' ac.ctry:', ac.ctry, ' ac.countryCode:', ac.countryCode);
-
-         // Fetch DB record
-         const dbAircraft = getAircraftInfo(id);
-         // Derive country or fallback to registration prefix
-         const rawCountry = ac.ctry ?? ac.countryCode;
-         const regPrefix = reg.split('-')[0].replace(/\d/g, '').toUpperCase();
-         const origin =
-           typeof rawCountry === 'string' && /^[A-Za-z]{2}$/.test(rawCountry)
-             ? rawCountry.toUpperCase()
-             : REGISTRATION_COUNTRY_PREFIX[regPrefix] || 'Unknown';
-         console.log('[PlaneFinderService DEBUG] Plane', id, 'rawCountry=', rawCountry, 'regPrefix=', regPrefix, 'derived origin=', origin);
-         console.log('[PlaneFinderService DEBUG] Flag HTML for', id, getFlagHTML(origin));
+        // Fetch DB record
+        const dbAircraft = getAircraftInfo(id);
+        // Derive country or fallback to registration prefix
+        const rawCountry = ac.ctry ?? ac.countryCode;
+        const regPrefix = reg.split('-')[0].replace(/\d/g, '').toUpperCase();
+        const origin =
+          typeof rawCountry === 'string' && /^[A-Za-z]{2}$/.test(rawCountry)
+            ? rawCountry.toUpperCase()
+            : REGISTRATION_COUNTRY_PREFIX[regPrefix] || 'Unknown';
 
         // Operator will be set later in model update
         const lat = ac.lat;
@@ -557,7 +556,8 @@ export class PlaneFinderService {
 
         // Define isFiltered early after getting necessary info
         // Treat any callsign matching configured prefixes as military
-        const prefixIsMil = this.militaryPrefixService.isMilitaryCallsign(callsign);
+        const prefixIsMil =
+          this.militaryPrefixService.isMilitaryCallsign(callsign);
         const isMilitary = prefixIsMil || dbAircraft?.mil || false;
         const wouldBeFiltered = filterPlaneByPrefix(
           callsign,
@@ -640,7 +640,8 @@ export class PlaneFinderService {
 
         // Update PlaneModel with potentially fetched aircraft data
         // Determine operator via prefix mapping or fallback to ownop from aircraft DB
-        const prefixOperator = this.operatorCallSignService.getOperator(callsign);
+        const prefixOperator =
+          this.operatorCallSignService.getOperator(callsign);
         const operator = prefixOperator ?? (dbAircraft?.ownop || '');
         const model = dbAircraft?.model || '';
 
