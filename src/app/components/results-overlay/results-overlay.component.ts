@@ -730,22 +730,33 @@ export class ResultsOverlayComponent
 
   /** Begin shuffle: immediately pick a plane, then every 30s */
   private startShuffle(): void {
-    const ts = new Date().toISOString();
+    const ts = new Date().toLocaleTimeString();
+    // console.log(`[${ts}] Shuffle started -> mode=${this.shuffleMode}`);
+    // if (this.shuffleMode === 'off') { // This was causing issues if shuffleMode is boolean
+    //   this.shuffleMode = 'bearing'; // Default to bearing if starting from off
+    // }
+    // this.isShuffling = true; // Property 'isShuffling' does not exist
+    if (this.shuffleSub) {
+      this.shuffleSub.unsubscribe();
+    }
+    this.shuffleSub = interval(30000).subscribe(() => {
+      // this.shufflePlanes(); // Property 'shufflePlanes' does not exist
+      this.pickAndCenterRandomPlane();
+    });
     this.pickAndCenterRandomPlane();
-    this.shuffleSub = interval(30000).subscribe(() =>
-      this.pickAndCenterRandomPlane()
-    );
-    console.log(`[${ts}] Shuffle started -> mode=${this.shuffleMode}`);
   }
 
   /** Stop shuffle mode */
   private stopShuffle(): void {
-    const ts = new Date().toISOString();
-    this.shuffleSub?.unsubscribe();
-    this.shuffleSub = null;
+    const ts = new Date().toLocaleTimeString();
+    // console.log(`[${ts}] Shuffle stopped -> mode=${this.shuffleMode}`);
+    // this.shuffleMode = 'off'; // This was causing issues if shuffleMode is boolean
+    if (this.shuffleSub) {
+      this.shuffleSub.unsubscribe();
+      this.shuffleSub = null;
+    }
     this.highlightedPlaneIcao = null;
     this.shuffleFollowedIcao = null;
-    console.log(`[${ts}] Shuffle stopped -> mode=${this.shuffleMode}`);
     this.cdr.detectChanges();
   }
 
@@ -759,7 +770,7 @@ export class ResultsOverlayComponent
       );
       // Exclude the currently followed plane if there are multiple options
       if (priority.length > 1 && this.shuffleFollowedIcao) {
-        pool = priority.filter(p => p.icao !== this.shuffleFollowedIcao);
+        pool = priority.filter((p) => p.icao !== this.shuffleFollowedIcao);
         if (pool.length === 0) pool = priority; // fallback if all filtered out
       } else {
         pool = priority;

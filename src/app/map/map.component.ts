@@ -903,7 +903,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       })
       .catch((err) => {
-        console.log('Wind fetch failed, using last values:', err);
+        // console.log('Wind fetch failed, using last values:', err);
+        // Keep using last valid windData if fetch fails
       });
   }
 
@@ -1033,9 +1034,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Alert on any new visible plane, but suppress only when hide-commercial filter and commercial mute are both on and all new are commercial
         const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
         // Determine if any new visible plane is a Hercules model
-        const hasHercules = newVisible.some(
-          (p) =>
-            p.model?.toLowerCase().includes('hercules')
+        const hasHercules = newVisible.some((p) =>
+          p.model?.toLowerCase().includes('hercules')
         );
         // Determine if any other alert-worthy planes (military or special)
         const hasAlertPlanes = newVisible.some(

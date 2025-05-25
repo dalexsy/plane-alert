@@ -519,6 +519,7 @@ export class PlaneFinderService {
       if (!response.ok)
         throw new Error(`ADSB One API fetch error ${response.status}`);
       const data = await response.json();
+      //  console.log('[PlaneFinderService] Raw API Response:', JSON.stringify(data)); // Log the raw API response
       // Using external JSON-based REGISTRATION_COUNTRY_PREFIX
 
       // Prepare update containers for this scan
@@ -535,43 +536,104 @@ export class PlaneFinderService {
 
         // Fetch DB record
         const dbAircraft = getAircraftInfo(id);
-        
+
         // Derive country or fallback to registration prefix
         const rawCountry = ac.ctry ?? ac.countryCode; // API provided country code
         let origin: string;
 
-        if (typeof rawCountry === 'string' && /^[A-Za-z]{2}$/.test(rawCountry)) {
-            origin = rawCountry.toUpperCase();
+        if (
+          typeof rawCountry === 'string' &&
+          /^[A-Za-z]{2}$/.test(rawCountry)
+        ) {
+          origin = rawCountry.toUpperCase();
         } else {
-            origin = 'Unknown'; // Default
-            if (reg) { // Only attempt prefix match if registration (ac.r) exists and is not empty
-                const sortedPrefixes = Object.keys(REGISTRATION_COUNTRY_PREFIX).sort(
-                    (a, b) => b.length - a.length
-                );
-                for (const prefix of sortedPrefixes) {
-                    // Ensure reg is also uppercase for comparison, as prefixes in JSON are uppercase
-                    if (reg.toUpperCase().startsWith(prefix)) { 
-                        origin = REGISTRATION_COUNTRY_PREFIX[prefix];
-                        break; 
-                    }
-                }
+          origin = 'Unknown'; // Default
+          if (reg) {
+            // Only attempt prefix match if registration (ac.r) exists and is not empty
+            const sortedPrefixes = Object.keys(
+              REGISTRATION_COUNTRY_PREFIX
+            ).sort((a, b) => b.length - a.length);
+            for (const prefix of sortedPrefixes) {
+              // Ensure reg is also uppercase for comparison, as prefixes in JSON are uppercase
+              if (reg.toUpperCase().startsWith(prefix)) {
+                origin = REGISTRATION_COUNTRY_PREFIX[prefix];
+                break;
+              }
             }
+          }
         }
 
         // Add logging for unknown origin
-        if (origin === 'Unknown' && reg !== '') {
-          console.log(`Unknown origin for registration: ${reg}`);
+        if (origin === 'Unknown') {
+          // if (reg && reg !== \'\') {
+          //   // console.log(`[PlaneFinderService] Unknown origin for ICAO: ${id}, Registration: ${reg}. API country: \\\'${rawCountry}\\\'`);
+          // } else {
+          //   // console.log(`[PlaneFinderService] Unknown origin for ICAO: ${id}. Registration not available. API country: \\\'${rawCountry}\\\'`);
+          // }
         }
 
         // Operator will be set later in model update
         const lat = ac.lat;
         const lon = ac.lon;
-        const track = ac.track;
-        const velocity = ac.gs;
-        // convert feet to meters
-        const altitudeFeet = ac.alt_baro ?? ac.alt_geom ?? 0;
+        const track = ac.track; // Raw track from API
+        const velocity = ac.gs; // This is ground speed in knots
+
+        // Use API altitude values; can be number or undefined
+        const altitudeApiValue = ac.alt_baro ?? ac.alt_geom;
+        // Default to 0 if undefined for general calculations (matches original altitudeFeet behavior)
+        const altitudeFeet = altitudeApiValue ?? 0;
         const altitude = altitudeFeet * 0.3048;
-        const onGround = false;
+
+        // Log raw data relevant to ground status and orientation for EVERY plane
+        // Enhanced logging for inputs to the onGround heuristic
+        // // console.log(`[PlaneFinderService] Processing ${id}: Inputs for onGround check -> API ac.ground: ${ac.ground}, API ac.track: ${ac.track}, alt_baro: ${ac.alt_baro}, alt_geom: ${ac.alt_geom}, gs: ${velocity}`);
+
+        let onGroundBasedOnLogic = false;
+        let altitudeForHeuristicCheck: number | undefined;
+
+        if (ac.alt_baro === 'ground') {
+          altitudeForHeuristicCheck = 0;
+        } else if (typeof ac.alt_baro === 'number') {
+          altitudeForHeuristicCheck = ac.alt_baro;
+        } else if (typeof ac.alt_geom === 'number') {
+          // Fallback to alt_geom if alt_baro is not 'ground' and not a number
+          altitudeForHeuristicCheck = ac.alt_geom;
+        }
+        // If altitudeForHeuristicCheck is still undefined, the typeof check below will handle it
+
+        if (
+          typeof altitudeForHeuristicCheck === 'number' &&
+          altitudeForHeuristicCheck < 150 &&
+          typeof velocity === 'number' &&
+          velocity < 50
+        ) {
+          onGroundBasedOnLogic = true;
+        }
+        const onGround = ac.ground === true || onGroundBasedOnLogic;
+
+        // Enhanced logging for the onGround decision process
+        // // console.log(`[PlaneFinderService] Processing ${id}: onGround decision -> Calculated: ${onGround} (Heuristic (alt<150 && gs<50): ${onGroundBasedOnLogic}, API ac.ground value: ${ac.ground})`);
+
+        if (onGround) {
+          // Enhanced logging for planes determined to be onGround
+          // // console.log(`[PlaneFinderService] Grounded plane data for ${id}:`, {
+          //   hex: ac.hex,
+          //   api_ac_ground: ac.ground,
+          //   api_alt_baro_ft: ac.alt_baro, // Log original API value
+          //   api_alt_geom_ft: ac.alt_geom, // Log original API value
+          //   api_gs_knots: velocity,
+          //   heuristic_inputs: {
+          //       altitude_used_ft: altitudeForHeuristicCheck, // Log the numeric value used in heuristic
+          //       gs_used_knots: velocity
+          //   },
+          //   heuristic_result_onGroundBasedOnLogic: onGroundBasedOnLogic,
+          //   final_onGround_decision: onGround
+          // });
+          // This specific log for track used in marker can be inside if(onGround) or outside if we always want to see it.
+          // For now, let\'s keep it here to see what track is used when considered grounded.
+          // // console.log(`[PlaneFinderService] Grounded plane ${id} - track for marker: ${track ?? 0}`); // Will be replaced by log with trackForMarker
+        }
+
         const isSpecial = this.specialListService.isSpecial(id);
 
         // Define isFiltered early after getting necessary info
@@ -699,21 +761,21 @@ export class PlaneFinderService {
           (typeof lat !== 'number' || typeof lon !== 'number')
         ) {
           // Log if a new plane is created without valid initial coordinates
-          console.warn(
-            `[PlaneFinderService ${id}] New plane created without valid initial lat/lon:`,
-            lat,
-            lon
-          );
+          // // console.warn(
+          //   `[PlaneFinderService ${id}] New plane created without valid initial lat/lon:`,
+          //   lat,
+          //   lon
+          // );
         } else if (
           isExistingPlane &&
           (typeof lat !== 'number' || typeof lon !== 'number')
         ) {
           // Log if an existing plane receives invalid coordinates
-          console.warn(
-            `[PlaneFinderService ${id}] Existing plane received invalid lat/lon:`,
-            lat,
-            lon
-          );
+          // // console.warn(
+          //   `[PlaneFinderService ${id}] Existing plane received invalid lat/lon:`,
+          //   lat,
+          //   lon
+          // );
         }
 
         // Create/Update Marker
@@ -737,6 +799,35 @@ export class PlaneFinderService {
         );
         const extraStyle = this.computeExtraStyle(altitude, onGround);
 
+        let trackForMarker: number;
+        if (onGround) {
+          if (typeof ac.track === 'number') {
+            trackForMarker = ac.track;
+          } else {
+            let lastKnownTrackFromHistory: number | undefined = undefined;
+            if (
+              planeModelInstance &&
+              planeModelInstance.positionHistory &&
+              planeModelInstance.positionHistory.length > 0
+            ) {
+              for (
+                let i = planeModelInstance.positionHistory.length - 1;
+                i >= 0;
+                i--
+              ) {
+                const historyPoint = planeModelInstance.positionHistory[i];
+                if (typeof historyPoint.track === 'number') {
+                  lastKnownTrackFromHistory = historyPoint.track;
+                  break;
+                }
+              }
+            }
+            trackForMarker = lastKnownTrackFromHistory ?? 0;
+          }
+        } else {
+          trackForMarker = track ?? 0;
+        }
+
         // Custom icon mapping removed, always use default icon
         const customPlaneIcon = '';
         const followed = !!(
@@ -749,7 +840,7 @@ export class PlaneFinderService {
           map,
           lat,
           lon,
-          track ?? 0,
+          trackForMarker, // Use the determined trackForMarker
           extraStyle,
           isNew,
           onGround,
@@ -777,69 +868,20 @@ export class PlaneFinderService {
         );
         // Note: updatePlanePath now modifies planeModelInstance.path and planeModelInstance.historyTrailSegments directly
 
-        updatedLogModels.push(planeModelInstance); // Add the updated model to the list for this scan
-      });
-
-      // Remove planes that are no longer in the API response
-      for (const [id, plane] of previousLog.entries()) {
-        if (!currentUpdateSet.has(id)) {
-          // Check against the set of IDs found in this scan
-          this.removePlaneVisuals(plane, map); // Use helper
-          previousLog.delete(id);
-        }
-      }
-
-      // Update 'isNew' and rebind tooltips so styling always reflects the PlaneModel state
-      updatedLogModels.forEach((plane) => {
-        const stillNew = this.newPlaneService.isNew(plane.icao);
-        plane.isNew = stillNew;
-        const aircraft = getAircraftInfo(plane.icao);
-        const prefixIsMil2 = this.militaryPrefixService.isMilitaryCallsign(
-          plane.callsign
-        );
-        const isMilitary = prefixIsMil2 || aircraft?.mil || false;
-        if (plane.marker) {
-          // Rebind tooltip fully to ensure classes are in sync with plane state
-          const tooltip = plane.marker.getTooltip();
-          if (tooltip) {
-            const rawContent = tooltip.getContent();
-            const content = rawContent ?? '';
-            // Build new className string
-            const className = [
-              'plane-tooltip',
-              plane.onGround ? 'grounded-plane-tooltip' : '',
-              stillNew ? 'new-plane-tooltip' : '',
-              isMilitary ? 'military-plane-tooltip' : '',
-              plane.isSpecial ? 'special-plane-tooltip' : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-            // Unbind and rebind with updated options
-            plane.marker.unbindTooltip();
-            plane.marker.bindTooltip(content, {
-              permanent: true,
-              direction: 'right',
-              offset: plane.onGround ? L.point(-10, 0) : L.point(10, 0),
-              interactive: true,
-              className: className,
-              pane: 'tooltipPane',
-            });
-            plane.marker.openTooltip();
-          }
-        }
+        updatedLogModels.push(planeModelInstance);
       });
 
       this.newPlaneService.updatePlanes(currentUpdateSet);
       return {
         anyNew,
         currentIDs: Array.from(currentUpdateSet),
-        updatedLog: Array.from(previousLog.values()),
+        updatedLog: updatedLogModels,
       };
     } catch (err) {
-      console.warn(
-        '[PlaneFinderService] Error fetching plane data, continuing with previous data',
-        err
-      );
+      // console.warn(
+      //   '[PlaneFinderService] Error fetching plane data, continuing with previous data',
+      //   err
+      // );
       return {
         anyNew: false,
         currentIDs: Array.from(previousLog.keys()),

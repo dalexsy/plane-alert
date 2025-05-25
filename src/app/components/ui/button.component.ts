@@ -50,16 +50,11 @@ export class ButtonComponent implements OnChanges {
   constructor(private el: ElementRef) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (
-      changes['icon'] &&
-      this.el.nativeElement.classList.contains('shuffle-toggle')
-    ) {
-      // Removed debug log for shuffle-toggle icon changes
-      // console.log(`[ShuffleButton] icon changed to: ${this.icon}`);
+    if (changes['icon']) {
     }
   }
 
-  onClick(event: Event) {
+  onClick(event: MouseEvent): void {
     // Stop event propagation FIRST to prevent any parent handlers
     event.preventDefault();
     event.stopPropagation();
