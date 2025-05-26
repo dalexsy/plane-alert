@@ -21,10 +21,29 @@ import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
 import registrationCountryPrefix from '../../assets/data/registration-country-prefix.json';
+// import icaoHexCountryPrefix from '../../assets/data/icao-hex-country-prefix.json';
+import icaoCountryRanges from '../../assets/data/icao-country-ranges.json';
 
 // External registration prefix → country code map
 const REGISTRATION_COUNTRY_PREFIX: Record<string, string> =
   registrationCountryPrefix as Record<string, string>;
+
+// External ICAO hex prefix → country code map
+// const ICAO_HEX_COUNTRY_PREFIX: Record<string, string> =
+//  icaoHexCountryPrefix as Record<string, string>;
+
+interface IcaoCountryRange {
+  startHex: string;
+  finishHex: string;
+  startDec: number;
+  finishDec: number;
+  countryISO2: string;
+  isMilitary: boolean;
+  significantBitmask: string;
+}
+
+const ICAO_COUNTRY_RANGES: IcaoCountryRange[] =
+  icaoCountryRanges as IcaoCountryRange[];
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -548,13 +567,37 @@ export class PlaneFinderService {
           origin = rawCountry.toUpperCase();
         } else {
           origin = 'Unknown'; // Default
-          if (reg) {
-            // Only attempt prefix match if registration (ac.r) exists and is not empty
-            const sortedPrefixes = Object.keys(
+          // Try ICAO hex range lookup first
+          const icaoDec = parseInt(id, 16);
+          let matchingRanges: IcaoCountryRange[] = [];
+          for (const range of ICAO_COUNTRY_RANGES) {
+            if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
+              matchingRanges.push(range);
+            }
+          }
+
+          if (matchingRanges.length > 0) {
+            // Sort matching ranges by significance of the bitmask (more set bits = more specific)
+            matchingRanges.sort((a, b) => {
+              const countSetBits = (hexMask: string) => {
+                let count = 0;
+                for (let i = 0; i < hexMask.length; i++) {
+                  count += parseInt(hexMask[i], 16).toString(2).split('1').length - 1;
+                }
+                return count;
+              };
+              return countSetBits(b.significantBitmask) - countSetBits(a.significantBitmask);
+            });
+            origin = matchingRanges[0].countryISO2;
+          }
+
+
+          if (origin === 'Unknown' && reg) {
+            // Fallback to registration prefix match if not found in ICAO ranges and registration (ac.r) exists
+            const sortedRegistrationPrefixes = Object.keys(
               REGISTRATION_COUNTRY_PREFIX
             ).sort((a, b) => b.length - a.length);
-            for (const prefix of sortedPrefixes) {
-              // Ensure reg is also uppercase for comparison, as prefixes in JSON are uppercase
+            for (const prefix of sortedRegistrationPrefixes) {
               if (reg.toUpperCase().startsWith(prefix)) {
                 origin = REGISTRATION_COUNTRY_PREFIX[prefix];
                 break;
@@ -565,11 +608,15 @@ export class PlaneFinderService {
 
         // Add logging for unknown origin
         if (origin === 'Unknown') {
-          // if (reg && reg !== \'\') {
-          //   // console.log(`[PlaneFinderService] Unknown origin for ICAO: ${id}, Registration: ${reg}. API country: \\\'${rawCountry}\\\'`);
-          // } else {
-          //   // console.log(`[PlaneFinderService] Unknown origin for ICAO: ${id}. Registration not available. API country: \\\'${rawCountry}\\\'`);
-          // }
+          if (reg && reg !== '') {
+            console.log(
+              `[PlaneFinderService] Unknown origin for ICAO: ${id}, Registration: ${reg}. API country: '${rawCountry}'`
+            );
+          } else {
+            console.log(
+              `[PlaneFinderService] Unknown origin for ICAO: ${id}. Registration not available. API country: '${rawCountry}'`
+            );
+          }
         }
 
         // Operator will be set later in model update

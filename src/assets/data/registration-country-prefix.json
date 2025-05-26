@@ -157,6 +157,7 @@
   "ST": "SD",
   "SU": "EG",
   "SX": "GR",
+  "T": "CH",
   "T2": "TV",
   "T3": "KI",
   "T5": "SD",
@@ -200,5 +201,12 @@
   "Z-W": "ZW",
   "XX": "UN",
   "YL": "LV",
-  "YV": "VE"
+  "YV": "VE",
+  "YU": "RS",
+  "YA": "AF",
+  "YI": "IQ",
+  "YR": "RO",
+  "YS": "AU",
+  "YT": "HR",
+  "ZZ": "UN"
 }
