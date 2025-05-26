@@ -531,7 +531,7 @@ export class PlaneFinderService {
         const reg: string = ac.r?.trim() || '';
 
         // Fetch DB record
-        const dbAircraft = getAircraftInfo(id);        // Derive country using the new aircraft country service
+        const dbAircraft = getAircraftInfo(id); // Derive country using the new aircraft country service
         const rawCountry = ac.ctry ?? ac.countryCode; // API provided country code
         const origin = this.aircraftCountryService.getAircraftCountry(
           reg,

@@ -1,9 +1,9 @@
 /**
  * ICAO 24-bit Address Allocation Configuration
- * 
+ *
  * This configuration defines the official ICAO hex address ranges allocated to different countries.
  * These allocations are based on ICAO documentation and are maintained separately for easier updates.
- * 
+ *
  * Source: ICAO Annex 10, Volume III, Chapter 9
  * Last updated: May 2025
  */
@@ -30,132 +30,132 @@ export interface IcaoAllocation {
 export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   // North America
   {
-    start: 0xA00000,
-    end: 0xAFFFFF,
+    start: 0xa00000,
+    end: 0xafffff,
     countryCode: 'US',
     countryName: 'United States',
     type: 'mixed',
-    notes: 'Primary US allocation block'
+    notes: 'Primary US allocation block',
   },
   {
-    start: 0xC00000,
-    end: 0xC3FFFF,
+    start: 0xc00000,
+    end: 0xc3ffff,
     countryCode: 'CA',
     countryName: 'Canada',
     type: 'civil',
-    notes: 'Canadian civil aviation'
+    notes: 'Canadian civil aviation',
   },
 
   // Europe - Germany
   {
     start: 0x380000,
-    end: 0x3BFFFF,
+    end: 0x3bffff,
     countryCode: 'DE',
     countryName: 'Germany',
     type: 'civil',
-    notes: 'German civil aviation'
+    notes: 'German civil aviation',
   },
   {
-    start: 0x3C0000,
-    end: 0x3FFFFF,
+    start: 0x3c0000,
+    end: 0x3fffff,
     countryCode: 'DE',
     countryName: 'Germany',
     type: 'military',
-    notes: 'German military aviation'
+    notes: 'German military aviation',
   },
 
   // Europe - Other Major Countries
   {
     start: 0x400000,
-    end: 0x43FFFF,
+    end: 0x43ffff,
     countryCode: 'GB',
     countryName: 'United Kingdom',
     type: 'mixed',
-    notes: 'UK civil and military aviation'
+    notes: 'UK civil and military aviation',
   },
   {
-    start: 0x0A0000,
-    end: 0x0A7FFF,
+    start: 0x0a0000,
+    end: 0x0a7fff,
     countryCode: 'FR',
     countryName: 'France',
     type: 'civil',
-    notes: 'French civil aviation'
+    notes: 'French civil aviation',
   },
   {
     start: 0x440000,
-    end: 0x47FFFF,
+    end: 0x47ffff,
     countryCode: 'IT',
     countryName: 'Italy',
     type: 'mixed',
-    notes: 'Italian aviation'
+    notes: 'Italian aviation',
   },
   {
     start: 0x480000,
-    end: 0x4BFFFF,
+    end: 0x4bffff,
     countryCode: 'NL',
     countryName: 'Netherlands',
     type: 'mixed',
-    notes: 'Dutch aviation'
+    notes: 'Dutch aviation',
   },
   {
-    start: 0x4C0000,
-    end: 0x4FFFFF,
+    start: 0x4c0000,
+    end: 0x4fffff,
     countryCode: 'NO',
     countryName: 'Norway',
     type: 'mixed',
-    notes: 'Norwegian aviation'
+    notes: 'Norwegian aviation',
   },
   {
     start: 0x340000,
-    end: 0x37FFFF,
+    end: 0x37ffff,
     countryCode: 'ES',
     countryName: 'Spain',
     type: 'mixed',
-    notes: 'Spanish aviation'
+    notes: 'Spanish aviation',
   },
   // Europe - Small States (previously problematic)
   {
     start: 0x500000,
-    end: 0x5003FF,
+    end: 0x5003ff,
     countryCode: 'SM',
     countryName: 'San Marino',
     type: 'civil',
-    notes: 'T7 prefix aircraft - previously incorrectly mapped to Albania'
+    notes: 'T7 prefix aircraft - previously incorrectly mapped to Albania',
   },
   {
     start: 0x501000,
-    end: 0x5013FF,
+    end: 0x5013ff,
     countryCode: 'AL',
     countryName: 'Albania',
     type: 'civil',
-    notes: 'Albanian civil aviation'
+    notes: 'Albanian civil aviation',
   },
 
   // Asia-Pacific
   {
     start: 0x840000,
-    end: 0x87FFFF,
+    end: 0x87ffff,
     countryCode: 'JP',
     countryName: 'Japan',
     type: 'mixed',
-    notes: 'Japanese aviation'
+    notes: 'Japanese aviation',
   },
   {
     start: 0x780000,
-    end: 0x7BFFFF,
+    end: 0x7bffff,
     countryCode: 'CN',
     countryName: 'China',
     type: 'mixed',
-    notes: 'Chinese aviation'
+    notes: 'Chinese aviation',
   },
   {
-    start: 0x7C0000,
-    end: 0x7FFFFF,
+    start: 0x7c0000,
+    end: 0x7fffff,
     countryCode: 'AU',
     countryName: 'Australia',
     type: 'mixed',
-    notes: 'Australian aviation'
-  }
+    notes: 'Australian aviation',
+  },
 ];
 
 /**
@@ -164,15 +164,15 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
 export const ICAO_LOOKUP_CONFIG = {
   /** Whether to enable ICAO hex lookup as a fallback */
   enableIcaoLookup: true,
-  
+
   /** Whether to log unknown ICAO hex codes for debugging */
   logUnknownHexCodes: true,
-  
+
   /** Maximum age in milliseconds for cached lookups */
   cacheMaxAge: 24 * 60 * 60 * 1000, // 24 hours
-  
+
   /** Whether to perform case-insensitive hex lookups */
-  caseInsensitive: true
+  caseInsensitive: true,
 } as const;
 
 /**
@@ -191,18 +191,18 @@ export const MILITARY_REGISTRATION_PATTERNS: MilitaryRegistrationPattern[] = [
   {
     pattern: '^54\\+',
     countryCode: 'DE',
-    description: 'German military aircraft (54+ prefix)'
+    description: 'German military aircraft (54+ prefix)',
   },
   {
     pattern: '^ZK-',
     countryCode: 'NZ',
-    description: 'New Zealand military aircraft'
+    description: 'New Zealand military aircraft',
   },
   {
     pattern: '^MM\\d+',
     countryCode: 'IT',
-    description: 'Italian military aircraft'
-  }
+    description: 'Italian military aircraft',
+  },
 ];
 
 /**
@@ -215,7 +215,7 @@ export class IcaoAllocationUtils {
   static findCountryByIcaoHex(icaoHex: string): string | null {
     try {
       const icaoDec = parseInt(icaoHex, 16);
-      
+
       for (const allocation of ICAO_ALLOCATIONS) {
         if (icaoDec >= allocation.start && icaoDec <= allocation.end) {
           return allocation.countryCode;
@@ -226,7 +226,7 @@ export class IcaoAllocationUtils {
         console.warn('Invalid ICAO hex format:', icaoHex);
       }
     }
-    
+
     return null;
   }
 
@@ -235,7 +235,7 @@ export class IcaoAllocationUtils {
    */
   static getAllocationsForCountry(countryCode: string): IcaoAllocation[] {
     return ICAO_ALLOCATIONS.filter(
-      allocation => allocation.countryCode === countryCode.toUpperCase()
+      (allocation) => allocation.countryCode === countryCode.toUpperCase()
     );
   }
 
@@ -252,7 +252,7 @@ export class IcaoAllocationUtils {
   static getAllocationInfo(icaoHex: string): IcaoAllocation | null {
     try {
       const icaoDec = parseInt(icaoHex, 16);
-      
+
       for (const allocation of ICAO_ALLOCATIONS) {
         if (icaoDec >= allocation.start && icaoDec <= allocation.end) {
           return allocation;
@@ -263,7 +263,7 @@ export class IcaoAllocationUtils {
         console.warn('Invalid ICAO hex format:', icaoHex);
       }
     }
-    
+
     return null;
   }
 }

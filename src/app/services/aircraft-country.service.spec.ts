@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { AircraftCountryService, CountryDetectionResult } from './aircraft-country.service';
+import {
+  AircraftCountryService,
+  CountryDetectionResult,
+} from './aircraft-country.service';
 
 describe('AircraftCountryService', () => {
   let service: AircraftCountryService;
@@ -12,14 +15,22 @@ describe('AircraftCountryService', () => {
 
   describe('API Country Priority', () => {
     it('should prioritize valid API country code', () => {
-      const result = service.getAircraftCountryDetailed('N123AB', '123456', 'US');
+      const result = service.getAircraftCountryDetailed(
+        'N123AB',
+        '123456',
+        'US'
+      );
       expect(result.countryCode).toBe('US');
       expect(result.confidence).toBe('high');
       expect(result.source).toBe('api');
     });
 
     it('should reject invalid API country codes', () => {
-      const result = service.getAircraftCountryDetailed('G-ABCD', '123456', 'INVALID');
+      const result = service.getAircraftCountryDetailed(
+        'G-ABCD',
+        '123456',
+        'INVALID'
+      );
       expect(result.countryCode).toBe('GB'); // Should fall back to registration
       expect(result.source).toBe('registration');
     });
@@ -48,7 +59,8 @@ describe('AircraftCountryService', () => {
       expect(result.confidence).toBe('high');
       expect(result.source).toBe('registration');
       expect(result.metadata?.registrationPrefix).toBe('N');
-    });    it('should correctly identify UK aircraft by G prefix', () => {
+    });
+    it('should correctly identify UK aircraft by G prefix', () => {
       const result = service.getAircraftCountryDetailed('G-ABCD');
       expect(result.countryCode).toBe('GB');
       expect(result.source).toBe('registration');
@@ -60,7 +72,8 @@ describe('AircraftCountryService', () => {
       expect(result.countryCode).toBe('SM');
       expect(result.source).toBe('registration');
       expect(result.metadata?.registrationPrefix).toBe('T7');
-    });    it('should handle longest prefix matching correctly', () => {
+    });
+    it('should handle longest prefix matching correctly', () => {
       // Test that longer prefixes are matched before shorter ones
       const result = service.getAircraftCountryDetailed('VH-ABC');
       expect(result.countryCode).toBe('AU');
@@ -116,12 +129,19 @@ describe('AircraftCountryService', () => {
   describe('Priority System', () => {
     it('should prioritize API > Military > Registration > ICAO hex', () => {
       // API should win
-      const apiResult = service.getAircraftCountryDetailed('54+01', 'A12345', 'FR');
+      const apiResult = service.getAircraftCountryDetailed(
+        '54+01',
+        'A12345',
+        'FR'
+      );
       expect(apiResult.countryCode).toBe('FR');
       expect(apiResult.source).toBe('api');
 
       // Military pattern should win over registration and ICAO
-      const militaryResult = service.getAircraftCountryDetailed('54+01', 'A12345');
+      const militaryResult = service.getAircraftCountryDetailed(
+        '54+01',
+        'A12345'
+      );
       expect(militaryResult.countryCode).toBe('DE');
       expect(militaryResult.source).toBe('military-pattern');
 
@@ -131,7 +151,10 @@ describe('AircraftCountryService', () => {
       expect(regResult.source).toBe('registration');
 
       // ICAO should be used as fallback
-      const icaoResult = service.getAircraftCountryDetailed(undefined, 'A12345');
+      const icaoResult = service.getAircraftCountryDetailed(
+        undefined,
+        'A12345'
+      );
       expect(icaoResult.countryCode).toBe('US');
       expect(icaoResult.source).toBe('icao-hex');
     });
@@ -140,7 +163,7 @@ describe('AircraftCountryService', () => {
   describe('Comprehensive Aircraft Info', () => {
     it('should provide detailed diagnostics information', () => {
       const info = service.getAircraftInfo('G-ABCD', 'A12345', 'US');
-      
+
       expect(info.countryCode).toBe('US'); // API wins
       expect(info.source).toBe('api');
       expect(info.diagnostics.hasRegistration).toBe(true);
@@ -154,8 +177,12 @@ describe('AircraftCountryService', () => {
   describe('Legacy Compatibility', () => {
     it('should maintain backward compatibility with getAircraftCountry', () => {
       const legacyResult = service.getAircraftCountry('N123AB', '123456', 'US');
-      const newResult = service.getAircraftCountryDetailed('N123AB', '123456', 'US');
-      
+      const newResult = service.getAircraftCountryDetailed(
+        'N123AB',
+        '123456',
+        'US'
+      );
+
       expect(legacyResult).toBe(newResult.countryCode);
       expect(legacyResult).toBe('US');
     });
@@ -176,9 +203,9 @@ describe('AircraftCountryService', () => {
       // Add some entries to cache
       service.getAircraftCountryDetailed(undefined, 'A12345');
       service.getAircraftCountryDetailed(undefined, '4c1234');
-      
+
       expect(service.getCacheStats().size).toBe(2);
-      
+
       service.clearCache();
       expect(service.getCacheStats().size).toBe(0);
     });
@@ -208,7 +235,8 @@ describe('AircraftCountryService', () => {
     it('should fall back to registration prefix when API country invalid', () => {
       const result = service.getAircraftCountry('N123AB', '47B1DC', 'invalid');
       expect(result).toBe('US'); // N prefix should map to US
-    });    it('should return KZ for UNKNOWN registration (UN prefix)', () => {
+    });
+    it('should return KZ for UNKNOWN registration (UN prefix)', () => {
       const result = service.getAircraftCountry('UNKNOWN', '47B1DC', '');
       expect(result).toBe('KZ'); // UN prefix maps to Kazakhstan
     });
@@ -223,11 +251,11 @@ describe('AircraftCountryService', () => {
       // Test Netherlands ICAO range
       const nlResult = service.getAircraftCountry('', '4B9E06', '');
       expect(nlResult).toBe('NL'); // Should be identified as Netherlands
-      
+
       // Test US ICAO range
       const usResult = service.getAircraftCountry('', 'A12345', '');
       expect(usResult).toBe('US'); // Should be identified as United States
-      
+
       // Test unknown range
       const unknownResult = service.getAircraftCountry('', '123456', '');
       expect(unknownResult).toBe('Unknown'); // Should be unknown for unallocated range
