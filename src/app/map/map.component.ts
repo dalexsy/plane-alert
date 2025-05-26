@@ -1378,9 +1378,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         },
       ];
     });
-    // Merge with actual planes for overlay, but do not show icon for markers with altitude < 0
+    // Merge with actual planes for overlay, preserving all real planes (including grounded) and adding markers
     this.windowViewPlanes = [
-      ...this.windowViewPlanes.filter((p) => p.altitude >= 0), // keep real planes only
+      // keep only real plane entries (exclude marker objects)
+      ...this.windowViewPlanes.filter((p) => !p.isMarker),
+      // then append marker entries
       ...markers,
     ];
   }
