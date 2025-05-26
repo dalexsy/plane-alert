@@ -1,0 +1,20 @@
+.flag-callsign-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  .callsign {
+    font-weight: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+}
+
+// Ensure flag styling is consistent
+:deep(.flag) {
+  width: 16px;
+  height: 12px;
+  display: inline-block;
+  border-radius: 2px;
+  vertical-align: middle;
+}

@@ -1,4 +1,8 @@
-<div class="window-view-overlay" (contextmenu)="$event.stopPropagation()" [style.background]="skyBackground">
+<div
+  class="window-view-overlay"
+  (contextmenu)="$event.stopPropagation()"
+  [style.background]="skyBackground"
+>
   <!-- dynamic sky background -->
   <div
     *ngIf="windowCloudUrl"
@@ -65,7 +69,11 @@
         }"
         [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
         [style.left]="plane.x + '%'"
-        [style.bottom]="plane.isGrounded ? (plane.groundStackOrder! * 1.5) + 'rem' : 'calc(' + plane.y + '% - .5rem)'"
+        [style.bottom]="
+          plane.isGrounded
+            ? plane.groundStackOrder! * 1.5 + 'rem'
+            : 'calc(' + plane.y + '% - .5rem)'
+        "
         [style.transformOrigin]="'bottom center'"
         [title]="plane.isMarker ? '' : ' (' + plane.altitude + 'm)'"
       >
@@ -152,7 +160,10 @@
             "
             (click)="handleLabelClick(plane, $event)"
           >
-            {{ plane.callsign }}
+            <app-flag-callsign
+              [callsign]="plane.callsign"
+              [origin]="plane.origin"
+            ></app-flag-callsign>
           </span>
         </ng-container>
         <!-- celestial markers (Sun/Moon icons) -->

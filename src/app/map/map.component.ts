@@ -1339,9 +1339,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       return dirs[Math.round((az % 360) / 22.5) % 16];
     };
     // Helper to convert radius to y (altitude) for window view (fixed at 10km)
-    const y = (10 / 12) * 70; // 10km out of 12km max altitude (scaled down to avoid clipping)
-
-    // Build marker objects
+    const y = (10 / 12) * 70; // 10km out of 12km max altitude (scaled down to avoid clipping)    // Build marker objects
     const markers = cones.flatMap(({ label, start, end }) => {
       const mid = (start + end) / 2;
       const width = (end - start + 360) % 360;
@@ -1355,6 +1353,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           azimuth: start,
           compass: azToCompass(start),
           icao: `marker-${label}-start`, // Assign dummy icao for type safety
+          origin: '', // Empty origin for marker objects
         },
         {
           x: azToX(mid),
@@ -1365,6 +1364,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           azimuth: mid,
           compass: azToCompass(mid),
           icao: `marker-${label}-mid`, // Assign dummy icao for type safety
+          origin: '', // Empty origin for marker objects
         },
         {
           x: azToX(end),
@@ -1375,6 +1375,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           azimuth: end,
           compass: azToCompass(end),
           icao: `marker-${label}-end`, // Assign dummy icao for type safety
+          origin: '', // Empty origin for marker objects
         },
       ];
     });
@@ -1458,7 +1459,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const maxRadius = this.settings.radius ?? 5; // fallback radius in km
         // scale from 1 at center to 0.5 at max radius
         const scale = Math.max(0.5, 1 - (distKm / maxRadius) * 0.5);
-
         return {
           x,
           y,
@@ -1480,6 +1480,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isMilitary: plane.isMilitary,
           isSpecial: plane.isSpecial,
           icao: plane.icao, // for type safety
+          origin: plane.origin, // Origin country for flag display
           isGrounded,
         };
       });

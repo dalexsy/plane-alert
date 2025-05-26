@@ -15,6 +15,8 @@ import { EngineIconType } from '../../../app/utils/plane-icons';
 import { PlaneStyleService } from '../../../app/services/plane-style.service';
 import { CelestialService } from '../../../app/services/celestial.service';
 import { AltitudeColorService } from '../../../app/services/altitude-color.service';
+import { CountryService } from '../../../app/services/country.service';
+import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -22,6 +24,7 @@ export interface WindowViewPlane {
   callsign: string;
   icao: string; // ICAO code for plane identification
   altitude: number;
+  origin: string; // Origin country for flag display
   lat?: number; // Optional geographic coordinates for centering
   lon?: number;
   bearing?: number;
@@ -62,7 +65,7 @@ export interface WindowViewPlane {
 @Component({
   selector: 'app-window-view-overlay',
   standalone: true,
-  imports: [CommonModule, HttpClientModule],
+  imports: [CommonModule, HttpClientModule, FlagCallsignComponent],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
@@ -121,13 +124,13 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
 
   /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
-
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
     private http: HttpClient,
     public altitudeColor: AltitudeColorService,
-    private elRef: ElementRef
+    private elRef: ElementRef,
+    private countryService: CountryService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();

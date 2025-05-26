@@ -29,6 +29,7 @@ export class CelestialService {
       callsign: 'Sun',
       icao: 'SUN',
       altitude: 0,
+      origin: '', // Celestial body - no origin country
       isCelestial: true,
       celestialBodyType: 'sun',
       scale: 1,
@@ -38,13 +39,13 @@ export class CelestialService {
     // Determine moon orientation toward Sun
     const moonToSunAz = sunPos.azimuth - moonPos.azimuth;
     const moonAngle = (moonToSunAz * 180) / Math.PI;
-
     const moon: WindowViewPlane = {
       x: azToX(moonPos.azimuth),
       y: altToY(moonPos.altitude),
       callsign: 'Moon',
       icao: 'MOON',
       altitude: 0,
+      origin: '', // Celestial body - no origin country
       isCelestial: true,
       celestialBodyType: 'moon',
       scale: 1,
