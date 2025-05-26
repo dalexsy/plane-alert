@@ -20,30 +20,7 @@ import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
-import registrationCountryPrefix from '../../assets/data/registration-country-prefix.json';
-// import icaoHexCountryPrefix from '../../assets/data/icao-hex-country-prefix.json';
-import icaoCountryRanges from '../../assets/data/icao-country-ranges.json';
-
-// External registration prefix → country code map
-const REGISTRATION_COUNTRY_PREFIX: Record<string, string> =
-  registrationCountryPrefix as Record<string, string>;
-
-// External ICAO hex prefix → country code map
-// const ICAO_HEX_COUNTRY_PREFIX: Record<string, string> =
-//  icaoHexCountryPrefix as Record<string, string>;
-
-interface IcaoCountryRange {
-  startHex: string;
-  finishHex: string;
-  startDec: number;
-  finishDec: number;
-  countryISO2: string;
-  isMilitary: boolean;
-  significantBitmask: string;
-}
-
-const ICAO_COUNTRY_RANGES: IcaoCountryRange[] =
-  icaoCountryRanges as IcaoCountryRange[];
+import { AircraftCountryService } from '../services/aircraft-country.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -79,7 +56,6 @@ function catmullRomPoint(
 export class PlaneFinderService {
   private mapInitialized = false;
   private isInitialLoad = false;
-
   constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
@@ -87,7 +63,8 @@ export class PlaneFinderService {
     private specialListService: SpecialListService,
     private operatorCallSignService: OperatorCallSignService,
     private militaryPrefixService: MilitaryPrefixService,
-    private altitudeColor: AltitudeColorService
+    private altitudeColor: AltitudeColorService,
+    private aircraftCountryService: AircraftCountryService
   ) {}
 
   private randomizeBrightness(): string {
@@ -554,57 +531,13 @@ export class PlaneFinderService {
         const reg: string = ac.r?.trim() || '';
 
         // Fetch DB record
-        const dbAircraft = getAircraftInfo(id);
-
-        // Derive country or fallback to registration prefix
+        const dbAircraft = getAircraftInfo(id);        // Derive country using the new aircraft country service
         const rawCountry = ac.ctry ?? ac.countryCode; // API provided country code
-        let origin: string;
-
-        if (
-          typeof rawCountry === 'string' &&
-          /^[A-Za-z]{2}$/.test(rawCountry)
-        ) {
-          origin = rawCountry.toUpperCase();
-        } else {
-          origin = 'Unknown'; // Default
-          // Try ICAO hex range lookup first
-          const icaoDec = parseInt(id, 16);
-          let matchingRanges: IcaoCountryRange[] = [];
-          for (const range of ICAO_COUNTRY_RANGES) {
-            if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
-              matchingRanges.push(range);
-            }
-          }
-
-          if (matchingRanges.length > 0) {
-            // Sort matching ranges by significance of the bitmask (more set bits = more specific)
-            matchingRanges.sort((a, b) => {
-              const countSetBits = (hexMask: string) => {
-                let count = 0;
-                for (let i = 0; i < hexMask.length; i++) {
-                  count += parseInt(hexMask[i], 16).toString(2).split('1').length - 1;
-                }
-                return count;
-              };
-              return countSetBits(b.significantBitmask) - countSetBits(a.significantBitmask);
-            });
-            origin = matchingRanges[0].countryISO2;
-          }
-
-
-          if (origin === 'Unknown' && reg) {
-            // Fallback to registration prefix match if not found in ICAO ranges and registration (ac.r) exists
-            const sortedRegistrationPrefixes = Object.keys(
-              REGISTRATION_COUNTRY_PREFIX
-            ).sort((a, b) => b.length - a.length);
-            for (const prefix of sortedRegistrationPrefixes) {
-              if (reg.toUpperCase().startsWith(prefix)) {
-                origin = REGISTRATION_COUNTRY_PREFIX[prefix];
-                break;
-              }
-            }
-          }
-        }
+        const origin = this.aircraftCountryService.getAircraftCountry(
+          reg,
+          id,
+          rawCountry
+        );
 
         // Add logging for unknown origin
         if (origin === 'Unknown') {
