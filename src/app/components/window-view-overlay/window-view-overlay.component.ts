@@ -16,6 +16,7 @@ import { PlaneStyleService } from '../../../app/services/plane-style.service';
 import { CelestialService } from '../../../app/services/celestial.service';
 import { AltitudeColorService } from '../../../app/services/altitude-color.service';
 import { CountryService } from '../../../app/services/country.service';
+import { AtmosphericSkyService } from '../../../app/services/atmospheric-sky.service';
 import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
 
 export interface WindowViewPlane {
@@ -141,7 +142,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     private http: HttpClient,
     public altitudeColor: AltitudeColorService,
     private elRef: ElementRef,
-    private countryService: CountryService
+    private countryService: CountryService,
+    private atmosphericSky: AtmosphericSkyService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -257,76 +259,48 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     );
   }
 
-  /** Compute and set sky background gradient based on sun altitude */
+  /** Compute and set sky background gradient using atmospheric scattering calculations */
   private updateSkyBackground(): void {
-    // find sun marker for dynamic sky shading
+    // Find sun marker for dynamic sky shading
     const sun = this.windowViewPlanes.find(
       (p) => p.isCelestial && p.celestialBodyType === 'sun'
     );
-    // dark night fallback
-    if (!sun || sun.belowHorizon) {
-      this.skyBackground = 'linear-gradient(to top, #001122 0%, #001122 100%)';
-      return;
+
+    // Calculate sun elevation angle from the window position
+    let sunElevationAngle = 0;
+    if (sun && !sun.belowHorizon) {
+      // Convert y position (0-100) to elevation angle (-90 to 90 degrees)
+      // y=0 is horizon (0°), y=50 is 45°, y=100 is 90° (zenith)
+      sunElevationAngle = (sun.y / 100) * 90;
+    } else {
+      // Sun is below horizon - use negative elevation for twilight/night calculations
+      sunElevationAngle = sun ? -10 : -20; // Approximate below-horizon angle
     }
-    // heavy overcast clouds: main 'Clouds' and not just few/scattered
-    const mainCond = this.weatherCondition
-      ? this.weatherCondition.toLowerCase()
-      : '';
-    const desc = this.weatherDescription
-      ? this.weatherDescription.toLowerCase()
-      : '';
-    if (
-      mainCond === 'clouds' &&
-      !desc.includes('few') &&
-      !desc.includes('scattered')
-    ) {
-      // deep overcast: dull grey sky
-      this.skyBackground = 'linear-gradient(to top, #666666 0%, #999999 100%)';
-      return;
-    }
-    // t: 0 at horizon, 1 at zenith
-    const t = sun.y / 100;
-    const hue = 210; // standard sky hue
-    // base lightness values
-    let bottomL = 55 + t * 30; // 40% to 70%
-    let topL = 80 + t * 20; // 60% to 80%
-    // base saturation for clear sky
-    let sat = 80;
-    // adjust based on weather
+
+    // Map weather condition to atmospheric sky service format
+    let weatherCondition: 'clear' | 'rain' | 'snow' | 'clouds' = 'clear';
     if (this.weatherCondition) {
       const cond = this.weatherCondition.toLowerCase();
-      const desc = this.weatherDescription
-        ? this.weatherDescription.toLowerCase()
-        : '';
-      if (
-        cond.includes('rain') ||
-        cond.includes('drizzle') ||
-        cond.includes('thunderstorm')
-      ) {
-        // rainy: dark grey sky
-        bottomL = 20;
-        topL = 40;
-        sat = 10;
+      const desc = this.weatherDescription ? this.weatherDescription.toLowerCase() : '';
+      
+      if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('thunderstorm')) {
+        weatherCondition = 'rain';
       } else if (cond.includes('snow')) {
-        bottomL = 75;
-        topL = 90;
-        sat = 40;
+        weatherCondition = 'snow';
       } else if (cond.includes('cloud')) {
-        // overcast or cloudy: dull, low-saturation sky
-        bottomL = 30;
-        topL = 50;
-        sat = 20;
-        // if just scattered clouds, keep a bit brighter
-        if (desc.includes('scattered') || desc.includes('few')) {
-          bottomL += 10;
-          topL += 10;
-          sat = 40;
+        // Only treat as cloudy if it's significant cloud cover
+        if (!desc.includes('few') && !desc.includes('scattered')) {
+          weatherCondition = 'clouds';
         }
       }
     }
-    const bottomColor = `hsl(${hue}, ${sat}%, ${bottomL.toFixed(0)}%)`;
-    const topColor = `hsl(${hue}, ${sat}%, ${topL.toFixed(0)}%)`;
-    this.skyBackground = `linear-gradient(to top, ${bottomColor} 0%, ${topColor} 100%)`;
+
+    // Calculate realistic sky colors using atmospheric scattering
+    const skyColors = this.atmosphericSky.calculateSkyColors(
+      sunElevationAngle,
+      weatherCondition
+    );    // Create gradient from horizon to zenith
+    this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;
   }
 
   /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
@@ -406,44 +380,161 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
           (x >= this.streetsideStartX || x <= this.streetsideEndX)));
     return !(inBalcony || inStreetside);
   }
-
-  /** Compute and set dynamic roof color based on weather and time of day */
+  /** Compute and set dynamic roof color with atmospheric effects and transparency */
   private setCompassBackground(): void {
-    // Determine roof color based on weather and time of day
+    // Find sun marker for atmospheric calculations
     const sun = this.windowViewPlanes.find(
       (p) => p.isCelestial && p.celestialBodyType === 'sun'
     );
-    const hour = new Date().getHours();
-    let bg = '#ff9753'; // default roof color
+
+    // Calculate sun elevation angle from the window position
+    let sunElevationAngle = 0;
+    if (sun && !sun.belowHorizon) {
+      // Convert y position (0-100) to elevation angle (-90 to 90 degrees)
+      sunElevationAngle = (sun.y / 100) * 90;
+    } else {
+      // Sun is below horizon - use negative elevation for twilight/night calculations
+      sunElevationAngle = sun ? -10 : -20; // Approximate below-horizon angle
+    }
+
+    // Map weather condition to atmospheric sky service format
+    let weatherCondition: 'clear' | 'rain' | 'snow' | 'clouds' = 'clear';
     if (this.weatherCondition) {
       const cond = this.weatherCondition.toLowerCase();
-      if (
-        cond.includes('rain') ||
-        cond.includes('drizzle') ||
-        cond.includes('thunderstorm')
-      ) {
-        bg = '#6e6e6e';
+      const desc = this.weatherDescription ? this.weatherDescription.toLowerCase() : '';
+      
+      if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('thunderstorm')) {
+        weatherCondition = 'rain';
       } else if (cond.includes('snow')) {
-        bg = '#ffffff';
+        weatherCondition = 'snow';
       } else if (cond.includes('cloud')) {
-        bg = '#cccccc';
+        // Only treat as cloudy if it's significant cloud cover
+        if (!desc.includes('few') && !desc.includes('scattered')) {
+          weatherCondition = 'clouds';
+        }
       }
-    } else if (sun && !sun.belowHorizon) {
-      // Daytime roof shading by hour
-      if (hour >= 6 && hour < 12) {
-        bg = '#ffdab3';
-      } else if (hour >= 12 && hour < 18) {
-        bg = '#ff9753';
-      } else if (hour >= 18 && hour < 20) {
-        bg = '#ff7f50';
-      } else {
-        bg = '#663d25';
-      }
-    } else {
-      // Night fallback
-      bg = '#663d25';
     }
-    this.compassBackground = bg;
+
+    // Get atmospheric sky colors
+    const skyColors = this.atmosphericSky.calculateSkyColors(
+      sunElevationAngle,
+      weatherCondition
+    );    // Base roof color (material properties)
+    let baseRoofColor = '#ff9753'; // Default terracotta/clay roof
+    
+    // Adjust base roof color for lighting conditions
+    if (sunElevationAngle <= 0) {
+      // At night - much darker roof color
+      baseRoofColor = '#3d2416'; // Very dark brown
+    } else if (sunElevationAngle < 15) {
+      // Dawn/dusk - moderately darker
+      const darkFactor = 1 - (sunElevationAngle / 15) * 0.6; // Scale darkness
+      const baseRgb = this.parseColor('#ff9753');
+      baseRoofColor = `rgb(${Math.round(baseRgb.r * darkFactor)}, ${Math.round(baseRgb.g * darkFactor)}, ${Math.round(baseRgb.b * darkFactor)})`;
+    }
+    
+    // Adjust base roof color based on weather conditions for material effects
+    if (this.weatherCondition) {
+      const cond = this.weatherCondition.toLowerCase();
+      if (cond.includes('snow')) {
+        // Snow brightens the roof regardless of lighting (reflective)
+        if (sunElevationAngle <= 0) {
+          baseRoofColor = '#5a4d3b'; // Darker snow-covered roof at night
+        } else {
+          baseRoofColor = '#d4b896'; // Slightly warmer tone when snow-covered during day
+        }
+      } else if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('thunderstorm')) {
+        // Wet surfaces appear darker
+        if (sunElevationAngle <= 0) {
+          baseRoofColor = '#2a1b0f'; // Very dark when wet at night
+        } else {
+          baseRoofColor = '#cc7a42'; // Darker when wet during day
+        }
+      }
+    }
+
+    // Parse the atmospheric colors to extract RGB values for blending
+    const horizonRgb = this.parseColor(skyColors.bottomColor);
+    const zenithRgb = this.parseColor(skyColors.topColor);
+    const baseRgb = this.parseColor(baseRoofColor);    // Calculate realistic lighting based on available light sources
+    let lightIntensity = 1.0; // Full daylight intensity
+    let ambientLight = 0.1; // Minimum ambient light (starlight, distant city glow)
+    
+    // Calculate light intensity based on sun elevation
+    if (sunElevationAngle <= -18) {
+      // Astronomical twilight or darker - minimal light
+      lightIntensity = ambientLight;
+    } else if (sunElevationAngle <= -12) {
+      // Nautical twilight
+      lightIntensity = ambientLight + (sunElevationAngle + 18) / 6 * 0.1;
+    } else if (sunElevationAngle <= -6) {
+      // Civil twilight
+      lightIntensity = 0.2 + (sunElevationAngle + 12) / 6 * 0.3;
+    } else if (sunElevationAngle <= 0) {
+      // Sunset/sunrise period
+      lightIntensity = 0.5 + (sunElevationAngle + 6) / 6 * 0.4;
+    } else if (sunElevationAngle < 15) {
+      // Low sun angle - soft lighting
+      lightIntensity = 0.9 + (sunElevationAngle / 15) * 0.1;
+    }
+    
+    // Reduce light during overcast conditions
+    if (weatherCondition === 'rain' || weatherCondition === 'clouds') {
+      lightIntensity *= 0.4; // Heavy reduction for overcast
+    } else if (weatherCondition === 'snow') {
+      lightIntensity *= 0.6; // Snow reflects some light back
+    }
+    
+    // Apply realistic lighting to base roof color
+    // In low light, colors desaturate and darken significantly
+    const litBaseRgb = {
+      r: Math.round(baseRgb.r * lightIntensity + (255 - baseRgb.r) * ambientLight * 0.1),
+      g: Math.round(baseRgb.g * lightIntensity + (255 - baseRgb.g) * ambientLight * 0.1),
+      b: Math.round(baseRgb.b * lightIntensity + (255 - baseRgb.b) * ambientLight * 0.1)
+    };
+    
+    // Calculate atmospheric influence (how much sky color affects the surface)
+    let atmosphericInfluence = lightIntensity > 0.5 ? 0.3 : 0.1; // Less atmospheric scattering in low light
+    
+    // Further reduce atmospheric influence in very dark conditions
+    if (lightIntensity < 0.2) {
+      atmosphericInfluence = 0.05;
+    }
+    
+    const materialRetention = 1 - atmosphericInfluence;
+
+    const blendedRgb = {
+      r: Math.round(litBaseRgb.r * materialRetention + horizonRgb.r * atmosphericInfluence),
+      g: Math.round(litBaseRgb.g * materialRetention + horizonRgb.g * atmosphericInfluence),
+      b: Math.round(litBaseRgb.b * materialRetention + horizonRgb.b * atmosphericInfluence)
+    };// Set the final blended roof color (solid, no transparency)
+    this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`;
+  }
+
+  /** Parse color string to RGB values */
+  private parseColor(colorStr: string): { r: number; g: number; b: number } {
+    // Handle rgb() format
+    const rgbMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      return {
+        r: parseInt(rgbMatch[1]),
+        g: parseInt(rgbMatch[2]),
+        b: parseInt(rgbMatch[3])
+      };
+    }
+
+    // Handle hex format
+    const hexMatch = colorStr.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (hexMatch) {
+      return {
+        r: parseInt(hexMatch[1], 16),
+        g: parseInt(hexMatch[2], 16),
+        b: parseInt(hexMatch[3], 16)
+      };
+    }
+
+    // Fallback to default roof color
+    return { r: 255, g: 151, b: 83 }; // #ff9753
   }
 
   /** Assign incremental stack index to grounded planes */

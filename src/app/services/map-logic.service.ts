@@ -82,7 +82,8 @@ export class MapLogicService {
         return a.isNew ? -1 : 1;
       }
       return a.firstSeen - b.firstSeen || a.icao.localeCompare(b.icao);
-    });    return {
+    });
+    return {
       sky,
       airport,
       seen: this.planeLogService.getHistoricalLog().slice(),

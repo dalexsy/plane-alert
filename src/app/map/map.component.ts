@@ -446,7 +446,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
 
           // Update the filteredOut status directly on the model
-          planeModel.filteredOut = shouldBeFiltered;          // --- Handle Visuals ---
+          planeModel.filteredOut = shouldBeFiltered; // --- Handle Visuals ---
           if (shouldBeFiltered) {
             planeModel.removeVisuals(this.map);
           } else if (
@@ -931,7 +931,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
-    for (const [icao, plane] of this.planeLog.entries()) {      if (
+    for (const [icao, plane] of this.planeLog.entries()) {
+      if (
         plane.lat == null ||
         plane.lon == null ||
         haversineDistance(lat, lon, plane.lat, plane.lon) > radius
@@ -1043,7 +1044,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           playHerculesAlert();
         } else if (hasAlertPlanes) {
           playAlertSound();
-        }        const existing = new Set(currentIDs);
+        }
+        const existing = new Set(currentIDs);
         for (const [id, plane] of this.planeLog.entries()) {
           if (!existing.has(id)) {
             plane.removeVisuals(this.map);
