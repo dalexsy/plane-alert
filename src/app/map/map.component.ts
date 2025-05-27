@@ -45,6 +45,7 @@ import { IconComponent } from '../components/ui/icon.component';
 import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
 import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
 import { getIconPathForModel } from '../utils/plane-icons';
+import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
 import { HelicopterListService } from '../services/helicopter-list.service';
 
 // OpenWeatherMap tile service API key
@@ -1459,6 +1460,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const maxRadius = this.settings.radius ?? 5; // fallback radius in km
         // scale from 1 at center to 0.5 at max radius
         const scale = Math.max(0.5, 1 - (distKm / maxRadius) * 0.5);
+        // Compute history positions for window view
+        const rawHistory = computeWindowHistoryPositions(
+          plane.positionHistory,
+          centerLat,
+          centerLon
+        );
+        const historyTrail = rawHistory.map((hp, idx, arr) => ({
+          x: hp.x,
+          y: hp.y,
+          opacity: 0.1 + (0.9 * idx) / (arr.length - 1 || 1),
+        }));
         return {
           x,
           y,
@@ -1471,9 +1483,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           iconType: iconData.iconType,
           isHelicopter: this.helicopterListService.isHelicopter(plane.icao),
           velocity: plane.velocity ?? 0,
-          // chemtrail properties
-          trailLength: Math.min((plane.velocity ?? 0) * 0.5, 150),
-          trailOpacity: Math.min((plane.velocity ?? 0) / 300, 1) * 0.8,
+          // historical trail for window view
+          historyTrail,
           scale,
           distanceKm: distKm,
           isNew: plane.isNew,

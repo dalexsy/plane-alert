@@ -374,6 +374,17 @@
     pointer-events: none;
     z-index: 1;
   }
+
+  .history-trail-dot {
+    position: absolute;
+    width: 0.4rem;
+    height: 0.4rem;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    transform: translateX(2.5rem) translateY(-0.5rem);
+  }
 }
 
 @keyframes spin {

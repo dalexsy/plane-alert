@@ -60,6 +60,8 @@ export interface WindowViewPlane {
   moonIsWaning?: boolean;
   /** True if the celestial body is below the horizon (altitude < 0) */
   belowHorizon?: boolean;
+  /** Historical trail positions for window view overlay */
+  historyTrail?: Array<{ x: number; y: number; opacity: number }>;
 }
 
 @Component({

@@ -56,6 +56,19 @@
   </ng-container>
   <div class="planes-container">
     <ng-container *ngFor="let plane of windowViewPlanes">
+      <!-- Render historical positions as small dots behind plane icons -->
+      <ng-container
+        *ngIf="!plane.isMarker && !plane.isCelestial && plane.historyTrail"
+      >
+        <div
+          *ngFor="let ht of plane.historyTrail"
+          class="history-trail-dot window-dot"
+          [style.left]="ht.x + '%'"
+          [style.bottom]="ht.y + '%'"
+          [style.opacity]="ht.opacity"
+        ></div>
+      </ng-container>
+      <!-- Then render the plane itself -->
       <div
         class="plane-dot"
         [ngClass]="{
@@ -106,48 +119,38 @@
               </span>
             </span>
           </ng-container>
-          <!-- fixed-wing planes with chemtrail and icon -->
-          <ng-container *ngIf="!plane.isHelicopter">
-            <div
-              class="icon-scale-wrapper"
-              [style.transform]="'scale(' + (plane.scale || 1) + ')'"
-              [style.transformOrigin]="'bottom center'"
-            >
+          <!-- Render icon -->
+          <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
+            <ng-container *ngIf="!plane.isHelicopter">
               <div
-                class="icon-wrapper"
-                [style.transform]="getPerspectiveTransform(plane)"
-                [style.transformOrigin]="'center center'"
+                class="icon-scale-wrapper"
+                [style.transform]="'scale(' + (plane.scale || 1) + ')'"
+                [style.transformOrigin]="'bottom center'"
               >
                 <div
-                  class="chemtrail"
-                  [style.width.px]="plane.trailLength"
-                  [style.background]="
-                    'rgba(255,255,255,' + plane.trailOpacity + ')'
-                  "
-                  [style.transform]="
-                    'rotateZ(' +
-                    ((plane.bearing ?? 0) + (plane.x < 50 ? 45 : 0)) +
-                    'deg)'
-                  "
-                ></div>
-                <svg
-                  class="plane-icon {{ plane.iconType }}"
-                  [style.color]="altitudeColor.getFillColor(plane.altitude)"
-                  viewBox="0 0 64 64"
-                  [attr.aria-label]="
-                    plane.callsign + ' at ' + plane.altitude + 'm'
-                  "
-                  [style.transform]="
-                    'rotateZ(' +
-                    ((plane.bearing ?? 0) + (plane.x > 50 ? -90 : -45)) +
-                    'deg)'
-                  "
+                  class="icon-wrapper"
+                  [style.transform]="getPerspectiveTransform(plane)"
                   [style.transformOrigin]="'center center'"
                 >
-                  <path [attr.d]="plane.iconPath"></path>
-                </svg>
+                  <svg
+                    class="plane-icon {{ plane.iconType }}"
+                    [style.color]="altitudeColor.getFillColor(plane.altitude)"
+                    viewBox="0 0 64 64"
+                    [attr.aria-label]="
+                      plane.callsign + ' at ' + plane.altitude + 'm'
+                    "
+                    [style.transform]="
+                      'rotateZ(' +
+                      ((plane.bearing ?? 0) + (plane.x > 50 ? -90 : -45)) +
+                      'deg)'
+                    "
+                    [style.transformOrigin]="'center center'"
+                  >
+                    <path [attr.d]="plane.iconPath"></path>
+                  </svg>
+                </div>
               </div>
-            </div>
+            </ng-container>
           </ng-container>
           <span
             class="plane-label"
