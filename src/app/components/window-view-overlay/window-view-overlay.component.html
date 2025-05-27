@@ -56,16 +56,22 @@
   </ng-container>
   <div class="planes-container">
     <ng-container *ngFor="let plane of windowViewPlanes">
-      <!-- Render historical positions as small dots behind plane icons -->
+      <!-- Render chemtrail lines, positioned where dots were -->
       <ng-container
-        *ngIf="!plane.isMarker && !plane.isCelestial && plane.historyTrail"
+        *ngIf="
+          !plane.isMarker && !plane.isCelestial && plane.historySegments?.length
+        "
       >
         <div
-          *ngFor="let ht of plane.historyTrail"
-          class="history-trail-dot window-dot"
-          [style.left]="ht.x + '%'"
-          [style.bottom]="ht.y + '%'"
-          [style.opacity]="ht.opacity"
+          *ngFor="let seg of plane.historySegments"
+          class="history-trail-segment"
+          [style.left]="seg.x + '%'"
+          [style.bottom]="seg.y + '%'"
+          [style.width]="seg.length + '%'"
+          [style.transform]="
+            'translateX(2.5rem) translateY(-1rem) rotateZ(' + seg.angle + 'deg)'
+          "
+          [style.opacity]="seg.opacity"
         ></div>
       </ng-container>
       <!-- Then render the plane itself -->
@@ -139,11 +145,7 @@
                     [attr.aria-label]="
                       plane.callsign + ' at ' + plane.altitude + 'm'
                     "
-                    [style.transform]="
-                      'rotateZ(' +
-                      ((plane.bearing ?? 0) + (plane.x > 50 ? -90 : -45)) +
-                      'deg)'
-                    "
+                    [style.transform]="getIconRotation(plane)"
                     [style.transformOrigin]="'center center'"
                   >
                     <path [attr.d]="plane.iconPath"></path>

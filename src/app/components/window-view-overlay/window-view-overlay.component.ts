@@ -62,6 +62,14 @@ export interface WindowViewPlane {
   belowHorizon?: boolean;
   /** Historical trail positions for window view overlay */
   historyTrail?: Array<{ x: number; y: number; opacity: number }>;
+  /** Line segments connecting historical trail dots */
+  historySegments?: Array<{
+    x: number;
+    y: number;
+    length: number;
+    angle: number;
+    opacity: number;
+  }>;
 }
 
 @Component({
@@ -126,6 +134,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
 
   /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
+  private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -159,6 +168,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.computeSpans();
       this.setCompassBackground();
       this.assignGroundStackOrder();
+      // compute history segments for chemtrail lines
+      this.computeHistorySegmentsForPlanes();
     }
   }
   /** Compute altitude ticks for bands */
@@ -445,5 +456,88 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
         p.groundStackOrder = undefined;
       }
     });
+  }
+
+  /** Compute rotation angle from historical trail movement */
+  private getMovementAngle(plane: WindowViewPlane): number | null {
+    const trail = plane.historyTrail;
+    if (trail && trail.length >= 2) {
+      const prev = trail[trail.length - 2];
+      const last = trail[trail.length - 1];
+      const dx = last.x - prev.x;
+      const dy = last.y - prev.y;
+      const angleRad = Math.atan2(dy, dx);
+      return angleRad * (180 / Math.PI);
+    }
+    return null;
+  }
+
+  /** Return CSS rotateZ transform, preferring movement-based orientation */
+  public getIconRotation(plane: WindowViewPlane): string {
+    const movement = this.getMovementAngle(plane);
+    if (movement !== null) {
+      return `rotateZ(${movement}deg)`;
+    }
+    const bearing = plane.bearing ?? 0;
+    const offset = plane.x > 50 ? -90 : -45;
+    return `rotateZ(${bearing + offset}deg)`;
+  }
+
+  /** Calculate segments connecting historyTrail points */
+  private computeHistorySegmentsForPlanes(): void {
+    this.windowViewPlanes.forEach((plane) => {
+      if (plane.historyTrail && plane.historyTrail.length >= 2) {
+        plane.historySegments = this.computeSegments(plane.historyTrail);
+      } else {
+        plane.historySegments = [];
+      }
+    });
+  }
+
+  /** Compute line segments from trail points */
+  private computeSegments(
+    trail: Array<{ x: number; y: number; opacity: number }>
+  ): Array<{
+    x: number;
+    y: number;
+    length: number;
+    angle: number;
+    opacity: number;
+  }> {
+    const segments: Array<{
+      x: number;
+      y: number;
+      length: number;
+      angle: number;
+      opacity: number;
+    }> = [];
+    for (let i = 0; i < trail.length - 1; i++) {
+      const p1 = trail[i];
+      const p2 = trail[i + 1];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      // Skip segments with endpoints outside the visible map bounds
+      if (
+        p1.x < 0 ||
+        p1.x > 100 ||
+        p2.x < 0 ||
+        p2.x > 100 ||
+        p1.y < 0 ||
+        p1.y > 100 ||
+        p2.y < 0 ||
+        p2.y > 100
+      ) {
+        continue;
+      }
+      // Skip segments that are too long (likely discontinuous)
+      if (length > this.maxHistorySegmentLengthPercent) {
+        continue;
+      }
+      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const opacity = (p1.opacity + p2.opacity) / 2;
+      segments.push({ x: p1.x, y: p1.y, length, angle, opacity });
+    }
+    return segments;
   }
 }
