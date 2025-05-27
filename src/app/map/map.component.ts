@@ -446,12 +446,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
 
           // Update the filteredOut status directly on the model
-          planeModel.filteredOut = shouldBeFiltered;
-
-          // --- Handle Visuals ---
+          planeModel.filteredOut = shouldBeFiltered;          // --- Handle Visuals ---
           if (shouldBeFiltered) {
-            planeModel.marker?.remove();
-            planeModel.path?.remove();
+            planeModel.removeVisuals(this.map);
           } else if (
             planeModel.marker &&
             !this.map.hasLayer(planeModel.marker)
@@ -934,15 +931,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
-    for (const [icao, plane] of this.planeLog.entries()) {
-      if (
+    for (const [icao, plane] of this.planeLog.entries()) {      if (
         plane.lat == null ||
         plane.lon == null ||
         haversineDistance(lat, lon, plane.lat, plane.lon) > radius
       ) {
-        plane.marker?.remove();
-        plane.path?.remove();
-        plane.removeVisuals(this.map); // Use the comprehensive removal method
+        plane.removeVisuals(this.map);
         this.planeLog.delete(icao);
       }
     }
@@ -1049,13 +1043,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           playHerculesAlert();
         } else if (hasAlertPlanes) {
           playAlertSound();
-        }
-
-        const existing = new Set(currentIDs);
+        }        const existing = new Set(currentIDs);
         for (const [id, plane] of this.planeLog.entries()) {
           if (!existing.has(id)) {
-            plane.marker?.remove();
-            plane.path?.remove();
+            plane.removeVisuals(this.map);
             this.planeLog.delete(id);
           }
         }
