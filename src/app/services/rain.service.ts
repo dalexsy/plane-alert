@@ -61,24 +61,24 @@ export interface WeatherRainMapping {
 
 /**
  * Enhanced rain animation service with atmospheric physics
- * 
+ *
  * FEATURES:
  * - Real-time weather data integration from OpenWeatherMap API
- * - Atmospheric condition-based rain intensity calculation  
+ * - Atmospheric condition-based rain intensity calculation
  * - Dynamic fall speed based on air density (pressure/temperature)
  * - Humidity-influenced drop count and size variance
  * - Visibility-based precipitation density
  * - Temperature-dependent rain color shifts
  * - Wind-affected rain angle with realistic physics
  * - Pressure-influenced drop formation characteristics
- * 
+ *
  * ATMOSPHERIC PHYSICS:
  * - Air density affects terminal velocity of raindrops
  * - Humidity influences drop formation and size distribution
  * - Pressure variations affect drop compression and behavior
  * - Temperature controls moisture capacity and drop characteristics
  * - Visibility correlates with precipitation density and particle size
- * 
+ *
  * WEATHER CONDITIONS SUPPORTED:
  * - Drizzle, Light Rain, Moderate Rain, Heavy Rain, Thunderstorms
  * - Dynamic intensity scaling based on weather descriptions
@@ -160,17 +160,43 @@ export class RainService {
     pressure: number = 1013.25,
     temperature: number = 288.15,
     visibility: number = 10000
-  ): void {    const condition = weatherCondition?.toLowerCase() || '';
+  ): void {
+    const condition = weatherCondition?.toLowerCase() || '';
     const description = weatherDescription?.toLowerCase() || '';
 
     // Determine if it should be raining
-    const shouldRain = this.shouldActivateRain(condition, description);    if (shouldRain) {
-      const intensity = this.calculateRainIntensity(condition, description, humidity, pressure, temperature);
+    const shouldRain = this.shouldActivateRain(condition, description);
+    if (shouldRain) {
+      const intensity = this.calculateRainIntensity(
+        condition,
+        description,
+        humidity,
+        pressure,
+        temperature
+      );
       const windAngle = this.calculateWindEffect(windSpeed, windDirection);
-      const fallSpeed = this.calculateFallSpeed(intensity, pressure, temperature, humidity);
-      const dropCount = this.calculateDropCount(intensity, visibility, humidity);
-      const rainColor = this.calculateRainColor(condition, description, temperature, visibility);
-      const sizeVariance = this.calculateSizeVariance(intensity, pressure, humidity);
+      const fallSpeed = this.calculateFallSpeed(
+        intensity,
+        pressure,
+        temperature,
+        humidity
+      );
+      const dropCount = this.calculateDropCount(
+        intensity,
+        visibility,
+        humidity
+      );
+      const rainColor = this.calculateRainColor(
+        condition,
+        description,
+        temperature,
+        visibility
+      );
+      const sizeVariance = this.calculateSizeVariance(
+        intensity,
+        pressure,
+        humidity
+      );
 
       this.startRain({
         ...this.defaultConfig,
@@ -209,7 +235,7 @@ export class RainService {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    
+
     // Gradually fade out existing drops
     this.fadeOutRainDrops();
   }
@@ -236,7 +262,13 @@ export class RainService {
    * @returns Intensity value (0.0 to 1.0)
    */
   public getIntensityForDescription(description: string): number {
-    return this.calculateRainIntensity('rain', description, 50, 1013.25, 288.15);
+    return this.calculateRainIntensity(
+      'rain',
+      description,
+      50,
+      1013.25,
+      288.15
+    );
   }
 
   /**
@@ -252,10 +284,7 @@ export class RainService {
   /**
    * Determine if rain should be activated based on weather conditions
    */
-  private shouldActivateRain(
-    condition: string,
-    description: string
-  ): boolean {
+  private shouldActivateRain(condition: string, description: string): boolean {
     return (
       condition.includes('rain') ||
       condition.includes('drizzle') ||
@@ -273,7 +302,8 @@ export class RainService {
     description: string,
     humidity: number = 50,
     pressure: number = 1013.25,
-    temperature: number = 288.15  ): number {
+    temperature: number = 288.15
+  ): number {
     // Base intensity from weather description
     let baseIntensity = this.weatherIntensityMap.moderateRain;
 
@@ -282,7 +312,10 @@ export class RainService {
       baseIntensity = this.weatherIntensityMap.heavyRain;
     } else if (description.includes('moderate')) {
       baseIntensity = this.weatherIntensityMap.moderateRain;
-    } else if (description.includes('light') || description.includes('slight')) {
+    } else if (
+      description.includes('light') ||
+      description.includes('slight')
+    ) {
       baseIntensity = this.weatherIntensityMap.lightRain;
     } else if (description.includes('drizzle')) {
       baseIntensity = this.weatherIntensityMap.drizzle;
@@ -290,7 +323,10 @@ export class RainService {
 
     // Check main condition
     if (condition.includes('thunderstorm')) {
-      baseIntensity = Math.max(baseIntensity, this.weatherIntensityMap.thunderstorm);
+      baseIntensity = Math.max(
+        baseIntensity,
+        this.weatherIntensityMap.thunderstorm
+      );
     } else if (condition.includes('drizzle')) {
       baseIntensity = Math.min(baseIntensity, this.weatherIntensityMap.drizzle);
     }
@@ -304,14 +340,18 @@ export class RainService {
 
     // Pressure effect: Lower pressure often means more intense precipitation
     const normalPressure = 1013.25;
-    const pressureFactor = Math.max(0.8, Math.min(1.2, normalPressure / pressure));
+    const pressureFactor = Math.max(
+      0.8,
+      Math.min(1.2, normalPressure / pressure)
+    );
     intensityModifier *= pressureFactor;
 
     // Temperature effect: Warmer air can hold more moisture
     const tempCelsius = temperature - 273.15;
-    const tempFactor = tempCelsius > 15 ? 
-      Math.min(1.15, 1 + (tempCelsius - 15) * 0.01) : 
-      Math.max(0.85, 1 - (15 - tempCelsius) * 0.005);
+    const tempFactor =
+      tempCelsius > 15
+        ? Math.min(1.15, 1 + (tempCelsius - 15) * 0.01)
+        : Math.max(0.85, 1 - (15 - tempCelsius) * 0.005);
     intensityModifier *= tempFactor;
 
     return Math.max(0.1, Math.min(1.0, baseIntensity * intensityModifier));
@@ -320,7 +360,10 @@ export class RainService {
   /**
    * Calculate wind effect on rain angle
    */
-  private calculateWindEffect(windSpeed: number, windDirection: number): number {
+  private calculateWindEffect(
+    windSpeed: number,
+    windDirection: number
+  ): number {
     // Convert wind speed to angle effect (0-45 degrees)
     const maxWindAngle = 45;
     const maxWindSpeed = 15; // m/s for maximum effect
@@ -350,15 +393,16 @@ export class RainService {
     let fallSpeed = this.defaultConfig.fallSpeed;
 
     // Intensity effect: Higher intensity = larger drops = faster fall
-    const intensityFactor = 0.7 + (intensity * 0.6); // 0.7 to 1.3 multiplier
+    const intensityFactor = 0.7 + intensity * 0.6; // 0.7 to 1.3 multiplier
     fallSpeed *= intensityFactor;
 
     // Air density effect (from pressure and temperature)
     const normalPressure = 1013.25; // hPa
     const normalTemp = 288.15; // Kelvin (15°C)
-    
+
     // Air density is proportional to pressure/temperature
-    const airDensityRatio = (pressure / normalPressure) * (normalTemp / temperature);
+    const airDensityRatio =
+      (pressure / normalPressure) * (normalTemp / temperature);
     const densityFactor = Math.max(0.8, Math.min(1.2, 2 - airDensityRatio));
     fallSpeed *= densityFactor;
 
@@ -381,13 +425,15 @@ export class RainService {
     let dropCount = this.defaultConfig.dropCount;
 
     // Intensity effect: More intense rain = more drops
-    const intensityFactor = 0.5 + (intensity * 1.0); // 0.5 to 1.5 multiplier
+    const intensityFactor = 0.5 + intensity * 1.0; // 0.5 to 1.5 multiplier
     dropCount *= intensityFactor;
 
     // Visibility effect: Lower visibility often means denser precipitation
     const visibilityKm = Math.max(0.1, visibility / 1000);
-    const visibilityFactor = visibilityKm > 10 ? 1.0 : 
-      Math.max(0.8, Math.min(1.4, 1 + (10 - visibilityKm) * 0.06));
+    const visibilityFactor =
+      visibilityKm > 10
+        ? 1.0
+        : Math.max(0.8, Math.min(1.4, 1 + (10 - visibilityKm) * 0.06));
     dropCount *= visibilityFactor;
 
     // Humidity effect: Higher humidity can support more drops
@@ -409,12 +455,15 @@ export class RainService {
     let sizeVariance = this.defaultConfig.sizeVariance;
 
     // Intensity effect: Higher intensity = more size variation
-    const intensityFactor = 0.8 + (intensity * 0.8); // 0.8 to 1.6 multiplier
+    const intensityFactor = 0.8 + intensity * 0.8; // 0.8 to 1.6 multiplier
     sizeVariance *= intensityFactor;
 
     // Pressure effect: Lower pressure = larger drops due to less compression
     const normalPressure = 1013.25;
-    const pressureFactor = Math.max(0.9, Math.min(1.3, normalPressure / pressure));
+    const pressureFactor = Math.max(
+      0.9,
+      Math.min(1.3, normalPressure / pressure)
+    );
     sizeVariance *= pressureFactor;
 
     // Humidity effect: Higher humidity = slightly larger drops
@@ -595,7 +644,10 @@ export class RainService {
       baseColor.r = Math.max(170, baseColor.r - 20);
       baseColor.g = Math.max(190, baseColor.g - 20);
       baseColor.a = Math.min(0.9, baseColor.a + 0.1);
-    } else if (description.includes('drizzle') || description.includes('light')) {
+    } else if (
+      description.includes('drizzle') ||
+      description.includes('light')
+    ) {
       // Light rain/drizzle - more transparent
       baseColor.a = Math.max(0.4, baseColor.a - 0.3);
     }
@@ -609,6 +661,8 @@ export class RainService {
       baseColor.a = Math.min(0.95, baseColor.a + 0.15);
     }
 
-    return `rgba(${Math.round(baseColor.r)}, ${Math.round(baseColor.g)}, ${Math.round(baseColor.b)}, ${baseColor.a})`;
+    return `rgba(${Math.round(baseColor.r)}, ${Math.round(
+      baseColor.g
+    )}, ${Math.round(baseColor.b)}, ${baseColor.a})`;
   }
 }

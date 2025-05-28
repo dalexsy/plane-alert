@@ -48,6 +48,7 @@ import { getIconPathForModel } from '../utils/plane-icons';
 import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
 import { HelicopterListService } from '../services/helicopter-list.service';
 import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
+import { SkyColorSyncService } from '../services/sky-color-sync.service';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -196,7 +197,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Label for next sun event (Sunset during day, Sunrise at night)
   public sunEventText: string = '';
   private sunAngleInterval: any;
-
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -208,11 +208,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private scanService: ScanService,
     private specialListService: SpecialListService,
     private mapPanService: MapPanService,
-    private cdr: ChangeDetectorRef,    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
     private militaryPrefixService: MilitaryPrefixService,
     private locationService: LocationService,
     private helicopterListService: HelicopterListService,
-    private helicopterIdentificationService: HelicopterIdentificationService
+    private helicopterIdentificationService: HelicopterIdentificationService,
+    private skyColorSyncService: SkyColorSyncService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -499,9 +501,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     // Initialize map panning service
-    this.mapPanService.init(this.map);
-
-    // Initialize sun angle overlay and kick off periodic updates
+    this.mapPanService.init(this.map);    // Initialize sun angle overlay and kick off periodic updates
     this.updateSunAngle();
     // note: initial wind fetch occurs in updateMap, so no extra one here
     this.sunAngleInterval = setInterval(() => {
@@ -511,6 +511,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.fetchWindDirection(center.lat, center.lng);
       this.cdr.detectChanges();
     }, 60000); // update every minute
+
+    // Subscribe to sky color changes for cloud layer synchronization
+    this.skyColorSyncService.skyColors$.subscribe(skyColors => {
+      if (skyColors && this.cloudLayer) {
+        this.applySkyColorsToCloudLayer(skyColors);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -1475,7 +1482,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           bearing: plane.track ?? 0,
           iconPath: iconData.path,
           iconType: iconData.iconType,
-          isHelicopter: this.helicopterIdentificationService.isHelicopter(plane.icao, plane.model),
+          isHelicopter: this.helicopterIdentificationService.isHelicopter(
+            plane.icao,
+            plane.model
+          ),
           velocity: plane.velocity ?? 0,
           // historical trail for window view
           historyTrail,
@@ -1862,8 +1872,89 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       } else {
         this.rainLayer.remove();
       }
+    }    this.settings.setShowRainCover(show);
+  }
+
+  /** Apply sky colors from window view to cloud layer for visual synchronization */
+  private applySkyColorsToCloudLayer(skyColors: { bottomColor: string; topColor: string; timestamp: number }): void {
+    if (!this.cloudLayer) return;
+
+    // Create CSS filter effects based on sky colors
+    const cloudElements = document.querySelectorAll('.cloud-layer');
+    cloudElements.forEach(element => {
+      const el = element as HTMLElement;
+      
+      // Apply a subtle color overlay that blends with the sky colors
+      // Use CSS filters to tint the cloud layer based on atmospheric conditions
+      const filter = this.createCloudLayerFilter(skyColors.bottomColor, skyColors.topColor);
+      el.style.filter = filter;
+      el.style.mixBlendMode = 'multiply';
+    });
+  }
+
+  /** Create CSS filter string for cloud layer based on sky colors */
+  private createCloudLayerFilter(bottomColor: string, topColor: string): string {
+    // Extract RGB values from the colors
+    const bottomRgb = this.extractRgbFromColor(bottomColor);
+    const topRgb = this.extractRgbFromColor(topColor);
+    
+    if (!bottomRgb || !topRgb) return '';
+
+    // Calculate average color for cloud tinting
+    const avgR = Math.round((bottomRgb.r + topRgb.r) / 2);
+    const avgG = Math.round((bottomRgb.g + topRgb.g) / 2);
+    const avgB = Math.round((bottomRgb.b + topRgb.b) / 2);
+
+    // Calculate brightness and color intensity
+    const brightness = (avgR + avgG + avgB) / (3 * 255);
+    const saturation = Math.max(avgR, avgG, avgB) - Math.min(avgR, avgG, avgB);
+
+    // Create filter based on atmospheric conditions
+    const hueShift = this.calculateHueShift(avgR, avgG, avgB);
+    const saturationAdjust = Math.max(0.8, Math.min(1.2, 1 + (saturation / 255) * 0.3));
+    const brightnessAdjust = Math.max(0.7, Math.min(1.3, brightness * 1.2));
+
+    return `hue-rotate(${hueShift}deg) saturate(${saturationAdjust}) brightness(${brightnessAdjust}) contrast(1.1)`;
+  }
+
+  /** Extract RGB values from color string */
+  private extractRgbFromColor(color: string): { r: number; g: number; b: number } | null {
+    // Handle various color formats (hex, rgb, rgba)
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      if (hex.length === 6) {
+        return {
+          r: parseInt(hex.slice(0, 2), 16),
+          g: parseInt(hex.slice(2, 4), 16),
+          b: parseInt(hex.slice(4, 6), 16)
+        };
+      }
+    } else if (color.startsWith('rgb')) {
+      const match = color.match(/\d+/g);
+      if (match && match.length >= 3) {
+        return {
+          r: parseInt(match[0]),
+          g: parseInt(match[1]),
+          b: parseInt(match[2])
+        };
+      }
     }
-    this.settings.setShowRainCover(show);
+    return null;
+  }
+
+  /** Calculate hue shift based on RGB values */
+  private calculateHueShift(r: number, g: number, b: number): number {
+    // Calculate hue shift based on dominant color
+    if (r > g && r > b) {
+      // Red dominant - sunrise/sunset tones
+      return -10 + (g / 255) * 20;
+    } else if (b > r && b > g) {
+      // Blue dominant - day/night tones
+      return 10 - (r / 255) * 20;
+    } else {
+      // Green or mixed - neutral tones
+      return 0;
+    }
   }
 
   /** Remove highlight from a plane's marker and tooltip */

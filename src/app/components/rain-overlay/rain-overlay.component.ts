@@ -7,14 +7,18 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, Subject, takeUntil } from 'rxjs';
-import { RainService, RainDrop, RainConfiguration } from '../../services/rain.service';
+import {
+  RainService,
+  RainDrop,
+  RainConfiguration,
+} from '../../services/rain.service';
 
 @Component({
   selector: 'app-rain-overlay',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div 
+    <div
       class="rain-overlay"
       [class.active]="isRaining"
       [style.opacity]="isRaining ? 1 : 0"
@@ -43,7 +47,8 @@ import { RainService, RainDrop, RainConfiguration } from '../../services/rain.se
         z-index: 5; /* Above other overlays but below UI elements */
         overflow: hidden;
         transition: opacity 0.5s ease-in-out;
-      }      .rain-drop {
+      }
+      .rain-drop {
         position: absolute;
         width: 2px;
         height: 12px;
@@ -162,14 +167,15 @@ import { RainService, RainDrop, RainConfiguration } from '../../services/rain.se
           animation-duration: 1s !important;
           opacity: 0.3 !important;
         }
-        
+
         .rain-overlay {
           transition: none;
         }
       }
 
       /* High contrast mode support */
-      @media (prefers-contrast: high) {        .rain-drop {
+      @media (prefers-contrast: high) {
+        .rain-drop {
           background: linear-gradient(
             to bottom,
             rgba(255, 255, 255, 0.2) 0%,

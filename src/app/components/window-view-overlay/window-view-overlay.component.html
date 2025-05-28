@@ -2,7 +2,8 @@
   class="window-view-overlay"
   (contextmenu)="$event.stopPropagation()"
   [style.background]="skyBackground"
->  <!-- dynamic sky background -->
+>
+  <!-- dynamic sky background -->
   <div
     *ngIf="windowCloudUrl"
     class="cloud-background"

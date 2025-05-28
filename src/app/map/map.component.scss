@@ -180,3 +180,34 @@ app-map.map-panning app-input-overlay {
     @extend %angle-icon;
   }
 }
+
+/* Cloud layer sky color synchronization styles */
+.cloud-layer {
+  transition: filter 0.5s ease-in-out, mix-blend-mode 0.3s ease;
+
+  // Enhanced blending for atmospheric effects
+  &.sky-synchronized {
+    mix-blend-mode: multiply;
+    opacity: 0.8;
+  }
+
+  // Smooth transitions when sky colors change
+  img {
+    transition: filter 0.5s ease-in-out;
+  }
+}
+
+/* Weather layer pane positioning and effects */
+.leaflet-pane.leaflet-cloud-pane {
+  z-index: 200;
+
+  .cloud-layer {
+    // Ensure smooth rendering of atmospheric effects
+    image-rendering: smooth;
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+.leaflet-pane.leaflet-rain-pane {
+  z-index: 210;
+}

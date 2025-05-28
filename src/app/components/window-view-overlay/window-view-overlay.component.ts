@@ -18,6 +18,7 @@ import { AltitudeColorService } from '../../services/altitude-color.service';
 import { CountryService } from '../../services/country.service';
 import { AtmosphericSkyService } from '../../services/atmospheric-sky.service';
 import { RainService } from '../../services/rain.service';
+import { SkyColorSyncService } from '../../services/sky-color-sync.service';
 import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
 import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 
@@ -78,7 +79,12 @@ export interface WindowViewPlane {
 @Component({
   selector: 'app-window-view-overlay',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FlagCallsignComponent, RainOverlayComponent],
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    FlagCallsignComponent,
+    RainOverlayComponent,
+  ],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
@@ -137,7 +143,6 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
-
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -146,7 +151,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     private elRef: ElementRef,
     private countryService: CountryService,
     private atmosphericSky: AtmosphericSkyService,
-    private rainService: RainService
+    private rainService: RainService,
+    private skyColorSync: SkyColorSyncService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -259,10 +265,10 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       () => {
         this.weatherCondition = null;
         this.weatherDescription = null;
-        
+
         // Stop rain if weather fetch fails
         this.rainService.stopRain();
-        
+
         this.updateSkyBackground();
         this.setCompassBackground();
       }
@@ -280,9 +286,10 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const description = weather.description?.toLowerCase() || '';
 
     // Check if it's currently raining
-    const isRaining = condition.includes('rain') || 
-                     condition.includes('drizzle') || 
-                     condition.includes('thunderstorm');
+    const isRaining =
+      condition.includes('rain') ||
+      condition.includes('drizzle') ||
+      condition.includes('thunderstorm');
 
     if (isRaining) {
       // Extract wind data for realistic rain direction
@@ -297,13 +304,13 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
 
       // Update rain service with comprehensive weather conditions
       this.rainService.updateWeatherConditions(
-        condition, 
-        description, 
-        windSpeed, 
-        windDirection, 
-        humidity, 
-        pressure, 
-        temperature, 
+        condition,
+        description,
+        windSpeed,
+        windDirection,
+        humidity,
+        pressure,
+        temperature,
         visibility
       );
     } else {
@@ -311,7 +318,6 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.rainService.stopRain();
     }
   }
-
   /** Compute and set sky background gradient using atmospheric scattering calculations */
   private updateSkyBackground(): void {
     // Find sun marker for dynamic sky shading
@@ -352,14 +358,21 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
           weatherCondition = 'clouds';
         }
       }
-    }
-
-    // Calculate realistic sky colors using atmospheric scattering
+    }    // Calculate realistic sky colors using atmospheric scattering
     const skyColors = this.atmosphericSky.calculateSkyColors(
       sunElevationAngle,
       weatherCondition
-    ); // Create gradient from horizon to zenith
+    ); 
+    
+    // Create gradient from horizon to zenith
     this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;
+    
+    // Publish sky colors to the sync service for use by other components
+    this.skyColorSync.updateSkyColors({
+      bottomColor: skyColors.bottomColor,
+      topColor: skyColors.topColor,
+      timestamp: Date.now()
+    });
   }
 
   /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
@@ -547,11 +560,9 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     } else if (sunElevationAngle < 15) {
       // Low sun angle - soft lighting
       lightIntensity = 0.9 + (sunElevationAngle / 15) * 0.1;
-    }
-
-    // Reduce light during overcast conditions
+    }    // Reduce light during overcast conditions
     if (weatherCondition === 'rain' || weatherCondition === 'clouds') {
-      lightIntensity *= 0.4; // Heavy reduction for overcast
+      lightIntensity *= 0.7; // Moderate reduction for overcast (more realistic)
     } else if (weatherCondition === 'snow') {
       lightIntensity *= 0.6; // Snow reflects some light back
     }

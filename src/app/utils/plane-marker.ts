@@ -59,7 +59,9 @@ export function createOrUpdatePlaneMarker(
   // Only apply shadow for non-grounded planes
   const shadowStyle =
     !isGrounded && length > 0
-      ? `filter: drop-shadow(${shadowDx.toFixed(1)}px ${shadowDy.toFixed(1)}px 1px rgba(0,0,1,0.6));`
+      ? `filter: drop-shadow(${shadowDx.toFixed(1)}px ${shadowDy.toFixed(
+          1
+        )}px 1px rgba(0,0,1,0.6));`
       : '';
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon

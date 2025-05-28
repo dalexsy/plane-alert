@@ -17,7 +17,7 @@ export class HelicopterIdentificationService {
    * Comprehensive helicopter identification using both ICAO list and model patterns
    * This method combines all helicopter detection logic in one place to ensure
    * consistent identification across all components
-   * 
+   *
    * @param icao - Aircraft ICAO code
    * @param model - Aircraft model string (optional)
    * @returns true if aircraft should be treated as a helicopter
@@ -46,7 +46,7 @@ export class HelicopterIdentificationService {
   /**
    * Check if aircraft is a helicopter based on model name patterns
    * This is used as a fallback when ICAO is not in the helicopter list
-   * 
+   *
    * @param model - Aircraft model string
    * @returns true if model indicates helicopter
    */
@@ -56,7 +56,7 @@ export class HelicopterIdentificationService {
     }
 
     const modelLower = model.toLowerCase().trim();
-    
+
     // Return early for empty strings
     if (!modelLower) {
       return false;
@@ -64,22 +64,22 @@ export class HelicopterIdentificationService {
 
     // Known helicopter model patterns
     const helicopterPatterns = [
-      'copter',      // helicopter, eurocopter, etc.
-      'helicopter',  // explicit helicopter
-      'heli',        // heli, helibus, etc.
-      'chopper',     // chopper
-      'r22',         // Robinson R22
-      'r44',         // Robinson R44
-      'r66',         // Robinson R66
-      'bell 206',    // Bell helicopters
+      'copter', // helicopter, eurocopter, etc.
+      'helicopter', // explicit helicopter
+      'heli', // heli, helibus, etc.
+      'chopper', // chopper
+      'r22', // Robinson R22
+      'r44', // Robinson R44
+      'r66', // Robinson R66
+      'bell 206', // Bell helicopters
       'bell 407',
       'bell 412',
       'bell 429',
       'bell 430',
-      'as350',       // Airbus helicopters
+      'as350', // Airbus helicopters
       'as355',
       'as365',
-      'ec120',       // Eurocopter/Airbus
+      'ec120', // Eurocopter/Airbus
       'ec130',
       'ec135',
       'ec145',
@@ -87,7 +87,7 @@ export class HelicopterIdentificationService {
       'ec175',
       'ec225',
       'ec725',
-      'h125',        // Airbus H-series
+      'h125', // Airbus H-series
       'h130',
       'h135',
       'h145',
@@ -96,24 +96,24 @@ export class HelicopterIdentificationService {
       'h175',
       'h215',
       'h225',
-      'uh-1',        // Military helicopters
+      'uh-1', // Military helicopters
       'uh-60',
       'ah-64',
       'ch-47',
       'ch-53',
-      'mi-8',        // Russian helicopters
+      'mi-8', // Russian helicopters
       'mi-17',
       'mi-24',
       'mi-26',
       'ka-32',
-      's-76',        // Sikorsky
+      's-76', // Sikorsky
       's-92',
-      'aw109',       // AgustaWestland/Leonardo
+      'aw109', // AgustaWestland/Leonardo
       'aw139',
       'aw149',
       'aw169',
       'aw189',
-      'md500',       // MD Helicopters
+      'md500', // MD Helicopters
       'md520',
       'md530',
       'md600',
@@ -122,18 +122,21 @@ export class HelicopterIdentificationService {
     ];
 
     // Check if any pattern matches
-    return helicopterPatterns.some(pattern => modelLower.includes(pattern));
+    return helicopterPatterns.some((pattern) => modelLower.includes(pattern));
   }
 
   /**
    * Get detailed helicopter identification info for debugging
    * Useful for troubleshooting helicopter identification issues
-   * 
+   *
    * @param icao - Aircraft ICAO code
    * @param model - Aircraft model string (optional)
    * @returns object with identification details
    */
-  getHelicopterIdentificationDetails(icao: string, model?: string): {
+  getHelicopterIdentificationDetails(
+    icao: string,
+    model?: string
+  ): {
     isHelicopter: boolean;
     identifiedByIcao: boolean;
     identifiedByModel: boolean;
@@ -156,7 +159,7 @@ export class HelicopterIdentificationService {
   /**
    * Refresh helicopter lists and return success status
    * Delegates to the underlying helicopter list service
-   * 
+   *
    * @param force - Force refresh even if recently refreshed
    * @returns Promise resolving to true if refresh was performed
    */

@@ -56,7 +56,8 @@ function catmullRomPoint(
 })
 export class PlaneFinderService {
   private mapInitialized = false;
-  private isInitialLoad = false;  constructor(
+  private isInitialLoad = false;
+  constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
@@ -824,7 +825,8 @@ export class PlaneFinderService {
           trackForMarker, // Use the determined trackForMarker
           extraStyle,
           isNew,
-          onGround,          tooltip,
+          onGround,
+          tooltip,
           customPlaneIcon, // Pass custom icon HTML if ICAO matches
           isMilitary,
           model,
