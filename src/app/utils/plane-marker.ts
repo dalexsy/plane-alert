@@ -26,14 +26,8 @@ export function createOrUpdatePlaneMarker(
   altitude: number | null = null,
   followed: boolean = false
 ): { marker: L.Marker; isNewMarker: boolean } {
-  // Check if this is a helicopter based on model name or our custom list
-  const modelLower = model.toLowerCase();
-  const isCopter =
-    isCustomHelicopter ||
-    modelLower.includes('copter') ||
-    modelLower.includes('helicopter') ||
-    modelLower.includes('heli') ||
-    modelLower.includes('chopper');
+  // Use centralized helicopter identification via isCustomHelicopter parameter
+  const isCopter = isCustomHelicopter;
 
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter

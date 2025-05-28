@@ -20,6 +20,7 @@ import { SpecialListService } from './special-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
+import { HelicopterIdentificationService } from './helicopter-identification.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
 
 // Helper function for Catmull-Rom interpolation
@@ -55,8 +56,7 @@ function catmullRomPoint(
 })
 export class PlaneFinderService {
   private mapInitialized = false;
-  private isInitialLoad = false;
-  constructor(
+  private isInitialLoad = false;  constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
@@ -64,7 +64,8 @@ export class PlaneFinderService {
     private operatorCallSignService: OperatorCallSignService,
     private militaryPrefixService: MilitaryPrefixService,
     private altitudeColor: AltitudeColorService,
-    private aircraftCountryService: AircraftCountryService
+    private aircraftCountryService: AircraftCountryService,
+    private helicopterIdentificationService: HelicopterIdentificationService
   ) {}
 
   private randomizeBrightness(): string {
@@ -823,12 +824,11 @@ export class PlaneFinderService {
           trackForMarker, // Use the determined trackForMarker
           extraStyle,
           isNew,
-          onGround,
-          tooltip,
+          onGround,          tooltip,
           customPlaneIcon, // Pass custom icon HTML if ICAO matches
           isMilitary,
           model,
-          this.helicopterListService.isHelicopter(id),
+          this.helicopterIdentificationService.isHelicopter(id, model),
           isSpecial,
           altitude, // pass altitude for shadow scaling
           followed // <-- pass followed flag

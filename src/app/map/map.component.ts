@@ -47,6 +47,7 @@ import type { WindowViewPlane } from '../components/window-view-overlay/window-v
 import { getIconPathForModel } from '../utils/plane-icons';
 import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
 import { HelicopterListService } from '../services/helicopter-list.service';
+import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -207,11 +208,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private scanService: ScanService,
     private specialListService: SpecialListService,
     private mapPanService: MapPanService,
-    private cdr: ChangeDetectorRef,
-    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,    private ngZone: NgZone,
     private militaryPrefixService: MilitaryPrefixService,
     private locationService: LocationService,
-    private helicopterListService: HelicopterListService
+    private helicopterListService: HelicopterListService,
+    private helicopterIdentificationService: HelicopterIdentificationService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -1474,7 +1475,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           bearing: plane.track ?? 0,
           iconPath: iconData.path,
           iconType: iconData.iconType,
-          isHelicopter: this.helicopterListService.isHelicopter(plane.icao),
+          isHelicopter: this.helicopterIdentificationService.isHelicopter(plane.icao, plane.model),
           velocity: plane.velocity ?? 0,
           // historical trail for window view
           historyTrail,
