@@ -34,10 +34,8 @@ export class InputOverlayComponent implements OnDestroy {
   searchRadiusInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('checkIntervalInput', { static: false })
   checkIntervalInputRef!: ElementRef<HTMLInputElement>;
-
   @Output() resolveAndUpdate = new EventEmitter<void>();
   @Output() useCurrentLocation = new EventEmitter<void>();
-  @Output() goToAirport = new EventEmitter<void>();
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
   @Output() setHome = new EventEmitter<void>();
   @Output() goToHome = new EventEmitter<void>();
@@ -122,13 +120,8 @@ export class InputOverlayComponent implements OnDestroy {
     console.info('[PlaneAlert] Update now button pressed');
     this.resolveAndUpdate.emit();
   }
-
   onUseCurrentLocation(): void {
     this.useCurrentLocation.emit();
-  }
-
-  onGoToAirport(): void {
-    this.goToAirport.emit();
   }
 
   onRadiusChange(): void {

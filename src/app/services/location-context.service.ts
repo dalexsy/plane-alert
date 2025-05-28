@@ -1,5 +1,15 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest, map, catchError, of, tap, debounceTime, distinctUntilChanged } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  combineLatest,
+  map,
+  catchError,
+  of,
+  tap,
+  debounceTime,
+  distinctUntilChanged,
+} from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
 export interface LocationData {
@@ -23,55 +33,68 @@ export interface LocationContextInfo {
 
 /**
  * Enterprise-grade Location Context Service
- * 
+ *
  * Provides unified location management for weather, time, and astronomical calculations.
  * Implements caching, fallbacks, and error handling for production use.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LocationContextService {
   private readonly _currentLocation = new BehaviorSubject<LocationData>({
     lat: 52.52,
     lon: 13.405,
     source: 'default',
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 
   private readonly _timezone = new BehaviorSubject<TimezoneData | null>(null);
   private readonly _address = new BehaviorSubject<string | null>(null);
 
   // Cache for timezone lookups
-  private timezoneCache = new Map<string, { data: TimezoneData; timestamp: number }>();
+  private timezoneCache = new Map<
+    string,
+    { data: TimezoneData; timestamp: number }
+  >();
   private addressCache = new Map<string, { data: string; timestamp: number }>();
-  
+
   // Cache TTL: 1 hour for timezone, 30 minutes for addresses
   private readonly TIMEZONE_CACHE_TTL = 60 * 60 * 1000;
   private readonly ADDRESS_CACHE_TTL = 30 * 60 * 1000;
-    // Rate limiting
+  // Rate limiting
   private lastTimezoneRequest = 0;
   private lastAddressRequest = 0;
   private readonly MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
-  
+
   // Distance threshold: only update if moved more than ~1km (approximately 0.009 degrees)
-  private readonly MIN_DISTANCE_THRESHOLD = 0.009;  constructor(private http: HttpClient) {
+  private readonly MIN_DISTANCE_THRESHOLD = 0.009;
+  constructor(private http: HttpClient) {
     // Debounce location changes to prevent excessive API calls
-    this._currentLocation.pipe(
-      debounceTime(1000),
-      distinctUntilChanged((a, b) => 
-        this.calculateDistance(a.lat, a.lon, b.lat, b.lon) < this.MIN_DISTANCE_THRESHOLD
+    this._currentLocation
+      .pipe(
+        debounceTime(1000),
+        distinctUntilChanged(
+          (a, b) =>
+            this.calculateDistance(a.lat, a.lon, b.lat, b.lon) <
+            this.MIN_DISTANCE_THRESHOLD
+        )
       )
-    ).subscribe(location => {
-      this.updateTimezone(location.lat, location.lon);
-      this.updateAddress(location.lat, location.lon);
-    });
+      .subscribe((location) => {
+        this.updateTimezone(location.lat, location.lon);
+        this.updateAddress(location.lat, location.lon);
+      });
   }
 
   /**
    * Calculate distance between two points in degrees
    * Approximates distance using Euclidean distance for short distances
    */
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
     const deltaLat = lat1 - lat2;
     const deltaLon = lon1 - lon2;
     return Math.sqrt(deltaLat * deltaLat + deltaLon * deltaLon);
@@ -126,12 +149,12 @@ export class LocationContextService {
     return combineLatest([
       this._currentLocation,
       this._timezone,
-      this._address
+      this._address,
     ]).pipe(
       map(([location, timezone, address]) => ({
         location,
         timezone: timezone || undefined,
-        address: address || undefined
+        address: address || undefined,
       }))
     );
   }
@@ -141,18 +164,23 @@ export class LocationContextService {
    */
   updateFromMapCenter(lat: number, lon: number): void {
     const currentLocation = this._currentLocation.value;
-    
+
     // Check if the movement is significant enough to warrant an update
-    const distance = this.calculateDistance(currentLocation.lat, currentLocation.lon, lat, lon);
+    const distance = this.calculateDistance(
+      currentLocation.lat,
+      currentLocation.lon,
+      lat,
+      lon
+    );
     if (distance < this.MIN_DISTANCE_THRESHOLD) {
       return; // Don't update for small movements
     }
-    
+
     this._currentLocation.next({
       lat,
       lon,
       source: 'map',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -164,7 +192,7 @@ export class LocationContextService {
       lat,
       lon,
       source: 'home',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -174,9 +202,9 @@ export class LocationContextService {
   private updateTimezone(lat: number, lon: number): void {
     const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
     const cached = this.timezoneCache.get(cacheKey);
-    
+
     // Check cache first
-    if (cached && (Date.now() - cached.timestamp) < this.TIMEZONE_CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < this.TIMEZONE_CACHE_TTL) {
       this._timezone.next(cached.data);
       return;
     }
@@ -190,36 +218,41 @@ export class LocationContextService {
 
     // Use TimeAPI for timezone lookup (free, no API key required)
     const url = `https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${lon}`;
-    
-    this.http.get<any>(url).pipe(
-      map(response => {
-        const timezone: TimezoneData = {
-          timezone: response.timeZone || 'UTC',
-          utcOffset: response.currentUtcOffset?.seconds ? response.currentUtcOffset.seconds / 3600 : 0,
-          dst: response.dstActive || false
-        };
-        return timezone;
-      }),
-      catchError(error => {
-        console.warn('Timezone lookup failed, using fallback:', error);
-        // Fallback: rough timezone estimation based on longitude
-        const estimatedOffset = Math.round(lon / 15);
-        return of({
-          timezone: `UTC${estimatedOffset >= 0 ? '+' : ''}${estimatedOffset}`,
-          utcOffset: estimatedOffset,
-          dst: false
-        });
-      }),
-      tap(timezone => {
-        // Cache the result
-        this.timezoneCache.set(cacheKey, {
-          data: timezone,
-          timestamp: Date.now()
-        });
-      })
-    ).subscribe(timezone => {
-      this._timezone.next(timezone);
-    });
+
+    this.http
+      .get<any>(url)
+      .pipe(
+        map((response) => {
+          const timezone: TimezoneData = {
+            timezone: response.timeZone || 'UTC',
+            utcOffset: response.currentUtcOffset?.seconds
+              ? response.currentUtcOffset.seconds / 3600
+              : 0,
+            dst: response.dstActive || false,
+          };
+          return timezone;
+        }),
+        catchError((error) => {
+          console.warn('Timezone lookup failed, using fallback:', error);
+          // Fallback: rough timezone estimation based on longitude
+          const estimatedOffset = Math.round(lon / 15);
+          return of({
+            timezone: `UTC${estimatedOffset >= 0 ? '+' : ''}${estimatedOffset}`,
+            utcOffset: estimatedOffset,
+            dst: false,
+          });
+        }),
+        tap((timezone) => {
+          // Cache the result
+          this.timezoneCache.set(cacheKey, {
+            data: timezone,
+            timestamp: Date.now(),
+          });
+        })
+      )
+      .subscribe((timezone) => {
+        this._timezone.next(timezone);
+      });
   }
 
   /**
@@ -228,9 +261,9 @@ export class LocationContextService {
   private updateAddress(lat: number, lon: number): void {
     const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
     const cached = this.addressCache.get(cacheKey);
-    
+
     // Check cache first
-    if (cached && (Date.now() - cached.timestamp) < this.ADDRESS_CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < this.ADDRESS_CACHE_TTL) {
       this._address.next(cached.data);
       return;
     }
@@ -244,34 +277,39 @@ export class LocationContextService {
 
     // Use Nominatim for reverse geocoding
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-    
-    this.http.get<any>(url).pipe(
-      map(response => {
-        const addr = response.address || {};
-        const components = [
-          addr.road,
-          addr.house_number,
-          addr.suburb || addr.city_district || addr.neighbourhood,
-          addr.city || addr.town || addr.village,
-          addr.country
-        ].filter(Boolean);
-        
-        return components.length > 0 ? components.join(', ') : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-      }),
-      catchError(error => {
-        console.warn('Address lookup failed, using coordinates:', error);
-        return of(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-      }),
-      tap(address => {
-        // Cache the result
-        this.addressCache.set(cacheKey, {
-          data: address,
-          timestamp: Date.now()
-        });
-      })
-    ).subscribe(address => {
-      this._address.next(address);
-    });
+
+    this.http
+      .get<any>(url)
+      .pipe(
+        map((response) => {
+          const addr = response.address || {};
+          const components = [
+            addr.road,
+            addr.house_number,
+            addr.suburb || addr.city_district || addr.neighbourhood,
+            addr.city || addr.town || addr.village,
+            addr.country,
+          ].filter(Boolean);
+
+          return components.length > 0
+            ? components.join(', ')
+            : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        }),
+        catchError((error) => {
+          console.warn('Address lookup failed, using coordinates:', error);
+          return of(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+        }),
+        tap((address) => {
+          // Cache the result
+          this.addressCache.set(cacheKey, {
+            data: address,
+            timestamp: Date.now(),
+          });
+        })
+      )
+      .subscribe((address) => {
+        this._address.next(address);
+      });
   }
 
   /**
@@ -285,9 +323,9 @@ export class LocationContextService {
 
     // Create date with timezone offset
     const now = new Date();
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const localTime = new Date(utcTime + (timezone.utcOffset * 3600000));
-    
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    const localTime = new Date(utcTime + timezone.utcOffset * 3600000);
+
     return localTime;
   }
 
@@ -299,10 +337,13 @@ export class LocationContextService {
     const defaultOptions: Intl.DateTimeFormatOptions = {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     };
-    
-    return locationTime.toLocaleTimeString('en-GB', { ...defaultOptions, ...options });
+
+    return locationTime.toLocaleTimeString('en-GB', {
+      ...defaultOptions,
+      ...options,
+    });
   }
 
   /**
@@ -313,10 +354,13 @@ export class LocationContextService {
     const defaultOptions: Intl.DateTimeFormatOptions = {
       weekday: 'long',
       day: 'numeric',
-      month: 'long'
+      month: 'long',
     };
-    
-    return locationTime.toLocaleDateString('en-GB', { ...defaultOptions, ...options });
+
+    return locationTime.toLocaleDateString('en-GB', {
+      ...defaultOptions,
+      ...options,
+    });
   }
 
   /**
@@ -325,7 +369,7 @@ export class LocationContextService {
   clearCaches(): void {
     this.timezoneCache.clear();
     this.addressCache.clear();
-    
+
     // Force refresh current location
     const current = this._currentLocation.value;
     this.updateTimezone(current.lat, current.lon);
@@ -338,7 +382,7 @@ export class LocationContextService {
   getCacheStats(): { timezone: number; address: number } {
     return {
       timezone: this.timezoneCache.size,
-      address: this.addressCache.size
+      address: this.addressCache.size,
     };
   }
 }

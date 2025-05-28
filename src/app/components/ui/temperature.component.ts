@@ -1,4 +1,10 @@
-import { Component, OnInit, OnDestroy, Input, HostBinding } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  Input,
+  HostBinding,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 import { LocationContextService } from '../../services/location-context.service';
@@ -21,17 +27,19 @@ export class TemperatureComponent implements OnInit, OnDestroy {
   highTemp: number | null = null;
   lowTemp: number | null = null;
   loading = true;
-  
+
   private locationSubscription?: Subscription;
   private refreshInterval?: number;
 
   constructor(private locationContext: LocationContextService) {}
   ngOnInit(): void {
     // Subscribe to location changes and fetch temperature accordingly
-    this.locationSubscription = this.locationContext.currentLocation$.subscribe(location => {
-      this.fetchTemperature(location.lat, location.lon);
-    });
-    
+    this.locationSubscription = this.locationContext.currentLocation$.subscribe(
+      (location) => {
+        this.fetchTemperature(location.lat, location.lon);
+      }
+    );
+
     // Set up refresh interval (every 10 minutes)
     this.refreshInterval = window.setInterval(() => {
       const location = this.locationContext.currentLocation;

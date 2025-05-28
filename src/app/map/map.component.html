@@ -17,10 +17,8 @@
 ></app-location-overlay>
 
 <app-input-overlay
-  (resolveAndUpdate)="resolveAndUpdateFromAddress()"
-  (excludeDiscountChange)="onExcludeDiscountChange()"
+  (resolveAndUpdate)="resolveAndUpdateFromAddress()"  (excludeDiscountChange)="onExcludeDiscountChange()"
   (useCurrentLocation)="useCurrentLocation()"
-  (goToAirport)="goToAirport()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
   (cloudToggleChange)="toggleCloudCover($event)"
   (rainToggleChange)="toggleRainCover($event)"

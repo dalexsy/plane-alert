@@ -198,7 +198,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Label for next sun event (Sunset during day, Sunrise at night)
   public sunEventText: string = '';
   private sunAngleInterval: any;
-  private locationUpdateSubscription: any;  constructor(
+  private locationUpdateSubscription: any;
+  constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
     private mapService: MapService,
@@ -635,9 +636,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }).addTo(this.map);
 
     // Check if we're at home location and hide the current marker if so
-    this.updateMarkersVisibility(lat, lon);    // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
+    this.updateMarkersVisibility(lat, lon); // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
     // const mainRadiusCircle = L.circle([lat, lon], { ... }).addTo(this.map);
-    
+
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
       const { lat, lng } = event.latlng;
       // Use the current main radius for the update
@@ -660,7 +661,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
           this.inputOverlayComponent.addressInputRef.nativeElement.value =
             address;
-        }      });
+        }
+      });
       this.scanService.forceScan(); // Restart the scan
     });
 
@@ -870,7 +872,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // );
         this.scanService.forceScan();
       }
-    });    // fetch and update current wind direction
+    }); // fetch and update current wind direction
     this.fetchWindDirection(lat, lon);
 
     // Update location context for explicit location changes (not map panning)
@@ -1628,30 +1630,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       );
     } else {
       alert('Geolocation is not supported by your browser.');
-    }
-  }
-
-  goToAirport(): void {
-    // This now goes to the *default* coordinates, as there's no single "the airport"
-    // Hide the cone when navigating to airport
-    this.coneVisible = false;
-
-    // Update the Show View Axes checkbox to match
-    const coneCheckbox = document.getElementById(
-      'showCone'
-    ) as HTMLInputElement;
-    if (coneCheckbox) {
-      coneCheckbox.checked = false;
-    }
-
-    // Use current main radius for update
-    const currentMainRadius = this.settings.radius ?? 5;
-    this.updateMap(
-      this.DEFAULT_COORDS[0],
-      this.DEFAULT_COORDS[1],
-      currentMainRadius // Pass main radius
-    ); // Triggers airport search
-  }
+    }  }
 
   resolveAndUpdateFromAddress(): void {
     const address =
@@ -2466,15 +2445,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         eventTime = sunriseToday;
       }
       label = 'Sunrise: ';
-    }    // Convert SunCalc time to the actual local time for the map location
+    } // Convert SunCalc time to the actual local time for the map location
     const timezone = this.locationContextService.timezone;
     let localEventTime: Date;
     if (timezone) {
       // SunCalc returns time in browser's timezone, convert to location's timezone
       // First, neutralize the browser timezone effect to get UTC
       const browserOffset = eventTime.getTimezoneOffset(); // Browser offset in minutes
-      const utcTime = eventTime.getTime() + (browserOffset * 60000); // Convert to UTC
-      
+      const utcTime = eventTime.getTime() + browserOffset * 60000; // Convert to UTC
+
       // Then apply the location's actual timezone offset to get local time
       const locationOffsetMs = timezone.utcOffset * 3600000; // Location offset in milliseconds
       localEventTime = new Date(utcTime + locationOffsetMs);
@@ -2482,11 +2461,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Fallback: use SunCalc time as-is if timezone data not available
       localEventTime = eventTime;
     }
-    
+
     // Format as HH:MM using the timezone-adjusted time
     this.sunEventText =
       label +
-      localEventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      localEventTime.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
   }
 
   private calculateAzimuth(

@@ -12,7 +12,7 @@ export class ClockComponent implements OnInit, OnDestroy {
   currentTime = '';
   weekday = '';
   dayMonth = '';
-  
+
   private updateInterval?: number;
   private locationSubscription?: Subscription;
 
@@ -23,7 +23,7 @@ export class ClockComponent implements OnInit, OnDestroy {
     this.locationSubscription = this.locationContext.timezone$.subscribe(() => {
       this.updateTime();
     });
-    
+
     this.updateTime();
     this.updateInterval = window.setInterval(() => this.updateTime(), 1000);
   }
@@ -39,8 +39,10 @@ export class ClockComponent implements OnInit, OnDestroy {
 
   private updateTime(): void {
     const locationTime = this.locationContext.getCurrentTimeForLocation();
-    
-    this.weekday = locationTime.toLocaleDateString('en-GB', { weekday: 'long' });
+
+    this.weekday = locationTime.toLocaleDateString('en-GB', {
+      weekday: 'long',
+    });
     this.dayMonth = locationTime.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'long',
