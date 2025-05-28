@@ -47,6 +47,23 @@
     font-weight: 800;
     letter-spacing: 3px;
   }
+  .celestial-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 0.5; // Above cloud background (0) but below everything else (1+)
+
+    .celestial-object {
+      position: absolute;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      pointer-events: none;
+    }
+  }
 
   .planes-container {
     position: absolute;
@@ -55,9 +72,7 @@
     top: 0;
     bottom: 0;
     pointer-events: none;
-    z-index: 2;
-
-    .plane-dot {
+    z-index: 2;    .plane-dot {
       position: absolute;
       display: flex;
       flex-direction: column-reverse;
