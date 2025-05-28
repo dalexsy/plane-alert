@@ -50,6 +50,7 @@ import { HelicopterListService } from '../services/helicopter-list.service';
 import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
 import { SkyColorSyncService } from '../services/sky-color-sync.service';
 import { LocationContextService } from '../services/location-context.service';
+import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -1448,9 +1449,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           plane.lon
         ); // 0 = North, 90 = East, etc.
         const azimuthFromSouth = (azimuth + 180) % 360;
-        const x = (azimuthFromSouth / 360) * 100;
-        // Altitude: map 0-20000m to 0-100% (cap at 20km, consistent with window view visual scale)
-        const alt = plane.altitude ?? 0;
+        const x = (azimuthFromSouth / 360) * 100; // Altitude: map 0-20000m to 0-100% (cap at 20km, consistent with window view visual scale)
+        // For grounded planes, use 0 altitude for consistency
+        const alt = isGrounded ? 0 : plane.altitude ?? 0;
         const y = (Math.min(alt, 20000) / 20000) * 100;
         const iconData = getIconPathForModel(plane.model);
         // Calculate scale, distance
