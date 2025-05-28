@@ -302,37 +302,27 @@
       filter: grayscale(0.7) brightness(0.7);
       opacity: 0.5;
     }
-  }
-  .moon-svg {
+  }  .moon-svg {
     display: inline-block;
     margin-bottom: 2px;
     transition: filter 0.2s, opacity 0.2s;
 
-    > circle:first-child {
-      /* light circle */
-      fill: white;
-      stroke: white;
-      stroke-width: 2;
-      box-shadow: 0 0 12px 4px rgba(255, 255, 255, 0.6);
-    }
-    > circle:nth-child(2) {
-      display: none !important;
-    }
+    /* Enhanced glow effect for better visibility */
+    filter: drop-shadow(0 0 8px rgba(248, 248, 255, 0.5)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
 
     &.below-horizon {
-      filter: grayscale(0.7) brightness(0.7);
-      opacity: 0.5;
+      filter: grayscale(0.7) brightness(0.6) 
+              drop-shadow(0 0 4px rgba(200, 200, 220, 0.3)) 
+              drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+      opacity: 0.6;
 
-      circle:first-child {
-        fill: rgba(255, 255, 255, 0.5);
-        stroke: rgba(255, 255, 255, 0.5);
-        box-shadow: none;
+      /* Dim the moon when below horizon */
+      circle[fill="#f8f8ff"] {
+        fill: rgba(200, 200, 220, 0.7) !important;
       }
-
-      circle:last-child {
-        /* force shadow circle hidden on below-horizon */
-        fill: none !important;
-        stroke: none !important;
+      
+      circle[stroke*="rgba(255, 255, 255"] {
+        stroke: rgba(200, 200, 220, 0.5) !important;
       }
     }
   }

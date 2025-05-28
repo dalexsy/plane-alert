@@ -187,8 +187,7 @@
               class="celestial-circle"
               [ngClass]="{ 'below-horizon': plane.belowHorizon }"
               aria-label="Sun marker"
-            ></span>
-            <!-- Moon: crescent path -->
+            ></span>            <!-- Moon: actual phase representation -->
             <span
               *ngIf="plane.celestialBodyType === 'moon'"
               style="display: inline-block; position: relative"
@@ -206,12 +205,41 @@
                 [style.transformOrigin]="'center center'"
                 style="z-index: 1"
               >
-                <path
-                  fill="white"
-                  stroke="white"
-                  stroke-width="2"
-                  d="M11,1 A10,10 0 1,0 11,21 A6,6 0 1,1 13,1 Z"
+                <defs>
+                  <!-- Gradient for the shadow part to blend better -->
+                  <radialGradient [attr.id]="'moon-shadow-gradient-' + plane.icao" cx="50%" cy="30%">
+                    <stop offset="0%" stop-color="rgba(50, 60, 90, 0.85)" />
+                    <stop offset="70%" stop-color="rgba(30, 40, 70, 0.9)" />
+                    <stop offset="100%" stop-color="rgba(20, 30, 50, 0.95)" />
+                  </radialGradient>
+                  <mask [attr.id]="'moon-phase-mask-' + plane.icao">
+                    <rect width="22" height="22" fill="white" />
+                    <circle
+                      [attr.cx]="
+                        plane.moonIsWaning
+                          ? 11 - 10 * (2 * (plane.moonFraction || 0) - 1)
+                          : 11 + 10 * (2 * (plane.moonFraction || 0) - 1)
+                      "
+                      cy="11"
+                      r="10"
+                      fill="black"
+                    />
+                  </mask>
+                </defs>
+                <!-- Outer glow/halo -->
+                <circle cx="11" cy="11" r="12" fill="rgba(255, 255, 255, 0.15)" />
+                <!-- Main lit part -->
+                <circle cx="11" cy="11" r="10" fill="#f8f8ff" stroke="rgba(255, 255, 255, 0.8)" stroke-width="1" />
+                <!-- Shadow part using gradient -->
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="10"
+                  [attr.fill]="'url(#moon-shadow-gradient-' + plane.icao + ')'"
+                  [attr.mask]="'url(#moon-phase-mask-' + plane.icao + ')'"
                 />
+                <!-- Subtle rim light -->
+                <circle cx="11" cy="11" r="10" fill="none" stroke="rgba(220, 220, 255, 0.6)" stroke-width="0.5" />
               </svg>
             </span>
           </span>

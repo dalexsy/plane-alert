@@ -1630,7 +1630,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       );
     } else {
       alert('Geolocation is not supported by your browser.');
-    }  }
+    }
+  }
 
   resolveAndUpdateFromAddress(): void {
     const address =
