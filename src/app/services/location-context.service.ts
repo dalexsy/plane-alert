@@ -218,11 +218,11 @@ export class LocationContextService {
 
     // Use TimeAPI for timezone lookup (free, no API key required)
     const url = `https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${lon}`;
-
     this.http
       .get<any>(url)
       .pipe(
         map((response) => {
+          console.log('TimeAPI response:', response); // Debug log
           const timezone: TimezoneData = {
             timezone: response.timeZone || 'UTC',
             utcOffset: response.currentUtcOffset?.seconds
@@ -230,6 +230,7 @@ export class LocationContextService {
               : 0,
             dst: response.dstActive || false,
           };
+          console.log('Parsed timezone data:', timezone); // Debug log
           return timezone;
         }),
         catchError((error) => {
@@ -311,7 +312,6 @@ export class LocationContextService {
         this._address.next(address);
       });
   }
-
   /**
    * Get current time for the location
    */
@@ -321,12 +321,17 @@ export class LocationContextService {
       return new Date();
     }
 
-    // Create date with timezone offset
+    // Get current UTC time
     const now = new Date();
-    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-    const localTime = new Date(utcTime + timezone.utcOffset * 3600000);
+    const browserOffset = now.getTimezoneOffset(); // Browser offset in minutes from UTC
+    const utcTime = new Date(now.getTime() + browserOffset * 60000);
 
-    return localTime;
+    // Apply the location's timezone offset (convert hours to milliseconds)
+    const locationTime = new Date(
+      utcTime.getTime() + timezone.utcOffset * 3600000
+    );
+
+    return locationTime;
   }
 
   /**
