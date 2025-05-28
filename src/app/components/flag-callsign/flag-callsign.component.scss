@@ -7,6 +7,11 @@
     font-weight: inherit;
     font-size: inherit;
     color: inherit;
+
+    &.none-callsign {
+      opacity: 0.8;
+      font-style: italic;
+    }
   }
 }
 

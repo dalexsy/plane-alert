@@ -35,7 +35,7 @@ describe('AtmosphericSkyService', () => {
   it('should apply weather effects correctly', () => {
     const clearSky = service.calculateSkyColors(45, 'clear');
     const rainySky = service.calculateSkyColors(45, 'rain');
-    
+
     // Rainy sky should be darker
     expect(rainySky.bottomColor).not.toEqual(clearSky.bottomColor);
     expect(rainySky.topColor).not.toEqual(clearSky.topColor);

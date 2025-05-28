@@ -203,12 +203,15 @@ export class AircraftCountryService {
           },
         },
       };
-    }
-
-    // Log unknown hex codes if configured
+    } // Log unknown hex codes if configured
     if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
+      // Only attempt to parse if it's a valid hex format
+      const isValidHex = /^[0-9A-Fa-f]+$/.test(icaoHex);
+      const decimalValue = isValidHex
+        ? parseInt(icaoHex, 16)
+        : 'Invalid format';
       console.info(
-        `Unknown ICAO hex code: ${icaoHex} (decimal: ${parseInt(icaoHex, 16)})`
+        `Unknown ICAO hex code: ${icaoHex} (decimal: ${decimalValue})`
       );
     }
 

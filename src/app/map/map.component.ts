@@ -1467,7 +1467,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         return {
           x,
           y,
-          callsign: plane.callsign || plane.icao,
+          callsign: plane.callsign || '',
           altitude: alt,
           lat: plane.lat!,
           lon: plane.lon!,

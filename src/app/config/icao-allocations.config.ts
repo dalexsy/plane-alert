@@ -210,9 +210,24 @@ export const MILITARY_REGISTRATION_PATTERNS: MilitaryRegistrationPattern[] = [
  */
 export class IcaoAllocationUtils {
   /**
+   * Validates if a string is a valid hexadecimal format
+   */
+  private static isValidHex(hex: string): boolean {
+    return /^[0-9A-Fa-f]+$/.test(hex);
+  }
+
+  /**
    * Finds the country allocation for a given ICAO hex code
    */
   static findCountryByIcaoHex(icaoHex: string): string | null {
+    // Validate hex format first
+    if (!icaoHex || !this.isValidHex(icaoHex)) {
+      if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
+        console.warn('Invalid ICAO hex format:', icaoHex);
+      }
+      return null;
+    }
+
     try {
       const icaoDec = parseInt(icaoHex, 16);
 
@@ -223,7 +238,7 @@ export class IcaoAllocationUtils {
       }
     } catch (error) {
       if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-        console.warn('Invalid ICAO hex format:', icaoHex);
+        console.warn('Error parsing ICAO hex:', icaoHex, error);
       }
     }
 
@@ -245,11 +260,18 @@ export class IcaoAllocationUtils {
   static isKnownIcaoHex(icaoHex: string): boolean {
     return IcaoAllocationUtils.findCountryByIcaoHex(icaoHex) !== null;
   }
-
   /**
    * Gets allocation info including metadata for a given ICAO hex
    */
   static getAllocationInfo(icaoHex: string): IcaoAllocation | null {
+    // Validate hex format first
+    if (!icaoHex || !this.isValidHex(icaoHex)) {
+      if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
+        console.warn('Invalid ICAO hex format:', icaoHex);
+      }
+      return null;
+    }
+
     try {
       const icaoDec = parseInt(icaoHex, 16);
 
@@ -260,7 +282,7 @@ export class IcaoAllocationUtils {
       }
     } catch (error) {
       if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-        console.warn('Invalid ICAO hex format:', icaoHex);
+        console.warn('Error parsing ICAO hex:', icaoHex, error);
       }
     }
 

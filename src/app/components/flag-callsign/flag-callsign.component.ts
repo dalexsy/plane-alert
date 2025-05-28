@@ -9,7 +9,9 @@ import { CountryService } from '../../services/country.service';
   template: `
     <span class="flag-callsign-wrapper">
       <span [innerHTML]="countryService.getFlagHTML(origin)"></span>
-      <span class="callsign">{{ callsign }}</span>
+      <span class="callsign" [ngClass]="{ 'none-callsign': isPending }">
+        {{ displayCallsign }}
+      </span>
     </span>
   `,
   styleUrls: ['./flag-callsign.component.scss'],
@@ -19,4 +21,16 @@ export class FlagCallsignComponent {
   @Input() origin: string = '';
 
   constructor(public countryService: CountryService) {}
+
+  /** Get the display callsign, showing "Pending" for invalid callsigns */
+  get displayCallsign(): string {
+    return this.callsign && this.callsign.trim().length >= 3
+      ? this.callsign
+      : 'Pending';
+  }
+
+  /** Check if the callsign should show as pending */
+  get isPending(): boolean {
+    return !(this.callsign && this.callsign.trim().length >= 3);
+  }
 }

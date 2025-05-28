@@ -281,9 +281,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     let weatherCondition: 'clear' | 'rain' | 'snow' | 'clouds' = 'clear';
     if (this.weatherCondition) {
       const cond = this.weatherCondition.toLowerCase();
-      const desc = this.weatherDescription ? this.weatherDescription.toLowerCase() : '';
-      
-      if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('thunderstorm')) {
+      const desc = this.weatherDescription
+        ? this.weatherDescription.toLowerCase()
+        : '';
+
+      if (
+        cond.includes('rain') ||
+        cond.includes('drizzle') ||
+        cond.includes('thunderstorm')
+      ) {
         weatherCondition = 'rain';
       } else if (cond.includes('snow')) {
         weatherCondition = 'snow';
@@ -299,7 +305,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const skyColors = this.atmosphericSky.calculateSkyColors(
       sunElevationAngle,
       weatherCondition
-    );    // Create gradient from horizon to zenith
+    ); // Create gradient from horizon to zenith
     this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;
   }
 
@@ -401,9 +407,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     let weatherCondition: 'clear' | 'rain' | 'snow' | 'clouds' = 'clear';
     if (this.weatherCondition) {
       const cond = this.weatherCondition.toLowerCase();
-      const desc = this.weatherDescription ? this.weatherDescription.toLowerCase() : '';
-      
-      if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('thunderstorm')) {
+      const desc = this.weatherDescription
+        ? this.weatherDescription.toLowerCase()
+        : '';
+
+      if (
+        cond.includes('rain') ||
+        cond.includes('drizzle') ||
+        cond.includes('thunderstorm')
+      ) {
         weatherCondition = 'rain';
       } else if (cond.includes('snow')) {
         weatherCondition = 'snow';
@@ -419,9 +431,9 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const skyColors = this.atmosphericSky.calculateSkyColors(
       sunElevationAngle,
       weatherCondition
-    );    // Base roof color (material properties)
+    ); // Base roof color (material properties)
     let baseRoofColor = '#ff9753'; // Default terracotta/clay roof
-    
+
     // Adjust base roof color for lighting conditions
     if (sunElevationAngle <= 0) {
       // At night - much darker roof color
@@ -430,9 +442,11 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       // Dawn/dusk - moderately darker
       const darkFactor = 1 - (sunElevationAngle / 15) * 0.6; // Scale darkness
       const baseRgb = this.parseColor('#ff9753');
-      baseRoofColor = `rgb(${Math.round(baseRgb.r * darkFactor)}, ${Math.round(baseRgb.g * darkFactor)}, ${Math.round(baseRgb.b * darkFactor)})`;
+      baseRoofColor = `rgb(${Math.round(baseRgb.r * darkFactor)}, ${Math.round(
+        baseRgb.g * darkFactor
+      )}, ${Math.round(baseRgb.b * darkFactor)})`;
     }
-    
+
     // Adjust base roof color based on weather conditions for material effects
     if (this.weatherCondition) {
       const cond = this.weatherCondition.toLowerCase();
@@ -443,7 +457,11 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
         } else {
           baseRoofColor = '#d4b896'; // Slightly warmer tone when snow-covered during day
         }
-      } else if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('thunderstorm')) {
+      } else if (
+        cond.includes('rain') ||
+        cond.includes('drizzle') ||
+        cond.includes('thunderstorm')
+      ) {
         // Wet surfaces appear darker
         if (sunElevationAngle <= 0) {
           baseRoofColor = '#2a1b0f'; // Very dark when wet at night
@@ -456,58 +474,70 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     // Parse the atmospheric colors to extract RGB values for blending
     const horizonRgb = this.parseColor(skyColors.bottomColor);
     const zenithRgb = this.parseColor(skyColors.topColor);
-    const baseRgb = this.parseColor(baseRoofColor);    // Calculate realistic lighting based on available light sources
+    const baseRgb = this.parseColor(baseRoofColor); // Calculate realistic lighting based on available light sources
     let lightIntensity = 1.0; // Full daylight intensity
     let ambientLight = 0.1; // Minimum ambient light (starlight, distant city glow)
-    
+
     // Calculate light intensity based on sun elevation
     if (sunElevationAngle <= -18) {
       // Astronomical twilight or darker - minimal light
       lightIntensity = ambientLight;
     } else if (sunElevationAngle <= -12) {
       // Nautical twilight
-      lightIntensity = ambientLight + (sunElevationAngle + 18) / 6 * 0.1;
+      lightIntensity = ambientLight + ((sunElevationAngle + 18) / 6) * 0.1;
     } else if (sunElevationAngle <= -6) {
       // Civil twilight
-      lightIntensity = 0.2 + (sunElevationAngle + 12) / 6 * 0.3;
+      lightIntensity = 0.2 + ((sunElevationAngle + 12) / 6) * 0.3;
     } else if (sunElevationAngle <= 0) {
       // Sunset/sunrise period
-      lightIntensity = 0.5 + (sunElevationAngle + 6) / 6 * 0.4;
+      lightIntensity = 0.5 + ((sunElevationAngle + 6) / 6) * 0.4;
     } else if (sunElevationAngle < 15) {
       // Low sun angle - soft lighting
       lightIntensity = 0.9 + (sunElevationAngle / 15) * 0.1;
     }
-    
+
     // Reduce light during overcast conditions
     if (weatherCondition === 'rain' || weatherCondition === 'clouds') {
       lightIntensity *= 0.4; // Heavy reduction for overcast
     } else if (weatherCondition === 'snow') {
       lightIntensity *= 0.6; // Snow reflects some light back
     }
-    
+
     // Apply realistic lighting to base roof color
     // In low light, colors desaturate and darken significantly
     const litBaseRgb = {
-      r: Math.round(baseRgb.r * lightIntensity + (255 - baseRgb.r) * ambientLight * 0.1),
-      g: Math.round(baseRgb.g * lightIntensity + (255 - baseRgb.g) * ambientLight * 0.1),
-      b: Math.round(baseRgb.b * lightIntensity + (255 - baseRgb.b) * ambientLight * 0.1)
+      r: Math.round(
+        baseRgb.r * lightIntensity + (255 - baseRgb.r) * ambientLight * 0.1
+      ),
+      g: Math.round(
+        baseRgb.g * lightIntensity + (255 - baseRgb.g) * ambientLight * 0.1
+      ),
+      b: Math.round(
+        baseRgb.b * lightIntensity + (255 - baseRgb.b) * ambientLight * 0.1
+      ),
     };
-    
+
     // Calculate atmospheric influence (how much sky color affects the surface)
     let atmosphericInfluence = lightIntensity > 0.5 ? 0.3 : 0.1; // Less atmospheric scattering in low light
-    
+
     // Further reduce atmospheric influence in very dark conditions
     if (lightIntensity < 0.2) {
       atmosphericInfluence = 0.05;
     }
-    
+
     const materialRetention = 1 - atmosphericInfluence;
 
     const blendedRgb = {
-      r: Math.round(litBaseRgb.r * materialRetention + horizonRgb.r * atmosphericInfluence),
-      g: Math.round(litBaseRgb.g * materialRetention + horizonRgb.g * atmosphericInfluence),
-      b: Math.round(litBaseRgb.b * materialRetention + horizonRgb.b * atmosphericInfluence)
-    };// Set the final blended roof color (solid, no transparency)
+      r: Math.round(
+        litBaseRgb.r * materialRetention + horizonRgb.r * atmosphericInfluence
+      ),
+      g: Math.round(
+        litBaseRgb.g * materialRetention + horizonRgb.g * atmosphericInfluence
+      ),
+      b: Math.round(
+        litBaseRgb.b * materialRetention + horizonRgb.b * atmosphericInfluence
+      ),
+    }; // Set the final blended roof color (solid, no transparency)
     this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`;
   }
 
@@ -519,7 +549,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       return {
         r: parseInt(rgbMatch[1]),
         g: parseInt(rgbMatch[2]),
-        b: parseInt(rgbMatch[3])
+        b: parseInt(rgbMatch[3]),
       };
     }
 
@@ -529,7 +559,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       return {
         r: parseInt(hexMatch[1], 16),
         g: parseInt(hexMatch[2], 16),
-        b: parseInt(hexMatch[3], 16)
+        b: parseInt(hexMatch[3], 16),
       };
     }
 
