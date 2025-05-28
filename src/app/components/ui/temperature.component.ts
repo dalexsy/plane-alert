@@ -1,7 +1,8 @@
-import { Component, OnInit, Input, HostBinding } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
-import { SettingsService } from '../../services/settings.service';
+import { LocationContextService } from '../../services/location-context.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-temperature',
@@ -10,7 +11,7 @@ import { SettingsService } from '../../services/settings.service';
   templateUrl: './temperature.component.html',
   styleUrls: ['./temperature.component.scss'],
 })
-export class TemperatureComponent implements OnInit {
+export class TemperatureComponent implements OnInit, OnDestroy {
   weatherIcon: string = 'wb_sunny';
   @Input() resultsCollapsed = false;
   @HostBinding('class.collapsed') get collapsed() {
@@ -20,19 +21,34 @@ export class TemperatureComponent implements OnInit {
   highTemp: number | null = null;
   lowTemp: number | null = null;
   loading = true;
+  
+  private locationSubscription?: Subscription;
+  private refreshInterval?: number;
 
-  constructor(private settings: SettingsService) {}
-
+  constructor(private locationContext: LocationContextService) {}
   ngOnInit(): void {
-    this.fetchTemperature();
-    setInterval(() => this.fetchTemperature(), 600000); // refresh every 10 minutes
+    // Subscribe to location changes and fetch temperature accordingly
+    this.locationSubscription = this.locationContext.currentLocation$.subscribe(location => {
+      this.fetchTemperature(location.lat, location.lon);
+    });
+    
+    // Set up refresh interval (every 10 minutes)
+    this.refreshInterval = window.setInterval(() => {
+      const location = this.locationContext.currentLocation;
+      this.fetchTemperature(location.lat, location.lon);
+    }, 600000);
   }
 
-  private fetchTemperature(): void {
-    // use home location if set, otherwise default Berlin coords
-    const home = this.settings.getHomeLocation();
-    const latitude = home?.lat ?? 52.52;
-    const longitude = home?.lon ?? 13.405;
+  ngOnDestroy(): void {
+    if (this.locationSubscription) {
+      this.locationSubscription.unsubscribe();
+    }
+    if (this.refreshInterval) {
+      window.clearInterval(this.refreshInterval);
+    }
+  }
+
+  private fetchTemperature(latitude: number, longitude: number): void {
     fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
     )

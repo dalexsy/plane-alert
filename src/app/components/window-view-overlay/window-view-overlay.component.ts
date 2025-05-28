@@ -358,20 +358,20 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
           weatherCondition = 'clouds';
         }
       }
-    }    // Calculate realistic sky colors using atmospheric scattering
+    } // Calculate realistic sky colors using atmospheric scattering
     const skyColors = this.atmosphericSky.calculateSkyColors(
       sunElevationAngle,
       weatherCondition
-    ); 
-    
+    );
+
     // Create gradient from horizon to zenith
     this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;
-    
+
     // Publish sky colors to the sync service for use by other components
     this.skyColorSync.updateSkyColors({
       bottomColor: skyColors.bottomColor,
       topColor: skyColors.topColor,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -560,7 +560,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     } else if (sunElevationAngle < 15) {
       // Low sun angle - soft lighting
       lightIntensity = 0.9 + (sunElevationAngle / 15) * 0.1;
-    }    // Reduce light during overcast conditions
+    } // Reduce light during overcast conditions
     if (weatherCondition === 'rain' || weatherCondition === 'clouds') {
       lightIntensity *= 0.7; // Moderate reduction for overcast (more realistic)
     } else if (weatherCondition === 'snow') {

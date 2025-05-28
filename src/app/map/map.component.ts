@@ -49,6 +49,7 @@ import { computeWindowHistoryPositions } from '../utils/window-history-trail-uti
 import { HelicopterListService } from '../services/helicopter-list.service';
 import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
 import { SkyColorSyncService } from '../services/sky-color-sync.service';
+import { LocationContextService } from '../services/location-context.service';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -197,7 +198,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Label for next sun event (Sunset during day, Sunrise at night)
   public sunEventText: string = '';
   private sunAngleInterval: any;
-  constructor(
+  private locationUpdateSubscription: any;  constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
     private mapService: MapService,
@@ -214,7 +215,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private locationService: LocationService,
     private helicopterListService: HelicopterListService,
     private helicopterIdentificationService: HelicopterIdentificationService,
-    private skyColorSyncService: SkyColorSyncService
+    private skyColorSyncService: SkyColorSyncService,
+    private locationContextService: LocationContextService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -501,7 +503,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     // Initialize map panning service
-    this.mapPanService.init(this.map);    // Initialize sun angle overlay and kick off periodic updates
+    this.mapPanService.init(this.map); // Initialize sun angle overlay and kick off periodic updates
     this.updateSunAngle();
     // note: initial wind fetch occurs in updateMap, so no extra one here
     this.sunAngleInterval = setInterval(() => {
@@ -513,7 +515,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }, 60000); // update every minute
 
     // Subscribe to sky color changes for cloud layer synchronization
-    this.skyColorSyncService.skyColors$.subscribe(skyColors => {
+    this.skyColorSyncService.skyColors$.subscribe((skyColors) => {
       if (skyColors && this.cloudLayer) {
         this.applySkyColorsToCloudLayer(skyColors);
       }
@@ -633,11 +635,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }).addTo(this.map);
 
     // Check if we're at home location and hide the current marker if so
-    this.updateMarkersVisibility(lat, lon);
-
-    // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
+    this.updateMarkersVisibility(lat, lon);    // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
     // const mainRadiusCircle = L.circle([lat, lon], { ... }).addTo(this.map);
-
+    
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
       const { lat, lng } = event.latlng;
       // Use the current main radius for the update
@@ -660,8 +660,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
           this.inputOverlayComponent.addressInputRef.nativeElement.value =
             address;
-        }
-      });
+        }      });
       this.scanService.forceScan(); // Restart the scan
     });
 
@@ -871,10 +870,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // );
         this.scanService.forceScan();
       }
-    });
-
-    // fetch and update current wind direction
+    });    // fetch and update current wind direction
     this.fetchWindDirection(lat, lon);
+
+    // Update location context for explicit location changes (not map panning)
+    this.locationContextService.updateFromMapCenter(lat, lon);
   }
 
   /** Fetch wind direction from OpenWeatherMap and update windAngle */
@@ -1872,32 +1872,43 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       } else {
         this.rainLayer.remove();
       }
-    }    this.settings.setShowRainCover(show);
+    }
+    this.settings.setShowRainCover(show);
   }
 
   /** Apply sky colors from window view to cloud layer for visual synchronization */
-  private applySkyColorsToCloudLayer(skyColors: { bottomColor: string; topColor: string; timestamp: number }): void {
+  private applySkyColorsToCloudLayer(skyColors: {
+    bottomColor: string;
+    topColor: string;
+    timestamp: number;
+  }): void {
     if (!this.cloudLayer) return;
 
     // Create CSS filter effects based on sky colors
     const cloudElements = document.querySelectorAll('.cloud-layer');
-    cloudElements.forEach(element => {
+    cloudElements.forEach((element) => {
       const el = element as HTMLElement;
-      
+
       // Apply a subtle color overlay that blends with the sky colors
       // Use CSS filters to tint the cloud layer based on atmospheric conditions
-      const filter = this.createCloudLayerFilter(skyColors.bottomColor, skyColors.topColor);
+      const filter = this.createCloudLayerFilter(
+        skyColors.bottomColor,
+        skyColors.topColor
+      );
       el.style.filter = filter;
       el.style.mixBlendMode = 'multiply';
     });
   }
 
   /** Create CSS filter string for cloud layer based on sky colors */
-  private createCloudLayerFilter(bottomColor: string, topColor: string): string {
+  private createCloudLayerFilter(
+    bottomColor: string,
+    topColor: string
+  ): string {
     // Extract RGB values from the colors
     const bottomRgb = this.extractRgbFromColor(bottomColor);
     const topRgb = this.extractRgbFromColor(topColor);
-    
+
     if (!bottomRgb || !topRgb) return '';
 
     // Calculate average color for cloud tinting
@@ -1911,14 +1922,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Create filter based on atmospheric conditions
     const hueShift = this.calculateHueShift(avgR, avgG, avgB);
-    const saturationAdjust = Math.max(0.8, Math.min(1.2, 1 + (saturation / 255) * 0.3));
+    const saturationAdjust = Math.max(
+      0.8,
+      Math.min(1.2, 1 + (saturation / 255) * 0.3)
+    );
     const brightnessAdjust = Math.max(0.7, Math.min(1.3, brightness * 1.2));
 
     return `hue-rotate(${hueShift}deg) saturate(${saturationAdjust}) brightness(${brightnessAdjust}) contrast(1.1)`;
   }
 
   /** Extract RGB values from color string */
-  private extractRgbFromColor(color: string): { r: number; g: number; b: number } | null {
+  private extractRgbFromColor(
+    color: string
+  ): { r: number; g: number; b: number } | null {
     // Handle various color formats (hex, rgb, rgba)
     if (color.startsWith('#')) {
       const hex = color.slice(1);
@@ -1926,7 +1942,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         return {
           r: parseInt(hex.slice(0, 2), 16),
           g: parseInt(hex.slice(2, 4), 16),
-          b: parseInt(hex.slice(4, 6), 16)
+          b: parseInt(hex.slice(4, 6), 16),
         };
       }
     } else if (color.startsWith('rgb')) {
@@ -1935,7 +1951,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         return {
           r: parseInt(match[0]),
           g: parseInt(match[1]),
-          b: parseInt(match[2])
+          b: parseInt(match[2]),
         };
       }
     }
@@ -2353,7 +2369,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.cdr.detectChanges();
     }, 500);
   }
-
   /** Temporarily highlight marker and tooltip on overlay hover */
   onHoverOverlayPlane(plane: PlaneLogEntry): void {
     const pm = this.planeLog.get(plane.icao);
@@ -2363,7 +2378,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       pm.marker.openTooltip();
       pm.marker
         .getTooltip()
-
         ?.getElement()
         ?.classList.add('highlighted-tooltip'); // Use correct class
     }
@@ -2431,9 +2445,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Convert SunCalc.azimuth (0 = south, positive westwards) to compass bearing from North (0°=N, clockwise)
     const sunAzDeg = (sunPos.azimuth * 180) / Math.PI;
-    this.sunAngle = (sunAzDeg + 180 + 360) % 360; // adjust from south-based azimuth and normalize
-
-    // Determine next sun event time
+    this.sunAngle = (sunAzDeg + 180 + 360) % 360; // adjust from south-based azimuth and normalize    // Determine next sun event time
     const timesToday = SunCalc.getTimes(now, center.lat, center.lng);
     let eventTime: Date;
     let label: string;
@@ -2454,11 +2466,27 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         eventTime = sunriseToday;
       }
       label = 'Sunrise: ';
+    }    // Convert SunCalc time to the actual local time for the map location
+    const timezone = this.locationContextService.timezone;
+    let localEventTime: Date;
+    if (timezone) {
+      // SunCalc returns time in browser's timezone, convert to location's timezone
+      // First, neutralize the browser timezone effect to get UTC
+      const browserOffset = eventTime.getTimezoneOffset(); // Browser offset in minutes
+      const utcTime = eventTime.getTime() + (browserOffset * 60000); // Convert to UTC
+      
+      // Then apply the location's actual timezone offset to get local time
+      const locationOffsetMs = timezone.utcOffset * 3600000; // Location offset in milliseconds
+      localEventTime = new Date(utcTime + locationOffsetMs);
+    } else {
+      // Fallback: use SunCalc time as-is if timezone data not available
+      localEventTime = eventTime;
     }
-    // Format as HH:MM
+    
+    // Format as HH:MM using the timezone-adjusted time
     this.sunEventText =
       label +
-      eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      localEventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   private calculateAzimuth(
