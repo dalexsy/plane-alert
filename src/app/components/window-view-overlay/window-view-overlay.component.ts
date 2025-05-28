@@ -11,13 +11,15 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { EngineIconType } from '../../../app/utils/plane-icons';
-import { PlaneStyleService } from '../../../app/services/plane-style.service';
-import { CelestialService } from '../../../app/services/celestial.service';
-import { AltitudeColorService } from '../../../app/services/altitude-color.service';
-import { CountryService } from '../../../app/services/country.service';
-import { AtmosphericSkyService } from '../../../app/services/atmospheric-sky.service';
+import { EngineIconType } from '../../utils/plane-icons';
+import { PlaneStyleService } from '../../services/plane-style.service';
+import { CelestialService } from '../../services/celestial.service';
+import { AltitudeColorService } from '../../services/altitude-color.service';
+import { CountryService } from '../../services/country.service';
+import { AtmosphericSkyService } from '../../services/atmospheric-sky.service';
+import { RainService } from '../../services/rain.service';
 import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
+import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -76,7 +78,7 @@ export interface WindowViewPlane {
 @Component({
   selector: 'app-window-view-overlay',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FlagCallsignComponent],
+  imports: [CommonModule, HttpClientModule, FlagCallsignComponent, RainOverlayComponent],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
@@ -132,10 +134,10 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   public balconyEndX?: number;
   public streetsideStartX?: number;
   public streetsideEndX?: number;
-
   /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
+
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -143,7 +145,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     public altitudeColor: AltitudeColorService,
     private elRef: ElementRef,
     private countryService: CountryService,
-    private atmosphericSky: AtmosphericSkyService
+    private atmosphericSky: AtmosphericSkyService,
+    private rainService: RainService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -228,7 +231,6 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     );
     this.windowCloudUrl = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=ffcc03a274b2d049bf4633584e7b5699`;
   }
-
   /** Fetch current weather and re-render sky */
   private updateWeather(): void {
     if (
@@ -247,16 +249,67 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
           this.weatherCondition = null;
           this.weatherDescription = null;
         }
+
+        // Update rain service with weather and wind data
+        this.updateRainSystem(data);
+
         this.updateSkyBackground();
         this.setCompassBackground();
       },
       () => {
         this.weatherCondition = null;
         this.weatherDescription = null;
+        
+        // Stop rain if weather fetch fails
+        this.rainService.stopRain();
+        
         this.updateSkyBackground();
         this.setCompassBackground();
       }
     );
+  }
+  /** Update rain system based on weather API data */
+  private updateRainSystem(weatherData: any): void {
+    if (!weatherData || !weatherData.weather || !weatherData.weather.length) {
+      this.rainService.stopRain();
+      return;
+    }
+
+    const weather = weatherData.weather[0];
+    const condition = weather.main?.toLowerCase() || '';
+    const description = weather.description?.toLowerCase() || '';
+
+    // Check if it's currently raining
+    const isRaining = condition.includes('rain') || 
+                     condition.includes('drizzle') || 
+                     condition.includes('thunderstorm');
+
+    if (isRaining) {
+      // Extract wind data for realistic rain direction
+      const windSpeed = weatherData.wind?.speed || 0; // m/s
+      const windDirection = weatherData.wind?.deg || 0; // degrees
+
+      // Extract additional atmospheric data
+      const humidity = weatherData.main?.humidity || 50; // percentage
+      const pressure = weatherData.main?.pressure || 1013.25; // hPa
+      const temperature = weatherData.main?.temp || 288.15; // Kelvin
+      const visibility = weatherData.visibility || 10000; // meters
+
+      // Update rain service with comprehensive weather conditions
+      this.rainService.updateWeatherConditions(
+        condition, 
+        description, 
+        windSpeed, 
+        windDirection, 
+        humidity, 
+        pressure, 
+        temperature, 
+        visibility
+      );
+    } else {
+      // Stop rain if weather conditions don't indicate precipitation
+      this.rainService.stopRain();
+    }
   }
 
   /** Compute and set sky background gradient using atmospheric scattering calculations */

@@ -2,13 +2,14 @@
   class="window-view-overlay"
   (contextmenu)="$event.stopPropagation()"
   [style.background]="skyBackground"
->
-  <!-- dynamic sky background -->
+>  <!-- dynamic sky background -->
   <div
     *ngIf="windowCloudUrl"
     class="cloud-background"
     [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
   ></div>
+  <!-- rain overlay -->
+  <app-rain-overlay></app-rain-overlay>
   <div class="compass-labels" [style.backgroundColor]="compassBackground">
     <span class="compass-label">S</span>
     <span class="compass-label">W</span>
