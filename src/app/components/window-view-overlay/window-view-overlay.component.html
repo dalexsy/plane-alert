@@ -96,16 +96,15 @@
                 [style.transformOrigin]="'center center'"
                 style="z-index: 1"
               >
-                <defs>
-                  <!-- Gradient for the shadow part to blend better -->
+                <defs>                  <!-- Gradient for the shadow part to blend better -->
                   <radialGradient
                     [attr.id]="'moon-shadow-gradient-' + plane.icao"
                     cx="50%"
                     cy="30%"
                   >
-                    <stop offset="0%" stop-color="rgba(50, 60, 90, 0.85)" />
-                    <stop offset="70%" stop-color="rgba(30, 40, 70, 0.9)" />
-                    <stop offset="100%" stop-color="rgba(20, 30, 50, 0.95)" />
+                    <stop offset="0%" [attr.stop-color]="getRgbaColor(skyBottomColor, 0.85)" />
+                    <stop offset="70%" [attr.stop-color]="getRgbaColor(skyTopColor, 0.9)" />
+                    <stop offset="100%" [attr.stop-color]="getRgbaColor(skyTopColor, 0.95)" />
                   </radialGradient>
                   <mask [attr.id]="'moon-phase-mask-' + plane.icao">
                     <rect width="22" height="22" fill="white" />

@@ -98,13 +98,24 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       event.stopPropagation();
     }
   }
-
   // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */
   public skyBackground: string = '';
   public compassBackground: string = '#ff9753';
   /** Cloud tile URL for window view background */
-  windowCloudUrl: string | null = null;
+  windowCloudUrl: string | null = null;  /** Individual sky color components for template access */
+  public skyBottomColor: string = 'rgb(135, 206, 235)'; // Default sky blue
+  public skyTopColor: string = 'rgb(25, 25, 112)'; // Default midnight blue
+
+  /** Convert RGB color string to RGBA with specified opacity */
+  public getRgbaColor(rgbColor: string, opacity: number): string {
+    const rgbMatch = rgbColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${opacity})`;
+    }
+    // Fallback for any unexpected format
+    return rgbColor;
+  }
   /** Current weather condition from API */
   public weatherCondition: string | null = null;
   /** Detailed weather description from API */
@@ -362,10 +373,12 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const skyColors = this.atmosphericSky.calculateSkyColors(
       sunElevationAngle,
       weatherCondition
-    );
-
-    // Create gradient from horizon to zenith
+    );    // Create gradient from horizon to zenith
     this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;
+
+    // Store individual sky color components for template access (e.g., moon gradient)
+    this.skyBottomColor = skyColors.bottomColor;
+    this.skyTopColor = skyColors.topColor;
 
     // Publish sky colors to the sync service for use by other components
     this.skyColorSync.updateSkyColors({
