@@ -200,6 +200,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public sunEventText: string = '';
   private sunAngleInterval: any;
   private locationUpdateSubscription: any;
+  private globalTooltipClickHandler!: (e: MouseEvent) => void;
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -284,20 +285,45 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     // Add global click handler for tooltip follow
-    window.addEventListener('click', (e: MouseEvent) => {
-      const wrapper = (e.target as HTMLElement).closest(
-        '.tooltip-follow-wrapper'
-      );
-      if (!wrapper) return;
-      e.stopPropagation();
-      e.preventDefault();
-      const icao = wrapper.getAttribute('data-icao');
-      if (icao) {
-        window.dispatchEvent(
-          new CustomEvent('plane-tooltip-follow', { detail: { icao } })
-        );
-      }
+    window.addEventListener('click', this.globalTooltipClickHandler);
+
+    // Listen for tooltip follow/unfollow events
+    window.addEventListener('plane-tooltip-follow', (e: Event) => {
+      const icao = (e as CustomEvent).detail?.icao;
+      if (!icao) return;
+      this.ngZone.run(() => {
+        if (this.highlightedPlaneIcao === icao) {
+          this.unhighlightPlane(icao);
+          this.highlightedPlaneIcao = null;
+          this.followNearest = false;
+        } else {
+          this.highlightedPlaneIcao = icao;
+          this.followNearest = true;
+          // Center map on followed plane
+          const pm = this.planeLog.get(icao);
+          if (pm && pm.lat != null && pm.lon != null) {
+            this.map.panTo([pm.lat, pm.lon]);
+            // Update address input overlay to this plane's location
+            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.inputOverlayComponent.addressInputRef.nativeElement.value =
+                address;
+            });
+            // Update location overlay info
+            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.locationStreet = address;
+              this.locationDistrict = '';
+              this.cdr.detectChanges();
+            });
+          }
+        }
+        this.updatePlaneLog(Array.from(this.planeLog.values()));
+        this.updateFollowedStyles(); // <-- ensure all planes update
+        this.cdr.detectChanges();
+      });
     });
+
+    // Add global click handler for tooltip follow
+    window.addEventListener('click', this.globalTooltipClickHandler);
   }
 
   /** Toggle map brightness between normal and dimmed */
@@ -420,20 +446,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     // Add global click handler for tooltip follow
-    window.addEventListener('click', (e: MouseEvent) => {
-      const wrapper = (e.target as HTMLElement).closest(
-        '.tooltip-follow-wrapper'
-      );
-      if (!wrapper) return;
-      e.stopPropagation();
-      e.preventDefault();
-      const icao = wrapper.getAttribute('data-icao');
-      if (icao) {
-        window.dispatchEvent(
-          new CustomEvent('plane-tooltip-follow', { detail: { icao } })
-        );
-      }
-    });
+    window.addEventListener('click', this.globalTooltipClickHandler);
 
     // Initialize input overlay component inputs if necessary
     if (this.inputOverlayComponent) {
@@ -621,6 +634,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (this.rainLayer) {
       this.rainLayer.remove();
     }
+    window.removeEventListener('click', this.globalTooltipClickHandler);
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
