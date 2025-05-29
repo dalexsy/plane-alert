@@ -72,7 +72,8 @@
     top: 0;
     bottom: 0;
     pointer-events: none;
-    z-index: 2;    .plane-dot {
+    z-index: 2;
+    .plane-dot {
       position: absolute;
       display: flex;
       flex-direction: column-reverse;
@@ -316,25 +317,27 @@
       filter: grayscale(0.7) brightness(0.7);
       opacity: 0.5;
     }
-  }  .moon-svg {
+  }
+  .moon-svg {
     display: inline-block;
     margin-bottom: 2px;
     transition: filter 0.2s, opacity 0.2s;
 
     /* Enhanced glow effect for better visibility */
-    filter: drop-shadow(0 0 8px rgba(248, 248, 255, 0.5)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+    filter: drop-shadow(0 0 8px rgba(248, 248, 255, 0.5))
+      drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
 
     &.below-horizon {
-      filter: grayscale(0.7) brightness(0.6) 
-              drop-shadow(0 0 4px rgba(200, 200, 220, 0.3)) 
-              drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
+      filter: grayscale(0.7) brightness(0.6)
+        drop-shadow(0 0 4px rgba(200, 200, 220, 0.3))
+        drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
       opacity: 0.6;
 
       /* Dim the moon when below horizon */
       circle[fill="#f8f8ff"] {
         fill: rgba(200, 200, 220, 0.7) !important;
       }
-      
+
       circle[stroke*="rgba(255, 255, 255"] {
         stroke: rgba(200, 200, 220, 0.5) !important;
       }
@@ -367,7 +370,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    width: 100%;
+    width: 110%;
     height: 100%;
     background-size: cover;
     background-repeat: no-repeat;
@@ -378,10 +381,11 @@
     -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     -webkit-mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;
-    transform: rotateX(-54deg);
+    transform: rotateX(-45deg);
     transform-origin: top center;
     z-index: 0;
   }
+
   .dim-overlay {
     position: absolute;
     top: 0;
