@@ -210,9 +210,7 @@ export class AircraftCountryService {
       const decimalValue = isValidHex
         ? parseInt(icaoHex, 16)
         : 'Invalid format';
-      console.info(
-        `Unknown ICAO hex code: ${icaoHex} (decimal: ${decimalValue})`
-      );
+      // Unknown ICAO hex code info logged
     }
 
     return {

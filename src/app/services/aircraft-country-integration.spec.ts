@@ -14,105 +14,87 @@ describe('AircraftCountryService Integration Tests', () => {
   });
 
   it('should correctly fix the San Marino vs Albania issue', () => {
-    console.log('\n=== TESTING SAN MARINO VS ALBANIA FIX ===');
+    // Testing San Marino vs Albania fix
 
     // Test T7 registration (San Marino)
     const t7Result = service.getAircraftCountryDetailed('T7-ABC');
-    console.log(
-      `T7-ABC registration: ${t7Result.countryCode} (${t7Result.source})`
-    );
+    // T7-ABC registration result logged
     expect(t7Result.countryCode).toBe('SM');
     expect(t7Result.source).toBe('registration');
 
     // Test San Marino ICAO hex range
     const smHexResult = service.getAircraftCountryDetailed(undefined, '500123');
-    console.log(
-      `San Marino ICAO hex 500123: ${smHexResult.countryCode} (${smHexResult.source})`
-    );
+    // San Marino ICAO hex 500123 result logged
     expect(smHexResult.countryCode).toBe('SM');
     expect(smHexResult.source).toBe('icao-hex');
 
     // Test Albanian ICAO hex range
     const alHexResult = service.getAircraftCountryDetailed(undefined, '501123');
-    console.log(
-      `Albanian ICAO hex 501123: ${alHexResult.countryCode} (${alHexResult.source})`
-    );
+    // Albanian ICAO hex 501123 result logged
     expect(alHexResult.countryCode).toBe('AL');
     expect(alHexResult.source).toBe('icao-hex');
 
-    console.log('✅ San Marino vs Albania mapping fixed!');
+    // San Marino vs Albania mapping fixed!
   });
 
   it('should correctly fix the Norwegian vs Italian issue', () => {
-    console.log('\n=== TESTING NORWEGIAN VS ITALIAN FIX ===');
+    // Testing Norwegian vs Italian fix
 
     // Test the Norwegian ICAO hex that was incorrectly showing as Italian
     const noResult = service.getAircraftCountryDetailed(undefined, '4c1234');
-    console.log(
-      `Norwegian ICAO hex 4c1234: ${noResult.countryCode} (${noResult.source})`
-    );
+    // Norwegian ICAO hex 4c1234 result logged
     expect(noResult.countryCode).toBe('NO');
     expect(noResult.source).toBe('icao-hex');
 
     // Test Norwegian registration
     const noRegResult = service.getAircraftCountryDetailed('LN-ABC');
-    console.log(
-      `Norwegian registration LN-ABC: ${noRegResult.countryCode} (${noRegResult.source})`
-    );
+    // Norwegian registration LN-ABC result logged
     expect(noRegResult.countryCode).toBe('NO');
     expect(noRegResult.source).toBe('registration');
 
-    console.log('✅ Norwegian vs Italian mapping fixed!');
+    // Norwegian vs Italian mapping fixed!
   });
 
   it('should demonstrate enterprise features', () => {
-    console.log('\n=== TESTING ENTERPRISE FEATURES ===');
+    // Testing enterprise features
 
     // Test military pattern detection
     const militaryResult = service.getAircraftCountryDetailed('54+01');
-    console.log(
-      `German military 54+01: ${militaryResult.countryCode} (${militaryResult.source})`
-    );
+    // German military 54+01 result logged
     expect(militaryResult.countryCode).toBe('DE');
     expect(militaryResult.source).toBe('military-pattern');
 
     // Test comprehensive info
     const comprehensiveInfo = service.getAircraftInfo('T7-ABC', '500123', 'US');
-    console.log(`Comprehensive info for T7-ABC with US API override:`);
-    console.log(
-      `  Final country: ${comprehensiveInfo.countryCode} (${comprehensiveInfo.source})`
-    );
-    console.log(
-      `  Has registration: ${comprehensiveInfo.diagnostics.hasRegistration}`
-    );
-    console.log(`  Has ICAO hex: ${comprehensiveInfo.diagnostics.hasIcaoHex}`);
-    console.log(
-      `  Has API country: ${comprehensiveInfo.diagnostics.hasApiCountry}`
-    );
+    // Comprehensive info for T7-ABC with US API override logged
+    // Final country logged
+    // Has registration logged
+    // Has ICAO hex logged
+    // Has API country logged
 
     expect(comprehensiveInfo.countryCode).toBe('US'); // API should win
     expect(comprehensiveInfo.source).toBe('api');
 
     // Test cache functionality
     const cacheStats = service.getCacheStats();
-    console.log(`Cache entries: ${cacheStats.size}`);
+    // Cache entries logged
     expect(cacheStats.size).toBeGreaterThanOrEqual(0);
 
-    console.log('✅ Enterprise features working!');
+    // Enterprise features working!
   });
 
   it('should provide detailed metadata for debugging', () => {
-    console.log('\n=== TESTING DETAILED METADATA ===');
+    // Testing detailed metadata
 
     const result = service.getAircraftCountryDetailed(undefined, '500123');
-    console.log('San Marino ICAO allocation metadata:');
-    console.log(`  Country: ${result.metadata?.icaoAllocation?.countryName}`);
-    console.log(`  Type: ${result.metadata?.icaoAllocation?.type}`);
-    console.log(`  Notes: ${result.metadata?.icaoAllocation?.notes}`);
+    // San Marino ICAO allocation metadata logged
+    // Country logged
+    // Type logged
+    // Notes logged
 
     expect(result.metadata?.icaoAllocation?.countryName).toBe('San Marino');
     expect(result.metadata?.icaoAllocation?.notes).toContain('T7 prefix');
 
-    console.log('✅ Detailed metadata working!');
+    // Detailed metadata working!
   });
 });

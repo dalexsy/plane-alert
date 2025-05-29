@@ -222,7 +222,7 @@ export class LocationContextService {
       .get<any>(url)
       .pipe(
         map((response) => {
-          console.log('TimeAPI response:', response); // Debug log
+          // TimeAPI response debug
           const timezone: TimezoneData = {
             timezone: response.timeZone || 'UTC',
             utcOffset: response.currentUtcOffset?.seconds
@@ -230,11 +230,11 @@ export class LocationContextService {
               : 0,
             dst: response.dstActive || false,
           };
-          console.log('Parsed timezone data:', timezone); // Debug log
+          // Parsed timezone data debug
           return timezone;
         }),
         catchError((error) => {
-          console.warn('Timezone lookup failed, using fallback:', error);
+          // Timezone lookup failed, using fallback
           // Fallback: rough timezone estimation based on longitude
           const estimatedOffset = Math.round(lon / 15);
           return of({
@@ -297,7 +297,7 @@ export class LocationContextService {
             : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
         }),
         catchError((error) => {
-          console.warn('Address lookup failed, using coordinates:', error);
+          // Address lookup failed, using coordinates
           return of(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
         }),
         tap((address) => {

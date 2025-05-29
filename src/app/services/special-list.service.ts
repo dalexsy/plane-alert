@@ -63,12 +63,13 @@ export class SpecialListService {
           this.lastLoadTime = Date.now();
           this.mergeLists();
         } catch (e) {
-          console.error('Error parsing special-icaos.json:', e);
+          // Error parsing special-icaos.json
         }
       })
       .catch((error) => {
-        if (error.status !== 404)
-          console.error('Error loading special list:', error);
+        if (error.status !== 404) {
+          // Error loading special list
+        }
       });
   }
 

@@ -142,7 +142,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
     if (!svg) {
-      console.error('[ConeComponent] overlayPane SVG not found.');
+      // overlayPane SVG not found error would be logged here
       return;
     }
 

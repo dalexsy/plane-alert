@@ -56,13 +56,13 @@ export class HelicopterListService {
 
           this.listUpdated.next();
         } catch (e) {
-          console.error('Error parsing helicopter-icaos.json:', e);
+          // Error parsing helicopter-icaos.json
         }
       })
       .catch((error) => {
         if (error.status === 404) {
         } else {
-          console.error('Error loading helicopter list:', error);
+          // Error loading helicopter list
         }
       });
   }

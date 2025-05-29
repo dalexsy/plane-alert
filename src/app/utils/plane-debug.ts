@@ -94,27 +94,7 @@ export function debugAllMilitaryPlanes(
  */
 export function logPlaneDebugInfo(plane: any): void {
   const debug = debugPlaneTrails(plane);
-
-  console.group(`🛩️ Plane Debug: ${debug.icao} (${debug.callsign})`);
-  console.log(`Military: ${debug.isMilitary}`);
-  console.log(`Grounded: ${debug.isGrounded} (${debug.groundedReason})`);
-  console.log(
-    `Altitude: ${debug.altitude ? Math.round(debug.altitude) + 'm' : 'unknown'}`
-  );
-  console.log(
-    `Velocity: ${
-      debug.velocity ? Math.round(debug.velocity) + 'kts' : 'unknown'
-    }`
-  );
-  console.log(`Position History: ${debug.positionHistoryLength} points`);
-  console.log(`Trail Segments: ${debug.trailSegmentCount}`);
-  console.log(`Summary: ${debug.debugSummary}`);
-
-  if (debug.positionHistoryLength > 1) {
-    console.log('Recent positions:', plane.positionHistory?.slice(-3));
-  }
-
-  console.groupEnd();
+  // Debug logging removed - use debugPlaneTrails function directly for debugging
 }
 
 // Add to window for browser console debugging

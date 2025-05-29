@@ -37,7 +37,7 @@ export class HelicopterIdentificationService {
       // Check model name patterns (fallback for aircraft not in ICAO list)
       return this.isHelicopterByModel(model);
     } catch (error) {
-      console.warn('Error in helicopter identification:', error);
+      // Error in helicopter identification
       // Fail safe - default to false if there's any error
       return false;
     }
@@ -167,7 +167,7 @@ export class HelicopterIdentificationService {
     try {
       return await this.helicopterListService.refreshHelicopterList(force);
     } catch (error) {
-      console.warn('Error refreshing helicopter list:', error);
+      // Error refreshing helicopter list
       return false;
     }
   }

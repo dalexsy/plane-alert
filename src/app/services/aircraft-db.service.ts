@@ -26,30 +26,35 @@ export class AircraftDbService {
   load(): Promise<void> {
     // Load split database files and merge
     return Promise.all([
-      this.http.get('/assets/basic-ac-db1.json', { responseType: 'text' }).toPromise(),
-      this.http.get('/assets/basic-ac-db2.json', { responseType: 'text' }).toPromise(),
+      this.http
+        .get('/assets/basic-ac-db1.json', { responseType: 'text' })
+        .toPromise(),
+      this.http
+        .get('/assets/basic-ac-db2.json', { responseType: 'text' })
+        .toPromise(),
     ])
       .then((texts) => {
         const records: AircraftRecord[] = [];
         texts.forEach((text, idx) => {
           if (!text) {
-            console.error(`Empty response from basic-ac-db${idx+1}.json`);
+            // Empty response from basic-ac-db file
             return;
           }
-          text.split(/\r?\n/)
+          text
+            .split(/\r?\n/)
             .filter((line) => line.trim().length > 0)
             .forEach((line) => {
               try {
                 records.push(JSON.parse(line));
               } catch (e) {
-                console.error('Error parsing line:', line, e);
+                // Error parsing line
               }
             });
         });
         records.forEach((rec) => this.db.set(rec.icao.toLowerCase(), rec));
       })
       .catch((error) => {
-        console.error('Error loading aircraft DB fragments:', error);
+        // Error loading aircraft DB fragments
         throw error;
       });
   }

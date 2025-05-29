@@ -517,7 +517,6 @@ export class PlaneFinderService {
       if (!response.ok)
         throw new Error(`ADSB One API fetch error ${response.status}`);
       const data = await response.json();
-      //  console.log('[PlaneFinderService] Raw API Response:', JSON.stringify(data)); // Log the raw API response
       // Using external JSON-based REGISTRATION_COUNTRY_PREFIX
 
       // Prepare update containers for this scan
@@ -541,19 +540,6 @@ export class PlaneFinderService {
           rawCountry
         );
 
-        // Add logging for unknown origin
-        if (origin === 'Unknown') {
-          if (reg && reg !== '') {
-            console.log(
-              `[PlaneFinderService] Unknown origin for ICAO: ${id}, Registration: ${reg}. API country: '${rawCountry}'`
-            );
-          } else {
-            console.log(
-              `[PlaneFinderService] Unknown origin for ICAO: ${id}. Registration not available. API country: '${rawCountry}'`
-            );
-          }
-        }
-
         // Operator will be set later in model update
         const lat = ac.lat;
         const lon = ac.lon;
@@ -564,11 +550,7 @@ export class PlaneFinderService {
         const altitudeApiValue = ac.alt_baro ?? ac.alt_geom;
         // Default to 0 if undefined for general calculations (matches original altitudeFeet behavior)
         const altitudeFeet = altitudeApiValue ?? 0;
-        const altitude = altitudeFeet * 0.3048;
-
-        // Log raw data relevant to ground status and orientation for EVERY plane
-        // Enhanced logging for inputs to the onGround heuristic
-        // // console.log(`[PlaneFinderService] Processing ${id}: Inputs for onGround check -> API ac.ground: ${ac.ground}, API ac.track: ${ac.track}, alt_baro: ${ac.alt_baro}, alt_geom: ${ac.alt_geom}, gs: ${velocity}`);
+        const altitude = altitudeFeet * 0.3048; // Log raw data relevant to ground status and orientation for EVERY plane
 
         let onGroundBasedOnLogic = false;
         let altitudeForHeuristicCheck: number | undefined;
@@ -592,28 +574,8 @@ export class PlaneFinderService {
           onGroundBasedOnLogic = true;
         }
         const onGround = ac.ground === true || onGroundBasedOnLogic;
-
-        // Enhanced logging for the onGround decision process
-        // // console.log(`[PlaneFinderService] Processing ${id}: onGround decision -> Calculated: ${onGround} (Heuristic (alt<150 && gs<50): ${onGroundBasedOnLogic}, API ac.ground value: ${ac.ground})`);
-
         if (onGround) {
           // Enhanced logging for planes determined to be onGround
-          // // console.log(`[PlaneFinderService] Grounded plane data for ${id}:`, {
-          //   hex: ac.hex,
-          //   api_ac_ground: ac.ground,
-          //   api_alt_baro_ft: ac.alt_baro, // Log original API value
-          //   api_alt_geom_ft: ac.alt_geom, // Log original API value
-          //   api_gs_knots: velocity,
-          //   heuristic_inputs: {
-          //       altitude_used_ft: altitudeForHeuristicCheck, // Log the numeric value used in heuristic
-          //       gs_used_knots: velocity
-          //   },
-          //   heuristic_result_onGroundBasedOnLogic: onGroundBasedOnLogic,
-          //   final_onGround_decision: onGround
-          // });
-          // This specific log for track used in marker can be inside if(onGround) or outside if we always want to see it.
-          // For now, let\'s keep it here to see what track is used when considered grounded.
-          // // console.log(`[PlaneFinderService] Grounded plane ${id} - track for marker: ${track ?? 0}`); // Will be replaced by log with trackForMarker
         }
 
         const isSpecial = this.specialListService.isSpecial(id);
@@ -700,12 +662,10 @@ export class PlaneFinderService {
           planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
           planeModelInstance.isSpecial = isSpecial;
           planeModelInstance.isMilitary = isMilitary; // update forced military flag
-        }
-
-        // Update PlaneModel with potentially fetched aircraft data
+        } // Update PlaneModel with potentially fetched aircraft data
         // Determine operator via prefix mapping or fallback to ownop from aircraft DB
         const prefixOperator =
-          this.operatorCallSignService.getOperator(callsign);
+          this.operatorCallSignService.getOperatorWithLogging(callsign);
         const operator = prefixOperator ?? (dbAircraft?.ownop || '');
         const model = dbAircraft?.model || '';
 
@@ -738,26 +698,6 @@ export class PlaneFinderService {
             velocity,
             altitude
           );
-        } else if (
-          !isExistingPlane &&
-          (typeof lat !== 'number' || typeof lon !== 'number')
-        ) {
-          // Log if a new plane is created without valid initial coordinates
-          // // console.warn(
-          //   `[PlaneFinderService ${id}] New plane created without valid initial lat/lon:`,
-          //   lat,
-          //   lon
-          // );
-        } else if (
-          isExistingPlane &&
-          (typeof lat !== 'number' || typeof lon !== 'number')
-        ) {
-          // Log if an existing plane receives invalid coordinates
-          // // console.warn(
-          //   `[PlaneFinderService ${id}] Existing plane received invalid lat/lon:`,
-          //   lat,
-          //   lon
-          // );
         }
 
         // Create/Update Marker
@@ -860,10 +800,6 @@ export class PlaneFinderService {
         updatedLog: updatedLogModels,
       };
     } catch (err) {
-      // console.warn(
-      //   '[PlaneFinderService] Error fetching plane data, continuing with previous data',
-      //   err
-      // );
       return {
         anyNew: false,
         currentIDs: Array.from(previousLog.keys()),

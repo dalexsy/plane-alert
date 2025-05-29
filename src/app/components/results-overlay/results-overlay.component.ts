@@ -717,24 +717,19 @@ export class ResultsOverlayComponent
   get militaryCount(): number {
     return this.filteredSkyPlaneLog.filter((p) => p.isMilitary).length;
   }
-
   /** Log shuffle mode changes for debugging */
   private logShuffleModeChange(newValue: boolean, source: string): void {
     if (!newValue) {
-      console.warn(`[ShuffleMode] shuffleMode set to FALSE by ${source}`);
-      console.warn(new Error().stack);
+      // Shuffle mode set to FALSE would be logged here
     } else {
-      console.info(`[ShuffleMode] shuffleMode set to TRUE by ${source}`);
+      // Shuffle mode set to TRUE would be logged here
     }
   }
 
   /** Begin shuffle: immediately pick a plane, then every 30s */
   private startShuffle(): void {
     const ts = new Date().toLocaleTimeString();
-    // console.log(`[${ts}] Shuffle started -> mode=${this.shuffleMode}`);
-    // if (this.shuffleMode === 'off') { // This was causing issues if shuffleMode is boolean
-    //   this.shuffleMode = 'bearing'; // Default to bearing if starting from off
-    // }
+
     // this.isShuffling = true; // Property 'isShuffling' does not exist
     if (this.shuffleSub) {
       this.shuffleSub.unsubscribe();
@@ -749,7 +744,6 @@ export class ResultsOverlayComponent
   /** Stop shuffle mode */
   private stopShuffle(): void {
     const ts = new Date().toLocaleTimeString();
-    // console.log(`[${ts}] Shuffle stopped -> mode=${this.shuffleMode}`);
     // this.shuffleMode = 'off'; // This was causing issues if shuffleMode is boolean
     if (this.shuffleSub) {
       this.shuffleSub.unsubscribe();

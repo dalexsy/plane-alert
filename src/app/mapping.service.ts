@@ -40,17 +40,23 @@ export class MappingService {
           const all: Aircraft[] = [];
           texts.forEach((text, idx) => {
             if (text) {
-              text.split(/\r?\n/).filter((l) => l.trim()).forEach((line) => {
-                try { all.push(JSON.parse(line)); }
-                catch (e) { console.error('Error parsing mapping line:', line, e); }
-              });
+              text
+                .split(/\r?\n/)
+                .filter((l) => l.trim())
+                .forEach((line) => {
+                  try {
+                    all.push(JSON.parse(line));
+                  } catch (e) {
+                    /* Error parsing mapping line */
+                  }
+                });
             } else {
-              console.warn(`Empty mapping file basic-ac-db${idx+1}.json`);
+              // Empty mapping file
             }
           });
           return all;
         }),
-        shareReplay(1),
+        shareReplay(1)
       );
     }
     return this.mapping$;

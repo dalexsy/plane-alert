@@ -92,7 +92,7 @@ export class MapService {
         // debug: main radius group prepended
       }
     } catch (e) {
-      console.warn('[MapService] failed to prepend main radius group', e);
+      // Failed to prepend main radius group
     }
 
     // Optional: re-draw on view changes to stay centered

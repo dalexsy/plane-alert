@@ -866,11 +866,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Prevent double scan on initial load: only force scan if not immediately after ngAfterViewInit
       if (!this._initialScanDone) {
         this._initialScanDone = true;
-        // console.log('[MapComponent] Skipping forceScan after initial load');
       } else {
-        // console.log(
-        //   '[MapComponent] Calling scanService.forceScan from updateMap'
-        // );
         this.scanService.forceScan();
       }
     }); // fetch and update current wind direction
@@ -888,9 +884,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       .then((res) => {
         if (res.status === 429) {
           // Too Many Requests: skip update, optionally show warning
-          console.warn(
-            'OpenWeatherMap API rate limit (429) hit. Skipping wind update.'
-          );
+          // Rate limit warning would be logged here
           return null;
         }
         return res.json();
@@ -910,10 +904,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.windStat = stat;
         this.windAngle = windFrom;
         this.cdr.detectChanges();
-      })
-      .catch((err) => {
-        // console.log('Wind fetch failed, using last values:', err);
-        // Keep using last valid windData if fetch fails
       });
   }
 
@@ -1175,7 +1165,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       })
       .catch((err) => {
-        console.warn('[MapComponent] Error in findPlanes:', err);
+        // Error in findPlanes would be logged here
       });
   }
 
@@ -1254,9 +1244,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const links =
       this.document.querySelectorAll<HTMLLinkElement>(linkSelectors);
     if (!links.length) {
-      console.warn(
-        '[Favicon] No <link rel="icon"> or <link rel="shortcut icon"> tags found'
-      );
+      // No favicon link tags found warning would be logged here
       return;
     }
     links.forEach((link) => {
@@ -1543,9 +1531,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       if (!this.planeLog.has(this.highlightedPlaneIcao)) {
         if (isShuffleMode) {
           // In shuffle mode, we need to pick a new plane instead of unfollowing
-          console.log(
-            '[updatePlaneLog] Shuffle-followed plane lost, requesting new shuffle...'
-          );
+          // Shuffle-followed plane lost, requesting new shuffle would be logged here
           // Trigger a new shuffle via the component (will pick a new plane)
           this.ngZone.run(() => {
             setTimeout(() => {
@@ -1554,9 +1540,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           });
         } else {
           // Normal mode - unfollow if plane is gone
-          console.log(
-            '[updatePlaneLog] Followed plane lost, clearing follow state'
-          );
+          // Followed plane lost, clearing follow state would be logged here
           this.followNearest = false;
           this.highlightedPlaneIcao = null;
         }
@@ -2032,14 +2016,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.updatePlaneLog(Array.from(this.planeLog.values()));
       this.cdr.detectChanges();
     } else {
-      console.warn(
-        '[CenterOnPlane] Could not highlight plane - marker missing or coordinates invalid',
-        {
-          hasMarker: !!pm?.marker,
-          lat: plane.lat,
-          lon: plane.lon,
-        }
-      );
+      // Could not highlight plane - marker missing or coordinates invalid would be logged here
     }
   }
 
@@ -2075,15 +2052,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm: number
   ): Promise<void> {
     if (this.airportsLoading) {
-      console.debug(
-        '[MapComponent] findAndDisplayAirports skipped: already loading'
-      );
+      // findAndDisplayAirports skipped: already loading would be logged here
       return;
     }
     this.airportsLoading = true;
-    console.debug(
-      `[MapComponent] findAndDisplayAirports start lat=${lat}, lon=${lon}, radiusKm=${radiusKm}`
-    );
+    // findAndDisplayAirports start would be logged here
     this.ngZone.run(() => {
       this.loadingAirports = true;
       this.cdr.detectChanges();
@@ -2279,10 +2252,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       });
     } catch (error) {
-      console.error(
-        '[MapComponent] Failed to fetch or process airport data:',
-        error
-      );
+      // Failed to fetch or process airport data error would be logged here
       // Hide loading indicator on error
       this.ngZone.run(() => {
         this.loadingAirports = false;

@@ -218,12 +218,11 @@ export class IcaoAllocationUtils {
 
   /**
    * Finds the country allocation for a given ICAO hex code
-   */
-  static findCountryByIcaoHex(icaoHex: string): string | null {
+   */ static findCountryByIcaoHex(icaoHex: string): string | null {
     // Validate hex format first
     if (!icaoHex || !this.isValidHex(icaoHex)) {
       if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-        console.warn('Invalid ICAO hex format:', icaoHex);
+        // Invalid ICAO hex format logged
       }
       return null;
     }
@@ -238,7 +237,7 @@ export class IcaoAllocationUtils {
       }
     } catch (error) {
       if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-        console.warn('Error parsing ICAO hex:', icaoHex, error);
+        // Error parsing ICAO hex logged
       }
     }
 
@@ -267,7 +266,7 @@ export class IcaoAllocationUtils {
     // Validate hex format first
     if (!icaoHex || !this.isValidHex(icaoHex)) {
       if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-        console.warn('Invalid ICAO hex format:', icaoHex);
+        // Invalid ICAO hex format would be logged here
       }
       return null;
     }
@@ -282,7 +281,7 @@ export class IcaoAllocationUtils {
       }
     } catch (error) {
       if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-        console.warn('Error parsing ICAO hex:', icaoHex, error);
+        // Error parsing ICAO hex would be logged here
       }
     }
 
