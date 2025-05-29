@@ -351,11 +351,90 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
     await this.aircraftDb.load();
-    // Load configured military prefix list for overlay flags
     await this.militaryPrefixService.loadPrefixes();
     this.settings.load();
-    // Apply saved toggle preferences & UI state
     this.showDateTime = this.settings.showDateTimeOverlay;
+
+    // --- Clear all historical trail data on startup to prevent lag ---
+    this.planeHistoricalLog = [];
+    this.resultsOverlayComponent.seenPlaneLog = [];
+    this.planeLog.forEach((plane) => {
+      plane.positionHistory = [];
+      if (plane.historyTrailSegments) plane.historyTrailSegments = [];
+    });
+
+    // Update tooltip classes on special list changes
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.planeLog.forEach((plane) => {
+        const tooltipEl = plane.marker?.getTooltip()?.getElement();
+        if (tooltipEl) {
+          tooltipEl.classList.toggle(
+            'special-plane-tooltip',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+        // Also update marker icon class
+        const markerEl = plane.marker?.getElement();
+        if (markerEl) {
+          markerEl.classList.toggle(
+            'special-plane',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+      });
+    });
+
+    // Listen for tooltip follow/unfollow events
+    window.addEventListener('plane-tooltip-follow', (e: Event) => {
+      const icao = (e as CustomEvent).detail?.icao;
+      if (!icao) return;
+      this.ngZone.run(() => {
+        if (this.highlightedPlaneIcao === icao) {
+          this.unhighlightPlane(icao);
+          this.highlightedPlaneIcao = null;
+          this.followNearest = false;
+        } else {
+          this.highlightedPlaneIcao = icao;
+          this.followNearest = true;
+          // Center map on followed plane
+          const pm = this.planeLog.get(icao);
+          if (pm && pm.lat != null && pm.lon != null) {
+            this.map.panTo([pm.lat, pm.lon]);
+            // Update address input overlay to this plane's location
+            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.inputOverlayComponent.addressInputRef.nativeElement.value =
+                address;
+            });
+            // Update location overlay info
+            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.locationStreet = address;
+              this.locationDistrict = '';
+              this.cdr.detectChanges();
+            });
+          }
+        }
+        this.updatePlaneLog(Array.from(this.planeLog.values()));
+        this.updateFollowedStyles(); // <-- ensure all planes update
+        this.cdr.detectChanges();
+      });
+    });
+
+    // Add global click handler for tooltip follow
+    window.addEventListener('click', (e: MouseEvent) => {
+      const wrapper = (e.target as HTMLElement).closest(
+        '.tooltip-follow-wrapper'
+      );
+      if (!wrapper) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const icao = wrapper.getAttribute('data-icao');
+      if (icao) {
+        window.dispatchEvent(
+          new CustomEvent('plane-tooltip-follow', { detail: { icao } })
+        );
+      }
+    });
+
     // Initialize input overlay component inputs if necessary
     if (this.inputOverlayComponent) {
       // Sync input props
