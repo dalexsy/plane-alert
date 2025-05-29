@@ -891,5 +891,11 @@
   "DMA": "Private",
   "DMN": "Private",
   "AIC": "Air India",
-  "N29": "Private"
+  "N29": "Private",
+  "DKM": "Private",
+  "EGT": "Eagle Trans",
+  "DKD": "Private",
+  "HUE": "Private",
+  "E75": "Private",
+  "N10": "Private"
 }
