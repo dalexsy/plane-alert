@@ -2,22 +2,27 @@
   class="window-view-overlay"
   (contextmenu)="$event.stopPropagation()"
   [style.background]="skyBackground"
->
-  <!-- dynamic sky background -->
+>  <!-- dynamic sky background -->
   <div
     *ngIf="windowCloudUrl"
     class="cloud-background"
+    [ngClass]="cloudBacklightClass"
     [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
+    [style.filter]="cloudFilter"
   ></div>
   <div
     *ngIf="windowCloudUrl"
     class="cloud-background"
+    [ngClass]="cloudBacklightClass"
     [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
+    [style.filter]="cloudFilter"
   ></div>
   <div
     *ngIf="windowCloudUrl"
     class="cloud-background"
+    [ngClass]="cloudBacklightClass"
     [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
+    [style.filter]="cloudFilter"
   ></div>
 
   <!-- rain overlay -->

@@ -101,9 +101,13 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */
   public skyBackground: string = '';
-  public compassBackground: string = '#ff9753';
-  /** Cloud tile URL for window view background */
-  windowCloudUrl: string | null = null;  /** Individual sky color components for template access */
+  public compassBackground: string = '#ff9753';  /** Cloud tile URL for window view background */
+  windowCloudUrl: string | null = null;
+  /** Cloud filter styles for night-time darkening */
+  public cloudFilter: string = 'none';
+  /** Cloud backlighting CSS class for atmospheric effects */
+  public cloudBacklightClass: string = '';
+  /** Individual sky color components for template access */
   public skyBottomColor: string = 'rgb(135, 206, 235)'; // Default sky blue
   public skyTopColor: string = 'rgb(25, 25, 112)'; // Default midnight blue
 
@@ -374,18 +378,66 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       sunElevationAngle,
       weatherCondition
     );    // Create gradient from horizon to zenith
-    this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;
-
-    // Store individual sky color components for template access (e.g., moon gradient)
+    this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;    // Store individual sky color components for template access (e.g., moon gradient)
     this.skyBottomColor = skyColors.bottomColor;
     this.skyTopColor = skyColors.topColor;
+
+    // Update cloud filtering based on sun elevation for night-time darkening
+    this.updateCloudFiltering(sunElevationAngle);
 
     // Publish sky colors to the sync service for use by other components
     this.skyColorSync.updateSkyColors({
       bottomColor: skyColors.bottomColor,
       topColor: skyColors.topColor,
-      timestamp: Date.now(),
-    });
+      timestamp: Date.now(),    });
+  }  /** Update cloud filtering based on sun elevation for night-time darkening */
+  private updateCloudFiltering(sunElevationAngle: number): void {
+    // Find moon marker for nighttime backlighting calculations
+    const moon = this.windowViewPlanes.find(
+      (p) => p.isCelestial && p.celestialBodyType === 'moon'
+    );
+    
+    // Calculate cloud darkening and backlighting based on sun elevation and moon position
+    // During day: no filtering (clouds remain white/natural)
+    // During twilight: slight darkening with warm backlighting
+    // During night: significant darkening with moon-influenced backlighting
+    
+    if (sunElevationAngle > 15) {
+      // Full daylight - no darkening needed, subtle natural backlighting
+      this.cloudFilter = 'none';
+      this.cloudBacklightClass = 'backlit';
+    } else if (sunElevationAngle > 0) {
+      // Dawn/dusk - moderate darkening with warm twilight backlighting
+      const brightness = 0.4 + (sunElevationAngle / 15) * 0.6; // 0.4 to 1.0
+      this.cloudFilter = `brightness(${brightness}) contrast(1.1) hue-rotate(5deg)`;
+      this.cloudBacklightClass = 'twilight-backlit';
+    } else if (sunElevationAngle > -6) {
+      // Civil twilight - noticeable darkening with orange/red backlighting
+      const brightness = 0.25 + ((sunElevationAngle + 6) / 6) * 0.15; // 0.25 to 0.4
+      this.cloudFilter = `brightness(${brightness}) contrast(1.2) hue-rotate(10deg) saturate(0.8)`;
+      this.cloudBacklightClass = 'twilight-backlit';
+    } else if (sunElevationAngle > -12) {
+      // Nautical twilight - strong darkening with fading backlighting
+      const brightness = 0.15 + ((sunElevationAngle + 12) / 6) * 0.1; // 0.15 to 0.25
+      this.cloudFilter = `brightness(${brightness}) contrast(1.3) hue-rotate(15deg) saturate(0.6)`;
+      this.cloudBacklightClass = 'night-backlit';
+    } else {
+      // Astronomical twilight or night - maximum darkening with moonlight influence
+      let moonInfluence = 0.1; // Base moonlight influence
+      
+      if (moon && !moon.belowHorizon) {
+        // Moon is visible - enhance backlighting based on moon elevation and phase
+        const moonElevation = (moon.y / 100) * 90; // Convert to elevation angle
+        const moonPhase = moon.moonFraction || 0; // Moon illumination fraction
+        
+        // Higher moon = more backlighting, fuller moon = more backlighting
+        moonInfluence = 0.1 + (moonElevation / 90) * 0.15 + moonPhase * 0.1;
+      }
+      
+      const baseBrightness = 0.1 + moonInfluence * 0.5;
+      this.cloudFilter = `brightness(${baseBrightness}) contrast(1.4) hue-rotate(20deg) saturate(0.4)`;
+      this.cloudBacklightClass = 'night-backlit';
+    }
   }
 
   /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
