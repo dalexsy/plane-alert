@@ -138,17 +138,40 @@ export class AtmosphericSkyService {
 
     let { zenith, horizon } = baseColors;
 
-    // Rain and storms - dramatic darkening and desaturation
+    // Rain and storms - darken/desaturate, but scale with sun elevation
     if (
       condition.includes('rain') ||
       condition.includes('drizzle') ||
       condition.includes('thunderstorm')
     ) {
-      zenith = { r: 60, g: 65, b: 70 };
-      horizon = { r: 80, g: 85, b: 90 };
-
+      // Default: blend with gray, but not night-like unless sun is very low
+      // Use a stronger effect for thunderstorms
+      const isThunder = condition.includes('thunderstorm');
+      // Sun elevation: 90 (zenith) to -18 (night)
+      const se = typeof sunElevation === 'number' ? sunElevation : 45;
+      // 1 = full day, 0 = night
+      const dayFactor = Math.max(0, Math.min(1, (se + 6) / 36)); // 30+6=36, so above -6 is day/twilight
+      // Target gray for rain (lighter for day, darker for night)
+      const rainZenith = isThunder
+        ? { r: 50, g: 55, b: 70 }
+        : { r: 120, g: 130, b: 150 };
+      const rainHorizon = isThunder
+        ? { r: 70, g: 75, b: 90 }
+        : { r: 160, g: 170, b: 185 };
+      // Blend base sky with rain gray
+      function blend(a: any, b: any, t: number) {
+        return {
+          r: a.r * t + b.r * (1 - t),
+          g: a.g * t + b.g * (1 - t),
+          b: a.b * t + b.b * (1 - t),
+        };
+      }
+      // More gray as dayFactor drops (i.e., as it gets darker)
+      const rainBlend = isThunder ? 0.5 + 0.3 * (1 - dayFactor) : 0.3 + 0.3 * (1 - dayFactor);
+      zenith = blend(zenith, rainZenith, 1 - rainBlend);
+      horizon = blend(horizon, rainHorizon, 1 - rainBlend);
       // Add slight purple tint for storms
-      if (condition.includes('thunderstorm')) {
+      if (isThunder) {
         zenith.b += 15;
         horizon.b += 10;
       }

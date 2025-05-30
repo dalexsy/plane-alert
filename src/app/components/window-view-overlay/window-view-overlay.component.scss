@@ -123,10 +123,13 @@
         }
       }
 
+      .copter-wrapper {
+        display: inline-block;
+      }
       .copter-plane-icon {
         font-family: "Material Symbols Sharp", sans-serif;
         font-variation-settings: "FILL" 1;
-        font-size: 1.3em;
+        font-size: 3rem;
         color: currentColor;
         display: inline-block;
         animation: spin 1.5s linear infinite;
@@ -273,7 +276,7 @@
   .copter-plane-icon {
     font-family: "Material Symbols Sharp", sans-serif;
     font-variation-settings: "FILL" 1;
-    font-size: 1.3em;
+    font-size: 3rem;
     color: currentColor;
     display: inline-block;
     animation: spin 1.5s linear infinite;
