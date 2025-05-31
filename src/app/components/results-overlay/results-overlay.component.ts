@@ -155,9 +155,12 @@ export class ResultsOverlayComponent
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
   // Shuffle mode: pick random plane to follow every interval
   shuffleMode = false;
+  // Nearest follow mode: pick nearest plane to follow every interval
+  nearestMode = false;
   // Military priority toggle: whether to prioritize military planes in sorting
   militaryPriority = true;
   private shuffleSub: Subscription | null = null;
+  private nearestSub: Subscription | null = null;
   // --- Add persistent shuffle follow state ---
   private shuffleFollowedIcao: string | null = null;
 
@@ -688,12 +691,36 @@ export class ResultsOverlayComponent
     const now = Date.now();
     if (now - this.lastToggleTime < this.DEBOUNCE_TIME) return;
     this.lastToggleTime = now;
+    // Disable nearest mode if enabling shuffle
+    if (!this.shuffleMode && this.nearestMode) {
+      this.nearestMode = false;
+      this.stopNearest();
+    }
     this.logShuffleModeChange(!this.shuffleMode, 'toggleShuffle');
     this.shuffleMode = !this.shuffleMode;
     if (this.shuffleMode) {
       this.startShuffle();
     } else {
       this.stopShuffle();
+    }
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle nearest follow mode on/off */
+  public toggleNearest(): void {
+    const now = Date.now();
+    if (now - this.lastToggleTime < this.DEBOUNCE_TIME) return;
+    this.lastToggleTime = now;
+    // Disable shuffle mode if enabling nearest
+    if (!this.nearestMode && this.shuffleMode) {
+      this.shuffleMode = false;
+      this.stopShuffle();
+    }
+    this.nearestMode = !this.nearestMode;
+    if (this.nearestMode) {
+      this.startNearest();
+    } else {
+      this.stopNearest();
     }
     this.cdr.detectChanges();
   }
@@ -716,6 +743,50 @@ export class ResultsOverlayComponent
   /** Number of military planes currently visible in the sky list */
   get militaryCount(): number {
     return this.filteredSkyPlaneLog.filter((p) => p.isMilitary).length;
+  }
+
+  /** Start nearest follow: immediately pick nearest, then every 5 seconds */
+  private startNearest(): void {
+    if (this.nearestSub) {
+      this.nearestSub.unsubscribe();
+    }
+    // Pick immediately
+    this.pickAndCenterNearestPlane();
+    // Update periodically
+    this.nearestSub = interval(5000).subscribe(() => {
+      this.pickAndCenterNearestPlane();
+    });
+  }
+
+  /** Stop nearest follow mode */
+  private stopNearest(): void {
+    if (this.nearestSub) {
+      this.nearestSub.unsubscribe();
+      this.nearestSub = null;
+    }
+  }
+
+  /** Pick the nearest visible plane and center map on it */
+  private pickAndCenterNearestPlane(): void {
+    // Exclude grounded planes
+    const airborne = this.filteredSkyPlaneLog.filter(
+      (p) => !p.onGround && p.altitude != null && p.altitude > 0
+    );
+    if (!airborne.length) {
+      return;
+    }
+    const centerLat = this.settings.lat ?? 0;
+    const centerLon = this.settings.lon ?? 0;
+    // Find truly nearest by haversine distance among airborne planes
+    const nearest = airborne.reduce((prev, curr) => {
+      const prevDist = haversineDistance(centerLat, centerLon, prev.lat!, prev.lon!);
+      const currDist = haversineDistance(centerLat, centerLon, curr.lat!, curr.lon!);
+      return currDist < prevDist ? curr : prev;
+    });
+    this.highlightedPlaneIcao = nearest.icao;
+    const planeToFollow = { ...nearest, followMe: true };
+    this.centerPlane.emit(planeToFollow);
+    this.cdr.markForCheck();
   }
   /** Log shuffle mode changes for debugging */
   private logShuffleModeChange(newValue: boolean, source: string): void {

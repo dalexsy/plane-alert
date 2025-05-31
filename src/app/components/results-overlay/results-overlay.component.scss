@@ -47,6 +47,10 @@
       color: cyan;
       background-color: rgba(0, 255, 255, 0.2);
     }
+    .nearest-toggle.active {
+      color: limegreen;
+      background-color: rgba(0, 255, 0, 0.2);
+    }
     .military-priority-toggle.active {
       color: #89d138;
       background-color: rgb(138 209 56 / 35%);

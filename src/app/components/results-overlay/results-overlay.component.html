@@ -52,6 +52,21 @@
         [ngClass]="{ active: shuffleMode }"
         (click)="toggleShuffle()"
       ></app-button>
+      <!-- Nearest follow toggle -->
+      <app-button
+        class="nearest-toggle"
+        [icon]="nearestMode ? 'my_location' : 'location_searching'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="
+          nearestMode ? 'Disable nearest follow' : 'Enable nearest follow'
+        "
+        [title]="
+          nearestMode ? 'Disable nearest follow' : 'Enable nearest follow'
+        "
+        [ngClass]="{ active: nearestMode }"
+        (click)="toggleNearest()"
+      ></app-button>
       <!-- Military priority toggle -->
       <div class="military-toggle-wrapper">
         <app-button
