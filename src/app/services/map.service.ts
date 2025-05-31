@@ -41,6 +41,8 @@ export class MapService {
     const svg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
+    // disable pointer events on all vector overlays to speed up input handling
+    svg.style.pointerEvents = 'none';
     ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
     L.tileLayer(
       'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
@@ -74,6 +76,7 @@ export class MapService {
       color: 'white',
       weight: 2,
       className: 'main-radius-circle',
+      interactive: false, // disable pointer events for performance
       fill: true,
       fillColor: 'rgba(0, 0, 0, 1)',
       fillOpacity: 0.3,

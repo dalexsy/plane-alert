@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { IconComponent } from '../ui/icon.component';
 import { PlaneModel } from '../../models/plane-model';
+import { DebouncedClickService } from '../../services/debounced-click.service';
 
 @Component({
   selector: 'app-location-overlay',
@@ -31,10 +32,13 @@ export class LocationOverlayComponent {
   @Input() isSelected: boolean = false;
   @Output() selectPlane = new EventEmitter<PlaneModel>();
 
+  constructor(private debouncedClick: DebouncedClickService) {}
   /** Handle user click to select this plane */
   onClick(): void {
     if (this.plane) {
-      this.selectPlane.emit(this.plane);
+      this.debouncedClick.debouncedClick(`location-overlay-${this.plane.icao}`, () => {
+        this.selectPlane.emit(this.plane!);
+      });
     }
   }
 }

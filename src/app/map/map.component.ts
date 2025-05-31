@@ -49,6 +49,8 @@ import { computeWindowHistoryPositions } from '../utils/window-history-trail-uti
 import { HelicopterListService } from '../services/helicopter-list.service';
 import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
 import { SkyColorSyncService } from '../services/sky-color-sync.service';
+import { GeocodingCacheService } from '../services/geocoding-cache.service';
+import { DebouncedClickService } from '../services/debounced-click.service';
 import { LocationContextService } from '../services/location-context.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
@@ -200,8 +202,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public sunEventText: string = '';
   private sunAngleInterval: any;
   private locationUpdateSubscription: any;
-  private globalTooltipClickHandler!: (e: MouseEvent) => void;
-  constructor(
+  private globalTooltipClickHandler!: (e: MouseEvent) => void;  constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
     private mapService: MapService,
@@ -219,7 +220,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private helicopterListService: HelicopterListService,
     private helicopterIdentificationService: HelicopterIdentificationService,
     private skyColorSyncService: SkyColorSyncService,
-    private locationContextService: LocationContextService
+    private locationContextService: LocationContextService,
+    private geocodingCache: GeocodingCacheService,
+    private debouncedClickService: DebouncedClickService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -262,16 +265,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.highlightedPlaneIcao = icao;
           this.followNearest = true;
           // Center map on followed plane
-          const pm = this.planeLog.get(icao);
-          if (pm && pm.lat != null && pm.lon != null) {
+          const pm = this.planeLog.get(icao);          if (pm && pm.lat != null && pm.lon != null) {
             this.map.panTo([pm.lat, pm.lon]);
-            // Update address input overlay to this plane's location
+            // Update both address input overlay and location overlay info with single geocoding call
             this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                address;
-            });
-            // Update location overlay info
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+              this.inputOverlayComponent.addressInputRef.nativeElement.value = address;
               this.locationStreet = address;
               this.locationDistrict = '';
               this.cdr.detectChanges();
@@ -282,47 +280,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.updateFollowedStyles(); // <-- ensure all planes update
         this.cdr.detectChanges();
       });
-    });
-
-    // Add global click handler for tooltip follow
-    window.addEventListener('click', this.globalTooltipClickHandler);
-
-    // Listen for tooltip follow/unfollow events
-    window.addEventListener('plane-tooltip-follow', (e: Event) => {
-      const icao = (e as CustomEvent).detail?.icao;
-      if (!icao) return;
-      this.ngZone.run(() => {
-        if (this.highlightedPlaneIcao === icao) {
-          this.unhighlightPlane(icao);
-          this.highlightedPlaneIcao = null;
-          this.followNearest = false;
-        } else {
-          this.highlightedPlaneIcao = icao;
-          this.followNearest = true;
-          // Center map on followed plane
-          const pm = this.planeLog.get(icao);
-          if (pm && pm.lat != null && pm.lon != null) {
-            this.map.panTo([pm.lat, pm.lon]);
-            // Update address input overlay to this plane's location
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                address;
-            });
-            // Update location overlay info
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.locationStreet = address;
-              this.locationDistrict = '';
-              this.cdr.detectChanges();
-            });
-          }
-        }
-        this.updatePlaneLog(Array.from(this.planeLog.values()));
-        this.updateFollowedStyles(); // <-- ensure all planes update
-        this.cdr.detectChanges();
-      });
-    });
-
-    // Add global click handler for tooltip follow
+    });    // Add global click handler for tooltip follow
     window.addEventListener('click', this.globalTooltipClickHandler);
   }
 
@@ -409,43 +367,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.specialListService.isSpecial(plane.icao)
           );
         }
-      });
-    });
-
-    // Listen for tooltip follow/unfollow events
-    window.addEventListener('plane-tooltip-follow', (e: Event) => {
-      const icao = (e as CustomEvent).detail?.icao;
-      if (!icao) return;
-      this.ngZone.run(() => {
-        if (this.highlightedPlaneIcao === icao) {
-          this.unhighlightPlane(icao);
-          this.highlightedPlaneIcao = null;
-          this.followNearest = false;
-        } else {
-          this.highlightedPlaneIcao = icao;
-          this.followNearest = true;
-          // Center map on followed plane
-          const pm = this.planeLog.get(icao);
-          if (pm && pm.lat != null && pm.lon != null) {
-            this.map.panTo([pm.lat, pm.lon]);
-            // Update address input overlay to this plane's location
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                address;
-            });
-            // Update location overlay info
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.locationStreet = address;
-              this.locationDistrict = '';
-              this.cdr.detectChanges();
-            });
-          }
-        }
-        this.updatePlaneLog(Array.from(this.planeLog.values()));
-        this.updateFollowedStyles(); // <-- ensure all planes update
-        this.cdr.detectChanges();
-      });
-    });
+      });    });
 
     // Add global click handler for tooltip follow
     window.addEventListener('click', this.globalTooltipClickHandler);
@@ -1040,29 +962,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.activePlaneIcaos = new Set(this.planeLog.keys());
     this.updatePlaneLog(Array.from(this.planeLog.values()));
   }
-
   reverseGeocode(lat: number, lon: number): Promise<string> {
-    return fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const addr = data.address || {};
-        const district =
-          addr.suburb || addr.city_district || addr.county || addr.state || '';
-        const state = addr.state || '';
-        const country = addr.country || '';
-        if (district) {
-          if (country.toLowerCase() === 'germany') {
-            return state ? `Near ${district}, ${state}` : `Near ${district}`;
-          } else {
-            return state
-              ? `Near ${district}, ${state}, ${country}`
-              : `Near ${district} ${country}`;
-          }
-        }
-        return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-      });
+    return this.geocodingCache.reverseGeocode(lat, lon);
   }
 
   // Helper to check if alert should be muted
@@ -2089,17 +1990,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         tooltipEl?.classList.add('highlighted-tooltip');
       }
       const markerEl = pm.marker.getElement();
-      markerEl?.classList.add('highlighted-marker');
-
-      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+      markerEl?.classList.add('highlighted-marker');      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
         // Guard against missing input reference
         if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
           this.inputOverlayComponent.addressInputRef.nativeElement.value =
             address;
         }
-      });
-
-      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+        
+        // Update location overlay info using the same address result
         this.locationStreet = address;
         this.locationDistrict = '';
         this.cdr.detectChanges();

@@ -55,6 +55,10 @@ function catmullRomPoint(
   providedIn: 'root',
 })
 export class PlaneFinderService {
+  // Cache for altitude-to-color lookup
+  private colorCache = new Map<number, string>();
+  private pathCache = new Map<string, { timestamp: number; points: [number, number][] }>();
+  private readonly PATH_CACHE_DURATION = 100; // ms
   private mapInitialized = false;
   private isInitialLoad = false;
   constructor(
@@ -98,7 +102,7 @@ export class PlaneFinderService {
 
   private updatePlanePath(
     map: L.Map,
-    plane: PlaneModel, // Pass the full PlaneModel instance
+    plane: PlaneModel,
     lat: number,
     lon: number,
     track: number | null,
@@ -106,16 +110,11 @@ export class PlaneFinderService {
     altitude: number | null,
     isGrounded: boolean
   ): L.Polyline | undefined {
-    // Return type is only for the predicted path
-
     // --- PREDICTED PATH ---
-    // Remove the predicted path for grounded planes or those without track/velocity data
     if (
-      track == null ||
-      velocity == null ||
-      isGrounded ||
-      (velocity !== null && velocity <= 0)
+      track == null || velocity == null || isGrounded || (velocity !== null && velocity <= 0)
     ) {
+      // Remove the predicted path for grounded planes or those without track/velocity data
       if (plane.path) {
         map.removeLayer(plane.path);
         plane.path = undefined; // Clear reference on the model
@@ -132,91 +131,112 @@ export class PlaneFinderService {
       // No predicted path to draw
       // Historical path handled below
     } else {
-      // Calculate predicted path points
-      let pathPoints: [number, number][] = [[lat, lon]];
-      // Predict path using recent turn rate for smooth curvature
-      const minutesAhead = 2;
-      const pointsCount = 15;
-      const timeStep = minutesAhead / pointsCount;
-      const hist = plane.positionHistory;
-      // Determine turn rate (deg per minute) from last two history entries
-      let turnRatePerMin = 0;
-      if (
-        hist.length >= 2 &&
-        hist[hist.length - 1].track != null &&
-        hist[hist.length - 2].track != null
-      ) {
-        const t1 = hist[hist.length - 1].track!;
-        const t0 = hist[hist.length - 2].track!;
-        const dtMin =
-          (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
-          60000;
-        if (dtMin >= 0.1) {
-          const rawDelta = ((t1 - t0 + 540) % 360) - 180;
-          turnRatePerMin = rawDelta / dtMin;
+      // Altitude key for color caching
+      const altKey = altitude ?? 0;
+      // Attempt to reuse cached path points
+      const now = Date.now();
+      const key = `${lat.toFixed(5)},${lon.toFixed(5)},${track},${velocity}`;
+      let pathPoints: [number, number][];
+      const cacheEntry = this.pathCache.get(key);
+      if (cacheEntry && (now - cacheEntry.timestamp) < this.PATH_CACHE_DURATION) {
+        pathPoints = cacheEntry.points;
+      } else {
+        // Compute predicted path points
+        pathPoints = [[lat, lon]];
+        // Predict path using recent turn rate for smooth curvature
+        const minutesAhead = 2;
+        const pointsCount = 15;
+        const timeStep = minutesAhead / pointsCount;
+        const hist = plane.positionHistory;
+        // Determine turn rate (deg per minute) from last two history entries
+        let turnRatePerMin = 0;
+        if (
+          hist.length >= 2 &&
+          hist[hist.length - 1].track != null &&
+          hist[hist.length - 2].track != null
+        ) {
+          const t1 = hist[hist.length - 1].track!;
+          const t0 = hist[hist.length - 2].track!;
+          const dtMin =
+            (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
+            60000;
+          if (dtMin >= 0.1) {
+            const rawDelta = ((t1 - t0 + 540) % 360) - 180;
+            turnRatePerMin = rawDelta / dtMin;
+          }
         }
-      }
-      let curLat = lat;
-      let curLon = lon;
-      let curHeading = track ?? hist[hist.length - 1]?.track ?? 0;
-      for (let i = 1; i <= pointsCount; i++) {
-        // apply turn rate
-        curHeading =
-          (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
-        const brng = (curHeading * Math.PI) / 180;
-        // Convert speed from knots to km/h then compute distance for this time step (timeStep in minutes)
-        const speedKmPerHr = (velocity ?? 0) * 1.852;
-        const distanceKm = (speedKmPerHr * timeStep) / 60;
-        const R = 6371; // Earth radius in km
-        const lat1 = (curLat * Math.PI) / 180;
-        const lon1 = (curLon * Math.PI) / 180;
-        const angDist = distanceKm / R;
-        const lat2 = Math.asin(
-          Math.sin(lat1) * Math.cos(angDist) +
-            Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
-        );
-        const lon2 =
-          lon1 +
-          Math.atan2(
-            Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
-            Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+        let curLat = lat;
+        let curLon = lon;
+        let curHeading = track ?? hist[hist.length - 1]?.track ?? 0;
+        for (let i = 1; i <= pointsCount; i++) {
+          // apply turn rate
+          curHeading =
+            (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
+          const brng = (curHeading * Math.PI) / 180;
+          // Convert speed from knots to km/h then compute distance for this time step (timeStep in minutes)
+          const speedKmPerHr = (velocity ?? 0) * 1.852;
+          const distanceKm = (speedKmPerHr * timeStep) / 60;
+          const R = 6371; // Earth radius in km
+          const lat1 = (curLat * Math.PI) / 180;
+          const lon1 = (curLon * Math.PI) / 180;
+          const angDist = distanceKm / R;
+          const lat2 = Math.asin(
+            Math.sin(lat1) * Math.cos(angDist) +
+              Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
           );
-        curLat = (lat2 * 180) / Math.PI;
-        curLon = (lon2 * 180) / Math.PI;
-        pathPoints.push([curLat, curLon]);
-      }
+          const lon2 =
+            lon1 +
+            Math.atan2(
+              Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
+              Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+            );
+          curLat = (lat2 * 180) / Math.PI;
+          curLon = (lon2 * 180) / Math.PI;
+          pathPoints.push([curLat, curLon]);
+        }
 
-      // Apply smoothing if we have enough points
-      if (pathPoints.length >= 3) {
-        // Convert to GeoJSON LineString with [lon, lat]
-        const line = turf.lineString(
-          pathPoints.map(([lat, lon]) => [lon, lat])
-        );
-        // Higher resolution and sharpness improve curve smoothness
-        const spline = turf.bezierSpline(line, {
-          resolution: pointsCount * 4,
-          sharpness: 0.85,
+        // Apply smoothing if we have enough points
+        if (pathPoints.length >= 3) {
+          // Convert to GeoJSON LineString with [lon, lat]
+          const line = turf.lineString(
+            pathPoints.map(([lat, lon]) => [lon, lat])
+          );
+          // Higher resolution and sharpness improve curve smoothness
+          const spline = turf.bezierSpline(line, {
+            resolution: pointsCount * 4,
+            sharpness: 0.85,
+          });
+          // Convert back to [lat, lon]
+          pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
+            lat,
+            lon,
+          ]);
+        }
+
+        // Cap the path length to a maximum distance (e.g., 50 km) from the current position
+        const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
+        pathPoints = pathPoints.filter((pt) => {
+          const dist = haversineDistance(lat, lon, pt[0], pt[1]);
+          return dist <= maxDistanceKm;
         });
-        // Convert back to [lat, lon]
-        pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
-          lat,
-          lon,
-        ]);
+        // After computing, cache for short duration
+        this.pathCache.set(key, { timestamp: now, points: pathPoints });
       }
 
-      // Cap the path length to a maximum distance (e.g., 50 km) from the current position
-      const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
-      pathPoints = pathPoints.filter((pt) => {
-        const dist = haversineDistance(lat, lon, pt[0], pt[1]);
-        return dist <= maxDistanceKm;
-      });
       // Only draw non-degenerate predicted paths (at least two unique points after capping)
       const uniquePoints = Array.from(
         new Set(pathPoints.map((p) => p.join(',')))
       );
       if (uniquePoints.length >= 2) {
-        // Determine color based on predicted altitude using AltitudeColorService
-        const predColor = this.altitudeColor.getFillColor(altitude ?? 0);
+        // Determine color based on predicted altitude, reuse cached color
+        const altKey = altitude ?? 0;
+        let predColor: string;
+        if (this.colorCache.has(altKey)) {
+          predColor = this.colorCache.get(altKey)!;
+        } else {
+          predColor = this.altitudeColor.getFillColor(altKey);
+          this.colorCache.set(altKey, predColor);
+        }
 
         // Update existing or create new polyline with altitude-based color
         if (plane.path) {
@@ -247,8 +267,14 @@ export class PlaneFinderService {
 
       // --- Add/Update Arrowhead ---
       if (pathPoints.length >= 2) {
-        // Compute arrow color based on predicted altitude using service
-        const arrowColor = this.altitudeColor.getFillColor(altitude ?? 0);
+        // Compute arrow color based on predicted altitude, reuse cached color
+        let arrowColor: string;
+        if (this.colorCache.has(altKey)) {
+          arrowColor = this.colorCache.get(altKey)!;
+        } else {
+          arrowColor = this.altitudeColor.getFillColor(altKey);
+          this.colorCache.set(altKey, arrowColor);
+        }
         const endPoint = pathPoints[pathPoints.length - 1];
         const prevPoint = pathPoints[pathPoints.length - 2];
         const bearing = computeBearing(

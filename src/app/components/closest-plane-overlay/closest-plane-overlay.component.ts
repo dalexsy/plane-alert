@@ -11,6 +11,7 @@ import { IconComponent } from '../ui/icon.component';
 import { PlaneModel } from '../../models/plane-model';
 import { haversineDistance } from '../../utils/geo-utils';
 import { SettingsService } from '../../services/settings.service';
+import { DebouncedClickService } from '../../services/debounced-click.service';
 
 @Component({
   selector: 'app-closest-plane-overlay',
@@ -22,7 +23,10 @@ import { SettingsService } from '../../services/settings.service';
 })
 export class ClosestPlaneOverlayComponent {
   @Input() plane: PlaneModel | null = null;
-  constructor(private settings: SettingsService) {}
+  constructor(
+    private settings: SettingsService,
+    private debounced: DebouncedClickService
+  ) {}
   /** Distance computed dynamically from home location */
   get distanceKm(): number {
     if (!this.plane) {
@@ -61,8 +65,13 @@ export class ClosestPlaneOverlayComponent {
 
   /** Handle user click to select this plane */
   onClick(): void {
-    if (this.plane) {
-      this.selectPlane.emit(this.plane);
+    if (!this.plane) {
+      return;
     }
+    // Debounce clicks to prevent rapid duplicates
+    const key = `closest-plane-${this.plane.icao}`;
+    this.debounced.preventDuplicateClick(key, () => {
+      this.selectPlane.emit(this.plane!);
+    });
   }
 }
