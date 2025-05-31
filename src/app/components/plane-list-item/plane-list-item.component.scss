@@ -1,6 +1,8 @@
-// src/app/components/plane-list-item/plane-list-item.component.scss
-$new-plane-color: #ff6161;
-$followed-plane-color: #00ffff;
+// Define color variables for consistency
+$military-green: #89d138;
+$airport-gold: gold;
+$followed-cyan: #00ffff;
+$new-plane-red: #ff6161;
 
 :host {
   display: flex;
@@ -23,11 +25,12 @@ $followed-plane-color: #00ffff;
   }
 
   &.new-plane {
-    color: $new-plane-color;
+    color: $new-plane-red;
   }
+  
   &.followed-plane {
-    color: $followed-plane-color;
-    border-left: 3px solid $followed-plane-color;
+    color: $followed-cyan;
+    border-left: 3px solid $followed-cyan;
     background: linear-gradient(
       90deg,
       rgba(0, 255, 255, 0.2) 0%,
@@ -39,48 +42,70 @@ $followed-plane-color: #00ffff;
       font-variation-settings: normal;
     }
   }
+  
   &.military-plane {
-    color: #89d138;
+    color: $military-green;
+    background-color: color-mix(in srgb, $military-green 15%, transparent);
+    border-left: 3px solid $military-green;
+
+    // Fallback for browsers without color-mix support
+    @supports not (background-color: color-mix(in srgb, $military-green 15%, transparent)) {
+      background-color: rgba(137, 209, 56, 0.15);
+    }
+
+    // Style airport codes/names for military planes similar to airport-clicked
+    .airport-code,
+    .airport-name {
+      color: $military-green !important;
+      background: rgba(137, 209, 56, 0.15) !important;
+      font-weight: 600;
+      border: 1.5px solid $military-green;
+      box-shadow: 0 0 6px rgba(137, 209, 56, 0.3);
+    }
+
     // Override followed styling on military planes
     &.followed-plane {
-      // Match military color
-      color: #89d138;
-      border-left: 3px solid #89d138;
+      color: $military-green;
+      border-left: 3px solid $military-green;
       background: linear-gradient(
         90deg,
         rgba(137, 209, 56, 0.2) 0%,
         rgba(137, 209, 56, 0.05) 100%
       );
       a {
-        color: #89d138;
+        color: $military-green;
       }
     }
   }
+  
   &.special-plane {
-    color: gold;
+    color: $airport-gold;
   }
+  
   &.filtered-out,
   &.hide-commercial {
     display: none !important;
   }
+  
   &.highlighted-plane {
-    color: #00ffff;
+    color: $followed-cyan;
     background: linear-gradient(
       90deg,
       rgba(0, 255, 255, 0.2) 0%,
       rgba(0, 255, 255, 0.05) 100%
     );
-    border-left: 2px solid #00ffff;
+    border-left: 2px solid $followed-cyan;
     padding-left: calc(1rem - 2px);
   }
+  
   &.military-plane.highlighted-plane {
-    color: #89d138;
+    color: $military-green;
     background: linear-gradient(
       90deg,
       rgba(137, 209, 56, 0.2) 0%,
       rgba(137, 209, 56, 0.05) 100%
     );
-    border-left: 2px solid #89d138;
+    border-left: 2px solid $military-green;
     padding-left: calc(1rem - 2px);
   }
 
@@ -211,6 +236,26 @@ $followed-plane-color: #00ffff;
   pointer-events: none;
   filter: grayscale(0.7) blur(0.5px);
   transition: opacity 0.2s, filter 0.2s;
+}
+
+// Highlight planes at clicked airports with gold background AND airport tag colors
+:host.airport-clicked {
+  background-color: color-mix(in srgb, $airport-gold 20%, transparent);
+  border-left: 3px solid $airport-gold;
+
+  // Fallback for browsers without color-mix support
+  @supports not (background-color: color-mix(in srgb, $airport-gold 20%, transparent)) {
+    background-color: rgba(255, 215, 0, 0.2);
+  }
+
+  .airport-code,
+  .airport-name {
+    color: $airport-gold !important;
+    background: rgba(255, 215, 0, 0.2) !important;
+    font-weight: 600;
+    border: 1.5px solid $airport-gold;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+  }
 }
 
 // --- Global styles that might need adjustment if moved ---

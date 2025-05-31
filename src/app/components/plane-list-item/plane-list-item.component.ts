@@ -60,16 +60,63 @@ export class PlaneListItemComponent {
   @HostBinding('class.highlighted-plane')
   get hostHighlighted(): boolean {
     return this.plane.icao === this.highlightedPlaneIcao;
-  }
-  @Input() listType: 'sky' | 'airport' | 'seen' = 'sky'; // Default or require
+  }  @Input() listType: 'sky' | 'airport' | 'seen' = 'sky'; // Default or require
   @Input() hoveredPlaneIcao: string | null = null; // For special icon hover
   @Input() now: number = Date.now();
-  @Input() activePlaneIcaos: Set<string> = new Set();
-  @Input() followedPlaneIcao: string | null = null;
-  @HostBinding('class.followed-plane')
+  @Input() activePlaneIcaos: Set<string> = new Set();  @Input() followedPlaneIcao: string | null = null;  @Input() clickedAirports: Set<number> = new Set(); // Track clicked airports
+  @Input() airportCircles: Map<number, L.Circle> = new Map(); // Airport circles for coordinate matching  // Helper method to check if this plane's airport is clicked using airport badge logic
+  isAirportClicked(): boolean {
+    // Must have an airport name to be considered at an airport
+    if (!this.plane.airportName) {
+      return false;
+    }
+
+    // Must meet airport badge criteria: onGround OR altitude <= 200m
+    const meetsAirportCriteria = 
+      this.plane.onGround === true || 
+      (this.plane.altitude != null && this.plane.altitude <= 200);
+    
+    if (!meetsAirportCriteria) {
+      return false;
+    }
+
+    // Must have clicked airports and coordinates to check
+    if (!this.clickedAirports || this.clickedAirports.size === 0 || 
+        !this.airportCircles || this.airportCircles.size === 0 ||
+        this.plane.lat == null || this.plane.lon == null) {
+      return false;
+    }
+
+    // Check if plane is within any clicked airport circle
+    for (const [airportId, circle] of this.airportCircles) {
+      if (this.clickedAirports.has(airportId)) {
+        const airportCenter = circle.getLatLng();
+        const airportRadius = circle.getRadius(); // in meters
+        
+        const distance = haversineDistance(
+          this.plane.lat!,
+          this.plane.lon!,
+          airportCenter.lat,
+          airportCenter.lng
+        ) * 1000; // convert km to meters
+
+        if (distance <= airportRadius) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }@HostBinding('class.followed-plane')
   get hostFollowed(): boolean {
     return this.plane.icao === this.followedPlaneIcao;
   }
+  
+  @HostBinding('class.airport-clicked')
+  get hostAirportClicked(): boolean {
+    return this.isAirportClicked();
+  }
+  
   @HostBinding('class.faded-out')
   get hostFadedOut(): boolean {
     // Only fade out if not followed

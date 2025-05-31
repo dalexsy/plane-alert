@@ -35,6 +35,7 @@ import {
   animate,
 } from '@angular/animations';
 import { IconComponent } from '../ui/icon.component';
+import * as L from 'leaflet';
 
 export interface PlaneLogEntry {
   callsign: string;
@@ -128,7 +129,6 @@ export class ResultsOverlayComponent
   get seenCollapsed(): boolean {
     return this.settings.seenCollapsed;
   }
-
   @Input() skyPlaneLog: PlaneLogEntry[] = [];
   // refs to scrollable lists for fade handling
   @ViewChild('skyList') skyListRef!: ElementRef<HTMLDivElement>;
@@ -139,6 +139,8 @@ export class ResultsOverlayComponent
   @Input() loadingAirports: boolean = false;
   @Input() highlightedPlaneIcao: string | null = null; // Add this input
   @Input() activePlaneIcaos: Set<string> = new Set(); // Input for active ICAOs
+  @Input() clickedAirports: Set<number> = new Set(); // Track clicked airports for styling
+  @Input() airportCircles: Map<number, L.Circle> = new Map(); // Airport circles for coordinate matching
   // scroll state flags
   skyListScrollable = false;
   skyListAtBottom = false;
@@ -396,27 +398,41 @@ export class ResultsOverlayComponent
     // recalc fade overlay once seen list panel toggles
     setTimeout(() => this.updateScrollFadeStates(), 0);
   }
-
   // Updates the filtered versions of the plane logs
   public updateFilteredLogs(): void {
-    // Filter sky planes and sort: military/special first, then by ascending distance
+    // Filter sky planes and sort: military/special first, then airport-clicked, then by ascending distance
     const centerLat = this.settings.lat ?? 0;
-    const centerLon = this.settings.lon ?? 0;
-    // Updated comparator: prioritize military and special planes
+    const centerLon = this.settings.lon ?? 0;    // Updated comparator: prioritize military and special planes, then airport-clicked planes
     const comparator = this.militaryPriority
       ? (a: PlaneLogEntry, b: PlaneLogEntry) => {
-          // Prioritize military and special planes equally
-          const aPriority = (a.isMilitary ? 2 : 0) + (a.isSpecial ? 1 : 0);
-          const bPriority = (b.isMilitary ? 2 : 0) + (b.isSpecial ? 1 : 0);
+          // Prioritize military and special planes equally at the top
+          const aPriority = (a.isMilitary ? 4 : 0) + (a.isSpecial ? 4 : 0);
+          const bPriority = (b.isMilitary ? 4 : 0) + (b.isSpecial ? 4 : 0);
           if (aPriority !== bPriority) return bPriority - aPriority;
+          
+          // If both have same military/special priority, check airport-clicked status
+          const aAtClickedAirport = this.isPlaneAtClickedAirport(a);
+          const bAtClickedAirport = this.isPlaneAtClickedAirport(b);
+            if (aAtClickedAirport !== bAtClickedAirport) {
+            return aAtClickedAirport ? -1 : 1; // Clicked airport planes come first
+          }
+          
           return (
             haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
             haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
           );
         }
-      : (a: PlaneLogEntry, b: PlaneLogEntry) =>
-          haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+      : (a: PlaneLogEntry, b: PlaneLogEntry) => {
+          // Even without military priority, still prioritize airport-clicked planes
+          const aAtClickedAirport = this.isPlaneAtClickedAirport(a);
+          const bAtClickedAirport = this.isPlaneAtClickedAirport(b);
+            if (aAtClickedAirport !== bAtClickedAirport) {
+            return aAtClickedAirport ? -1 : 1; // Clicked airport planes come first
+          }
+          
+          return haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
           haversineDistance(centerLat, centerLon, b.lat!, b.lon!);
+        };
     this.filteredSkyPlaneLog = this.skyPlaneLog
       .filter((plane) => !plane.filteredOut)
       .sort(comparator);
@@ -875,5 +891,49 @@ export class ResultsOverlayComponent
     if (this.shuffleMode) {
       this.pickAndCenterRandomPlane();
     }
+  }  /** Check if a plane is located at a clicked airport using airport badge logic */
+  private isPlaneAtClickedAirport(plane: PlaneLogEntry): boolean {
+    // Must have an airport name to be considered at an airport
+    if (!plane.airportName) {
+      return false;
+    }
+
+    // Must meet airport badge criteria: onGround OR altitude <= 200m
+    const meetsAirportCriteria = 
+      plane.onGround === true || 
+      (plane.altitude != null && plane.altitude <= 200);
+    
+    if (!meetsAirportCriteria) {
+      return false;
+    }
+
+    // Must have coordinates and clicked airports to check
+    const hasCoordinates = plane.lat != null && plane.lon != null;
+    const hasClickedAirports = this.clickedAirports.size > 0;
+    const hasAirportCircles = this.airportCircles && this.airportCircles.size > 0;
+
+    if (!hasCoordinates || !hasClickedAirports || !hasAirportCircles) {
+      return false;
+    }
+
+    // Check if plane coordinates are within any clicked airport circle
+    for (const [airportId, circle] of this.airportCircles.entries()) {
+      if (this.clickedAirports.has(airportId)) {
+        const airportCenter = circle.getLatLng();
+        const radiusKm = circle.getRadius() / 1000; // Convert from meters to km
+        const distance = haversineDistance(
+          plane.lat!,
+          plane.lon!,
+          airportCenter.lat,
+          airportCenter.lng
+        );
+        
+        if (distance <= radiusKm) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
   }
 }

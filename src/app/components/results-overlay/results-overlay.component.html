@@ -127,8 +127,7 @@
             #skyList
             (scroll)="onSkyScroll($event)"
             [@listAnimation]="highlightedPlaneIcao"
-          >
-            <app-plane-list-item
+          >            <app-plane-list-item
               *ngFor="let plane of filteredSkyPlaneLog"
               [plane]="plane"
               [listType]="'sky'"
@@ -137,6 +136,8 @@
               [now]="now"
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
+              [clickedAirports]="clickedAirports"
+              [airportCircles]="airportCircles"
               (centerPlane)="handleCenterPlane($event)"
               (centerAirport)="handleCenterAirport($event)"
               (filterPrefix)="handleFilterPrefix($event)"
@@ -167,8 +168,7 @@
             #airportList
             (scroll)="onAirportScroll($event)"
             [@listAnimation]="highlightedPlaneIcao"
-          >
-            <app-plane-list-item
+          >            <app-plane-list-item
               *ngFor="let plane of filteredAirportPlaneLog"
               [plane]="plane"
               [listType]="'airport'"
@@ -177,6 +177,8 @@
               [now]="now"
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
+              [clickedAirports]="clickedAirports"
+              [airportCircles]="airportCircles"
               (centerPlane)="handleCenterPlane($event)"
               (centerAirport)="handleCenterAirport($event)"
               (filterPrefix)="handleFilterPrefix($event)"
@@ -225,8 +227,7 @@
             #seenList
             (scroll)="onSeenScroll($event)"
             [@listAnimation]="highlightedPlaneIcao"
-          >
-            <app-plane-list-item
+          >            <app-plane-list-item
               *ngFor="let plane of filteredSeenPlaneLog"
               [plane]="plane"
               [listType]="'seen'"
@@ -235,6 +236,8 @@
               [now]="now"
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
+              [clickedAirports]="clickedAirports"
+              [airportCircles]="airportCircles"
               (centerPlane)="handleCenterPlane($event)"
               (filterPrefix)="handleFilterPrefix($event)"
               (toggleSpecial)="handleToggleSpecial($event)"

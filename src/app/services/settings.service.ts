@@ -30,12 +30,13 @@ export class SettingsService {
   private _showViewAxes: boolean = false;
   // Key and backing store for airport labels visibility
   private airportLabelsKey = 'showAirportLabels';
-  private _showAirportLabels: boolean = true;
-  // Keys and backing stores for cloud and rain cover visibility
+  private _showAirportLabels: boolean = true;  // Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
   private _showCloudCover: boolean = true;
   private rainCoverKey = 'showRainCover';
   private _showRainCover: boolean = true;
+  // Key for clicked airports persistence
+  private clickedAirportsKey = 'clickedAirports';
 
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
@@ -231,11 +232,30 @@ export class SettingsService {
   /** Whether rain coverage layer is shown */
   get showRainCover(): boolean {
     return this._showRainCover;
-  }
-  /** Persist rain coverage visibility preference */
+  }  /** Persist rain coverage visibility preference */
   setShowRainCover(value: boolean): void {
     this._showRainCover = value;
     localStorage.setItem(this.rainCoverKey, value.toString());
+  }
+
+  /** Get clicked airports from localStorage */
+  getClickedAirports(): Set<number> {
+    const saved = localStorage.getItem(this.clickedAirportsKey);
+    if (saved) {
+      try {
+        const airportIds = JSON.parse(saved) as number[];
+        return new Set(airportIds);
+      } catch {
+        return new Set();
+      }
+    }
+    return new Set();
+  }
+
+  /** Save clicked airports to localStorage */
+  setClickedAirports(clickedAirports: Set<number>): void {
+    const airportIds = Array.from(clickedAirports);
+    localStorage.setItem(this.clickedAirportsKey, JSON.stringify(airportIds));
   }
 
   load(): void {

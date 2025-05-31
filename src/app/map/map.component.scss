@@ -211,3 +211,18 @@ app-map.map-panning app-input-overlay {
 .leaflet-pane.leaflet-rain-pane {
   z-index: 210;
 }
+
+// Airport circle styles
+.airport-radius {
+  // Remove native focus ring when clicking on airport circles
+  outline: none !important;
+
+  // Add subtle hover effect
+  &:hover {
+    cursor: pointer;
+    opacity: 0.8;
+  }
+
+  // Ensure smooth interaction
+  transition: opacity 0.2s ease;
+}

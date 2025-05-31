@@ -128,14 +128,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   windowViewPlanes: WindowViewPlane[] = [];
 
   // Store found airports and their circles
-  private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
+  airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
   private svgPatternRetryTimeout: any = null;
   private mainRadiusCircle?: L.Circle;
   private coneLayers: L.Polygon[] = [];
   // Cache computed radii (km) per airport ID to avoid repeat Overpass calls
-  private airportRadiusCache = new Map<number, number>();
-  // Store metadata for each airport: name and IATA code
-  private airportData = new Map<number, { name: string; code?: string }>();
+  private airportRadiusCache = new Map<number, number>();  // Store metadata for each airport: name and IATA code
+  private airportData = new Map<number, { name: string; code?: string }>();  // Track clicked airports for color toggling
+  clickedAirports = new Set<number>();
 
   // Flag for airport fetching (loading) to show loading indicator
   loadingAirports = false;
@@ -377,9 +377,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
     await this.aircraftDb.load();
-    await this.militaryPrefixService.loadPrefixes();
-    this.settings.load();
+    await this.militaryPrefixService.loadPrefixes();    this.settings.load();
     this.showDateTime = this.settings.showDateTimeOverlay;
+
+    // Load clicked airports from settings
+    this.clickedAirports = this.settings.getClickedAirports();
 
     // --- Clear all historical trail data on startup to prevent lag ---
     this.planeHistoricalLog = [];
@@ -657,14 +659,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.map.createPane('followedMarkerPane');
     const followedPane = this.map.getPane('followedMarkerPane') as HTMLElement;
     followedPane.style.zIndex = '610';
-    followedPane.style.pointerEvents = 'auto';
-
-    // Define airport striped pattern in overlayPane's SVG
+    followedPane.style.pointerEvents = 'auto';    // Define airport striped patterns in overlayPane's SVG
     const overlaySvg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement | null;
     if (overlaySvg) {
-      ensureStripedPattern(overlaySvg, 'airportStripedPattern', 'cyan', 0.5);
+      ensureStripedPattern(overlaySvg, 'airportStripedPatternCyan', 'cyan', 0.5);
+      ensureStripedPattern(overlaySvg, 'airportStripedPatternGold', 'gold', 0.5);
     }
 
     L.tileLayer(
@@ -2201,20 +2202,45 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             const defaultKm = code
               ? MAJOR_AIRPORT_RADIUS_KM
               : MINOR_AIRPORT_RADIUS_KM;
-            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;
-
-            // Check if circle already exists
+            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;            // Check if circle already exists
             if (!this.airportCircles.has(airportId)) {
+              // Determine initial color based on clicked state
+              const isClicked = this.clickedAirports.has(airportId);
+              const circleColor = isClicked ? 'gold' : 'cyan';
+              const fillPattern = isClicked ? 'url(#airportStripedPatternGold)' : 'url(#airportStripedPatternCyan)';
+              
               const circle = L.circle([airportLat, airportLon], {
                 radius: useKm * 1000,
-                color: 'cyan',
+                color: circleColor,
                 weight: 2,
                 fill: true,
-                fillColor: 'url(#airportStripedPattern)',
+                fillColor: fillPattern,
                 fillOpacity: 0.3,
                 className: 'airport-radius',
                 interactive: true,
               }).addTo(this.map);
+                // Add click event handler to toggle color
+              circle.on('click', () => {
+                const currentlyClicked = this.clickedAirports.has(airportId);
+                if (currentlyClicked) {
+                  // Remove from clicked set and change to cyan
+                  this.clickedAirports.delete(airportId);
+                  circle.setStyle({ 
+                    color: 'cyan',
+                    fillColor: 'url(#airportStripedPatternCyan)'
+                  });
+                } else {
+                  // Add to clicked set and change to gold
+                  this.clickedAirports.add(airportId);
+                  circle.setStyle({ 
+                    color: 'gold',
+                    fillColor: 'url(#airportStripedPatternGold)'
+                  });
+                }
+                // Save clicked airports to settings
+                this.settings.setClickedAirports(this.clickedAirports);
+              });
+              
               // Always bind tooltip; use `permanent` to show/hide labels
               circle.bindTooltip(name, {
                 direction: 'center',
@@ -2223,29 +2249,42 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 offset: [0, 0],
                 permanent: this.showAirportLabels,
               });
-              this.airportCircles.set(airportId, circle);
-
-              // Use default radius until bulk runway query updates it
+              this.airportCircles.set(airportId, circle);              // Use default radius until bulk runway query updates it
               if (!this.airportRadiusCache.has(airportId)) {
                 const defaultKm = code
                   ? MAJOR_AIRPORT_RADIUS_KM
                   : MINOR_AIRPORT_RADIUS_KM;
                 this.airportRadiusCache.set(airportId, defaultKm);
               }
+            } else {
+              // Update existing circle color based on clicked state
+              const existingCircle = this.airportCircles.get(airportId);
+              if (existingCircle) {
+                const isClicked = this.clickedAirports.has(airportId);
+                const circleColor = isClicked ? 'gold' : 'cyan';
+                const fillPattern = isClicked ? 'url(#airportStripedPatternGold)' : 'url(#airportStripedPatternCyan)';
+                existingCircle.setStyle({ 
+                  color: circleColor,
+                  fillColor: fillPattern
+                });
+              }
             }
           }
         }
-      }
-
-      // Remove circles for airports no longer in the result set
+      }      // Remove circles for airports no longer in the result set
       this.airportCircles.forEach((circle, id) => {
         if (!foundAirportIds.has(id)) {
           circle.remove();
           this.airportCircles.delete(id);
           // Remove stored airport metadata
           this.airportData.delete(id);
+          // Remove from clicked airports set
+          this.clickedAirports.delete(id);
         }
       });
+
+      // Save clicked airports to settings if any were removed
+      this.settings.setClickedAirports(this.clickedAirports);
 
       // --- Bulk fetch runway data for all airports at once ---
 
