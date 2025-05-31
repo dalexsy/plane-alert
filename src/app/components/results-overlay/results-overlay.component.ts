@@ -21,7 +21,7 @@ import { SettingsService } from '../../services/settings.service';
 import { SpecialListService } from '../../services/special-list.service';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
-import { PlaneListItemComponent } from '../plane-list-item/plane-list-item.component'; // Add import for list-item component
+import { PlaneListItemComponent } from '../plane-list-item/plane-list-item.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
@@ -68,7 +68,7 @@ export interface PlaneLogEntry {
     CommonModule,
     ButtonComponent,
     TabComponent,
-    PlaneListItemComponent, // Re-add PlaneListItemComponent import for template usage
+    PlaneListItemComponent,
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
