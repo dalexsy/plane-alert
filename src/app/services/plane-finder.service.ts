@@ -110,7 +110,7 @@ export class PlaneFinderService {
 
     // --- PREDICTED PATH ---
     // Remove the predicted path for grounded planes or those without track/velocity data
-    if (track == null || velocity == null || isGrounded) {
+    if (track == null || velocity == null || isGrounded || (velocity !== null && velocity <= 0)) {
       if (plane.path) {
         map.removeLayer(plane.path);
         plane.path = undefined; // Clear reference on the model
@@ -159,7 +159,9 @@ export class PlaneFinderService {
         curHeading =
           (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
         const brng = (curHeading * Math.PI) / 180;
-        const distanceKm = ((velocity ?? 0) * 60 * timeStep) / 1000;
+        // Convert speed from knots to km/h then compute distance for this time step (timeStep in minutes)
+        const speedKmPerHr = (velocity ?? 0) * 1.852;
+        const distanceKm = (speedKmPerHr * timeStep) / 60;
         const R = 6371; // Earth radius in km
         const lat1 = (curLat * Math.PI) / 180;
         const lon1 = (curLon * Math.PI) / 180;
