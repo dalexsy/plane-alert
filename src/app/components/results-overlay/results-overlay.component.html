@@ -188,10 +188,8 @@
         </div>
       </div>
     </div>
-    <!-- .middle-section -->
-
-    <div id="seenResults" [class.collapsed]="seenCollapsed">
-      <h3 class="top">
+    <!-- .middle-section -->    <div id="seenResults" [class.collapsed]="seenCollapsed">
+      <h3 class="top" (click)="toggleSeenCollapsed()" title="Click to {{ seenCollapsed ? 'expand' : 'collapse' }}">
         All Planes Peeped ({{ seenPlaneLog.length }})<span>
           <!-- Collapse toggle button -->
           <app-button
@@ -199,7 +197,7 @@
             [icon]="seenCollapsed ? 'expand_less' : 'expand_more'"
             type="tertiary"
             [size]="'medium'"
-            (click)="toggleSeenCollapsed()"
+            (click)="toggleSeenCollapsed(); $event.stopPropagation()"
             [ariaLabel]="
               seenCollapsed ? 'Expand seen list' : 'Collapse seen list'
             "
