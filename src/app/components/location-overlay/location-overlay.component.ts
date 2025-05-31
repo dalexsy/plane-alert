@@ -27,8 +27,18 @@ export class LocationOverlayComponent {
   @HostBinding('class.special-plane') get hostSpecial() {
     return this.isSelected && this.plane?.isSpecial === true;
   }
-  @Input() street: string | null = null;
-  @Input() district: string | null = null;
+  @Input() street: string | null = null;  @Input() 
+  set district(value: string | null) {
+    if (!value || value.trim() === '') {
+      console.log('LocationOverlay district input is empty:', value);
+    }
+    this._district = value;
+  }
+  get district(): string | null {
+    return this._district;
+  }
+  private _district: string | null = null;
+  
   @Input() isSelected: boolean = false;
   @Output() selectPlane = new EventEmitter<PlaneModel>();
 

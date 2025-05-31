@@ -23,8 +23,8 @@
   >
     <span class="airport-name">{{ plane.airportName }}</span>
   </ng-container>
-  <!-- Otherwise, show district or fallback -->
+  <!-- Otherwise, show district only -->
   <ng-container *ngIf="!plane.airportName">
-    <span class="district">{{ district || 'Unknown location' }}</span>
+    <span class="district">{{ district || '' }}</span>
   </ng-container>
 </div>

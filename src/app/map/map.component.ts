@@ -135,8 +135,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private mainRadiusCircle?: L.Circle;
   private coneLayers: L.Polygon[] = [];
   // Cache computed radii (km) per airport ID to avoid repeat Overpass calls
-  private airportRadiusCache = new Map<number, number>();  // Store metadata for each airport: name and IATA code
-  private airportData = new Map<number, { name: string; code?: string }>();  // Track clicked airports for color toggling
+  private airportRadiusCache = new Map<number, number>(); // Store metadata for each airport: name and IATA code
+  private airportData = new Map<number, { name: string; code?: string }>(); // Track clicked airports for color toggling
   clickedAirports = new Set<number>();
 
   // Flag for airport fetching (loading) to show loading indicator
@@ -202,7 +202,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public sunEventText: string = '';
   private sunAngleInterval: any;
   private locationUpdateSubscription: any;
-  private globalTooltipClickHandler!: (e: MouseEvent) => void;  constructor(
+  private globalTooltipClickHandler!: (e: MouseEvent) => void;
+  constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
     private mapService: MapService,
@@ -265,13 +266,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.highlightedPlaneIcao = icao;
           this.followNearest = true;
           // Center map on followed plane
-          const pm = this.planeLog.get(icao);          if (pm && pm.lat != null && pm.lon != null) {
+          const pm = this.planeLog.get(icao);
+          if (pm && pm.lat != null && pm.lon != null) {
             this.map.panTo([pm.lat, pm.lon]);
             // Update both address input overlay and location overlay info with single geocoding call
             this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.inputOverlayComponent.addressInputRef.nativeElement.value = address;
-              this.locationStreet = address;
-              this.locationDistrict = '';
+              this.inputOverlayComponent.addressInputRef.nativeElement.value =
+                address;
+              this.locationDistrict = address;
               this.cdr.detectChanges();
             });
           }
@@ -280,7 +282,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.updateFollowedStyles(); // <-- ensure all planes update
         this.cdr.detectChanges();
       });
-    });    // Add global click handler for tooltip follow
+    }); // Add global click handler for tooltip follow
     window.addEventListener('click', this.globalTooltipClickHandler);
   }
 
@@ -335,7 +337,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   async ngAfterViewInit(): Promise<void> {
     await this.countryService.init();
     await this.aircraftDb.load();
-    await this.militaryPrefixService.loadPrefixes();    this.settings.load();
+    await this.militaryPrefixService.loadPrefixes();
+    this.settings.load();
     this.showDateTime = this.settings.showDateTimeOverlay;
 
     // Load clicked airports from settings
@@ -367,7 +370,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.specialListService.isSpecial(plane.icao)
           );
         }
-      });    });
+      });
+    });
 
     // Add global click handler for tooltip follow
     window.addEventListener('click', this.globalTooltipClickHandler);
@@ -568,11 +572,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       doubleClickZoom: false,
     }).setView([lat, lon], 12);
 
-    // Disable overlay pointer-events while panning
-    this.map.on('movestart', () =>
-      this.ngZone.run(() => (this.panning = true))
-    );
-    this.map.on('moveend', () => this.ngZone.run(() => (this.panning = false)));
+    // Disable CD for frequent panning events, only toggle class inside Angular when needed
+    this.ngZone.runOutsideAngular(() => {
+      this.map.on('movestart', () =>
+        this.ngZone.run(() => (this.panning = true))
+      );
+      this.map.on('moveend', () =>
+        this.ngZone.run(() => (this.panning = false))
+      );
+    });
 
     // Add SVG renderer for vector overlays (draws into overlayPane)
     L.svg().addTo(this.map);
@@ -581,13 +589,23 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.map.createPane('followedMarkerPane');
     const followedPane = this.map.getPane('followedMarkerPane') as HTMLElement;
     followedPane.style.zIndex = '610';
-    followedPane.style.pointerEvents = 'auto';    // Define airport striped patterns in overlayPane's SVG
+    followedPane.style.pointerEvents = 'auto'; // Define airport striped patterns in overlayPane's SVG
     const overlaySvg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement | null;
     if (overlaySvg) {
-      ensureStripedPattern(overlaySvg, 'airportStripedPatternCyan', 'cyan', 0.5);
-      ensureStripedPattern(overlaySvg, 'airportStripedPatternGold', 'gold', 0.5);
+      ensureStripedPattern(
+        overlaySvg,
+        'airportStripedPatternCyan',
+        'cyan',
+        0.5
+      );
+      ensureStripedPattern(
+        overlaySvg,
+        'airportStripedPatternGold',
+        'gold',
+        0.5
+      );
     }
 
     L.tileLayer(
@@ -1212,14 +1230,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     } else {
       this.closestVelocity = null;
       this.closestSecondsAway = null;
-    }
-
-    // Always update location information for the closest plane,
+    } // Always update location information for the closest plane,
     // even if we're not following it yet
     if (candidate && candidate.lat !== null && candidate.lon !== null) {
       this.reverseGeocode(candidate.lat, candidate.lon).then((address) => {
+        if (!address || address.trim() === '') {
+          console.log('Empty geocoding result for closest plane:', address);
+        }
         this.locationStreet = address;
-        this.locationDistrict = '';
+        this.locationDistrict = address;
+        if (!this.locationDistrict || this.locationDistrict.trim() === '') {
+          console.log(
+            'locationDistrict is empty after setting:',
+            this.locationDistrict
+          );
+        }
         this.cdr.detectChanges();
       });
     }
@@ -1990,16 +2015,23 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         tooltipEl?.classList.add('highlighted-tooltip');
       }
       const markerEl = pm.marker.getElement();
-      markerEl?.classList.add('highlighted-marker');      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+      markerEl?.classList.add('highlighted-marker');
+      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
         // Guard against missing input reference
         if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
           this.inputOverlayComponent.addressInputRef.nativeElement.value =
             address;
+        } // Update location overlay info using the same address result
+        if (!address || address.trim() === '') {
+          console.log('Empty geocoding result for followed plane:', address);
         }
-        
-        // Update location overlay info using the same address result
-        this.locationStreet = address;
-        this.locationDistrict = '';
+        this.locationDistrict = address;
+        if (!this.locationDistrict || this.locationDistrict.trim() === '') {
+          console.log(
+            'locationDistrict is empty after setting (followed plane):',
+            this.locationDistrict
+          );
+        }
         this.cdr.detectChanges();
       });
 
@@ -2100,13 +2132,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             const defaultKm = code
               ? MAJOR_AIRPORT_RADIUS_KM
               : MINOR_AIRPORT_RADIUS_KM;
-            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;            // Check if circle already exists
+            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm; // Check if circle already exists
             if (!this.airportCircles.has(airportId)) {
               // Determine initial color based on clicked state
               const isClicked = this.clickedAirports.has(airportId);
               const circleColor = isClicked ? 'gold' : 'cyan';
-              const fillPattern = isClicked ? 'url(#airportStripedPatternGold)' : 'url(#airportStripedPatternCyan)';
-              
+              const fillPattern = isClicked
+                ? 'url(#airportStripedPatternGold)'
+                : 'url(#airportStripedPatternCyan)';
+
               const circle = L.circle([airportLat, airportLon], {
                 radius: useKm * 1000,
                 color: circleColor,
@@ -2117,28 +2151,28 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 className: 'airport-radius',
                 interactive: true,
               }).addTo(this.map);
-                // Add click event handler to toggle color
+              // Add click event handler to toggle color
               circle.on('click', () => {
                 const currentlyClicked = this.clickedAirports.has(airportId);
                 if (currentlyClicked) {
                   // Remove from clicked set and change to cyan
                   this.clickedAirports.delete(airportId);
-                  circle.setStyle({ 
+                  circle.setStyle({
                     color: 'cyan',
-                    fillColor: 'url(#airportStripedPatternCyan)'
+                    fillColor: 'url(#airportStripedPatternCyan)',
                   });
                 } else {
                   // Add to clicked set and change to gold
                   this.clickedAirports.add(airportId);
-                  circle.setStyle({ 
+                  circle.setStyle({
                     color: 'gold',
-                    fillColor: 'url(#airportStripedPatternGold)'
+                    fillColor: 'url(#airportStripedPatternGold)',
                   });
                 }
                 // Save clicked airports to settings
                 this.settings.setClickedAirports(this.clickedAirports);
               });
-              
+
               // Always bind tooltip; use `permanent` to show/hide labels
               circle.bindTooltip(name, {
                 direction: 'center',
@@ -2147,7 +2181,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 offset: [0, 0],
                 permanent: this.showAirportLabels,
               });
-              this.airportCircles.set(airportId, circle);              // Use default radius until bulk runway query updates it
+              this.airportCircles.set(airportId, circle); // Use default radius until bulk runway query updates it
               if (!this.airportRadiusCache.has(airportId)) {
                 const defaultKm = code
                   ? MAJOR_AIRPORT_RADIUS_KM
@@ -2160,16 +2194,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               if (existingCircle) {
                 const isClicked = this.clickedAirports.has(airportId);
                 const circleColor = isClicked ? 'gold' : 'cyan';
-                const fillPattern = isClicked ? 'url(#airportStripedPatternGold)' : 'url(#airportStripedPatternCyan)';
-                existingCircle.setStyle({ 
+                const fillPattern = isClicked
+                  ? 'url(#airportStripedPatternGold)'
+                  : 'url(#airportStripedPatternCyan)';
+                existingCircle.setStyle({
                   color: circleColor,
-                  fillColor: fillPattern
+                  fillColor: fillPattern,
                 });
               }
             }
           }
         }
-      }      // Remove circles for airports no longer in the result set
+      } // Remove circles for airports no longer in the result set
       this.airportCircles.forEach((circle, id) => {
         if (!foundAirportIds.has(id)) {
           circle.remove();
@@ -2393,8 +2429,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const plane = this.closestPlane;
       if (plane && plane.lat !== null && plane.lon !== null) {
         this.reverseGeocode(plane.lat, plane.lon).then((address) => {
+          if (!address || address.trim() === '') {
+            console.log('Empty geocoding result for plane update:', address);
+          }
           this.locationStreet = address;
-          this.locationDistrict = '';
+          this.locationDistrict = address;
+          if (!this.locationDistrict || this.locationDistrict.trim() === '') {
+            console.log(
+              'locationDistrict is empty after setting (plane update):',
+              this.locationDistrict
+            );
+          }
           this.cdr.detectChanges();
         });
       }
