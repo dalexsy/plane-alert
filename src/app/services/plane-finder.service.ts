@@ -110,7 +110,12 @@ export class PlaneFinderService {
 
     // --- PREDICTED PATH ---
     // Remove the predicted path for grounded planes or those without track/velocity data
-    if (track == null || velocity == null || isGrounded || (velocity !== null && velocity <= 0)) {
+    if (
+      track == null ||
+      velocity == null ||
+      isGrounded ||
+      (velocity !== null && velocity <= 0)
+    ) {
       if (plane.path) {
         map.removeLayer(plane.path);
         plane.path = undefined; // Clear reference on the model
