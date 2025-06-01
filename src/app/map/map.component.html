@@ -117,13 +117,18 @@
             </mask>
           </defs>
           <!-- Draw the lit part first -->
-          <circle cx="11" cy="11" r="10" fill="rgba(135, 206, 250, 0.6)" />
+          <circle
+            cx="11"
+            cy="11"
+            r="10"
+            [attr.fill]="getMoonBackgroundColor()"
+          />
           <!-- Overlay the shadow part using the mask -->
           <circle
             cx="11"
             cy="11"
             r="10"
-            fill="#f4e4a6"
+            [attr.fill]="getMoonLitColor()"
             [attr.mask]="'url(#moon-phase-mask)'"
           />
         </svg>

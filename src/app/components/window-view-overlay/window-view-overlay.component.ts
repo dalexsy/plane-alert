@@ -65,10 +65,14 @@ export interface WindowViewPlane {
   /** True if the celestial body is below the horizon (altitude < 0) */
   belowHorizon?: boolean;
   /** Historical trail positions for window view overlay */
-  historyTrail?: Array<{ x: number; y: number; opacity: number }>;  /** Line segments connecting historical trail dots */
+  historyTrail?: Array<{
+    x: number;
+    y: number;
+    opacity: number;
+  }> /** Line segments connecting historical trail dots */;
   historySegments?: Array<{
     x: number;
-  y: number;
+    y: number;
     length: number;
     angle: number;
     opacity: number;
@@ -77,11 +81,12 @@ export interface WindowViewPlane {
 
 @Component({
   selector: 'app-window-view-overlay',
-  standalone: true,  imports: [
+  standalone: true,
+  imports: [
     CommonModule,
     HttpClientModule,
     FlagCallsignComponent,
-        RainOverlayComponent,
+    RainOverlayComponent,
   ],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
@@ -99,7 +104,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */
   public skyBackground: string = '';
-  public compassBackground: string = '#ff9753';  /** Cloud tile URL for window view background */
+  public compassBackground: string =
+    '#ff9753'; /** Cloud tile URL for window view background */
   windowCloudUrl: string | null = null;
   /** Cloud filter styles for night-time darkening */
   public cloudFilter: string = 'none';
@@ -152,7 +158,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   public balconyStartX?: number;
   public balconyEndX?: number;
   public streetsideStartX?: number;
-  public streetsideEndX?: number;  /** Segments to dim outside marker spans */
+  public streetsideEndX?: number; /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
   constructor(
@@ -161,7 +167,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     private http: HttpClient,
     public altitudeColor: AltitudeColorService,
     private elRef: ElementRef,
-        private countryService: CountryService,
+    private countryService: CountryService,
     private atmosphericSky: AtmosphericSkyService,
     private rainService: RainService,
     private skyColorSync: SkyColorSyncService
@@ -221,11 +227,12 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const markers = this.celestial.getMarkers(
       this.observerLat,
       this.observerLon
-        );
-    
+    );
+
     // Remove old celestial markers, then append new ones
     this.windowViewPlanes = [
-      ...this.windowViewPlanes.filter((p) => !p.isCelestial),    ...markers,
+      ...this.windowViewPlanes.filter((p) => !p.isCelestial),
+      ...markers,
     ];
   }
 
@@ -373,8 +380,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const skyColors = this.atmosphericSky.calculateSkyColors(
       sunElevationAngle,
       weatherCondition
-    );    // Create gradient from horizon to zenith
-    this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`;    // Store individual sky color components for template access (e.g., moon gradient)
+    ); // Create gradient from horizon to zenith
+    this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`; // Store individual sky color components for template access (e.g., moon gradient)
     this.skyBottomColor = skyColors.bottomColor;
     this.skyTopColor = skyColors.topColor;
 
@@ -385,19 +392,20 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     this.skyColorSync.updateSkyColors({
       bottomColor: skyColors.bottomColor,
       topColor: skyColors.topColor,
-      timestamp: Date.now(),    });
-  }  /** Update cloud filtering based on sun elevation for night-time darkening */
+      timestamp: Date.now(),
+    });
+  } /** Update cloud filtering based on sun elevation for night-time darkening */
   private updateCloudFiltering(sunElevationAngle: number): void {
     // Find moon marker for nighttime backlighting calculations
     const moon = this.windowViewPlanes.find(
       (p) => p.isCelestial && p.celestialBodyType === 'moon'
     );
-    
+
     // Calculate cloud darkening and backlighting based on sun elevation and moon position
     // During day: no filtering (clouds remain white/natural)
     // During twilight: slight darkening with warm backlighting
     // During night: significant darkening with moon-influenced backlighting
-    
+
     if (sunElevationAngle > 15) {
       // Full daylight - no darkening needed, subtle natural backlighting
       this.cloudFilter = 'none';
@@ -420,16 +428,16 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     } else {
       // Astronomical twilight or night - maximum darkening with moonlight influence
       let moonInfluence = 0.1; // Base moonlight influence
-      
+
       if (moon && !moon.belowHorizon) {
         // Moon is visible - enhance backlighting based on moon elevation and phase
         const moonElevation = (moon.y / 100) * 90; // Convert to elevation angle
         const moonPhase = moon.moonFraction || 0; // Moon illumination fraction
-        
+
         // Higher moon = more backlighting, fuller moon = more backlighting
         moonInfluence = 0.1 + (moonElevation / 90) * 0.15 + moonPhase * 0.1;
       }
-      
+
       const baseBrightness = 0.1 + moonInfluence * 0.5;
       this.cloudFilter = `brightness(${baseBrightness}) contrast(1.4) hue-rotate(20deg) saturate(0.4)`;
       this.cloudBacklightClass = 'night-backlit';
@@ -785,31 +793,12 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       segments.push({ x: p1.x, y: p1.y, length, angle, opacity });
     }
     return segments;
-  }
-  /** Get the color for the moon's dark side - uses sky color during daytime, dark color at night */
-  public getMoonDarkSideColor(): string {
-    // Find sun marker to determine if it's daytime
+  } /** Simple check if it's daytime based on sun position */
+  public isDaytime(): boolean {
     const sun = this.windowViewPlanes.find(
-      (p) => p.isCelestial && p.celestialBodyType === 'sun'
+      (p) => p.isCelestial === true && p.celestialBodyType === 'sun'
     );
-
-    // Calculate sun elevation angle
-    let sunElevationAngle = -20; // Default to night
-    if (sun && !sun.belowHorizon) {
-      sunElevationAngle = (sun.y / 100) * 90;
-    } else if (sun) {
-      sunElevationAngle = -10; // Sun below horizon but present
-    }    // During daytime (sun above horizon), use a light sky-like color
-    // During nighttime, use dark space color
-    if (sunElevationAngle > 0) {
-      // Daytime - use a light blue sky color that's visible against the background
-      return 'rgba(135, 206, 250, 0.6)'; // Light sky blue with transparency
-    } else if (sunElevationAngle > -6) {
-      // Twilight - use a darker but still visible color
-      return 'rgba(80, 100, 140, 0.8)'; // Twilight blue
-    } else {
-      // Nighttime - use dark space color
-      return '#23263a';
-    }
+    const sunElevation = sun ? (sun.y / 100) * 90 : -90;
+    return !!(sun && !sun.belowHorizon && sunElevation > 0);
   }
 }

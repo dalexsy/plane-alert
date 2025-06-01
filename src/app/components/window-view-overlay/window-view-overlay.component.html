@@ -1,5 +1,6 @@
 <div
   class="window-view-overlay"
+  [ngClass]="{ daytime: isDaytime() }"
   (contextmenu)="$event.stopPropagation()"
   [style.background]="skyBackground"
 >
@@ -110,7 +111,8 @@
                 [style.transform]="'rotateZ(' + (plane.moonAngle || 0) + 'deg)'"
                 [style.transformOrigin]="'center center'"
                 style="z-index: 1"
-              >                <defs>
+              >
+                <defs>
                   <mask [attr.id]="'moon-phase-mask-' + plane.icao">
                     <rect width="22" height="22" fill="white" />
                     <circle
@@ -138,38 +140,33 @@
                       fill="white"
                     />
                   </mask>
-                </defs><!-- Outer glow/halo -->
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="12"
-                  fill="rgba(244, 228, 166, 0.15)"
-                />
+                </defs>
+                <!-- Outer glow/halo -->
+                <circle class="moon-glow" cx="11" cy="11" r="12" />
                 <!-- Lit part using mask - draw this FIRST -->
                 <circle
+                  class="moon-lit"
                   cx="11"
                   cy="11"
                   r="10"
-                  fill="#f4e4a6"
-                  stroke="rgba(244, 228, 166, 0.8)"
                   stroke-width="1"
                   [attr.mask]="'url(#moon-phase-mask-' + plane.icao + ')'"
                 />
                 <!-- Main dark part (shadow) - draw OVER the lit part -->
-                <circle 
-                  cx="11" 
-                  cy="11" 
-                  r="10" 
-                  [attr.fill]="getMoonDarkSideColor()"
+                <circle
+                  class="moon-dark"
+                  cx="11"
+                  cy="11"
+                  r="10"
                   [attr.mask]="'url(#moon-phase-mask-dark-' + plane.icao + ')'"
                 />
                 <!-- Subtle rim light -->
                 <circle
+                  class="moon-rim"
                   cx="11"
                   cy="11"
                   r="10"
                   fill="none"
-                  stroke="rgba(244, 228, 166, 0.6)"
                   stroke-width="0.5"
                 />
               </svg>
@@ -177,15 +174,15 @@
           </span>
         </div>
       </ng-container>
-    </ng-container>  </div>
+    </ng-container>
+  </div>
 
   <div class="planes-container">
     <ng-container *ngFor="let plane of windowViewPlanes">
       <!-- Render chemtrail lines, positioned where dots were -->
-      <ng-container        *ngIf="
-          !plane.isMarker &&
-          !plane.isCelestial &&
-          plane.historySegments?.length
+      <ng-container
+        *ngIf="
+          !plane.isMarker && !plane.isCelestial && plane.historySegments?.length
         "
       >
         <div
@@ -239,10 +236,9 @@
           "
         >
           <span class="line-label">{{ plane.callsign }}</span>
-        </ng-container>        <!-- real planes (aircraft icons) -->
-        <ng-container
-          *ngIf="!plane.isMarker && !plane.isCelestial"
-        >
+        </ng-container>
+        <!-- real planes (aircraft icons) -->
+        <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
           <!-- use helicopter icon for helicopters -->
           <ng-container *ngIf="plane.isHelicopter">
             <span
@@ -258,12 +254,9 @@
                 toys_fan
               </span>
             </span>
-          </ng-container>          <!-- Render icon -->
-          <ng-container
-            *ngIf="
-              !plane.isMarker && !plane.isCelestial
-            "
-          >
+          </ng-container>
+          <!-- Render icon -->
+          <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
             <ng-container *ngIf="!plane.isHelicopter">
               <div
                 class="icon-scale-wrapper"

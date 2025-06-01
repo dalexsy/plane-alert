@@ -2535,6 +2535,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     let brng = Math.atan2(y, x);
     brng = toDeg(brng);
     return (brng + 360) % 360;
+  } /** Simple check if it's daytime based on sun position */
+  private isDaytime(): boolean {
+    const now = new Date();
+    const center = this.map.getCenter();
+    const sunPos = SunCalc.getPosition(now, center.lat, center.lng);
+    return sunPos.altitude > 0;
+  }
+
+  /** Get the color for the moon's lit part - white during daytime, yellowish during night */
+  public getMoonLitColor(): string {
+    return this.isDaytime() ? '#ffffff' : '#f4e4a6';
+  }
+
+  /** Get the color for the moon's background - white during daytime, light blue during night */
+  public getMoonBackgroundColor(): string {
+    return this.isDaytime()
+      ? 'rgba(255, 255, 255, 0.6)'
+      : 'rgba(135, 206, 250, 0.6)';
   }
 
   public get observerLat() {
