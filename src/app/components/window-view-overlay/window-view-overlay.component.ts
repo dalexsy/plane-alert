@@ -65,11 +65,10 @@ export interface WindowViewPlane {
   /** True if the celestial body is below the horizon (altitude < 0) */
   belowHorizon?: boolean;
   /** Historical trail positions for window view overlay */
-  historyTrail?: Array<{ x: number; y: number; opacity: number }>;
-  /** Line segments connecting historical trail dots */
+  historyTrail?: Array<{ x: number; y: number; opacity: number }>;  /** Line segments connecting historical trail dots */
   historySegments?: Array<{
     x: number;
-    y: number;
+  y: number;
     length: number;
     angle: number;
     opacity: number;
@@ -78,12 +77,11 @@ export interface WindowViewPlane {
 
 @Component({
   selector: 'app-window-view-overlay',
-  standalone: true,
-  imports: [
+  standalone: true,  imports: [
     CommonModule,
     HttpClientModule,
     FlagCallsignComponent,
-    RainOverlayComponent,
+        RainOverlayComponent,
   ],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
@@ -154,8 +152,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   public balconyStartX?: number;
   public balconyEndX?: number;
   public streetsideStartX?: number;
-  public streetsideEndX?: number;
-  /** Segments to dim outside marker spans */
+  public streetsideEndX?: number;  /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
   constructor(
@@ -164,7 +161,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     private http: HttpClient,
     public altitudeColor: AltitudeColorService,
     private elRef: ElementRef,
-    private countryService: CountryService,
+        private countryService: CountryService,
     private atmosphericSky: AtmosphericSkyService,
     private rainService: RainService,
     private skyColorSync: SkyColorSyncService
@@ -214,7 +211,6 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       return { y, label, color, fillColor };
     });
   }
-
   injectCelestialMarkers() {
     if (
       !Number.isFinite(this.observerLat) ||
@@ -225,11 +221,11 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     const markers = this.celestial.getMarkers(
       this.observerLat,
       this.observerLon
-    );
-    // Remove old celestial and append new
+        );
+    
+    // Remove old celestial markers, then append new ones
     this.windowViewPlanes = [
-      ...this.windowViewPlanes.filter((p) => !p.isCelestial),
-      ...markers,
+      ...this.windowViewPlanes.filter((p) => !p.isCelestial),    ...markers,
     ];
   }
 
@@ -789,5 +785,31 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       segments.push({ x: p1.x, y: p1.y, length, angle, opacity });
     }
     return segments;
+  }
+  /** Get the color for the moon's dark side - uses sky color during daytime, dark color at night */
+  public getMoonDarkSideColor(): string {
+    // Find sun marker to determine if it's daytime
+    const sun = this.windowViewPlanes.find(
+      (p) => p.isCelestial && p.celestialBodyType === 'sun'
+    );
+
+    // Calculate sun elevation angle
+    let sunElevationAngle = -20; // Default to night
+    if (sun && !sun.belowHorizon) {
+      sunElevationAngle = (sun.y / 100) * 90;
+    } else if (sun) {
+      sunElevationAngle = -10; // Sun below horizon but present
+    }    // During daytime (sun above horizon), use a light sky-like color
+    // During nighttime, use dark space color
+    if (sunElevationAngle > 0) {
+      // Daytime - use a light blue sky color that's visible against the background
+      return 'rgba(135, 206, 250, 0.6)'; // Light sky blue with transparency
+    } else if (sunElevationAngle > -6) {
+      // Twilight - use a darker but still visible color
+      return 'rgba(80, 100, 140, 0.8)'; // Twilight blue
+    } else {
+      // Nighttime - use dark space color
+      return '#23263a';
+    }
   }
 }

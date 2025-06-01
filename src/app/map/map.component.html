@@ -89,7 +89,7 @@
     <ng-container *ngIf="isNight; else sunArrow">
       <span
         class="moon-angle-icon"
-        [style.--angle]="sunAngle + 180 + 'deg'"
+        [style.--angle]="sunAngle + 'deg'"
         role="img"
         [attr.aria-label]="moonPhaseName + ' - Moon direction'"
       >
@@ -99,7 +99,7 @@
           height="2rem"
           viewBox="0 0 22 22"
           style="z-index: 1; position: relative; display: block; margin: 0 auto"
-          [style.transform]="'rotate(-90deg)'"
+          [style.transform]="'rotate(90deg)'"
         >
           <defs>
             <mask id="moon-phase-mask">
@@ -107,8 +107,8 @@
               <circle
                 [attr.cx]="
                   moonIsWaning
-                    ? 11 - 10 * (2 * moonFraction - 1)
-                    : 11 + 10 * (2 * moonFraction - 1)
+                    ? 11 + 10 * (2 * moonFraction - 1)
+                    : 11 - 10 * (2 * moonFraction - 1)
                 "
                 cy="11"
                 r="10"
@@ -117,13 +117,13 @@
             </mask>
           </defs>
           <!-- Draw the lit part first -->
-          <circle cx="11" cy="11" r="10" fill="#fff" />
+          <circle cx="11" cy="11" r="10" fill="rgba(135, 206, 250, 0.6)" />
           <!-- Overlay the shadow part using the mask -->
           <circle
             cx="11"
             cy="11"
             r="10"
-            fill="#23263a"
+            fill="#f4e4a6"
             [attr.mask]="'url(#moon-phase-mask)'"
           />
         </svg>

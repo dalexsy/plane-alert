@@ -46,8 +46,7 @@
     font-family: "Instrument Sans", sans-serif;
     font-weight: 800;
     letter-spacing: 3px;
-  }
-  .celestial-container {
+  }  .celestial-container {
     position: absolute;
     left: 0;
     right: 0;
@@ -62,8 +61,7 @@
       flex-direction: column-reverse;
       align-items: center;
       pointer-events: none;
-    }
-  }
+    }  }
 
   .planes-container {
     position: absolute;
@@ -320,30 +318,20 @@
       filter: grayscale(0.7) brightness(0.7);
       opacity: 0.5;
     }
-  }
-  .moon-svg {
+  }  .moon-svg {
     display: inline-block;
     margin-bottom: 2px;
     transition: filter 0.2s, opacity 0.2s;
 
     /* Enhanced glow effect for better visibility */
-    filter: drop-shadow(0 0 8px rgba(248, 248, 255, 0.5))
-      drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+    filter: drop-shadow(0 0 8px rgba(244, 228, 166, 0.4))
+      drop-shadow(0 0 3px rgba(244, 228, 166, 0.6));
 
     &.below-horizon {
-      filter: grayscale(0.7) brightness(0.6)
-        drop-shadow(0 0 4px rgba(200, 200, 220, 0.3))
-        drop-shadow(0 0 2px rgba(255, 255, 255, 0.2));
-      opacity: 0.6;
-
-      /* Dim the moon when below horizon */
-      circle[fill="#f8f8ff"] {
-        fill: rgba(200, 200, 220, 0.7) !important;
-      }
-
-      circle[stroke*="rgba(255, 255, 255"] {
-        stroke: rgba(200, 200, 220, 0.5) !important;
-      }
+      /* Keep moon colors but reduce glow when below horizon */
+      filter: drop-shadow(0 0 4px rgba(244, 228, 166, 0.2))
+        drop-shadow(0 0 2px rgba(244, 228, 166, 0.3));
+      opacity: 0.7;
     }
   }
 

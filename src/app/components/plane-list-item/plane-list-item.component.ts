@@ -198,16 +198,37 @@ export class PlaneListItemComponent implements OnChanges {
         lon: this.plane.airportLon,
       });
     }
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
+  }  ngOnChanges(changes: SimpleChanges): void {
     // Announce new planes at clicked airports only once per airport name
     if (this.plane.isNew && this.hostAirportClicked) {
       const airport = this.plane.airportName || 'Airport';
-      // detect German umlauts to choose German locale
-      const isGerman = /[äöüß]/i.test(airport);
+      // detect German words or umlauts to choose German locale
+      const isGerman = /[äöüß]|flughafen|hauptbahnhof|berlin|münchen|frankfurt|hamburg|düsseldorf|köln|stuttgart|hannover|nürnberg|dortmund|essen|bremen|dresden|leipzig/i.test(airport);
       const lang = isGerman ? 'de-DE' : navigator.language;
-      this.tts.speakOnce(airport, airport, lang);
+      
+      // Preprocess text for better pronunciation
+      const speakableText = this.preprocessForSpeech(airport, isGerman);
+      
+      // Debug log to see what's being spoken
+      console.log('TTS Debug:', {
+        original: airport,
+        speakable: speakableText,
+        language: lang,
+        isGerman: isGerman
+      });
+      
+      this.tts.speakOnce(airport, speakableText, lang);
     }
+  }
+
+  /** Preprocess text for better text-to-speech pronunciation */
+  private preprocessForSpeech(text: string, isGerman: boolean): string {
+    if (!isGerman) return text;
+    
+    // Fix common German pronunciation issues
+    return text
+      .replace(/flughafen/gi, 'Flug-hafen') // Add hyphen for better pronunciation
+      .replace(/hauptbahnhof/gi, 'Haupt-bahnhof')
+      .replace(/zentralflughafen/gi, 'Zentral-flughafen');
   }
 }
