@@ -149,14 +149,19 @@
     class="wind-angle-overlay"
     [title]="
       'Wind: ' +
-      windSpeed.toFixed(1) +
-      ' m/s from ' +
+      getCurrentWindSpeed().toFixed(1) +
+      ' ' +
+      getCurrentWindUnit() +
+      ' from ' +
       getWindFromDirection(windAngle)
     "
+    (click)="cycleWindUnit()"
+    style="cursor: pointer"
   >
     <!-- Wind info on left, transparent background and white text -->
     <span class="wind-info">
-      {{ windSpeed.toFixed(1) }} m/s {{ getWindFromDirection(windAngle) }}
+      {{ getCurrentWindSpeed().toFixed(1) }} {{ getCurrentWindUnit() }}
+      {{ getWindFromDirection(windAngle) }}
     </span>
     <app-icon
       [icon]="'stat_' + windStat"

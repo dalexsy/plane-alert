@@ -32,7 +32,6 @@ export class AircraftCountryService {
     string,
     { result: string; timestamp: number }
   >();
-
   /**
    * Determines the country of origin for an aircraft with detailed result information
    * @param registration Aircraft registration (tail number)
@@ -77,7 +76,13 @@ export class AircraftCountryService {
       if (icaoResult.countryCode !== 'Unknown') {
         return icaoResult;
       }
-    }
+    } // Log when country lookup fails to return a result
+    const decimalValue = icaoHex ? parseInt(icaoHex, 16) : null;
+    console.log(
+      `Aircraft country lookup failed - ICAO: ${icaoHex} (${decimalValue}), Registration: ${
+        registration || 'none'
+      }, API: ${apiCountry || 'none'}`
+    );
 
     return {
       countryCode: 'Unknown',
@@ -123,7 +128,6 @@ export class AircraftCountryService {
 
     return null;
   }
-
   /**
    * Gets country from aircraft registration prefix with detailed information
    */
@@ -148,7 +152,10 @@ export class AircraftCountryService {
           },
         };
       }
-    }
+    } // Log when registration lookup fails
+    console.log(
+      `Registration lookup failed - ${reg} - no matching prefix found`
+    );
 
     return {
       countryCode: 'Unknown',
@@ -211,7 +218,13 @@ export class AircraftCountryService {
         ? parseInt(icaoHex, 16)
         : 'Invalid format';
       // Unknown ICAO hex code info logged
-    }
+    } // Log when ICAO hex lookup fails
+    const decimalValue = /^[0-9A-Fa-f]+$/.test(icaoHex)
+      ? parseInt(icaoHex, 16)
+      : 'Invalid hex format';
+    console.log(
+      `ICAO hex lookup failed - ${icaoHex} (${decimalValue}) - no allocation found`
+    );
 
     return {
       countryCode: 'Unknown',

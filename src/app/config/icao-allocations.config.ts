@@ -130,8 +130,23 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
     type: 'civil',
     notes: 'Albanian civil aviation',
   },
-
+  {
+    start: 0x501400,
+    end: 0x501fff,
+    countryCode: 'HR',
+    countryName: 'Croatia',
+    type: 'civil',
+    notes: 'Croatian civil aviation',
+  },
   // Asia-Pacific
+  {
+    start: 0x800000,
+    end: 0x83ffff,
+    countryCode: 'IN',
+    countryName: 'India',
+    type: 'mixed',
+    notes: 'Indian aviation',
+  },
   {
     start: 0x840000,
     end: 0x87ffff,

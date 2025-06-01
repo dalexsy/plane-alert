@@ -396,8 +396,8 @@
     top: 0;
     bottom: 0;
     z-index: 1; // above background and dim overlays, below plane dots
-    mix-blend-mode: lighten; // lighten background to show bands
     opacity: 0.5;
+    mix-blend-mode: color-burn;
 
     .altitude-band-color {
       position: absolute;

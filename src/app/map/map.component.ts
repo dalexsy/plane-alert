@@ -186,10 +186,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Sun angle for solar position overlay
   public sunAngle: number = 0;
   // Wind direction for wind indicator overlay
-  public windAngle: number = 0;
-  // Latest wind speed in m/s
+  public windAngle: number = 0; // Latest wind speed in m/s
   public windSpeed: number = 0;
   public windStat: number = 0; // intensity level 0-3
+  // Wind unit cycling
+  public windUnits: string[] = ['m/s', 'knots', 'km/h', 'mph'];
+  public currentWindUnitIndex: number = 0;
   public isNight: boolean = false;
   public brightness: number = 1;
   public moonFraction: number = 0;
@@ -940,7 +942,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       });
   }
-
   /** Convert wind direction in degrees to compass point (e.g. N, NE, E, etc.) */
   public getWindFromDirection(deg: number): string {
     const directions = [
@@ -963,6 +964,40 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     ];
     const index = Math.round((deg % 360) / 22.5);
     return directions[index % directions.length];
+  }
+
+  /** Convert wind speed from m/s to the specified unit */
+  public convertWindSpeed(speedMs: number, unit: string): number {
+    switch (unit) {
+      case 'knots':
+        return speedMs * 1.94384; // m/s to knots
+      case 'km/h':
+        return speedMs * 3.6; // m/s to km/h
+      case 'mph':
+        return speedMs * 2.23694; // m/s to mph
+      case 'm/s':
+      default:
+        return speedMs;
+    }
+  }
+
+  /** Get the current wind speed in the selected unit */
+  public getCurrentWindSpeed(): number {
+    return this.convertWindSpeed(
+      this.windSpeed,
+      this.windUnits[this.currentWindUnitIndex]
+    );
+  }
+
+  /** Get the current wind unit string */
+  public getCurrentWindUnit(): string {
+    return this.windUnits[this.currentWindUnitIndex];
+  }
+
+  /** Cycle to the next wind unit */
+  public cycleWindUnit(): void {
+    this.currentWindUnitIndex =
+      (this.currentWindUnitIndex + 1) % this.windUnits.length;
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
