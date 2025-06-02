@@ -95,6 +95,7 @@ export interface WindowViewPlane {
 })
 export class WindowViewOverlayComponent implements OnChanges, OnInit {
   private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
+  private lastKnownDirections = new Map<string, 'left' | 'right'>(); // Track last known direction for each plane
 
   /** Prevent context menu inside overlay when right-clicking to avoid content.js errors */
   @HostListener('document:contextmenu', ['$event'])
@@ -189,13 +190,20 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   handleLabelClick(plane: WindowViewPlane, event: MouseEvent): void {
     event.stopPropagation();
     this.selectPlane.emit(plane);
-  }
-  ngOnChanges(changes: SimpleChanges) {
+  }  ngOnChanges(changes: SimpleChanges) {
     if (
       changes['windowViewPlanes'] ||
       changes['observerLat'] ||
       changes['observerLon']
     ) {
+      // First inject celestial markers to get the complete plane list
+      this.injectCelestialMarkers();
+      
+      // Detect movement direction BEFORE updating previous positions
+      this.windowViewPlanes.forEach((plane) => {
+        this.getMovementDirection(plane); // This will update lastKnownDirections
+      });
+      
       // detect 360 wrap: if plane.x jumps more than 50, skip left transition
       this.windowViewPlanes.forEach((plane) => {
         const prev = this.prevXPositions.get(plane.icao);
@@ -203,7 +211,6 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
           prev !== undefined && Math.abs(plane.x - prev) > 50;
         this.prevXPositions.set(plane.icao, plane.x);
       });
-      this.injectCelestialMarkers();
       this.updateWindowCloud();
       // initial sky update then fetch weather
       this.updateSkyBackground();
@@ -460,19 +467,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.cloudBacklightClass = 'night-backlit';
     }
   }
-
-  /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
+  /** Simple transform for window view - no complex perspective needed */
   getPerspectiveTransform(plane: WindowViewPlane): string {
-    // For grounded planes, set fixed Y rotation
+    // For grounded planes, keep the existing ground effect
     if (plane.isGrounded) {
       return `perspective(300px) rotateX(60deg) rotateY(-0deg) rotateZ(90deg)`;
     }
-    const x = plane.x;
-    const ratio = (x - 50) / 50; // -1 to 1
-    const maxAngle = 20; // maximum Y rotation in degrees
-    const angleY = ratio * maxAngle;
-    // rotate icons an additional 90deg in 3D space
-    return `perspective(300px) rotateX(60deg) rotateY(${angleY}deg) rotateZ(90deg)`;
+    
+    // For airborne planes, use simple scaling only
+    return 'scale(1)';
   }
 
   /** Compute marker spans (Balcony and Streetside) to determine dim regions */
@@ -731,31 +734,62 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
         p.groundStackOrder = undefined;
       }
     });
-  }
-
-  /** Compute rotation angle from historical trail movement */
-  private getMovementAngle(plane: WindowViewPlane): number | null {
-    const trail = plane.historyTrail;
-    if (trail && trail.length >= 2) {
-      const prev = trail[trail.length - 2];
-      const last = trail[trail.length - 1];
-      const dx = last.x - prev.x;
-      const dy = last.y - prev.y;
-      const angleRad = Math.atan2(dy, dx);
-      return angleRad * (180 / Math.PI);
+  }  /** Determine if plane is moving left or right based on position change */
+  private getMovementDirection(plane: WindowViewPlane): 'left' | 'right' | null {
+    const prevX = this.prevXPositions.get(plane.icao);
+    if (prevX === undefined) {
+      // For new planes without previous position, try to use bearing if available
+      if (plane.bearing !== undefined) {
+        // Convert bearing to direction: 270-90 degrees = facing right, 90-270 = facing left
+        const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
+        const direction = (normalizedBearing >= 270 || normalizedBearing <= 90) ? 'right' : 'left';
+        this.lastKnownDirections.set(plane.icao, direction);
+        console.log(`New plane ${plane.callsign} (${plane.icao}): bearing=${plane.bearing}° -> direction=${direction}`);
+        return direction;
+      }
+      console.log(`New plane ${plane.callsign} (${plane.icao}): no bearing available`);
+      return null; // No previous position data and no bearing
     }
-    return null;
-  }
 
-  /** Return CSS rotateZ transform, preferring movement-based orientation */
+    const currentX = plane.x;
+    
+    // Handle wrap-around at 0/100 boundary
+    let deltaX = currentX - prevX;
+    if (deltaX > 50) {
+      deltaX -= 100; // Wrapped from right to left
+    } else if (deltaX < -50) {
+      deltaX += 100; // Wrapped from left to right
+    }
+
+    // Only update direction if there's significant movement (>0.1 to be more sensitive)
+    if (Math.abs(deltaX) > 0.1) {
+      const direction = deltaX > 0 ? 'right' : 'left';
+      this.lastKnownDirections.set(plane.icao, direction);
+      console.log(`Plane ${plane.callsign} (${plane.icao}): moved from ${prevX.toFixed(1)} to ${currentX.toFixed(1)} (δ=${deltaX.toFixed(1)}) -> direction=${direction}`);
+      return direction;
+    }
+    
+    return null; // No significant movement
+  }/** Return CSS rotateZ transform, with plane facing left or right based on movement direction */
   public getIconRotation(plane: WindowViewPlane): string {
-    const movement = this.getMovementAngle(plane);
-    if (movement !== null) {
-      return `rotateZ(${movement}deg)`;
+    // Use the last known direction that was calculated in ngOnChanges
+    const direction = this.lastKnownDirections.get(plane.icao);
+    
+    if (direction === 'left') {
+      return 'rotateZ(-90deg)'; // Face left
+    } else if (direction === 'right') {
+      return 'rotateZ(90deg)'; // Face right  
     }
-    const bearing = plane.bearing ?? 0;
-    const offset = plane.x > 50 ? -90 : -45;
-    return `rotateZ(${bearing + offset}deg)`;
+    
+    // No stored direction - try to use bearing as fallback
+    if (plane.bearing !== undefined) {
+      const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
+      const bearingDirection = (normalizedBearing >= 270 || normalizedBearing <= 90) ? 'right' : 'left';
+      return bearingDirection === 'left' ? 'rotateZ(-90deg)' : 'rotateZ(90deg)';
+    }
+    
+    // Final fallback: face right (since plane icons have front at top, 90deg makes them face right)
+    return 'rotateZ(90deg)';
   }
 
   /** Calculate segments connecting historyTrail points */
