@@ -463,6 +463,10 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
 
   /** Compute a perspective transform with dynamic Y rotation based on plane's horizontal position */
   getPerspectiveTransform(plane: WindowViewPlane): string {
+    // For grounded planes, set fixed Y rotation
+    if (plane.isGrounded) {
+      return `perspective(300px) rotateX(60deg) rotateY(-0deg) rotateZ(90deg)`;
+    }
     const x = plane.x;
     const ratio = (x - 50) / 50; // -1 to 1
     const maxAngle = 20; // maximum Y rotation in degrees

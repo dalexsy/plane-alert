@@ -1,29 +1,88 @@
+// =============================================================================
+// Window View Overlay Component
+// =============================================================================
+// Provides a fixed bottom overlay showing planes in a window-like perspective view
+// with 3D transforms, altitude bands, celestial objects, and atmospheric effects
+
+// Constants
+$overlay-height: 10rem;
+$overlay-bottom-spacing: 1.5rem;
+$overlay-z-index: 1000;
+$overlay-perspective: 800rem;
+
+$plane-icon-size: 3rem;
+$plane-spacing-unit: 2rem;
+$grounded-plane-scale: 0.4;
+$grounded-label-offset: -2rem;
+
+$celestial-icon-size: 22px;
+$vertical-line-width: 2px;
+
+// Color Variables
+$overlay-bg-start: rgba(0, 0, 0, 0.7);
+$overlay-bg-end: rgba(0, 0, 0, 0.6);
+$overlay-border-color: rgba(255, 255, 255, 0.3);
+$text-shadow-color: #000;
+$compass-label-color: #ffe066;
+$ground-shadow-color: rgba(0, 0, 0, 0.4);
+
+$balcony-color: #4caf50;
+$streetside-color: #2196f3;
+$followed-plane-color: #00ffff;
+
+// Animation Durations
+$plane-animation-duration: 1.2s;
+$celestial-animation-duration: 1.2s;
+$trail-animation-duration: 1.2s;
+$transition-duration: 0.2s;
+
+// =============================================================================
+// Main Overlay Container
+// =============================================================================
+
 .window-view-overlay {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 1.5rem;
-  height: 10rem;
+  bottom: $overlay-bottom-spacing;
+  height: $overlay-height;
+  z-index: $overlay-z-index;
 
+  // Visual styling
   background: linear-gradient(
     to top,
-    rgb(0 0 0 / 70%) 90%,
-    rgb(0 0 0 / 60%) 100%
+    $overlay-bg-start 90%,
+    $overlay-bg-end 100%
   );
-  z-index: 1000;
-  pointer-events: none;
-  -webkit-backdrop-filter: blur(0.5rem);
+  border-top: 1px solid $overlay-border-color;
   backdrop-filter: blur(0.75rem);
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
-  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
-    1px 1px 0 #000;
+  -webkit-backdrop-filter: blur(0.5rem);
 
-  // Enable 3D perspective and tilt overlay contents
-  perspective: 800rem;
+  // Typography
+  text-shadow: -1px -1px 0 $text-shadow-color, 1px -1px 0 $text-shadow-color,
+    -1px 1px 0 $text-shadow-color, 1px 1px 0 $text-shadow-color;
+
+  // 3D perspective setup
+  perspective: $overlay-perspective;
   transform-style: preserve-3d;
+  pointer-events: none;
+  // =============================================================================
+  // Compass Labels
+  // =============================================================================
 
   .compass-labels {
-    /* shingle roof-like pattern */
+    position: absolute;
+    bottom: -$overlay-bottom-spacing;
+    left: 0;
+    width: 100%;
+    z-index: 3;
+
+    display: flex;
+    justify-content: space-between;
+    color: $compass-label-color;
+    pointer-events: none;
+
+    // Shingle roof pattern background
     background-image: linear-gradient(
         to right,
         rgba(0, 0, 0, 0.1) 1px,
@@ -31,15 +90,6 @@
       ),
       linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 0.25rem 0.25rem;
-    display: flex;
-    justify-content: space-between;
-    position: absolute;
-    width: 100%;
-    bottom: -1.5rem;
-    left: 0;
-    color: #ffe066;
-    pointer-events: none;
-    z-index: 3;
   }
 
   .line-label {
@@ -47,270 +97,301 @@
     font-weight: 800;
     letter-spacing: 3px;
   }
+
+  // =============================================================================
+  // Celestial Objects Container (Sun/Moon)
+  // =============================================================================
+
   .celestial-container {
     position: absolute;
+    top: 0;
     left: 0;
     right: 0;
-    top: 0;
     bottom: 0;
+    z-index: 0.5; // Above cloud background, below planes
     pointer-events: none;
-    z-index: 0.5; // Above cloud background (0) but below everything else (1+)
 
     .celestial-object {
       position: absolute;
       display: flex;
       flex-direction: column-reverse;
       align-items: center;
-      pointer-events: none; // Add smooth linear transitions for celestial objects (sun/moon movement)
-      transition: left var(--celestial-animation-duration, 1.2s) linear,
-        bottom var(--celestial-animation-duration, 1.2s) linear;
+      pointer-events: none;
+
+      // Smooth celestial movement animation
+      transition: left
+          var(--celestial-animation-duration, #{$celestial-animation-duration})
+          linear,
+        bottom
+          var(--celestial-animation-duration, #{$celestial-animation-duration})
+          linear;
       will-change: left, bottom;
     }
-  }
+  } // =============================================================================
+  // Aircraft Container and Plane Dots
+  // =============================================================================
 
   .planes-container {
     position: absolute;
+    top: 0;
     left: 0;
     right: 0;
-    top: 0;
     bottom: 0;
-    pointer-events: none;
     z-index: 2;
-    .plane-dot {
-      position: absolute;
+    pointer-events: none;
+  }
+
+  // =============================================================================
+  // Plane Dot Base Styling
+  // =============================================================================
+
+  .plane-dot {
+    position: absolute;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    z-index: 1;
+
+    font-family: "JetBrains Mono", monospace;
+    color: #fff;
+
+    // Smooth position animation matching map movement
+    transition: left
+        var(--plane-animation-duration, #{$plane-animation-duration}) linear,
+      bottom var(--plane-animation-duration, #{$plane-animation-duration})
+        linear;
+    will-change: left, bottom;
+
+    &.skip-wrap {
+      // Disable transitions for wrap-around jumps
+      transition: none !important;
+    }
+
+    // Marker-specific styling
+    &.balcony-marker,
+    &.streetside-marker {
       display: flex;
-      flex-direction: column-reverse;
-      align-items: center;
-      font-family: "JetBrains Mono", monospace;
-      color: #fff;
-      z-index: 1; // Add smooth linear transitions for position changes to match map animation
-      transition: left var(--plane-animation-duration, 1.2s) linear,
-        bottom var(--plane-animation-duration, 1.2s) linear;
+      flex-direction: column;
+      justify-content: space-between;
+      // Disable transitions for static markers
+      transition: none;
+      will-change: auto;
+    }
 
-      &.skip-wrap {
-        // Disable transitions for wrap-around jumps
-        transition: none !important;
-      }
+    &.dimmed {
+      opacity: 0.5;
+    } // Newly scoped grounded-plane styles
+    &.grounded-plane {
+      flex-direction: column-reverse; // Reverse order so label appears on top
+      pointer-events: auto;
+      perspective: none;
+      transform: none;
 
-      // Use will-change to optimize animations
-      will-change: left, bottom;
-
-      &.balcony-marker,
-      &.streetside-marker {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        // Disable transitions for markers as they don't move
-        transition: none;
-        will-change: auto;
-      }
-
-      .icon-wrapper {
-        position: relative;
-        display: inline-block;
-      }
-      .chemtrail {
-        position: absolute;
-        height: 4px;
-        left: 50%;
-        bottom: calc(50% - 1px);
-        opacity: 0.8;
-        filter: blur(1px);
-        border-radius: 1px;
-        transform-origin: left center;
-      }
-
-      .plane-icon {
-        color: currentColor;
-        background: none;
-        border: none;
-        padding: 0;
-        margin-bottom: 2px;
-        width: 3rem;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        // Add smooth transitions for transform changes (rotation)
-        // Use CSS custom property timing to match position animations (1.2s linear)
-        transition: transform var(--plane-animation-duration, 1.2s) linear;
-        will-change: transform;
-
-        path {
-          fill: currentColor;
-          stroke: black;
-          stroke-width: 2px;
-        }
-      }
-
-      .copter-wrapper {
-        display: inline-block;
-      }
+      // Reset transforms inside icon wrappers
+      .icon-wrapper,
+      .icon-scale-wrapper,
       .copter-plane-icon {
-        font-family: "Material Symbols Sharp", sans-serif;
-        font-variation-settings: "FILL" 1;
-        font-size: 3rem;
-        color: currentColor;
-        display: inline-block;
-        animation: spin 1.5s linear infinite;
-        margin-bottom: 2px;
+        transform: none;
+      }
+
+      // Hide chemtrails
+      .chemtrail {
+        display: none;
+      }
+
+      // Ground shadow effect
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 1rem;
+        height: 0.25rem;
+        background: $ground-shadow-color;
+        border-radius: 50%;
+        filter: blur(2px);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      // Tilt icon on ground
+      .icon-wrapper {
+        transform: perspective(300px) skewX(-30deg) rotateX(50deg)
+          scale($grounded-plane-scale);
+        transform-origin: bottom center;
+        // remove absolute offset
+        bottom: auto;
       }
 
       .plane-label {
-        cursor: pointer;
-        color: white;
-        margin-bottom: -1.25rem;
-        padding: 0 5px;
-        pointer-events: auto;
-        white-space: nowrap;
-
-        &.followed {
-          z-index: 10;
-          position: relative;
-          color: #00ffff;
-          background: black;
-          border: 1px solid cyan;
-          border-radius: 0.25rem;
-          box-shadow: 0 0 0px 3px #00ffff7d;
-        }
+        position: static;
+        font-size: 0.75rem;
       }
-
-      .line-label {
-        position: absolute;
-        bottom: 3rem;
-        white-space: nowrap;
-        pointer-events: auto;
-      }
-
-      &.balcony-marker {
-        .line-label {
-          color: #4caf50;
-        }
-      }
-      &.streetside-marker {
-        .line-label {
-          color: #2196f3;
-        }
-      }
-
-      &.dimmed {
-        opacity: 0.5;
-      }
-
-      &.grounded-plane {
-        // disable 3D tilt
-        perspective: none !important;
-        transform: none !important;
-
-        // remove wrapper and icon transforms
-        .icon-wrapper,
-        .icon-scale-wrapper,
-        .copter-plane-icon {
-          transform: none !important;
-        }
-
-        // remove chemtrail
-        .chemtrail {
-          display: none !important;
-        }
-
-        // ground shadow ellipse
-        &::after {
-          content: "";
-          position: absolute;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 2rem;
-          height: 0.5rem;
-          background: rgba(0, 0, 0, 0.4);
-          border-radius: 50%;
-          filter: blur(2px);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        // icon ground tilt
-        .icon-wrapper {
-          transform: perspective(300px) skewX(-30deg) rotateX(50deg) scale(0.4) !important;
-          transform-origin: bottom center;
-          bottom: -1rem;
-        }
-
-        // centered label position for grounded planes; bottom set inline
-        .plane-label {
-          position: absolute !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-          margin: 0 !important;
-          font-size: 0.75rem !important;
-          z-index: 2 !important;
-        }
-      }
-      // stack grounded-plane containers vertically
-      &.grounded-plane + &.grounded-plane {
-        bottom: 1.5rem !important;
-      }
-      &.grounded-plane + &.grounded-plane + &.grounded-plane {
-        bottom: 3rem !important;
-      }
-      &.half-left .icon-wrapper {
-        transform: perspective(300px) rotateX(60deg) rotateY(20deg);
-      }
-      &.half-right .icon-wrapper {
-        transform: perspective(300px) rotateX(60deg) rotateY(-20deg);
-      }
-    } /* line segments connecting history trail dots */
-    .history-trail-segment {
-      position: absolute;
-      background: rgba(255, 255, 255, 0.8);
-      filter: blur(1px);
-      border-radius: 1px;
-      transform-origin: left center;
-      pointer-events: none;
-      z-index: 0;
-      transform: translateX(2.5rem) translateY(-0.5rem); // Add smooth linear transitions for trail segments
-      transition: left var(--trail-animation-duration, 1.2s) linear,
-        bottom var(--trail-animation-duration, 1.2s) linear,
-        opacity 0.4s ease-out;
-      will-change: left, bottom, opacity;
     }
   }
 
-  // Start/end section markers within window view
-  .vertical-line {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: transparent;
-    margin: 0;
-    z-index: 2;
+  // =============================================================================
+  // Aircraft Icons and Components
+  // =============================================================================
 
-    &.balcony-marker {
-      background-color: #4caf50; // Balcony green
+  .icon-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .chemtrail {
+    position: absolute;
+    height: 4px;
+    left: 50%;
+    bottom: calc(50% - 1px);
+    opacity: 0.8;
+    filter: blur(1px);
+    border-radius: 1px;
+    transform-origin: left center;
+  }
+
+  .plane-icon {
+    width: $plane-icon-size;
+    height: $plane-icon-size;
+    margin-bottom: 2px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: currentColor;
+    background: none;
+    border: none;
+    padding: 0;
+
+    // Smooth rotation animation
+    transition: transform
+      var(--plane-animation-duration, #{$plane-animation-duration}) linear;
+    will-change: transform;
+
+    path {
+      fill: currentColor;
+      stroke: black;
+      stroke-width: 2px;
     }
-    &.streetside-marker {
-      background-color: #2196f3; // Streetside blue
-    }
+  }
+
+  // =============================================================================
+  // Helicopter Styling
+  // =============================================================================
+
+  .copter-wrapper {
+    display: inline-block;
   }
 
   .copter-plane-icon {
     font-family: "Material Symbols Sharp", sans-serif;
     font-variation-settings: "FILL" 1;
-    font-size: 3rem;
+    font-size: $plane-icon-size;
     color: currentColor;
     display: inline-block;
-    animation: spin 1.5s linear infinite;
     margin-bottom: 2px;
+    animation: spin 1.5s linear infinite;
   }
+
+  // =============================================================================
+  // Plane Labels
+  // =============================================================================
+
+  .plane-label {
+    cursor: pointer;
+    color: white;
+    margin-bottom: -1.25rem;
+    padding: 0 5px;
+    pointer-events: auto;
+    white-space: nowrap;
+
+    &.followed {
+      z-index: 10;
+      position: relative;
+      color: $followed-plane-color;
+      background: black;
+      border: 1px solid cyan;
+      border-radius: 0.25rem;
+      box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.49);
+    }
+  }
+
+  // =============================================================================
+  // Marker Labels
+  // =============================================================================
+
+  .line-label {
+    position: absolute;
+    bottom: 3rem;
+    white-space: nowrap;
+    pointer-events: auto;
+  }
+
+  .balcony-marker .line-label {
+    color: $balcony-color;
+  }
+
+  .streetside-marker .line-label {
+    color: $streetside-color;
+  } // =============================================================================
+  // Perspective Transforms for Airborne Aircraft
+  // =============================================================================
+
+  // =============================================================================
+  // History Trail Segments
+  // =============================================================================
+
+  .history-trail-segment {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.8);
+    filter: blur(1px);
+    border-radius: 1px;
+    transform-origin: left center;
+    pointer-events: none;
+    z-index: 0;
+    transform: translateX(2.5rem) translateY(-0.5rem);
+
+    // Smooth trail animation
+    transition: left
+        var(--trail-animation-duration, #{$trail-animation-duration}) linear,
+      bottom var(--trail-animation-duration, #{$trail-animation-duration})
+        linear,
+      opacity 0.4s ease-out;
+    will-change: left, bottom, opacity;
+  }
+
+  // =============================================================================
+  // Vertical Line Markers
+  // =============================================================================
+
+  .vertical-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: $vertical-line-width;
+    margin: 0;
+    z-index: 2;
+    background-color: transparent;
+
+    &.balcony-marker {
+      background-color: $balcony-color;
+    }
+
+    &.streetside-marker {
+      background-color: $streetside-color;
+    }
+  }
+  // =============================================================================
+  // Altitude Bands
+  // =============================================================================
 
   .altitude-bands-overlay.full {
     position: absolute;
+    top: 0;
     left: 0;
     right: 0;
-    top: 0;
     bottom: 0;
     z-index: 1;
     pointer-events: none;
@@ -324,30 +405,59 @@
     }
   }
 
+  .altitude-bands {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1; // Above background, below plane dots
+    opacity: 0.5;
+    mix-blend-mode: color-burn;
+
+    .altitude-band-color {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      background: transparent;
+      box-sizing: border-box;
+      // Height set via inline styles
+    }
+  }
+
+  // =============================================================================
+  // Celestial Objects (Sun/Moon)
+  // =============================================================================
+
   .celestial-circle {
-    width: 22px;
-    height: 22px;
+    width: $celestial-icon-size;
+    height: $celestial-icon-size;
     border-radius: 50%;
     display: inline-block;
     margin-bottom: 2px;
+
+    // Sun styling
     background: #ffe066;
     border: 2px solid #fff59d;
-    box-shadow: 0 0 12px 4px #ffe06699;
-    transition: filter 0.2s, opacity 0.2s, border 0.2s, background 0.2s,
-      box-shadow 0.2s;
+    box-shadow: 0 0 12px 4px rgba(255, 224, 102, 0.6);
+
+    transition: filter $transition-duration, opacity $transition-duration,
+      border $transition-duration, background $transition-duration,
+      box-shadow $transition-duration;
 
     &.below-horizon {
-      background: #ffe06633;
+      background: rgba(255, 224, 102, 0.2);
       border: 2px dashed #fff59d;
       box-shadow: none;
       filter: grayscale(0.7) brightness(0.7);
       opacity: 0.5;
     }
   }
+
   .moon-svg {
     display: inline-block;
     margin-bottom: 2px;
-    transition: filter 0.2s, opacity 0.2s;
+    transition: filter $transition-duration, opacity $transition-duration;
 
     // Default nighttime styling
     filter: drop-shadow(0 0 8px rgba(244, 228, 166, 0.4))
@@ -377,8 +487,10 @@
       stroke: rgba(244, 228, 166, 0.6);
     }
   }
+  // =============================================================================
+  // Daytime Moon Styling Overrides
+  // =============================================================================
 
-  // Daytime styling overrides
   &.daytime .moon-svg {
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4))
       drop-shadow(0 0 3px rgba(255, 255, 255, 0.6));
@@ -406,31 +518,10 @@
     }
   }
 
-  // Handle twilight/daytime variations for moon dark side
-  &.daytime .moon-svg .moon-dark {
-    // Daytime - use a light blue sky color that's visible against the background
-    fill: rgba(135, 206, 250, 0.6);
-  }
+  // =============================================================================
+  // Cloud Background and Atmospheric Effects
+  // =============================================================================
 
-  .altitude-bands {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1; // above background and dim overlays, below plane dots
-    opacity: 0.5;
-    mix-blend-mode: color-burn;
-
-    .altitude-band-color {
-      position: absolute;
-      left: 0;
-      width: 100%;
-      background: transparent;
-      box-sizing: border-box;
-      height: unset; // height set inline
-    }
-  }
   .cloud-background {
     position: absolute;
     top: 0;
@@ -439,30 +530,60 @@
     bottom: 0;
     width: 110%;
     height: 100%;
+    z-index: 0;
+
     background-size: cover;
     background-repeat: no-repeat;
-    /* fade clouds at bottom */
+
+    // 3D perspective transform
+    transform: rotateX(-45deg);
+    transform-origin: top center;
+
+    // Fade clouds at bottom using mask
     mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
     -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     -webkit-mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;
-    transform: rotateX(-45deg);
-    transform-origin: top center;
-    z-index: 0;
-    /* Smooth transitions for night-time darkening and backlighting */
+
+    // Smooth atmospheric transitions
     transition: filter 0.8s ease-in-out, box-shadow 0.8s ease-in-out;
+
+    // Enhanced atmospheric depth for multiple cloud layers
+    &:nth-child(1) {
+      // Primary cloud layer
+      opacity: 0.9;
+      z-index: 0;
+    }
+
+    &:nth-child(2) {
+      // Secondary cloud layer for depth
+      opacity: 0.6;
+      transform: rotateX(-45deg) translateZ(10px) scale(1.1);
+      z-index: -1;
+    }
+
+    &:nth-child(3) {
+      // Background cloud layer for atmospheric haze
+      opacity: 0.3;
+      transform: rotateX(-45deg) translateZ(20px) scale(1.2);
+      z-index: -2;
+      filter: blur(1px);
+    }
   }
-  /* Cloud backlighting effects */
+  // =============================================================================
+  // Cloud Backlighting Effects
+  // =============================================================================
+
   .cloud-background.backlit {
-    /* Add subtle glow behind clouds for atmospheric backlighting */
+    // Subtle glow behind clouds for atmospheric backlighting
     box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.1),
       0 0 30px rgba(135, 206, 235, 0.15), 0 0 60px rgba(255, 223, 186, 0.1);
   }
 
   .cloud-background.twilight-backlit {
-    /* Enhanced backlighting during twilight hours with warm colors */
+    // Enhanced backlighting during twilight hours with warm colors
     box-shadow: inset 0 0 40px rgba(255, 165, 0, 0.2),
       inset 0 -20px 60px rgba(255, 69, 0, 0.15),
       0 0 25px rgba(255, 140, 0, 0.25), 0 0 50px rgba(255, 69, 0, 0.15),
@@ -470,45 +591,31 @@
   }
 
   .cloud-background.night-backlit {
-    /* Subtle moonlight backlighting at night with cool blues */
+    // Subtle moonlight backlighting at night with cool blues
     box-shadow: inset 0 0 35px rgba(173, 216, 230, 0.12),
       inset 0 -15px 45px rgba(135, 206, 235, 0.1),
       0 0 20px rgba(176, 196, 222, 0.15), 0 0 40px rgba(135, 206, 235, 0.1),
       0 -8px 25px rgba(200, 220, 255, 0.12);
   }
 
-  /* Enhanced atmospheric depth for cloud layers */
-  .cloud-background:nth-child(1) {
-    /* Primary cloud layer */
-    opacity: 0.9;
-    z-index: 0;
-  }
-
-  .cloud-background:nth-child(2) {
-    /* Secondary cloud layer for depth */
-    opacity: 0.6;
-    transform: rotateX(-45deg) translateZ(10px) scale(1.1);
-    z-index: -1;
-  }
-
-  .cloud-background:nth-child(3) {
-    /* Background cloud layer for atmospheric haze */
-    opacity: 0.3;
-    transform: rotateX(-45deg) translateZ(20px) scale(1.2);
-    z-index: -2;
-    filter: blur(1px);
-  }
+  // =============================================================================
+  // Dimming Overlay
+  // =============================================================================
 
   .dim-overlay {
     position: absolute;
     top: 0;
     bottom: 0;
+    z-index: 1;
     background-color: rgba(0, 0, 0, 0.2);
     mix-blend-mode: multiply;
     pointer-events: none;
-    z-index: 1;
   }
 }
+
+// =============================================================================
+// Animations
+// =============================================================================
 
 @keyframes spin {
   from {

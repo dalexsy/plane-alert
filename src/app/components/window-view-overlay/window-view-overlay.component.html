@@ -206,6 +206,7 @@
       <div
         class="plane-dot"
         [class.skip-wrap]="plane.skipWrapTransition"
+        [class.grounded-plane]="plane.isGrounded"
         [class.balcony-marker]="
           plane.isMarker && plane.callsign.startsWith('Balcony')
         "
@@ -216,7 +217,7 @@
         [style.left]="plane.x + '%'"
         [style.bottom]="
           plane.isGrounded
-            ? plane.groundStackOrder! * 1.5 + 'rem'
+            ? 'calc(' + plane.groundStackOrder! * 2.25 + 'rem - 1rem)'
             : 'calc(' + plane.y + '% - .5rem)'
         "
         [style.transformOrigin]="'bottom center'"
@@ -262,12 +263,16 @@
             <ng-container *ngIf="!plane.isHelicopter">
               <div
                 class="icon-scale-wrapper"
-                [style.transform]="'scale(' + (plane.scale || 1) + ')'"
+                [style.transform]="
+                  plane.isGrounded ? null : 'scale(' + (plane.scale || 1) + ')'
+                "
                 [style.transformOrigin]="'bottom center'"
               >
                 <div
                   class="icon-wrapper"
-                  [style.transform]="getPerspectiveTransform(plane)"
+                  [style.transform]="
+                    plane.isGrounded ? null : getPerspectiveTransform(plane)
+                  "
                   [style.transformOrigin]="'center center'"
                 >
                   <svg
@@ -277,7 +282,9 @@
                     [attr.aria-label]="
                       plane.callsign + ' at ' + plane.altitude + 'm'
                     "
-                    [style.transform]="getIconRotation(plane)"
+                    [style.transform]="
+                      plane.isGrounded ? null : getIconRotation(plane)
+                    "
                     [style.transformOrigin]="'center center'"
                   >
                     <path [attr.d]="plane.iconPath"></path>
