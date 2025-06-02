@@ -266,11 +266,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.followNearest = false;
         } else {
           this.highlightedPlaneIcao = icao;
-          this.followNearest = true;
-          // Center map on followed plane
+          this.followNearest = true; // Center map on followed plane with smooth panning
           const pm = this.planeLog.get(icao);
           if (pm && pm.lat != null && pm.lon != null) {
-            this.map.panTo([pm.lat, pm.lon]);
+            this.map.panTo([pm.lat, pm.lon], { animate: true, duration: 1.0 });
             // Update both address input overlay and location overlay info with single geocoding call
             this.reverseGeocode(pm.lat, pm.lon).then((address) => {
               this.inputOverlayComponent.addressInputRef.nativeElement.value =
@@ -2027,8 +2026,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.cdr.detectChanges();
       return;
     }
-    // When manually centering/following a plane, enable tracking override
-    this.followNearest = true;
+    // When manually centering/following a plane, disable automatic nearest following
+    // and enable manual following instead
+    this.followNearest = fromShuffle; // Only true if this is from shuffle mode
 
     const icao = plane.icao;
 
@@ -2039,8 +2039,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.highlightedPlaneIcao = icao;
     const pm = this.planeLog.get(icao);
     if (pm?.marker && plane.lat != null && plane.lon != null) {
-      // Pan map to plane location without changing zoom
-      this.map.panTo([plane.lat, plane.lon]);
+      // Pan map to plane location without changing zoom with smooth animation
+      this.map.panTo([plane.lat, plane.lon], { animate: true, duration: 1.0 });
 
       pm.marker.setZIndexOffset(20000);
       pm.marker.openTooltip();
@@ -2097,11 +2097,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.centerOnPlane(plane, false, false);
     }
   }
-
   /** Handle centering map on selected airport coordinates */
   public onCenterAirport(coords: { lat: number; lon: number }): void {
-    // Pan map to airport coordinates
-    this.map.panTo([coords.lat, coords.lon]);
+    // Pan map to airport coordinates with smooth animation
+    this.map.panTo([coords.lat, coords.lon], { animate: true, duration: 1.0 });
   }
 
   // New function to find and display airports

@@ -57,7 +57,10 @@ function catmullRomPoint(
 export class PlaneFinderService {
   // Cache for altitude-to-color lookup
   private colorCache = new Map<number, string>();
-  private pathCache = new Map<string, { timestamp: number; points: [number, number][] }>();
+  private pathCache = new Map<
+    string,
+    { timestamp: number; points: [number, number][] }
+  >();
   private readonly PATH_CACHE_DURATION = 100; // ms
   private mapInitialized = false;
   private isInitialLoad = false;
@@ -112,7 +115,10 @@ export class PlaneFinderService {
   ): L.Polyline | undefined {
     // --- PREDICTED PATH ---
     if (
-      track == null || velocity == null || isGrounded || (velocity !== null && velocity <= 0)
+      track == null ||
+      velocity == null ||
+      isGrounded ||
+      (velocity !== null && velocity <= 0)
     ) {
       // Remove the predicted path for grounded planes or those without track/velocity data
       if (plane.path) {
@@ -138,7 +144,7 @@ export class PlaneFinderService {
       const key = `${lat.toFixed(5)},${lon.toFixed(5)},${track},${velocity}`;
       let pathPoints: [number, number][];
       const cacheEntry = this.pathCache.get(key);
-      if (cacheEntry && (now - cacheEntry.timestamp) < this.PATH_CACHE_DURATION) {
+      if (cacheEntry && now - cacheEntry.timestamp < this.PATH_CACHE_DURATION) {
         pathPoints = cacheEntry.points;
       } else {
         // Compute predicted path points
@@ -158,7 +164,8 @@ export class PlaneFinderService {
           const t1 = hist[hist.length - 1].track!;
           const t0 = hist[hist.length - 2].track!;
           const dtMin =
-            (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
+            (hist[hist.length - 1].timestamp -
+              hist[hist.length - 2].timestamp) /
             60000;
           if (dtMin >= 0.1) {
             const rawDelta = ((t1 - t0 + 540) % 360) - 180;
@@ -806,7 +813,9 @@ export class PlaneFinderService {
           this.helicopterIdentificationService.isHelicopter(id, model),
           isSpecial,
           altitude, // pass altitude for shadow scaling
-          followed // <-- pass followed flag
+          followed, // <-- pass followed flag
+          this.settings.interval, // <-- pass scan interval for smooth transition timing
+          id // <-- pass ICAO for debugging
         );
         planeModelInstance.marker = marker; // Update marker reference on model
 
