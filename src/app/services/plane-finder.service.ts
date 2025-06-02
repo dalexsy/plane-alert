@@ -717,10 +717,11 @@ export class PlaneFinderService {
         const cardinal = getCardinalDirection(bearing);
         const arrow = getArrowForDirection(cardinal);
         planeModelInstance.bearing = bearing;
-        planeModelInstance.cardinal = cardinal;
-        planeModelInstance.arrow = arrow;
+        planeModelInstance.cardinal = cardinal;        planeModelInstance.arrow = arrow;
         // Assign current altitude for overlay and shuffle mode
         planeModelInstance.altitude = altitude;
+        // Store vertical rate from API for plane tilting functionality
+        planeModelInstance.verticalRate = ac.baro_rate ?? null;
 
         // *** FIX: Explicitly add position to history for existing planes ***
         // The constructor handles the very first point for new planes.

@@ -46,6 +46,7 @@ import { WindowViewOverlayComponent } from '../components/window-view-overlay/wi
 import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
 import { getIconPathForModel } from '../utils/plane-icons';
 import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
+import { calculateVerticalRateFromHistory } from '../utils/vertical-rate.util';
 import { HelicopterListService } from '../services/helicopter-list.service';
 import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
 import { SkyColorSyncService } from '../services/sky-color-sync.service';
@@ -1502,10 +1503,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           centerLon,
           plane.lat!,
           plane.lon!
-        );
-        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
-        // scale from 1 at center to 0.5 at max radius
-        const scale = Math.max(0.5, 1 - (distKm / maxRadius) * 0.5);
+        );        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
+        // Dramatic scaling for planes within 10km, normal scaling beyond
+        let scale = 1.0; // Default scale
+        if (distKm <= 10) {
+          // Within 10km: scale from 3.0 at 0km to 1.0 at 10km with exponential curve
+          const normalizedDistance = distKm / 10; // 0 to 1 within 10km
+          const exponentialCurve = Math.pow(normalizedDistance, 1.5); // Smooth exponential falloff
+          scale = Math.max(1.0, 3.0 - exponentialCurve * 2.0); // 3.0 to 1.0 range
+        } else {
+          // Beyond 10km: gradual scaling from 1.0 to 0.5 based on max radius
+          const beyondNormalized = Math.min((distKm - 10) / (maxRadius - 10), 1);
+          scale = Math.max(0.5, 1.0 - beyondNormalized * 0.5); // 1.0 to 0.5 range
+        }
         // Compute history positions for window view
         const rawHistory = computeWindowHistoryPositions(
           plane.positionHistory,
@@ -1530,8 +1540,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isHelicopter: this.helicopterIdentificationService.isHelicopter(
             plane.icao,
             plane.model
-          ),
-          velocity: plane.velocity ?? 0,
+          ),          velocity: plane.velocity ?? 0,
+          verticalRate: plane.verticalRate ?? calculateVerticalRateFromHistory(plane.positionHistory) ?? undefined,
           // historical trail for window view
           historyTrail,
           scale,

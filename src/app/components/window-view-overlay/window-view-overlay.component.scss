@@ -1,24 +1,26 @@
 // =============================================================================
-// Window View Overlay Component
+// Window View Overlay Component - Enterprise SCSS
 // =============================================================================
-// Provides a fixed bottom overlay showing planes in a window-like perspective view
+// Provides a fixed bottom overlay showing aircraft in a window-like perspective view
 // with 3D transforms, altitude bands, celestial objects, and atmospheric effects
 
-// Constants
+// =============================================================================
+// SCSS Variables and Configuration
+// =============================================================================
+
+// Layout Constants
 $overlay-height: 10rem;
 $overlay-bottom-spacing: 1.5rem;
 $overlay-z-index: 1000;
 $overlay-perspective: 800rem;
 
+// Aircraft Display
 $plane-icon-size: 3rem;
-$plane-spacing-unit: 2rem;
 $grounded-plane-scale: 0.4;
-$grounded-label-offset: -2rem;
-
 $celestial-icon-size: 22px;
 $vertical-line-width: 2px;
 
-// Color Variables
+// Color Palette
 $overlay-bg-start: rgba(0, 0, 0, 0.7);
 $overlay-bg-end: rgba(0, 0, 0, 0.6);
 $overlay-border-color: rgba(255, 255, 255, 0.3);
@@ -26,18 +28,21 @@ $text-shadow-color: #000;
 $compass-label-color: #ffe066;
 $ground-shadow-color: rgba(0, 0, 0, 0.4);
 
+// Status Colors
 $balcony-color: #4caf50;
 $streetside-color: #2196f3;
 $followed-plane-color: #00ffff;
 
-// Animation Durations
+// Animation Timing
 $plane-animation-duration: 1.2s;
 $celestial-animation-duration: 1.2s;
 $trail-animation-duration: 1.2s;
-$transition-duration: 0.2s;
+$scale-transition-duration: 0.8s;
+$fast-transition-duration: 0.2s;
+$transition-duration: 0.3s; // General transition duration
 
 // =============================================================================
-// Main Overlay Container
+// MAIN OVERLAY CONTAINER
 // =============================================================================
 
 .window-view-overlay {
@@ -61,13 +66,13 @@ $transition-duration: 0.2s;
   // Typography
   text-shadow: -1px -1px 0 $text-shadow-color, 1px -1px 0 $text-shadow-color,
     -1px 1px 0 $text-shadow-color, 1px 1px 0 $text-shadow-color;
-
   // 3D perspective setup
   perspective: $overlay-perspective;
   transform-style: preserve-3d;
   pointer-events: none;
+
   // =============================================================================
-  // Compass Labels
+  // COMPASS AND NAVIGATION
   // =============================================================================
 
   .compass-labels {
@@ -91,7 +96,6 @@ $transition-duration: 0.2s;
       linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 0.25rem 0.25rem;
   }
-
   .line-label {
     font-family: "Instrument Sans", sans-serif;
     font-weight: 800;
@@ -99,7 +103,7 @@ $transition-duration: 0.2s;
   }
 
   // =============================================================================
-  // Celestial Objects Container (Sun/Moon)
+  // CELESTIAL OBJECTS CONTAINER (Sun/Moon)
   // =============================================================================
 
   .celestial-container {
@@ -108,7 +112,7 @@ $transition-duration: 0.2s;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 0.5; // Above cloud background, below planes
+    z-index: 0.5; // Above cloud background, below aircraft
     pointer-events: none;
 
     .celestial-object {
@@ -124,11 +128,12 @@ $transition-duration: 0.2s;
           linear,
         bottom
           var(--celestial-animation-duration, #{$celestial-animation-duration})
-          linear;
-      will-change: left, bottom;
+          linear;      will-change: left, bottom;
     }
-  } // =============================================================================
-  // Aircraft Container and Plane Dots
+  }
+
+  // =============================================================================
+  // AIRCRAFT CONTAINER AND PLANE DOTS
   // =============================================================================
 
   .planes-container {
@@ -139,10 +144,11 @@ $transition-duration: 0.2s;
     bottom: 0;
     z-index: 2;
     pointer-events: none;
+    transform-style: preserve-3d; // Ensure 3D transforms are preserved
   }
 
   // =============================================================================
-  // Plane Dot Base Styling
+  // AIRCRAFT BASE STYLING
   // =============================================================================
 
   .plane-dot {
@@ -151,20 +157,27 @@ $transition-duration: 0.2s;
     flex-direction: column-reverse;
     align-items: center;
     z-index: 1;
+    transform-style: preserve-3d; // Ensure 3D transforms are preserved
 
     font-family: "JetBrains Mono", monospace;
     color: #fff;
 
-    // Smooth position animation matching map movement
+    // Smooth position and scale animations
     transition: left
         var(--plane-animation-duration, #{$plane-animation-duration}) linear,
       bottom var(--plane-animation-duration, #{$plane-animation-duration})
-        linear;
-    will-change: left, bottom;
+        linear,
+      transform $scale-transition-duration ease-out;
+    will-change: left, bottom, transform;
+
+    // Close aircraft (within 10km) get higher z-index and enhanced visibility
+    &.close-plane {
+      z-index: 10;
+    }
 
     &.skip-wrap {
       // Disable transitions for wrap-around jumps
-      transition: none !important;
+      transition: transform $scale-transition-duration ease-out !important;
     }
 
     // Marker-specific styling
@@ -173,14 +186,13 @@ $transition-duration: 0.2s;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      // Disable transitions for static markers
-      transition: none;
+      transition: none; // Static markers don't animate
       will-change: auto;
+    }    &.dimmed {
+      opacity: 0.5;
     }
 
-    &.dimmed {
-      opacity: 0.5;
-    } // Newly scoped grounded-plane styles
+    // Newly scoped grounded-plane styles
     &.grounded-plane {
       flex-direction: column-reverse; // Reverse order so label appears on top
       pointer-events: auto;
@@ -230,14 +242,18 @@ $transition-duration: 0.2s;
       }
     }
   }
-
   // =============================================================================
   // Aircraft Icons and Components
   // =============================================================================
+  .icon-scale-wrapper {
+    display: inline-block;
+    transform-style: preserve-3d; // Ensure 3D transforms are preserved through the scale layer
+  }
 
   .icon-wrapper {
     position: relative;
     display: inline-block;
+    transform-style: preserve-3d; // Ensure 3D transforms are preserved
   }
 
   .chemtrail {
@@ -250,7 +266,6 @@ $transition-duration: 0.2s;
     border-radius: 1px;
     transform-origin: left center;
   }
-
   .plane-icon {
     width: $plane-icon-size;
     height: $plane-icon-size;
@@ -265,10 +280,11 @@ $transition-duration: 0.2s;
     border: none;
     padding: 0;
 
-    // Smooth rotation animation
+    // Smooth rotation and tilt animation
     transition: transform
       var(--plane-animation-duration, #{$plane-animation-duration}) linear;
     will-change: transform;
+    transform-style: preserve-3d; // Enable 3D transformations for tilt effect
 
     path {
       fill: currentColor;

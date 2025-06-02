@@ -40,6 +40,7 @@ export class PlaneModel implements Plane {
   airportLat?: number; // Latitude of center of airport circle assigned when plane is at airport
   airportLon?: number; // Longitude of center of airport circle assigned when plane is at airport
   altitude?: number | null; // Current altitude in meters
+  verticalRate?: number | null; // Vertical rate in m/s (positive = ascending, negative = descending)
   // Store position history for path prediction (limited to last 5 positions)
   positionHistory: PositionHistory[] = [];
   // Change historyTrail to store segments

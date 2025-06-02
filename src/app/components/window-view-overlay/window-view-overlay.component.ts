@@ -22,6 +22,7 @@ import { SkyColorSyncService } from '../../services/sky-color-sync.service';
 import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
 import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 import { ScanService } from '../../services/scan.service';
+import { calculateTiltAngle } from '../../utils/vertical-rate.util';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -41,6 +42,7 @@ export interface WindowViewPlane {
   iconType?: EngineIconType;
   isHelicopter?: boolean;
   velocity?: number;
+  verticalRate?: number; // Vertical rate in m/s (positive = ascending, negative = descending)
   trailLength?: number;
   trailOpacity?: number;
   trailPivotLeft?: string; // For dynamic style.left
@@ -466,16 +468,37 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.cloudFilter = `brightness(${baseBrightness}) contrast(1.4) hue-rotate(20deg) saturate(0.4)`;
       this.cloudBacklightClass = 'night-backlit';
     }
-  }
-  /** Simple transform for window view - no complex perspective needed */
+  }  /** Apply perspective transform with vanishing point at bottom center */
   getPerspectiveTransform(plane: WindowViewPlane): string {
     // For grounded planes, keep the existing ground effect
     if (plane.isGrounded) {
       return `perspective(300px) rotateX(60deg) rotateY(-0deg) rotateZ(90deg)`;
     }
     
-    // For airborne planes, use simple scaling only
-    return 'scale(1)';
+    // Create perspective effect with vanishing point at bottom center
+    // Higher altitudes get more perspective tilt to simulate distance
+    const maxAltitude = 20000; // Max altitude in meters for scaling
+    const altitude = Math.max(plane.altitude || 1000, 100); // Ensure minimum altitude for perspective
+    const clampedAltitude = Math.min(altitude, maxAltitude);
+    
+    // Calculate perspective tilt based on altitude (10° to 60° for better visibility)
+    // Even low altitude planes need some perspective to show depth
+    const minTilt = 10; // Minimum tilt angle for low planes
+    const maxTilt = 60; // Maximum tilt angle for high planes
+    const tiltAngle = minTilt + ((clampedAltitude - 100) / (maxAltitude - 100)) * (maxTilt - minTilt);
+    
+    // Calculate distance from center for additional perspective scaling
+    // Planes further from center (left/right) get slightly more perspective
+    const centerX = 50; // Center is at 50%
+    const distanceFromCenter = Math.abs(plane.x - centerX) / 50; // 0-1 scale
+    const lateralPerspective = distanceFromCenter * 10; // Up to 10° additional tilt
+    
+    // Combine altitude and lateral perspective
+    const totalTilt = tiltAngle + lateralPerspective;
+    
+    // Apply perspective with proper depth and rotation
+    // Use a closer perspective distance for more dramatic effect
+    return `perspective(400px) rotateX(${totalTilt}deg)`;
   }
 
   /** Compute marker spans (Balcony and Streetside) to determine dim regions */
@@ -759,37 +782,43 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       deltaX -= 100; // Wrapped from right to left
     } else if (deltaX < -50) {
       deltaX += 100; // Wrapped from left to right
-    }
-
-    // Only update direction if there's significant movement (>0.1 to be more sensitive)
+    }    // Only update direction if there's significant movement (>0.1 to be more sensitive)
     if (Math.abs(deltaX) > 0.1) {
       const direction = deltaX > 0 ? 'right' : 'left';
       this.lastKnownDirections.set(plane.icao, direction);
-      console.log(`Plane ${plane.callsign} (${plane.icao}): moved from ${prevX.toFixed(1)} to ${currentX.toFixed(1)} (δ=${deltaX.toFixed(1)}) -> direction=${direction}`);
       return direction;
     }
     
     return null; // No significant movement
-  }/** Return CSS rotateZ transform, with plane facing left or right based on movement direction */
-  public getIconRotation(plane: WindowViewPlane): string {
+  }/** Return CSS rotateZ transform, with plane facing left or right based on movement direction */  public getIconRotation(plane: WindowViewPlane): string {
+    // Calculate pitch/tilt angle from vertical rate
+    const tiltAngle = plane.verticalRate !== undefined ? calculateTiltAngle(plane.verticalRate) : 0;
+    
     // Use the last known direction that was calculated in ngOnChanges
     const direction = this.lastKnownDirections.get(plane.icao);
     
+    let yawRotation: string;
     if (direction === 'left') {
-      return 'rotateZ(-90deg)'; // Face left
+      yawRotation = 'rotateZ(-90deg)'; // Face left
     } else if (direction === 'right') {
-      return 'rotateZ(90deg)'; // Face right  
-    }
-    
-    // No stored direction - try to use bearing as fallback
-    if (plane.bearing !== undefined) {
+      yawRotation = 'rotateZ(90deg)'; // Face right  
+    } else if (plane.bearing !== undefined) {
+      // No stored direction - try to use bearing as fallback
       const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
       const bearingDirection = (normalizedBearing >= 270 || normalizedBearing <= 90) ? 'right' : 'left';
-      return bearingDirection === 'left' ? 'rotateZ(-90deg)' : 'rotateZ(90deg)';
+      yawRotation = bearingDirection === 'left' ? 'rotateZ(-90deg)' : 'rotateZ(90deg)';
+    } else {
+      // Final fallback: face right (since plane icons have front at top, 90deg makes them face right)
+      yawRotation = 'rotateZ(90deg)';
     }
     
-    // Final fallback: face right (since plane icons have front at top, 90deg makes them face right)
-    return 'rotateZ(90deg)';
+    // Combine yaw (left/right direction) with pitch (ascent/descent tilt)
+    // Apply pitch as rotateX for tilting up/down
+    if (tiltAngle !== 0) {
+      return `${yawRotation} rotateX(${tiltAngle}deg)`;
+    }
+    
+    return yawRotation;
   }
 
   /** Calculate segments connecting historyTrail points */

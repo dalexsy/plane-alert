@@ -202,8 +202,7 @@
           [style.opacity]="seg.opacity"
         ></div>
       </ng-container>
-      <!-- Then render the plane itself -->
-      <div
+      <!-- Then render the plane itself -->      <div
         class="plane-dot"
         [class.skip-wrap]="plane.skipWrapTransition"
         [class.grounded-plane]="plane.isGrounded"
@@ -214,11 +213,15 @@
           plane.isMarker && plane.callsign.startsWith('Streetside')
         "
         [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
+        [class.close-plane]="plane.distanceKm != null && plane.distanceKm <= 10"
         [style.left]="plane.x + '%'"
         [style.bottom]="
           plane.isGrounded
             ? 'calc(' + plane.groundStackOrder! * 2.25 + 'rem - 1rem)'
             : 'calc(' + plane.y + '% - .5rem)'
+        "
+        [style.transform]="
+          plane.isGrounded || plane.isMarker || plane.isCelestial ? null : 'scale(' + (plane.scale || 1) + ')'
         "
         [style.transformOrigin]="'bottom center'"
         [title]="
@@ -242,12 +245,10 @@
         </ng-container>
         <!-- real planes (aircraft icons) -->
         <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
-          <!-- use helicopter icon for helicopters -->
-          <ng-container *ngIf="plane.isHelicopter">
+          <!-- use helicopter icon for helicopters -->          <ng-container *ngIf="plane.isHelicopter">
             <span
               class="copter-wrapper"
               [style.color]="altitudeColor.getFillColor(plane.altitude)"
-              [style.transform]="'scale(' + (plane.scale || 1) + ')'"
               [style.transformOrigin]="'center center'"
             >
               <span
@@ -259,13 +260,9 @@
             </span>
           </ng-container>
           <!-- Render icon -->
-          <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
-            <ng-container *ngIf="!plane.isHelicopter">
+          <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">            <ng-container *ngIf="!plane.isHelicopter">
               <div
                 class="icon-scale-wrapper"
-                [style.transform]="
-                  plane.isGrounded ? null : 'scale(' + (plane.scale || 1) + ')'
-                "
                 [style.transformOrigin]="'bottom center'"
               >
                 <div
