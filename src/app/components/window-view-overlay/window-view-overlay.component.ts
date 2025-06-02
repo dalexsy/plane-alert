@@ -21,6 +21,7 @@ import { RainService } from '../../services/rain.service';
 import { SkyColorSyncService } from '../../services/sky-color-sync.service';
 import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
 import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
+import { ScanService } from '../../services/scan.service';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -157,10 +158,11 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   // Marker span boundaries for dimming
   public balconyStartX?: number;
   public balconyEndX?: number;
-  public streetsideStartX?: number;
-  public streetsideEndX?: number; /** Segments to dim outside marker spans */
+  public streetsideStartX?: number;  public streetsideEndX?: number; 
+  /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
+  
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -170,10 +172,13 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     private countryService: CountryService,
     private atmosphericSky: AtmosphericSkyService,
     private rainService: RainService,
-    private skyColorSync: SkyColorSyncService
+    private skyColorSync: SkyColorSyncService,
+    private scanService: ScanService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
+    // Set initial animation timing based on scan interval
+    this.updateAnimationTiming();
   }
 
   /** Emit selection event when user clicks a plane label */
@@ -181,7 +186,6 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     event.stopPropagation();
     this.selectPlane.emit(plane);
   }
-
   ngOnChanges(changes: SimpleChanges) {
     if (
       changes['windowViewPlanes'] ||
@@ -199,6 +203,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.assignGroundStackOrder();
       // compute history segments for chemtrail lines
       this.computeHistorySegmentsForPlanes();
+      // Update animation timing to ensure smooth movement
+      this.updateAnimationTiming();
     }
   }
   /** Compute altitude ticks for bands */
@@ -800,5 +806,21 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     );
     const sunElevation = sun ? (sun.y / 100) * 90 : -90;
     return !!(sun && !sun.belowHorizon && sunElevation > 0);
+  }
+
+  /** TrackBy function to prevent unnecessary DOM re-creation during animations */
+  public trackByPlaneIcao(index: number, plane: WindowViewPlane): string {
+    return plane.icao || plane.callsign || `${index}`;
+  }  /** Update CSS animation timing based on scan interval */
+  private updateAnimationTiming(): void {
+    // Use scan interval + small buffer to ensure seamless movement
+    // The extra 0.2s buffer accounts for timing precision and potential delays
+    const animationDuration = this.scanService.scanInterval + 0.2;
+    
+    // Set CSS custom properties for dynamic animation timing
+    const rootElement = this.elRef.nativeElement as HTMLElement;
+    rootElement.style.setProperty('--plane-animation-duration', `${animationDuration}s`);
+    rootElement.style.setProperty('--celestial-animation-duration', `${animationDuration}s`);
+    rootElement.style.setProperty('--trail-animation-duration', `${animationDuration}s`);
   }
 }

@@ -35,9 +35,8 @@
     <span class="compass-label">N</span>
     <span class="compass-label">E</span>
     <span class="compass-label">S</span>
-  </div>
-  <!-- full-height start/end lines (absolute in overlay) -->
-  <ng-container *ngFor="let plane of windowViewPlanes">
+  </div>  <!-- full-height start/end lines (absolute in overlay) -->
+  <ng-container *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao">
     <ng-container
       *ngIf="
         plane.isMarker &&
@@ -74,10 +73,9 @@
       [ngStyle]="{ left: seg.left + '%', width: seg.width + '%' }"
     ></div>
   </ng-container>
-
   <!-- Celestial objects container (behind everything else) -->
   <div class="celestial-container">
-    <ng-container *ngFor="let plane of windowViewPlanes">
+    <ng-container *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao">
       <ng-container *ngIf="plane.isCelestial">
         <div
           class="celestial-object"
@@ -176,9 +174,8 @@
       </ng-container>
     </ng-container>
   </div>
-
   <div class="planes-container">
-    <ng-container *ngFor="let plane of windowViewPlanes">
+    <ng-container *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao">
       <!-- Render chemtrail lines, positioned where dots were -->
       <ng-container
         *ngIf="

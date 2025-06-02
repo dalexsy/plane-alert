@@ -46,8 +46,7 @@
     font-family: "Instrument Sans", sans-serif;
     font-weight: 800;
     letter-spacing: 3px;
-  }
-  .celestial-container {
+  }  .celestial-container {
     position: absolute;
     left: 0;
     right: 0;
@@ -61,7 +60,10 @@
       display: flex;
       flex-direction: column-reverse;
       align-items: center;
-      pointer-events: none;
+      pointer-events: none;      // Add smooth linear transitions for celestial objects (sun/moon movement)
+      transition: left var(--celestial-animation-duration, 1.2s) linear, 
+                  bottom var(--celestial-animation-duration, 1.2s) linear;
+      will-change: left, bottom;
     }
   }
 
@@ -80,13 +82,21 @@
       align-items: center;
       font-family: "JetBrains Mono", monospace;
       color: #fff;
-      z-index: 1;
+      z-index: 1;      // Add smooth linear transitions for position changes to match map animation
+      transition: left var(--plane-animation-duration, 1.2s) linear,
+        bottom var(--plane-animation-duration, 1.2s) linear;
+
+      // Use will-change to optimize animations
+      will-change: left, bottom;
 
       &.balcony-marker,
       &.streetside-marker {
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        // Disable transitions for markers as they don't move
+        transition: none;
+        will-change: auto;
       }
 
       .icon-wrapper {
@@ -115,6 +125,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
+
+        // Add smooth transitions for transform changes (rotation)
+        // Use CSS custom property timing to match position animations (1.2s linear)
+        transition: transform var(--plane-animation-duration, 1.2s) linear;
+        will-change: transform;
 
         path {
           fill: currentColor;
@@ -240,9 +255,7 @@
       &.half-right .icon-wrapper {
         transform: perspective(300px) rotateX(60deg) rotateY(-20deg);
       }
-    }
-
-    /* line segments connecting history trail dots */
+    }    /* line segments connecting history trail dots */
     .history-trail-segment {
       position: absolute;
       background: rgba(255, 255, 255, 0.8);
@@ -251,7 +264,11 @@
       transform-origin: left center;
       pointer-events: none;
       z-index: 0;
-      transform: translateX(2.5rem) translateY(-0.5rem);
+      transform: translateX(2.5rem) translateY(-0.5rem);        // Add smooth linear transitions for trail segments 
+      transition: left var(--trail-animation-duration, 1.2s) linear, 
+                  bottom var(--trail-animation-duration, 1.2s) linear,
+                  opacity 0.4s ease-out;
+      will-change: left, bottom, opacity;
     }
   }
 

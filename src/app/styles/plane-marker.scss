@@ -19,6 +19,11 @@ $new-plane-color: #ff6161;
   align-items: center;
   pointer-events: auto; /* Ensure the marker can be clicked/selected */
 
+  // Add smooth transitions for transform changes (rotation and scaling)
+  // Use 1.2s linear timing to match the existing position animations
+  transition: transform 1.2s linear;
+  will-change: transform;
+
   // For non-helicopter plane markers, hide default ::before and show inline SVG
   &.svg-plane::before {
     content: none;

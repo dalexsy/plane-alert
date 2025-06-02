@@ -20,6 +20,11 @@ export class ScanService {
     return this.activeSubject.asObservable();
   }
 
+  // Add getter for scan interval to be used by animation timing
+  get scanInterval(): number {
+    return this.intervalSeconds;
+  }
+
   start(seconds: number, onScan: () => void): void {
     if (this.tickSub) {
       return;
