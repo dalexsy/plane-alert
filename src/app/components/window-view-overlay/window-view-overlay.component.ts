@@ -26,6 +26,7 @@ import { ScanService } from '../../services/scan.service';
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
   y: number; // 0-100, bottom-up position (altitude)
+  skipWrapTransition?: boolean; // true to skip left transition when wrapping around
   callsign: string;
   icao: string; // ICAO code for plane identification
   altitude: number;
@@ -93,6 +94,8 @@ export interface WindowViewPlane {
   styleUrls: ['./window-view-overlay.component.scss'],
 })
 export class WindowViewOverlayComponent implements OnChanges, OnInit {
+  private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
+
   /** Prevent context menu inside overlay when right-clicking to avoid content.js errors */
   @HostListener('document:contextmenu', ['$event'])
   preventContextMenu(event: MouseEvent): void {
@@ -158,11 +161,12 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   // Marker span boundaries for dimming
   public balconyStartX?: number;
   public balconyEndX?: number;
-  public streetsideStartX?: number;  public streetsideEndX?: number; 
+  public streetsideStartX?: number;
+  public streetsideEndX?: number;
   /** Segments to dim outside marker spans */
   public dimSegments: Array<{ left: number; width: number }> = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
-  
+
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -192,6 +196,13 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       changes['observerLat'] ||
       changes['observerLon']
     ) {
+      // detect 360 wrap: if plane.x jumps more than 50, skip left transition
+      this.windowViewPlanes.forEach((plane) => {
+        const prev = this.prevXPositions.get(plane.icao);
+        plane.skipWrapTransition =
+          prev !== undefined && Math.abs(plane.x - prev) > 50;
+        this.prevXPositions.set(plane.icao, plane.x);
+      });
       this.injectCelestialMarkers();
       this.updateWindowCloud();
       // initial sky update then fetch weather
@@ -811,16 +822,25 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   /** TrackBy function to prevent unnecessary DOM re-creation during animations */
   public trackByPlaneIcao(index: number, plane: WindowViewPlane): string {
     return plane.icao || plane.callsign || `${index}`;
-  }  /** Update CSS animation timing based on scan interval */
+  } /** Update CSS animation timing based on scan interval */
   private updateAnimationTiming(): void {
     // Use scan interval + small buffer to ensure seamless movement
     // The extra 0.2s buffer accounts for timing precision and potential delays
     const animationDuration = this.scanService.scanInterval + 0.2;
-    
+
     // Set CSS custom properties for dynamic animation timing
     const rootElement = this.elRef.nativeElement as HTMLElement;
-    rootElement.style.setProperty('--plane-animation-duration', `${animationDuration}s`);
-    rootElement.style.setProperty('--celestial-animation-duration', `${animationDuration}s`);
-    rootElement.style.setProperty('--trail-animation-duration', `${animationDuration}s`);
+    rootElement.style.setProperty(
+      '--plane-animation-duration',
+      `${animationDuration}s`
+    );
+    rootElement.style.setProperty(
+      '--celestial-animation-duration',
+      `${animationDuration}s`
+    );
+    rootElement.style.setProperty(
+      '--trail-animation-duration',
+      `${animationDuration}s`
+    );
   }
 }

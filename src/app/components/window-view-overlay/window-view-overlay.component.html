@@ -35,8 +35,11 @@
     <span class="compass-label">N</span>
     <span class="compass-label">E</span>
     <span class="compass-label">S</span>
-  </div>  <!-- full-height start/end lines (absolute in overlay) -->
-  <ng-container *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao">
+  </div>
+  <!-- full-height start/end lines (absolute in overlay) -->
+  <ng-container
+    *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao"
+  >
     <ng-container
       *ngIf="
         plane.isMarker &&
@@ -75,7 +78,9 @@
   </ng-container>
   <!-- Celestial objects container (behind everything else) -->
   <div class="celestial-container">
-    <ng-container *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao">
+    <ng-container
+      *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao"
+    >
       <ng-container *ngIf="plane.isCelestial">
         <div
           class="celestial-object"
@@ -175,7 +180,9 @@
     </ng-container>
   </div>
   <div class="planes-container">
-    <ng-container *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao">
+    <ng-container
+      *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao"
+    >
       <!-- Render chemtrail lines, positioned where dots were -->
       <ng-container
         *ngIf="
@@ -198,15 +205,13 @@
       <!-- Then render the plane itself -->
       <div
         class="plane-dot"
-        [ngClass]="{
-          'balcony-marker':
-            plane.isMarker && plane.callsign.startsWith('Balcony'),
-          'streetside-marker':
-            plane.isMarker && plane.callsign.startsWith('Streetside'),
-          'grounded-plane': plane.isGrounded,
-          'half-left': plane.x < 50,
-          'half-right': plane.x >= 50
-        }"
+        [class.skip-wrap]="plane.skipWrapTransition"
+        [class.balcony-marker]="
+          plane.isMarker && plane.callsign.startsWith('Balcony')
+        "
+        [class.streetside-marker]="
+          plane.isMarker && plane.callsign.startsWith('Streetside')
+        "
         [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
         [style.left]="plane.x + '%'"
         [style.bottom]="
