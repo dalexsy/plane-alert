@@ -41,7 +41,7 @@ export class OperatorCallSignService {
     const prefix = callSign.slice(0, 3).toUpperCase();
     const operator = this.operatorMap[prefix]; // Log unknown call signs (but only once per prefix to avoid spam)
     if (!operator && !this.unknownCallSigns.has(prefix)) {
-      console.log(`Unknown call sign: ${prefix} (${callSign})`);
+      // console.log(`Unknown call sign: ${prefix} (${callSign})`);
       this.unknownCallSigns.add(prefix);
     }
 

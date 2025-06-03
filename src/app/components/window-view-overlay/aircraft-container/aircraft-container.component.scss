@@ -45,12 +45,11 @@ $followed-plane-color: #00ffff;
 
   font-family: "JetBrains Mono", monospace;
   color: #fff;
-
-  // Smooth position and scale animations
+  // Smooth position and scale animations, but instant rotation changes
   transition: left var(--plane-animation-duration, #{$plane-animation-duration})
       linear,
     bottom var(--plane-animation-duration, #{$plane-animation-duration}) linear,
-    transform $scale-transition-duration ease-out;
+    scale $scale-transition-duration ease-out;
   will-change: left, bottom, transform;
 
   // Close aircraft (within 10km) get higher z-index and enhanced visibility
@@ -157,6 +156,8 @@ $followed-plane-color: #00ffff;
   width: $plane-icon-size;
   height: $plane-icon-size;
   margin-bottom: 2px;
+  cursor: pointer;
+  pointer-events: auto;
 
   display: flex;
   align-items: center;
@@ -195,6 +196,8 @@ $followed-plane-color: #00ffff;
   color: currentColor;
   display: inline-block;
   margin-bottom: 2px;
+  cursor: pointer;
+  pointer-events: auto;
   animation: spin 1.5s linear infinite;
 }
 

@@ -64,11 +64,11 @@
       <!-- real planes (aircraft icons) -->
       <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
         <!-- use helicopter icon for helicopters -->
-        <ng-container *ngIf="plane.isHelicopter">
-          <span
+        <ng-container *ngIf="plane.isHelicopter">          <span
             class="copter-wrapper"
             [style.color]="altitudeColor.getFillColor(plane.altitude)"
             [style.transformOrigin]="'center center'"
+            (click)="handlePlaneIconClick(plane, $event)"
           >
             <span
               class="copter-plane-icon material-symbols-sharp"
@@ -91,20 +91,27 @@
                   plane.isGrounded ? null : getPerspectiveTransform(plane)
                 "
                 [style.transformOrigin]="'center center'"
-              >
-                <svg
+              >                <svg
                   class="plane-icon {{ plane.iconType }}"
                   [style.color]="altitudeColor.getFillColor(plane.altitude)"
                   viewBox="0 0 64 64"
                   [attr.aria-label]="
                     plane.callsign + ' at ' + plane.altitude + 'm'
                   "
-                  [style.transform]="
-                    plane.isGrounded ? null : getIconRotation(plane)
-                  "
+                  [style.transform]="getIconRotation(plane)"
                   [style.transformOrigin]="'center center'"
+                  (click)="handlePlaneIconClick(plane, $event)"
                 >
                   <path [attr.d]="plane.iconPath"></path>
+                  <!-- Debug direction line - shows where front of plane is pointing -->
+                  <line 
+                    x1="32" y1="32" 
+                    x2="32" y2="10" 
+                    stroke="red" 
+                    stroke-width="2" 
+                    stroke-opacity="0.8"
+                    style="pointer-events: none;"
+                  />
                 </svg>
               </div>
             </div>

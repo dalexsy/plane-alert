@@ -87,14 +87,12 @@ export interface WindowViewPlane {
     x: number;
     y: number;
     opacity: number;
-  }> /** Line segments connecting historical trail dots */;
-  historySegments?: Array<{
+  }> /** Line segments connecting historical trail dots */;  historySegments?: Array<{
     x: number;
     y: number;
     length: number;
     angle: number;
-    opacity: number;
-  }>;
+    opacity: number;  }>;  movementDirection?: 'left' | 'right' | null; // Movement direction for icon rotation
 }
 
 @Component({
@@ -115,8 +113,7 @@ export interface WindowViewPlane {
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
-export class WindowViewOverlayComponent implements OnChanges, OnInit {
-  private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
+export class WindowViewOverlayComponent implements OnChanges, OnInit {  private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
   private lastKnownDirections = new Map<string, 'left' | 'right'>(); // Track last known direction for each plane
 
   /** Prevent context menu inside overlay when right-clicking to avoid content.js errors */
@@ -213,19 +210,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       changes['observerLon']
     ) {
       // First inject celestial markers to get the complete plane list
-      this.injectCelestialMarkers();
-
-      // Detect movement direction BEFORE updating previous positions
+      this.injectCelestialMarkers();      // Detect movement direction BEFORE updating previous positions
       this.windowViewPlanes.forEach((plane) => {
-        this.getMovementDirection(plane); // This will update lastKnownDirections
-      });
-
-      // detect 360 wrap: if plane.x jumps more than 50, skip left transition
+        const direction = this.getMovementDirection(plane); // This will update lastKnownDirections
+        plane.movementDirection = direction; // Assign direction to the plane object
+      });      // detect 360 wrap: if plane.x jumps more than 50, skip left transition
       this.windowViewPlanes.forEach((plane) => {
         const prev = this.prevXPositions.get(plane.icao);
         plane.skipWrapTransition =
-          prev !== undefined && Math.abs(plane.x - prev) > 50;
-        this.prevXPositions.set(plane.icao, plane.x);
+          prev !== undefined && Math.abs(plane.x - prev) > 50;        this.prevXPositions.set(plane.icao, plane.x);
       });
       this.updateWindowCloud();
       // initial sky update then fetch weather
@@ -773,81 +766,56 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
         p.groundStackOrder = undefined;
       }
     });
-  } /** Determine if plane is moving left or right based on position change */
+  }  /** Determine movement direction based on actual position history changes */
   private getMovementDirection(
     plane: WindowViewPlane
   ): 'left' | 'right' | null {
-    const prevX = this.prevXPositions.get(plane.icao);
-    if (prevX === undefined) {
-      // For new planes without previous position, try to use bearing if available
-      if (plane.bearing !== undefined) {
-        // Convert bearing to direction: 270-90 degrees = facing right, 90-270 = facing left
-        const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
-        const direction =
-          normalizedBearing >= 270 || normalizedBearing <= 90
-            ? 'right'
-            : 'left';
+    // First try to use historyTrail if available (most accurate)
+    if (plane.historyTrail && plane.historyTrail.length >= 2) {
+      // Compare the most recent two positions in the trail
+      const current = plane.historyTrail[plane.historyTrail.length - 1];
+      const previous = plane.historyTrail[plane.historyTrail.length - 2];
+      
+      let deltaX = current.x - previous.x;
+        // Handle wrap-around at 0/100 boundary for X coordinate
+      if (deltaX > 50) {
+        deltaX -= 100; // Wrapped from right to left
+      } else if (deltaX < -50) {
+        deltaX += 100; // Wrapped from left to right
+      }
+      
+      // Only update direction if there's significant movement (>0.05 to avoid noise)
+      if (Math.abs(deltaX) > 0.05) {
+        const direction = deltaX > 0 ? 'right' : 'left';
         this.lastKnownDirections.set(plane.icao, direction);
-
         return direction;
       }
+    }
+    
+    // Fallback to previous comparison method if no history trail
+    const prevX = this.prevXPositions.get(plane.icao);
+    
+    if (prevX !== undefined) {
+      const currentX = plane.x;
 
-      return null; // No previous position data and no bearing
+      // Handle wrap-around at 0/100 boundary for X coordinate
+      let deltaX = currentX - prevX;
+      if (deltaX > 50) {
+        deltaX -= 100; // Wrapped from right to left
+      } else if (deltaX < -50) {
+        deltaX += 100; // Wrapped from left to right
+      }      // Only update direction if there's significant movement (>0.05 to avoid noise)
+      if (Math.abs(deltaX) > 0.05) {
+        const direction = deltaX > 0 ? 'right' : 'left';
+        this.lastKnownDirections.set(plane.icao, direction);
+        return direction;
+      }
     }
 
-    const currentX = plane.x;
-
-    // Handle wrap-around at 0/100 boundary
-    let deltaX = currentX - prevX;
-    if (deltaX > 50) {
-      deltaX -= 100; // Wrapped from right to left
-    } else if (deltaX < -50) {
-      deltaX += 100; // Wrapped from left to right
-    } // Only update direction if there's significant movement (>0.1 to be more sensitive)
-    if (Math.abs(deltaX) > 0.1) {
-      const direction = deltaX > 0 ? 'right' : 'left';
-      this.lastKnownDirections.set(plane.icao, direction);
-      return direction;
-    }
-
-    return null; // No significant movement
-  }
-  /** Return CSS rotateZ transform, with plane facing left or right based on movement direction */ public getIconRotation(
-    plane: WindowViewPlane
-  ): string {
-    // Calculate pitch/tilt angle from vertical rate
-    const tiltAngle =
-      plane.verticalRate !== undefined
-        ? calculateTiltAngle(plane.verticalRate)
-        : 0;
-
-    // Use the last known direction that was calculated in ngOnChanges
-    const direction = this.lastKnownDirections.get(plane.icao);
-
-    let yawRotation: string;
-    if (direction === 'left') {
-      yawRotation = 'rotateZ(-90deg)'; // Face left
-    } else if (direction === 'right') {
-      yawRotation = 'rotateZ(90deg)'; // Face right
-    } else if (plane.bearing !== undefined) {
-      // No stored direction - try to use bearing as fallback
-      const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
-      const bearingDirection =
-        normalizedBearing >= 270 || normalizedBearing <= 90 ? 'right' : 'left';
-      yawRotation =
-        bearingDirection === 'left' ? 'rotateZ(-90deg)' : 'rotateZ(90deg)';
-    } else {
-      // Final fallback: face right (since plane icons have front at top, 90deg makes them face right)
-      yawRotation = 'rotateZ(90deg)';
-    }
-
-    // Combine yaw (left/right direction) with pitch (ascent/descent tilt)
-    // Apply pitch as rotateX for tilting up/down
-    if (tiltAngle !== 0) {
-      return `${yawRotation} rotateX(${tiltAngle}deg)`;
-    }
-
-    return yawRotation;
+    // If no significant movement, return last known direction or default to 'right'
+    const fallbackDirection = this.lastKnownDirections.get(plane.icao) || 'right';
+    
+    return fallbackDirection;
   }
 
   /** Calculate segments connecting historyTrail points */

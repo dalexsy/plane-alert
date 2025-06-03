@@ -882,7 +882,7 @@
   "DFO": "Private",
   "N40": "Aircraft Guaranty Corp Trustee",
   "D17": "Private",
-  "JFA": "Private",
+  "JFA": "Jetfly Aviation",
   "N87": "Aircraft Partner Holdings Inc Trustee",
   "DKI": "Private",
   "N34": "Private",
@@ -897,7 +897,7 @@
   "DKD": "Private",
   "HUE": "Private",
   "E75": "Private",
-  "N10": "Private",
+  "N10": "NetJets Aviation",
   "DML": "Private",
   "T55": "Private",
   "DKB": "Private",
@@ -910,11 +910,12 @@
   "SEH": "Sky Express",
   "PHM": "Unknown",
   "SEV": "Unknown",
-  "SPS": "Unknown",
   "QQE": "Qatar Executive",
   "T61": "Unknown Charter",
   "9AM": "Croatian Aviation",
   "DFC": "Piper OK a.s.",
   "NBT": "Norse Atlantic Airways",
-  "GFM": "Grafair"
+  "GFM": "Grafair",
+  "PJV": "Premium Jet",
+  "SPS": "Smart Aviation"
 }
