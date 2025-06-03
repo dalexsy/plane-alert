@@ -1,0 +1,123 @@
+// =============================================================================
+// Celestial Objects Component - Sun/Moon Styling
+// =============================================================================
+
+$celestial-icon-size: 22px;
+$transition-duration: 0.3s;
+$celestial-animation-duration: 1.2s;
+
+:host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0.5; // Above cloud background, below aircraft
+  pointer-events: none;
+}
+
+.celestial-object {
+  position: absolute;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  pointer-events: none;
+
+  // Smooth celestial movement animation
+  transition: left
+      var(--celestial-animation-duration, #{$celestial-animation-duration})
+      linear,
+    bottom var(--celestial-animation-duration, #{$celestial-animation-duration})
+      linear;
+  will-change: left, bottom;
+}
+
+.celestial-circle {
+  width: $celestial-icon-size;
+  height: $celestial-icon-size;
+  border-radius: 50%;
+  display: inline-block;
+  margin-bottom: 2px;
+
+  // Sun styling
+  background: #ffe066;
+  border: 2px solid #fff59d;
+  box-shadow: 0 0 12px 4px rgba(255, 224, 102, 0.6);
+
+  transition: filter $transition-duration, opacity $transition-duration,
+    border $transition-duration, background $transition-duration,
+    box-shadow $transition-duration;
+
+  &.below-horizon {
+    background: rgba(255, 224, 102, 0.2);
+    border: 2px dashed #fff59d;
+    box-shadow: none;
+    filter: grayscale(0.7) brightness(0.7);
+    opacity: 0.5;
+  }
+}
+
+.moon-svg {
+  display: inline-block;
+  margin-bottom: 2px;
+  transition: filter $transition-duration, opacity $transition-duration;
+
+  // Default nighttime styling
+  filter: drop-shadow(0 0 8px rgba(244, 228, 166, 0.4))
+    drop-shadow(0 0 3px rgba(244, 228, 166, 0.6));
+
+  &.below-horizon {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 4px rgba(244, 228, 166, 0.2))
+      drop-shadow(0 0 2px rgba(244, 228, 166, 0.3));
+  }
+
+  // Moon component styling - nighttime colors by default
+  .moon-glow {
+    fill: rgba(244, 228, 166, 0.15);
+  }
+
+  .moon-lit {
+    fill: #f4e4a6;
+    stroke: rgba(244, 228, 166, 0.8);
+  }
+
+  .moon-dark {
+    fill: #23263a;
+  }
+
+  .moon-rim {
+    stroke: rgba(244, 228, 166, 0.6);
+  }
+}
+
+// =============================================================================
+// Daytime Moon Styling Overrides
+// =============================================================================
+
+:host-context(.daytime) .moon-svg {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4))
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.6));
+
+  &.below-horizon {
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2))
+      drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+  }
+
+  .moon-glow {
+    fill: rgba(255, 255, 255, 0.1);
+  }
+
+  .moon-lit {
+    fill: #ffffff;
+    stroke: rgba(255, 255, 255, 0.8);
+  }
+
+  .moon-dark {
+    fill: rgba(135, 206, 250, 0.6); // Light sky blue during daytime
+  }
+
+  .moon-rim {
+    stroke: rgba(255, 255, 255, 0.6);
+  }
+}

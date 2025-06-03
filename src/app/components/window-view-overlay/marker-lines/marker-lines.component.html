@@ -1,0 +1,18 @@
+<!-- full-height start/end lines (absolute in overlay) -->
+<ng-container *ngFor="let plane of markerPlanes; trackBy: trackByPlaneIcao">
+  <ng-container
+    *ngIf="
+      plane.isMarker &&
+      (plane.callsign.endsWith('Start') || plane.callsign.endsWith('End'))
+    "
+  >
+    <div
+      class="vertical-line"
+      [ngClass]="{
+        'balcony-marker': plane.callsign.startsWith('Balcony'),
+        'streetside-marker': plane.callsign.startsWith('Streetside')
+      }"
+      [style.left]="plane.x + '%'"
+    ></div>
+  </ng-container>
+</ng-container>
