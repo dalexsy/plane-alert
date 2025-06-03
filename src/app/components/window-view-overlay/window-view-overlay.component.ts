@@ -19,10 +19,24 @@ import { CountryService } from '../../services/country.service';
 import { AtmosphericSkyService } from '../../services/atmospheric-sky.service';
 import { RainService } from '../../services/rain.service';
 import { SkyColorSyncService } from '../../services/sky-color-sync.service';
-import { FlagCallsignComponent } from '../flag-callsign/flag-callsign.component';
 import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 import { ScanService } from '../../services/scan.service';
 import { calculateTiltAngle } from '../../utils/vertical-rate.util';
+
+// Import child components
+import { SkyBackgroundComponent } from './sky-background/sky-background.component';
+import { CelestialObjectsComponent } from './celestial-objects/celestial-objects.component';
+import { CompassLabelsComponent } from './compass-labels/compass-labels.component';
+import {
+  AltitudeBandsComponent,
+  AltitudeTick,
+} from './altitude-bands/altitude-bands.component';
+import { MarkerLinesComponent } from './marker-lines/marker-lines.component';
+import {
+  DimOverlayComponent,
+  DimSegment,
+} from './dim-overlay/dim-overlay.component';
+import { AircraftContainerComponent } from './aircraft-container/aircraft-container.component';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -89,8 +103,14 @@ export interface WindowViewPlane {
   imports: [
     CommonModule,
     HttpClientModule,
-    FlagCallsignComponent,
     RainOverlayComponent,
+    SkyBackgroundComponent,
+    CelestialObjectsComponent,
+    CompassLabelsComponent,
+    AltitudeBandsComponent,
+    MarkerLinesComponent,
+    DimOverlayComponent,
+    AircraftContainerComponent,
   ],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
@@ -152,22 +172,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
 
   /** Maximum altitude represented in window view (for band layout) */
   private readonly viewMaxAltitude = 20000;
-
   // Altitude ticks, populated in ngOnInit
-  public altitudeTicks: Array<{
-    y: number;
-    label: string;
-    color: string;
-    fillColor: string;
-  }> = [];
+  public altitudeTicks: AltitudeTick[] = [];
 
   // Marker span boundaries for dimming
   public balconyStartX?: number;
   public balconyEndX?: number;
   public streetsideStartX?: number;
-  public streetsideEndX?: number;
-  /** Segments to dim outside marker spans */
-  public dimSegments: Array<{ left: number; width: number }> = [];
+  public streetsideEndX?: number; /** Segments to dim outside marker spans */
+  public dimSegments: DimSegment[] = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
 
   constructor(
@@ -192,7 +205,8 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   handleLabelClick(plane: WindowViewPlane, event: MouseEvent): void {
     event.stopPropagation();
     this.selectPlane.emit(plane);
-  }  ngOnChanges(changes: SimpleChanges) {
+  }
+  ngOnChanges(changes: SimpleChanges) {
     if (
       changes['windowViewPlanes'] ||
       changes['observerLat'] ||
@@ -200,12 +214,12 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     ) {
       // First inject celestial markers to get the complete plane list
       this.injectCelestialMarkers();
-      
+
       // Detect movement direction BEFORE updating previous positions
       this.windowViewPlanes.forEach((plane) => {
         this.getMovementDirection(plane); // This will update lastKnownDirections
       });
-      
+
       // detect 360 wrap: if plane.x jumps more than 50, skip left transition
       this.windowViewPlanes.forEach((plane) => {
         const prev = this.prevXPositions.get(plane.icao);
@@ -468,34 +482,36 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
       this.cloudFilter = `brightness(${baseBrightness}) contrast(1.4) hue-rotate(20deg) saturate(0.4)`;
       this.cloudBacklightClass = 'night-backlit';
     }
-  }  /** Apply perspective transform with vanishing point at bottom center */
+  } /** Apply perspective transform with vanishing point at bottom center */
   getPerspectiveTransform(plane: WindowViewPlane): string {
     // For grounded planes, keep the existing ground effect
     if (plane.isGrounded) {
       return `perspective(300px) rotateX(60deg) rotateY(-0deg) rotateZ(90deg)`;
     }
-    
+
     // Create perspective effect with vanishing point at bottom center
     // Higher altitudes get more perspective tilt to simulate distance
     const maxAltitude = 20000; // Max altitude in meters for scaling
     const altitude = Math.max(plane.altitude || 1000, 100); // Ensure minimum altitude for perspective
     const clampedAltitude = Math.min(altitude, maxAltitude);
-    
+
     // Calculate perspective tilt based on altitude (10° to 60° for better visibility)
     // Even low altitude planes need some perspective to show depth
     const minTilt = 10; // Minimum tilt angle for low planes
     const maxTilt = 60; // Maximum tilt angle for high planes
-    const tiltAngle = minTilt + ((clampedAltitude - 100) / (maxAltitude - 100)) * (maxTilt - minTilt);
-    
+    const tiltAngle =
+      minTilt +
+      ((clampedAltitude - 100) / (maxAltitude - 100)) * (maxTilt - minTilt);
+
     // Calculate distance from center for additional perspective scaling
     // Planes further from center (left/right) get slightly more perspective
     const centerX = 50; // Center is at 50%
     const distanceFromCenter = Math.abs(plane.x - centerX) / 50; // 0-1 scale
     const lateralPerspective = distanceFromCenter * 10; // Up to 10° additional tilt
-    
+
     // Combine altitude and lateral perspective
     const totalTilt = tiltAngle + lateralPerspective;
-    
+
     // Apply perspective with proper depth and rotation
     // Use a closer perspective distance for more dramatic effect
     return `perspective(400px) rotateX(${totalTilt}deg)`;
@@ -757,67 +773,80 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
         p.groundStackOrder = undefined;
       }
     });
-  }  /** Determine if plane is moving left or right based on position change */
-  private getMovementDirection(plane: WindowViewPlane): 'left' | 'right' | null {
+  } /** Determine if plane is moving left or right based on position change */
+  private getMovementDirection(
+    plane: WindowViewPlane
+  ): 'left' | 'right' | null {
     const prevX = this.prevXPositions.get(plane.icao);
     if (prevX === undefined) {
       // For new planes without previous position, try to use bearing if available
       if (plane.bearing !== undefined) {
         // Convert bearing to direction: 270-90 degrees = facing right, 90-270 = facing left
         const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
-        const direction = (normalizedBearing >= 270 || normalizedBearing <= 90) ? 'right' : 'left';
+        const direction =
+          normalizedBearing >= 270 || normalizedBearing <= 90
+            ? 'right'
+            : 'left';
         this.lastKnownDirections.set(plane.icao, direction);
-        console.log(`New plane ${plane.callsign} (${plane.icao}): bearing=${plane.bearing}° -> direction=${direction}`);
+
         return direction;
       }
-      console.log(`New plane ${plane.callsign} (${plane.icao}): no bearing available`);
+
       return null; // No previous position data and no bearing
     }
 
     const currentX = plane.x;
-    
+
     // Handle wrap-around at 0/100 boundary
     let deltaX = currentX - prevX;
     if (deltaX > 50) {
       deltaX -= 100; // Wrapped from right to left
     } else if (deltaX < -50) {
       deltaX += 100; // Wrapped from left to right
-    }    // Only update direction if there's significant movement (>0.1 to be more sensitive)
+    } // Only update direction if there's significant movement (>0.1 to be more sensitive)
     if (Math.abs(deltaX) > 0.1) {
       const direction = deltaX > 0 ? 'right' : 'left';
       this.lastKnownDirections.set(plane.icao, direction);
       return direction;
     }
-    
+
     return null; // No significant movement
-  }/** Return CSS rotateZ transform, with plane facing left or right based on movement direction */  public getIconRotation(plane: WindowViewPlane): string {
+  }
+  /** Return CSS rotateZ transform, with plane facing left or right based on movement direction */ public getIconRotation(
+    plane: WindowViewPlane
+  ): string {
     // Calculate pitch/tilt angle from vertical rate
-    const tiltAngle = plane.verticalRate !== undefined ? calculateTiltAngle(plane.verticalRate) : 0;
-    
+    const tiltAngle =
+      plane.verticalRate !== undefined
+        ? calculateTiltAngle(plane.verticalRate)
+        : 0;
+
     // Use the last known direction that was calculated in ngOnChanges
     const direction = this.lastKnownDirections.get(plane.icao);
-    
+
     let yawRotation: string;
     if (direction === 'left') {
       yawRotation = 'rotateZ(-90deg)'; // Face left
     } else if (direction === 'right') {
-      yawRotation = 'rotateZ(90deg)'; // Face right  
+      yawRotation = 'rotateZ(90deg)'; // Face right
     } else if (plane.bearing !== undefined) {
       // No stored direction - try to use bearing as fallback
       const normalizedBearing = ((plane.bearing % 360) + 360) % 360;
-      const bearingDirection = (normalizedBearing >= 270 || normalizedBearing <= 90) ? 'right' : 'left';
-      yawRotation = bearingDirection === 'left' ? 'rotateZ(-90deg)' : 'rotateZ(90deg)';
+      const bearingDirection =
+        normalizedBearing >= 270 || normalizedBearing <= 90 ? 'right' : 'left';
+      yawRotation =
+        bearingDirection === 'left' ? 'rotateZ(-90deg)' : 'rotateZ(90deg)';
     } else {
       // Final fallback: face right (since plane icons have front at top, 90deg makes them face right)
       yawRotation = 'rotateZ(90deg)';
     }
-    
+
     // Combine yaw (left/right direction) with pitch (ascent/descent tilt)
     // Apply pitch as rotateX for tilting up/down
     if (tiltAngle !== 0) {
       return `${yawRotation} rotateX(${tiltAngle}deg)`;
     }
-    
+
     return yawRotation;
   }
 
@@ -889,7 +918,31 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   /** TrackBy function to prevent unnecessary DOM re-creation during animations */
   public trackByPlaneIcao(index: number, plane: WindowViewPlane): string {
     return plane.icao || plane.callsign || `${index}`;
-  } /** Update CSS animation timing based on scan interval */
+  }
+
+  /** Get only marker planes for marker lines component */
+  public getMarkerPlanes(): WindowViewPlane[] {
+    return this.windowViewPlanes.filter((plane) => plane.isMarker);
+  }
+
+  /** Get only celestial objects for celestial objects component */
+  public getCelestialObjects(): WindowViewPlane[] {
+    return this.windowViewPlanes.filter((plane) => plane.isCelestial);
+  }
+
+  /** Get aircraft planes (excluding markers and celestial objects) */
+  public getAircraftPlanes(): WindowViewPlane[] {
+    return this.windowViewPlanes.filter(
+      (plane) => !plane.isMarker && !plane.isCelestial
+    );
+  }
+
+  /** Handle plane selection from aircraft container */
+  public handlePlaneSelection(plane: WindowViewPlane): void {
+    this.selectPlane.emit(plane);
+  }
+
+  /** Update CSS animation timing based on scan interval */
   private updateAnimationTiming(): void {
     // Use scan interval + small buffer to ensure seamless movement
     // The extra 0.2s buffer accounts for timing precision and potential delays

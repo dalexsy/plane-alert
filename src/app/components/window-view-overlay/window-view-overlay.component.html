@@ -4,310 +4,37 @@
   (contextmenu)="$event.stopPropagation()"
   [style.background]="skyBackground"
 >
-  <!-- dynamic sky background -->
-  <div
-    *ngIf="windowCloudUrl"
-    class="cloud-background"
-    [ngClass]="cloudBacklightClass"
-    [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
-    [style.filter]="cloudFilter"
-  ></div>
-  <div
-    *ngIf="windowCloudUrl"
-    class="cloud-background"
-    [ngClass]="cloudBacklightClass"
-    [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
-    [style.filter]="cloudFilter"
-  ></div>
-  <div
-    *ngIf="windowCloudUrl"
-    class="cloud-background"
-    [ngClass]="cloudBacklightClass"
-    [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
-    [style.filter]="cloudFilter"
-  ></div>
+  <!-- Sky background with clouds -->
+  <app-sky-background
+    [windowCloudUrl]="windowCloudUrl"
+    [cloudFilter]="cloudFilter"
+    [cloudBacklightClass]="cloudBacklightClass"
+  ></app-sky-background>
 
-  <!-- rain overlay -->
+  <!-- Rain overlay -->
   <app-rain-overlay></app-rain-overlay>
-  <div class="compass-labels" [style.backgroundColor]="compassBackground">
-    <span class="compass-label">S</span>
-    <span class="compass-label">W</span>
-    <span class="compass-label">N</span>
-    <span class="compass-label">E</span>
-    <span class="compass-label">S</span>
-  </div>
-  <!-- full-height start/end lines (absolute in overlay) -->
-  <ng-container
-    *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao"
-  >
-    <ng-container
-      *ngIf="
-        plane.isMarker &&
-        (plane.callsign.endsWith('Start') || plane.callsign.endsWith('End'))
-      "
-    >
-      <div
-        class="vertical-line"
-        [ngClass]="{
-          'balcony-marker': plane.callsign.startsWith('Balcony'),
-          'streetside-marker': plane.callsign.startsWith('Streetside')
-        }"
-        [style.left]="plane.x + '%'"
-      ></div>
-    </ng-container>
-  </ng-container>
-  <div class="altitude-bands">
-    <ng-container *ngFor="let tick of altitudeTicks; let i = index">
-      <ng-container *ngIf="i < altitudeTicks.length - 1">
-        <div
-          class="altitude-band-color"
-          [style.bottom]="tick.y + '%'"
-          [style.height]="altitudeTicks[i + 1].y - tick.y + '%'"
-          [style.border]="'1px dotted ' + tick.color"
-          [style.backgroundColor]="tick.fillColor"
-        ></div>
-      </ng-container>
-    </ng-container>
-  </div>
-  <!-- dimmed regions outside marker spans -->
-  <ng-container *ngFor="let seg of dimSegments">
-    <div
-      class="dim-overlay"
-      [ngStyle]="{ left: seg.left + '%', width: seg.width + '%' }"
-    ></div>
-  </ng-container>
-  <!-- Celestial objects container (behind everything else) -->
-  <div class="celestial-container">
-    <ng-container
-      *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao"
-    >
-      <ng-container *ngIf="plane.isCelestial">
-        <div
-          class="celestial-object"
-          [style.left]="plane.x + '%'"
-          [style.bottom]="'calc(' + plane.y + '% - .5rem)'"
-        >
-          <span
-            class="celestial-wrapper"
-            [style.transform]="'scale(1)'"
-            [style.transformOrigin]="'center center'"
-          >
-            <!-- Sun: simple filled circle -->
-            <span
-              *ngIf="plane.celestialBodyType === 'sun'"
-              class="celestial-circle"
-              [ngClass]="{ 'below-horizon': plane.belowHorizon }"
-              aria-label="Sun marker"
-            ></span>
-            <!-- Moon: actual phase representation -->
-            <span
-              *ngIf="plane.celestialBodyType === 'moon'"
-              style="display: inline-block; position: relative"
-            >
-              <svg
-                class="moon-svg"
-                [ngClass]="{ 'below-horizon': plane.belowHorizon }"
-                width="22"
-                height="22"
-                viewBox="0 0 22 22"
-                aria-label="Moon marker"
-                [style.transform]="'rotateZ(' + (plane.moonAngle || 0) + 'deg)'"
-                [style.transformOrigin]="'center center'"
-                style="z-index: 1"
-              >
-                <defs>
-                  <mask [attr.id]="'moon-phase-mask-' + plane.icao">
-                    <rect width="22" height="22" fill="white" />
-                    <circle
-                      [attr.cx]="
-                        plane.moonIsWaning
-                          ? 11 + 10 * (2 * (plane.moonFraction || 0) - 1)
-                          : 11 - 10 * (2 * (plane.moonFraction || 0) - 1)
-                      "
-                      cy="11"
-                      r="10"
-                      fill="black"
-                    />
-                  </mask>
-                  <!-- Inverted mask for dark side -->
-                  <mask [attr.id]="'moon-phase-mask-dark-' + plane.icao">
-                    <rect width="22" height="22" fill="black" />
-                    <circle
-                      [attr.cx]="
-                        plane.moonIsWaning
-                          ? 11 + 10 * (2 * (plane.moonFraction || 0) - 1)
-                          : 11 - 10 * (2 * (plane.moonFraction || 0) - 1)
-                      "
-                      cy="11"
-                      r="10"
-                      fill="white"
-                    />
-                  </mask>
-                </defs>
-                <!-- Outer glow/halo -->
-                <circle class="moon-glow" cx="11" cy="11" r="12" />
-                <!-- Lit part using mask - draw this FIRST -->
-                <circle
-                  class="moon-lit"
-                  cx="11"
-                  cy="11"
-                  r="10"
-                  stroke-width="1"
-                  [attr.mask]="'url(#moon-phase-mask-' + plane.icao + ')'"
-                />
-                <!-- Main dark part (shadow) - draw OVER the lit part -->
-                <circle
-                  class="moon-dark"
-                  cx="11"
-                  cy="11"
-                  r="10"
-                  [attr.mask]="'url(#moon-phase-mask-dark-' + plane.icao + ')'"
-                />
-                <!-- Subtle rim light -->
-                <circle
-                  class="moon-rim"
-                  cx="11"
-                  cy="11"
-                  r="10"
-                  fill="none"
-                  stroke-width="0.5"
-                />
-              </svg>
-            </span>
-          </span>
-        </div>
-      </ng-container>
-    </ng-container>
-  </div>
-  <div class="planes-container">
-    <ng-container
-      *ngFor="let plane of windowViewPlanes; trackBy: trackByPlaneIcao"
-    >
-      <!-- Render chemtrail lines, positioned where dots were -->
-      <ng-container
-        *ngIf="
-          !plane.isMarker && !plane.isCelestial && plane.historySegments?.length
-        "
-      >
-        <div
-          *ngFor="let seg of plane.historySegments"
-          class="history-trail-segment"
-          [style.left]="seg.x + '%'"
-          [style.bottom]="seg.y + '%'"
-          [style.width]="seg.length + '%'"
-          [style.transform]="
-            'translateX(2.5rem) translateY(-1rem) rotateZ(' + seg.angle + 'deg)'
-          "
-          [style.height]="0.2 * (plane.scale || 1) + 'rem'"
-          [style.opacity]="seg.opacity"
-        ></div>
-      </ng-container>
-      <!-- Then render the plane itself -->      <div
-        class="plane-dot"
-        [class.skip-wrap]="plane.skipWrapTransition"
-        [class.grounded-plane]="plane.isGrounded"
-        [class.balcony-marker]="
-          plane.isMarker && plane.callsign.startsWith('Balcony')
-        "
-        [class.streetside-marker]="
-          plane.isMarker && plane.callsign.startsWith('Streetside')
-        "
-        [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
-        [class.close-plane]="plane.distanceKm != null && plane.distanceKm <= 10"
-        [style.left]="plane.x + '%'"
-        [style.bottom]="
-          plane.isGrounded
-            ? 'calc(' + plane.groundStackOrder! * 2.25 + 'rem - 1rem)'
-            : 'calc(' + plane.y + '% - .5rem)'
-        "
-        [style.transform]="
-          plane.isGrounded || plane.isMarker || plane.isCelestial ? null : 'scale(' + (plane.scale || 1) + ')'
-        "
-        [style.transformOrigin]="'bottom center'"
-        [title]="
-          plane.isMarker
-            ? ''
-            : plane.isGrounded
-            ? 'On ground'
-            : ' (' + plane.altitude + 'm)'
-        "
-      >
-        <!-- Marker label for midpoints (Balcony/Streetside) -->
-        <ng-container
-          *ngIf="
-            plane.isMarker &&
-            !(
-              plane.callsign.endsWith('Start') || plane.callsign.endsWith('End')
-            )
-          "
-        >
-          <span class="line-label">{{ plane.callsign }}</span>
-        </ng-container>
-        <!-- real planes (aircraft icons) -->
-        <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
-          <!-- use helicopter icon for helicopters -->          <ng-container *ngIf="plane.isHelicopter">
-            <span
-              class="copter-wrapper"
-              [style.color]="altitudeColor.getFillColor(plane.altitude)"
-              [style.transformOrigin]="'center center'"
-            >
-              <span
-                class="copter-plane-icon material-symbols-sharp"
-                [attr.aria-label]="plane.callsign + ' helicopter'"
-              >
-                toys_fan
-              </span>
-            </span>
-          </ng-container>
-          <!-- Render icon -->
-          <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">            <ng-container *ngIf="!plane.isHelicopter">
-              <div
-                class="icon-scale-wrapper"
-                [style.transformOrigin]="'bottom center'"
-              >
-                <div
-                  class="icon-wrapper"
-                  [style.transform]="
-                    plane.isGrounded ? null : getPerspectiveTransform(plane)
-                  "
-                  [style.transformOrigin]="'center center'"
-                >
-                  <svg
-                    class="plane-icon {{ plane.iconType }}"
-                    [style.color]="altitudeColor.getFillColor(plane.altitude)"
-                    viewBox="0 0 64 64"
-                    [attr.aria-label]="
-                      plane.callsign + ' at ' + plane.altitude + 'm'
-                    "
-                    [style.transform]="
-                      plane.isGrounded ? null : getIconRotation(plane)
-                    "
-                    [style.transformOrigin]="'center center'"
-                  >
-                    <path [attr.d]="plane.iconPath"></path>
-                  </svg>
-                </div>
-              </div>
-            </ng-container>
-          </ng-container>
-          <span
-            class="plane-label"
-            [class.followed]="plane.icao === highlightedPlaneIcao"
-            [style.color]="
-              planeStyle.getLabelColor(
-                plane,
-                plane.icao === highlightedPlaneIcao
-              )
-            "
-            (click)="handleLabelClick(plane, $event)"
-          >
-            <app-flag-callsign
-              [callsign]="plane.callsign"
-              [origin]="plane.origin"
-            ></app-flag-callsign>
-          </span>
-        </ng-container>
-      </div>
-    </ng-container>
-  </div>
+  
+  <!-- Compass labels with roof background -->
+  <app-compass-labels [compassBackground]="compassBackground"></app-compass-labels>
+  
+  <!-- Marker lines for balcony/streetside boundaries -->
+  <app-marker-lines [markerPlanes]="getMarkerPlanes()"></app-marker-lines>
+  
+  <!-- Altitude bands for visual reference -->
+  <app-altitude-bands [altitudeTicks]="altitudeTicks"></app-altitude-bands>
+  
+  <!-- Dimmed regions outside marker spans -->
+  <app-dim-overlay [dimSegments]="dimSegments"></app-dim-overlay>
+  
+  <!-- Celestial objects (sun/moon) -->
+  <app-celestial-objects 
+    [celestialObjects]="getCelestialObjects()" 
+    [isDaytime]="isDaytime()"
+  ></app-celestial-objects>
+    <!-- Aircraft container with planes and trails -->
+  <app-aircraft-container
+    [aircraftPlanes]="getAircraftPlanes()"
+    [highlightedPlaneIcao]="highlightedPlaneIcao"
+    (selectPlane)="handlePlaneSelection($event)"
+  ></app-aircraft-container>
 </div>

@@ -1,0 +1,35 @@
+// =============================================================================
+// Marker Lines Component - Boundary Line Markers
+// =============================================================================
+
+$vertical-line-width: 2px;
+$balcony-color: #4caf50;
+$streetside-color: #2196f3;
+
+:host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.vertical-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: $vertical-line-width;
+  margin: 0;
+  z-index: 2;
+  background-color: transparent;
+
+  &.balcony-marker {
+    background-color: $balcony-color;
+  }
+
+  &.streetside-marker {
+    background-color: $streetside-color;
+  }
+}

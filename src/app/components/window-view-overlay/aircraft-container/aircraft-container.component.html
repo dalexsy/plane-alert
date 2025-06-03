@@ -1,0 +1,129 @@
+<div class="planes-container">
+  <ng-container *ngFor="let plane of aircraftPlanes; trackBy: trackByPlaneIcao">
+    <!-- Render chemtrail lines, positioned where dots were -->
+    <ng-container
+      *ngIf="
+        !plane.isMarker && !plane.isCelestial && plane.historySegments?.length
+      "
+    >
+      <div
+        *ngFor="let seg of plane.historySegments"
+        class="history-trail-segment"
+        [style.left]="seg.x + '%'"
+        [style.bottom]="seg.y + '%'"
+        [style.width]="seg.length + '%'"
+        [style.transform]="
+          'translateX(2.5rem) translateY(-1rem) rotateZ(' + seg.angle + 'deg)'
+        "
+        [style.height]="0.2 * (plane.scale || 1) + 'rem'"
+        [style.opacity]="seg.opacity"
+      ></div>
+    </ng-container>
+    <!-- Then render the plane itself -->
+    <div
+      class="plane-dot"
+      [class.skip-wrap]="plane.skipWrapTransition"
+      [class.grounded-plane]="plane.isGrounded"
+      [class.balcony-marker]="
+        plane.isMarker && plane.callsign.startsWith('Balcony')
+      "
+      [class.streetside-marker]="
+        plane.isMarker && plane.callsign.startsWith('Streetside')
+      "
+      [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
+      [class.close-plane]="plane.distanceKm != null && plane.distanceKm <= 10"
+      [style.left]="plane.x + '%'"
+      [style.bottom]="
+        plane.isGrounded
+          ? 'calc(' + plane.groundStackOrder! * 2.25 + 'rem - 1rem)'
+          : 'calc(' + plane.y + '% - .5rem)'
+      "
+      [style.transform]="
+        plane.isGrounded || plane.isMarker || plane.isCelestial
+          ? null
+          : 'scale(' + (plane.scale || 1) + ')'
+      "
+      [style.transformOrigin]="'bottom center'"
+      [title]="
+        plane.isMarker
+          ? ''
+          : plane.isGrounded
+          ? 'On ground'
+          : ' (' + plane.altitude + 'm)'
+      "
+    >
+      <!-- Marker label for midpoints (Balcony/Streetside) -->
+      <ng-container
+        *ngIf="
+          plane.isMarker &&
+          !(plane.callsign.endsWith('Start') || plane.callsign.endsWith('End'))
+        "
+      >
+        <span class="line-label">{{ plane.callsign }}</span>
+      </ng-container>
+      <!-- real planes (aircraft icons) -->
+      <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
+        <!-- use helicopter icon for helicopters -->
+        <ng-container *ngIf="plane.isHelicopter">
+          <span
+            class="copter-wrapper"
+            [style.color]="altitudeColor.getFillColor(plane.altitude)"
+            [style.transformOrigin]="'center center'"
+          >
+            <span
+              class="copter-plane-icon material-symbols-sharp"
+              [attr.aria-label]="plane.callsign + ' helicopter'"
+            >
+              toys_fan
+            </span>
+          </span>
+        </ng-container>
+        <!-- Render icon -->
+        <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
+          <ng-container *ngIf="!plane.isHelicopter">
+            <div
+              class="icon-scale-wrapper"
+              [style.transformOrigin]="'bottom center'"
+            >
+              <div
+                class="icon-wrapper"
+                [style.transform]="
+                  plane.isGrounded ? null : getPerspectiveTransform(plane)
+                "
+                [style.transformOrigin]="'center center'"
+              >
+                <svg
+                  class="plane-icon {{ plane.iconType }}"
+                  [style.color]="altitudeColor.getFillColor(plane.altitude)"
+                  viewBox="0 0 64 64"
+                  [attr.aria-label]="
+                    plane.callsign + ' at ' + plane.altitude + 'm'
+                  "
+                  [style.transform]="
+                    plane.isGrounded ? null : getIconRotation(plane)
+                  "
+                  [style.transformOrigin]="'center center'"
+                >
+                  <path [attr.d]="plane.iconPath"></path>
+                </svg>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+        <span
+          class="plane-label"
+          [class.followed]="plane.icao === highlightedPlaneIcao"
+          [style.color]="
+            planeStyle.getLabelColor(plane, plane.icao === highlightedPlaneIcao)
+          "
+          (click)="handleLabelClick(plane, $event)"
+        >
+          <app-flag-callsign
+            [callsign]="plane.callsign"
+            [origin]="plane.origin"
+          ></app-flag-callsign>
+        </span>
+      </ng-container>
+    </div>
+  </ng-container>
+</div>
