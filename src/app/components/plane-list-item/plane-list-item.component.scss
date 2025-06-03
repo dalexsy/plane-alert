@@ -27,10 +27,10 @@ $new-plane-red: #ff6161;
   &.new-plane {
     color: $new-plane-red;
   }
-  
-  &.followed-plane {
+    &.followed-plane {
     color: $followed-cyan;
     border-left: 3px solid $followed-cyan;
+    padding-left: calc(1rem - 3px);
     background: linear-gradient(
       90deg,
       rgba(0, 255, 255, 0.2) 0%,
@@ -42,11 +42,11 @@ $new-plane-red: #ff6161;
       font-variation-settings: normal;
     }
   }
-  
-  &.military-plane {
+    &.military-plane {
     color: $military-green;
     background-color: color-mix(in srgb, $military-green 15%, transparent);
     border-left: 3px solid $military-green;
+    padding-left: calc(1rem - 3px);
 
     // Fallback for browsers without color-mix support
     @supports not (background-color: color-mix(in srgb, $military-green 15%, transparent)) {
@@ -67,6 +67,7 @@ $new-plane-red: #ff6161;
     &.followed-plane {
       color: $military-green;
       border-left: 3px solid $military-green;
+      padding-left: calc(1rem - 3px);
       background: linear-gradient(
         90deg,
         rgba(137, 209, 56, 0.2) 0%,
@@ -242,6 +243,7 @@ $new-plane-red: #ff6161;
 :host.airport-clicked {
   background-color: color-mix(in srgb, $airport-gold 20%, transparent);
   border-left: 3px solid $airport-gold;
+  padding-left: calc(1rem - 3px);
 
   // Fallback for browsers without color-mix support
   @supports not (background-color: color-mix(in srgb, $airport-gold 20%, transparent)) {
