@@ -1,7 +1,5 @@
 <!-- Celestial objects container (behind everything else) -->
-<ng-container
-  *ngFor="let plane of celestialObjects; trackBy: trackByPlaneIcao"
->
+<ng-container *ngFor="let plane of celestialObjects; trackBy: trackByPlaneIcao">
   <ng-container *ngIf="plane.isCelestial">
     <div
       class="celestial-object"

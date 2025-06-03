@@ -1503,7 +1503,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           centerLon,
           plane.lat!,
           plane.lon!
-        );        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
+        );
+        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
         // Dramatic scaling for planes within 10km, normal scaling beyond
         let scale = 1.0; // Default scale
         if (distKm <= 10) {
@@ -1513,7 +1514,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           scale = Math.max(1.0, 3.0 - exponentialCurve * 2.0); // 3.0 to 1.0 range
         } else {
           // Beyond 10km: gradual scaling from 1.0 to 0.5 based on max radius
-          const beyondNormalized = Math.min((distKm - 10) / (maxRadius - 10), 1);
+          const beyondNormalized = Math.min(
+            (distKm - 10) / (maxRadius - 10),
+            1
+          );
           scale = Math.max(0.5, 1.0 - beyondNormalized * 0.5); // 1.0 to 0.5 range
         }
         // Compute history positions for window view
@@ -1540,8 +1544,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           isHelicopter: this.helicopterIdentificationService.isHelicopter(
             plane.icao,
             plane.model
-          ),          velocity: plane.velocity ?? 0,
-          verticalRate: plane.verticalRate ?? calculateVerticalRateFromHistory(plane.positionHistory) ?? undefined,
+          ),
+          velocity: plane.velocity ?? 0,
+          verticalRate:
+            plane.verticalRate ??
+            calculateVerticalRateFromHistory(plane.positionHistory) ??
+            undefined,
           // historical trail for window view
           historyTrail,
           scale,
@@ -1552,6 +1560,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           icao: plane.icao, // for type safety
           origin: plane.origin, // Origin country for flag display
           isGrounded,
+          operator: plane.operator, // Add operator for display
+          model: plane.model, // Add model for display
         };
       });
     // Add window view markers for cone boundaries and midpoints

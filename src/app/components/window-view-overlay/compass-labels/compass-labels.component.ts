@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './compass-labels.component.html',
-  styleUrl: './compass-labels.component.scss'
+  styleUrl: './compass-labels.component.scss',
 })
 export class CompassLabelsComponent {
   @Input() compassBackground: string = '#ff9753';

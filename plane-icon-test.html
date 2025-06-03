@@ -1,58 +1,103 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Plane Icon Orientation Test</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #333; color: white; }
-        .test-container { display: flex; gap: 20px; margin: 20px; }
-        .icon-test { text-align: center; }
-        .plane-icon { width: 64px; height: 64px; fill: white; stroke: black; stroke-width: 1; }
-        .rotated-0 { transform: rotate(0deg); }
-        .rotated-90 { transform: rotate(90deg); }
-        .rotated-180 { transform: rotate(180deg); }
-        .rotated-270 { transform: rotate(270deg); }
-        .grid { background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), 
-                               linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
-               background-size: 10px 10px; }
+      body {
+        font-family: Arial, sans-serif;
+        background: #333;
+        color: white;
+      }
+      .test-container {
+        display: flex;
+        gap: 20px;
+        margin: 20px;
+      }
+      .icon-test {
+        text-align: center;
+      }
+      .plane-icon {
+        width: 64px;
+        height: 64px;
+        fill: white;
+        stroke: black;
+        stroke-width: 1;
+      }
+      .rotated-0 {
+        transform: rotate(0deg);
+      }
+      .rotated-90 {
+        transform: rotate(90deg);
+      }
+      .rotated-180 {
+        transform: rotate(180deg);
+      }
+      .rotated-270 {
+        transform: rotate(270deg);
+      }
+      .grid {
+        background-image: linear-gradient(
+            rgba(255, 255, 255, 0.1) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 10px 10px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Plane Icon Default Orientation Test</h1>
     <div class="test-container">
-        <div class="icon-test">
-            <h3>Default (0°)</h3>
-            <svg class="plane-icon rotated-0" viewBox="0 0 64 64">
-                <path d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"/>
-            </svg>
-            <p>Nose should point up</p>
-        </div>
-        <div class="icon-test">
-            <h3>Right (90°)</h3>
-            <svg class="plane-icon rotated-90" viewBox="0 0 64 64">
-                <path d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"/>
-            </svg>
-            <p>Nose should point right</p>
-        </div>
-        <div class="icon-test">
-            <h3>Down (180°)</h3>
-            <svg class="plane-icon rotated-180" viewBox="0 0 64 64">
-                <path d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"/>
-            </svg>
-            <p>Nose should point down</p>
-        </div>
-        <div class="icon-test">
-            <h3>Left (270°)</h3>
-            <svg class="plane-icon rotated-270" viewBox="0 0 64 64">
-                <path d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"/>
-            </svg>
-            <p>Nose should point left</p>
-        </div>
+      <div class="icon-test">
+        <h3>Default (0°)</h3>
+        <svg class="plane-icon rotated-0" viewBox="0 0 64 64">
+          <path
+            d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"
+          />
+        </svg>
+        <p>Nose should point up</p>
+      </div>
+      <div class="icon-test">
+        <h3>Right (90°)</h3>
+        <svg class="plane-icon rotated-90" viewBox="0 0 64 64">
+          <path
+            d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"
+          />
+        </svg>
+        <p>Nose should point right</p>
+      </div>
+      <div class="icon-test">
+        <h3>Down (180°)</h3>
+        <svg class="plane-icon rotated-180" viewBox="0 0 64 64">
+          <path
+            d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"
+          />
+        </svg>
+        <p>Nose should point down</p>
+      </div>
+      <div class="icon-test">
+        <h3>Left (270°)</h3>
+        <svg class="plane-icon rotated-270" viewBox="0 0 64 64">
+          <path
+            d="m 32,1 2,1 2,3 0,18 4,1 0,-4 3,0 0,5 17,6 0,3 -15,-2 -9,0 0,12 -2,6 7,3 0,2 -8,-1 -1,2 -1,-2 -8,1 0,-2 7,-3 -2,-6 0,-12 -9,0 -15,2 0,-3 17,-6 0,-5 3,0 0,4 4,-1 0,-18 2,-3 2,-1z"
+          />
+        </svg>
+        <p>Nose should point left</p>
+      </div>
     </div>
-    
+
     <h2>Movement Direction Test</h2>
-    <p>For a plane moving right (deltaX > 0), it should rotate 90° to point right.</p>
-    <p>For a plane moving left (deltaX < 0), it should rotate 270° (or -90°) to point left.</p>
+    <p>
+      For a plane moving right (deltaX > 0), it should rotate 90° to point
+      right.
+    </p>
+    <p>
+      For a plane moving left (deltaX < 0), it should rotate 270° (or -90°) to
+      point left.
+    </p>
     <p>For a plane moving up (deltaY > 0), it should rotate 0° to point up.</p>
-    <p>For a plane moving down (deltaY < 0), it should rotate 180° to point down.</p>
-</body>
+    <p>
+      For a plane moving down (deltaY < 0), it should rotate 180° to point down.
+    </p>
+  </body>
 </html>

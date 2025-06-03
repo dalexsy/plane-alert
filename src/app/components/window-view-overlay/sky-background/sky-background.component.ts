@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './sky-background.component.html',
-  styleUrl: './sky-background.component.scss'
+  styleUrl: './sky-background.component.scss',
 })
 export class SkyBackgroundComponent {
   @Input() windowCloudUrl: string | null = null;

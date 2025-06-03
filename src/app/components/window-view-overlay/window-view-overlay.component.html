@@ -13,25 +13,27 @@
 
   <!-- Rain overlay -->
   <app-rain-overlay></app-rain-overlay>
-  
+
   <!-- Compass labels with roof background -->
-  <app-compass-labels [compassBackground]="compassBackground"></app-compass-labels>
-  
+  <app-compass-labels
+    [compassBackground]="compassBackground"
+  ></app-compass-labels>
+
   <!-- Marker lines for balcony/streetside boundaries -->
   <app-marker-lines [markerPlanes]="getMarkerPlanes()"></app-marker-lines>
-  
+
   <!-- Altitude bands for visual reference -->
   <app-altitude-bands [altitudeTicks]="altitudeTicks"></app-altitude-bands>
-  
+
   <!-- Dimmed regions outside marker spans -->
   <app-dim-overlay [dimSegments]="dimSegments"></app-dim-overlay>
-  
+
   <!-- Celestial objects (sun/moon) -->
-  <app-celestial-objects 
-    [celestialObjects]="getCelestialObjects()" 
+  <app-celestial-objects
+    [celestialObjects]="getCelestialObjects()"
     [isDaytime]="isDaytime()"
   ></app-celestial-objects>
-    <!-- Aircraft container with planes and trails -->
+  <!-- Aircraft container with planes and trails -->
   <app-aircraft-container
     [aircraftPlanes]="getAircraftPlanes()"
     [highlightedPlaneIcao]="highlightedPlaneIcao"

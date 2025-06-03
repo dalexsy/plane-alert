@@ -222,6 +222,22 @@ $followed-plane-color: #00ffff;
     border-radius: 0.25rem;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.49);
   }
+
+  // Operator and model details for close planes
+  .plane-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2px;
+
+    .operator-model {
+      font-size: 0.65rem;
+      opacity: 0.85;
+      color: #e0e0e0;
+      text-align: center;
+      line-height: 1.1;
+    }
+  }
 }
 
 // =============================================================================

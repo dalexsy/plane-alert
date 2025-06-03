@@ -64,7 +64,8 @@
       <!-- real planes (aircraft icons) -->
       <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
         <!-- use helicopter icon for helicopters -->
-        <ng-container *ngIf="plane.isHelicopter">          <span
+        <ng-container *ngIf="plane.isHelicopter">
+          <span
             class="copter-wrapper"
             [style.color]="altitudeColor.getFillColor(plane.altitude)"
             [style.transformOrigin]="'center center'"
@@ -91,7 +92,8 @@
                   plane.isGrounded ? null : getPerspectiveTransform(plane)
                 "
                 [style.transformOrigin]="'center center'"
-              >                <svg
+              >
+                <svg
                   class="plane-icon {{ plane.iconType }}"
                   [style.color]="altitudeColor.getFillColor(plane.altitude)"
                   viewBox="0 0 64 64"
@@ -104,13 +106,15 @@
                 >
                   <path [attr.d]="plane.iconPath"></path>
                   <!-- Debug direction line - shows where front of plane is pointing -->
-                  <line 
-                    x1="32" y1="32" 
-                    x2="32" y2="10" 
-                    stroke="red" 
-                    stroke-width="2" 
+                  <line
+                    x1="32"
+                    y1="32"
+                    x2="32"
+                    y2="10"
+                    stroke="red"
+                    stroke-width="2"
                     stroke-opacity="0.8"
-                    style="pointer-events: none;"
+                    style="pointer-events: none"
                   />
                 </svg>
               </div>
@@ -125,6 +129,21 @@
           "
           (click)="handleLabelClick(plane, $event)"
         >
+          <!-- Display operator and model for close planes (within 10km) -->
+          <div
+            *ngIf="
+              plane.distanceKm != null &&
+              plane.distanceKm <= 10 &&
+              (plane.operator || plane.model)
+            "
+            class="plane-details"
+          >
+            <span class="operator-model">
+              {{ plane.operator || ""
+              }}{{ plane.operator && plane.model ? " " : ""
+              }}{{ plane.model || "" }}
+            </span>
+          </div>
           <app-flag-callsign
             [callsign]="plane.callsign"
             [origin]="plane.origin"

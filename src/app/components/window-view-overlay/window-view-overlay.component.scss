@@ -45,7 +45,7 @@ $text-shadow-color: #000;
   // Typography
   text-shadow: -1px -1px 0 $text-shadow-color, 1px -1px 0 $text-shadow-color,
     -1px 1px 0 $text-shadow-color, 1px 1px 0 $text-shadow-color;
-  
+
   // 3D perspective setup
   perspective: $overlay-perspective;
   transform-style: preserve-3d;

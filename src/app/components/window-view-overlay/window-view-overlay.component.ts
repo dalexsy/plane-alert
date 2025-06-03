@@ -74,11 +74,13 @@ export interface WindowViewPlane {
   /** True if plane is on ground (landed) */
   isGrounded?: boolean;
   /** Stacking order index for grounded planes */
-  groundStackOrder?: number;
-  // Moon phase properties for celestialBodyType === 'moon'
+  groundStackOrder?: number; // Moon phase properties for celestialBodyType === 'moon'
   moonPhase?: number;
   moonFraction?: number;
   moonAngle?: number;
+  // Operator and model information for display
+  operator?: string;
+  model?: string;
   moonIsWaning?: boolean;
   /** True if the celestial body is below the horizon (altitude < 0) */
   belowHorizon?: boolean;
@@ -87,12 +89,15 @@ export interface WindowViewPlane {
     x: number;
     y: number;
     opacity: number;
-  }> /** Line segments connecting historical trail dots */;  historySegments?: Array<{
+  }> /** Line segments connecting historical trail dots */;
+  historySegments?: Array<{
     x: number;
     y: number;
     length: number;
     angle: number;
-    opacity: number;  }>;  movementDirection?: 'left' | 'right' | null; // Movement direction for icon rotation
+    opacity: number;
+  }>;
+  movementDirection?: 'left' | 'right' | null; // Movement direction for icon rotation
 }
 
 @Component({
@@ -113,7 +118,8 @@ export interface WindowViewPlane {
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
-export class WindowViewOverlayComponent implements OnChanges, OnInit {  private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
+export class WindowViewOverlayComponent implements OnChanges, OnInit {
+  private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
   private lastKnownDirections = new Map<string, 'left' | 'right'>(); // Track last known direction for each plane
 
   /** Prevent context menu inside overlay when right-clicking to avoid content.js errors */
@@ -210,15 +216,16 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {  private 
       changes['observerLon']
     ) {
       // First inject celestial markers to get the complete plane list
-      this.injectCelestialMarkers();      // Detect movement direction BEFORE updating previous positions
+      this.injectCelestialMarkers(); // Detect movement direction BEFORE updating previous positions
       this.windowViewPlanes.forEach((plane) => {
         const direction = this.getMovementDirection(plane); // This will update lastKnownDirections
         plane.movementDirection = direction; // Assign direction to the plane object
-      });      // detect 360 wrap: if plane.x jumps more than 50, skip left transition
+      }); // detect 360 wrap: if plane.x jumps more than 50, skip left transition
       this.windowViewPlanes.forEach((plane) => {
         const prev = this.prevXPositions.get(plane.icao);
         plane.skipWrapTransition =
-          prev !== undefined && Math.abs(plane.x - prev) > 50;        this.prevXPositions.set(plane.icao, plane.x);
+          prev !== undefined && Math.abs(plane.x - prev) > 50;
+        this.prevXPositions.set(plane.icao, plane.x);
       });
       this.updateWindowCloud();
       // initial sky update then fetch weather
@@ -766,7 +773,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {  private 
         p.groundStackOrder = undefined;
       }
     });
-  }  /** Determine movement direction based on actual position history changes */
+  } /** Determine movement direction based on actual position history changes */
   private getMovementDirection(
     plane: WindowViewPlane
   ): 'left' | 'right' | null {
@@ -775,15 +782,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {  private 
       // Compare the most recent two positions in the trail
       const current = plane.historyTrail[plane.historyTrail.length - 1];
       const previous = plane.historyTrail[plane.historyTrail.length - 2];
-      
+
       let deltaX = current.x - previous.x;
-        // Handle wrap-around at 0/100 boundary for X coordinate
+      // Handle wrap-around at 0/100 boundary for X coordinate
       if (deltaX > 50) {
         deltaX -= 100; // Wrapped from right to left
       } else if (deltaX < -50) {
         deltaX += 100; // Wrapped from left to right
       }
-      
+
       // Only update direction if there's significant movement (>0.05 to avoid noise)
       if (Math.abs(deltaX) > 0.05) {
         const direction = deltaX > 0 ? 'right' : 'left';
@@ -791,10 +798,10 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {  private 
         return direction;
       }
     }
-    
+
     // Fallback to previous comparison method if no history trail
     const prevX = this.prevXPositions.get(plane.icao);
-    
+
     if (prevX !== undefined) {
       const currentX = plane.x;
 
@@ -804,7 +811,7 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {  private 
         deltaX -= 100; // Wrapped from right to left
       } else if (deltaX < -50) {
         deltaX += 100; // Wrapped from left to right
-      }      // Only update direction if there's significant movement (>0.05 to avoid noise)
+      } // Only update direction if there's significant movement (>0.05 to avoid noise)
       if (Math.abs(deltaX) > 0.05) {
         const direction = deltaX > 0 ? 'right' : 'left';
         this.lastKnownDirections.set(plane.icao, direction);
@@ -813,8 +820,9 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {  private 
     }
 
     // If no significant movement, return last known direction or default to 'right'
-    const fallbackDirection = this.lastKnownDirections.get(plane.icao) || 'right';
-    
+    const fallbackDirection =
+      this.lastKnownDirections.get(plane.icao) || 'right';
+
     return fallbackDirection;
   }
 

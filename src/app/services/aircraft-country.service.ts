@@ -77,7 +77,7 @@ export class AircraftCountryService {
         return icaoResult;
       }
     } // Log when country lookup fails to return a result
-    const decimalValue = icaoHex ? parseInt(icaoHex, 16) : null;    // console.log(
+    const decimalValue = icaoHex ? parseInt(icaoHex, 16) : null; // console.log(
     //   `Aircraft country lookup failed - ICAO: ${icaoHex} (${decimalValue}), Registration: ${
     //     registration || 'none'
     //   }, API: ${apiCountry || 'none'}`
@@ -219,7 +219,7 @@ export class AircraftCountryService {
     } // Log when ICAO hex lookup fails
     const decimalValue = /^[0-9A-Fa-f]+$/.test(icaoHex)
       ? parseInt(icaoHex, 16)
-      : 'Invalid hex format';    // console.log(
+      : 'Invalid hex format'; // console.log(
     //   `ICAO hex lookup failed - ${icaoHex} (${decimalValue}) - no allocation found`
     // );
 
