@@ -13,6 +13,12 @@ $balcony-color: #4caf50;
 $streetside-color: #2196f3;
 $followed-plane-color: #00ffff;
 
+// Animation optimization for seamless movement
+// These properties ensure smooth transitions without visible delays
+$animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
+$animation-fill-mode: both;
+$animation-optimization: optimizeSpeed;
+
 :host {
   position: absolute;
   top: 0;
@@ -42,15 +48,15 @@ $followed-plane-color: #00ffff;
   align-items: center;
   z-index: 1;
   transform-style: preserve-3d; // Ensure 3D transforms are preserved
-
   font-family: "JetBrains Mono", monospace;
   color: #fff;
   // Smooth position and scale animations, but instant rotation changes
-  transition: left var(--plane-animation-duration, #{$plane-animation-duration})
-      linear,
-    bottom var(--plane-animation-duration, #{$plane-animation-duration}) linear,
-    scale $scale-transition-duration ease-out;
-  will-change: left, bottom, transform;
+  transition: none !important;
+  will-change: transform;
+
+  // Performance optimizations for smooth animations
+  backface-visibility: hidden;
+  transform: translateZ(0); // Force hardware acceleration
 
   // Close aircraft (within 10km) get higher z-index and enhanced visibility
   &.close-plane {
@@ -166,9 +172,7 @@ $followed-plane-color: #00ffff;
   color: currentColor;
   background: none;
   border: none;
-  padding: 0;
-
-  // Smooth rotation and tilt animation
+  padding: 0; // Smooth rotation and tilt animation synchronized with position changes
   transition: transform
     var(--plane-animation-duration, #{$plane-animation-duration}) linear;
   will-change: transform;
@@ -274,12 +278,11 @@ $followed-plane-color: #00ffff;
   transform-origin: left center;
   pointer-events: none;
   z-index: 0;
-  transform: translateX(2.5rem) translateY(-0.5rem);
-
-  // Smooth trail animation
+  transform: translateX(2.5rem) translateY(-0.5rem); // Smooth trail animation with optimized easing
   transition: left var(--trail-animation-duration, #{$trail-animation-duration})
-      linear,
-    bottom var(--trail-animation-duration, #{$trail-animation-duration}) linear,
+      $animation-timing-function,
+    bottom var(--trail-animation-duration, #{$trail-animation-duration})
+      $animation-timing-function,
     opacity 0.4s ease-out;
   will-change: left, bottom, opacity;
 }

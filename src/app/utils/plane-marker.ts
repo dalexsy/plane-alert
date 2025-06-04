@@ -14,23 +14,22 @@ function smoothLerpToPosition(
   const startLat = startLatLng.lat;
   const startLng = startLatLng.lng;
   const endLat = endLatLng.lat;
-  const endLng = endLatLng.lng;
-  // Linear easing for constant speed movement
-  const linear = (t: number): number => t;
-
+  const endLng = endLatLng.lng; // Cubic-bezier easing function to match CSS transitions: cubic-bezier(0.25, 0.0, 0.25, 1.0)
+  // This creates smooth acceleration and deceleration for natural movement
+  const cubicBezier = (t: number): number => {
+    // P0 = (0, 0), P1 = (0.25, 0), P2 = (0.25, 1), P3 = (1, 1)
+    // Simplified cubic-bezier calculation for the specified control points
+    return t * t * (3.0 - 2.0 * t); // Smoothstep function that approximates the cubic-bezier
+  };
   function animate() {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
-    const easedProgress = linear(progress);
 
-    // Interpolate between start and end positions
-    const currentLat = startLat + (endLat - startLat) * easedProgress;
-    const currentLng = startLng + (endLng - startLng) * easedProgress;
-
-    // Update marker position
+    // Linear interpolation for constant-speed movement
+    const currentLat = startLat + (endLat - startLat) * progress;
+    const currentLng = startLng + (endLng - startLng) * progress;
     marker.setLatLng([currentLat, currentLng]);
 
-    // Continue animation if not finished
     if (progress < 1) {
       requestAnimationFrame(animate);
     }
@@ -164,11 +163,10 @@ export function createOrUpdatePlaneMarker(
     const latDiff = Math.abs(currentLatLng.lat - lat);
     const lngDiff = Math.abs(currentLatLng.lng - lon);
     const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
-
     if (hasPositionChanged) {
-      // Calculate animation duration: use 80% of scan interval to ensure smooth movement
-      // This leaves 20% buffer time before the next update arrives
-      const animationDuration = Math.max(2, scanInterval * 0.8) * 1000; // Convert to milliseconds
+      // Calculate animation duration: use 95% of scan interval for seamless movement
+      // This matches the window view animation timing to prevent delays/pauses
+      const animationDuration = Math.max(2, scanInterval * 0.95) * 1000; // Convert to milliseconds
 
       // Perform smooth lerping animation for all planes with position changes
       smoothLerpToPosition(

@@ -1,4 +1,5 @@
 $new-plane-color: #ff6161;
+$animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
 
 .plane-marker-container {
   width: 3rem !important;
@@ -17,11 +18,9 @@ $new-plane-color: #ff6161;
   display: flex; /* Use flexbox to center the ::before content */
   justify-content: center;
   align-items: center;
-  pointer-events: auto; /* Ensure the marker can be clicked/selected */
-
-  // Add smooth transitions for transform changes (rotation and scaling)
-  // Use 1.2s linear timing to match the existing position animations
-  transition: transform 1.2s linear;
+  pointer-events: auto; /* Ensure the marker can be clicked/selected */ // Add smooth transitions for transform changes (rotation and scaling)
+  // Use optimized easing to match window view animation timing
+  transition: transform 1.2s $animation-timing-function;
   will-change: transform;
 
   // For non-helicopter plane markers, hide default ::before and show inline SVG

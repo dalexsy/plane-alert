@@ -6,6 +6,9 @@ $celestial-icon-size: 22px;
 $transition-duration: 0.3s;
 $celestial-animation-duration: 1.2s;
 
+// Animation optimization for seamless movement
+$animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
+
 :host {
   position: absolute;
   top: 0;
@@ -21,15 +24,13 @@ $celestial-animation-duration: 1.2s;
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
-  pointer-events: none;
+  pointer-events: none; // Smooth celestial movement animation with optimized easing
+  transition: none !important;
+  will-change: transform;
 
-  // Smooth celestial movement animation
-  transition: left
-      var(--celestial-animation-duration, #{$celestial-animation-duration})
-      linear,
-    bottom var(--celestial-animation-duration, #{$celestial-animation-duration})
-      linear;
-  will-change: left, bottom;
+  // Performance optimizations for smooth animations
+  backface-visibility: hidden;
+  transform: translateZ(0); // Force hardware acceleration
 }
 
 .celestial-circle {

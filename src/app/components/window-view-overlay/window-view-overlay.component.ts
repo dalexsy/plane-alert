@@ -6,11 +6,13 @@ import {
   OnChanges,
   SimpleChanges,
   OnInit,
+  OnDestroy,
   HostListener,
   ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 import { EngineIconType } from '../../utils/plane-icons';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { CelestialService } from '../../services/celestial.service';
@@ -118,9 +120,12 @@ export interface WindowViewPlane {
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
 })
-export class WindowViewOverlayComponent implements OnChanges, OnInit {
+export class WindowViewOverlayComponent
+  implements OnChanges, OnInit, OnDestroy
+{
   private prevXPositions = new Map<string, number>(); // Track previous x positions for wrap detection
   private lastKnownDirections = new Map<string, 'left' | 'right'>(); // Track last known direction for each plane
+  private scanIntervalSubscription?: Subscription; // Subscription for scan interval changes
 
   /** Prevent context menu inside overlay when right-clicking to avoid content.js errors */
   @HostListener('document:contextmenu', ['$event'])
@@ -202,6 +207,20 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     this.altitudeTicks = this.computeAltitudeTicks();
     // Set initial animation timing based on scan interval
     this.updateAnimationTiming();
+
+    // Subscribe to scan interval changes for dynamic animation timing updates
+    this.scanIntervalSubscription = this.scanService.scanInterval$.subscribe(
+      () => {
+        this.updateAnimationTiming();
+      }
+    );
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscription to prevent memory leaks
+    if (this.scanIntervalSubscription) {
+      this.scanIntervalSubscription.unsubscribe();
+    }
   }
 
   /** Emit selection event when user clicks a plane label */
@@ -916,13 +935,12 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
   /** Handle plane selection from aircraft container */
   public handlePlaneSelection(plane: WindowViewPlane): void {
     this.selectPlane.emit(plane);
-  }
-
-  /** Update CSS animation timing based on scan interval */
+  } /** Update CSS animation timing based on scan interval */
   private updateAnimationTiming(): void {
-    // Use scan interval + small buffer to ensure seamless movement
-    // The extra 0.2s buffer accounts for timing precision and potential delays
-    const animationDuration = this.scanService.scanInterval + 0.2;
+    // Use consistent timing formula to match plane marker animations:
+    // 95% of scan interval for smooth overlap with next update cycle
+    // This ensures seamless movement without visible pauses
+    const animationDuration = this.scanService.scanInterval * 0.95;
 
     // Set CSS custom properties for dynamic animation timing
     const rootElement = this.elRef.nativeElement as HTMLElement;
@@ -937,6 +955,15 @@ export class WindowViewOverlayComponent implements OnChanges, OnInit {
     rootElement.style.setProperty(
       '--trail-animation-duration',
       `${animationDuration}s`
+    );
+
+    // Add animation optimization properties for better performance
+    rootElement.style.setProperty('will-change', 'auto');
+    rootElement.style.setProperty('backface-visibility', 'hidden');
+
+    // Debug log for timing verification (can be removed in production)
+    console.debug(
+      `Animation timing updated: ${animationDuration}s (${this.scanService.scanInterval}s scan interval)`
     );
   }
 }

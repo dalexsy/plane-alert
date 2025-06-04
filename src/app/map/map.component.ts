@@ -53,6 +53,9 @@ import { SkyColorSyncService } from '../services/sky-color-sync.service';
 import { GeocodingCacheService } from '../services/geocoding-cache.service';
 import { DebouncedClickService } from '../services/debounced-click.service';
 import { LocationContextService } from '../services/location-context.service';
+import { PlaneFollowService } from '../services/plane-follow.service';
+import { AutoFollowService } from '../services/auto-follow.service';
+import { FollowCoordinatorService } from '../services/follow-coordinator.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
@@ -169,6 +172,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   followNearest = false;
 
   private airportsLoading = false; // guard for Overpass fetches
+  private isProcessingFollowRequest = false; // guard against recursive follow calls
   currentTime: string = '';
 
   // Replace showDateTime property initializer
@@ -226,7 +230,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private skyColorSyncService: SkyColorSyncService,
     private locationContextService: LocationContextService,
     private geocodingCache: GeocodingCacheService,
-    private debouncedClickService: DebouncedClickService
+    private debouncedClickService: DebouncedClickService,
+    private planeFollowService: PlaneFollowService,
+    private autoFollowService: AutoFollowService,
+    private followCoordinatorService: FollowCoordinatorService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -254,35 +261,37 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
         }
       });
-    });
-
-    // Listen for tooltip follow/unfollow events
+    }); // Listen for tooltip follow/unfollow events
     window.addEventListener('plane-tooltip-follow', (e: Event) => {
       const icao = (e as CustomEvent).detail?.icao;
       if (!icao) return;
       this.ngZone.run(() => {
         if (this.highlightedPlaneIcao === icao) {
-          this.unhighlightPlane(icao);
-          this.highlightedPlaneIcao = null;
-          this.followNearest = false;
+          // Unfollow currently followed plane
+          this.followCoordinatorService.clearAllModes();
         } else {
-          this.highlightedPlaneIcao = icao;
-          this.followNearest = true; // Center map on followed plane with smooth panning
+          // Follow new plane manually - this will disable automatic modes
           const pm = this.planeLog.get(icao);
-          if (pm && pm.lat != null && pm.lon != null) {
-            this.map.panTo([pm.lat, pm.lon], { animate: true, duration: 1.0 });
-            // Update both address input overlay and location overlay info with single geocoding call
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                address;
-              this.locationDistrict = address;
-              this.cdr.detectChanges();
-            });
+          if (pm) {
+            // Use coordinator service for proper mode management
+            this.followCoordinatorService.followPlaneManually(pm as any);
+
+            // Center map on followed plane with smooth panning
+            if (pm.lat != null && pm.lon != null) {
+              this.map.panTo([pm.lat, pm.lon], {
+                animate: true,
+                duration: 1.0,
+              });
+              // Update both address input overlay and location overlay info with single geocoding call
+              this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+                this.inputOverlayComponent.addressInputRef.nativeElement.value =
+                  address;
+                this.locationDistrict = address;
+                this.cdr.detectChanges();
+              });
+            }
           }
         }
-        this.updatePlaneLog(Array.from(this.planeLog.values()));
-        this.updateFollowedStyles(); // <-- ensure all planes update
-        this.cdr.detectChanges();
       });
     }); // Add global click handler for tooltip follow
     window.addEventListener('click', this.globalTooltipClickHandler);
@@ -447,13 +456,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Re-filter planes when commercial toggle changes
       this.onExcludeDiscountChange();
     });
-
     this.resultsOverlayComponent.clearHistoricalList.subscribe(() =>
       this.clearSeenList()
     );
     this.resultsOverlayComponent.exportFilterList.subscribe(() =>
       this.exportFilterList()
     );
+
+    // Subscribe to follow service state changes
+    this.planeFollowService.followState$.subscribe((followState) => {
+      this.handleFollowStateChange(followState);
+    });
+
+    // Subscribe to follow service for follow requests
+    this.planeFollowService.follow$.subscribe((followRequest) => {
+      this.handleFollowRequest(followRequest);
+    });
     this.resultsOverlayComponent.filterPrefix.subscribe(
       (plane: PlaneLogEntry) => {
         const prefix = this.planeFilter.extractAirlinePrefix(plane.callsign);
@@ -565,6 +583,65 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.rainLayer.remove();
     }
     window.removeEventListener('click', this.globalTooltipClickHandler);
+  }
+
+  /**
+   * Handle follow state changes from PlaneFollowService
+   */
+  private handleFollowStateChange(followState: any): void {
+    // Update internal follow state based on service state
+    if (followState.mode === 'none') {
+      this.followNearest = false;
+      this.highlightedPlaneIcao = null;
+    } else if (followState.followedPlaneIcao) {
+      this.highlightedPlaneIcao = followState.followedPlaneIcao;
+
+      // Set followNearest based on mode type
+      this.followNearest = followState.mode !== 'manual';
+    }
+
+    // Update visual indicators
+    this.updateFollowedStyles();
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Handle follow requests from PlaneFollowService
+   */ private handleFollowRequest(followRequest: any): void {
+    // Prevent infinite recursion
+    if (this.isProcessingFollowRequest) {
+      return;
+    }
+
+    this.isProcessingFollowRequest = true;
+
+    try {
+      const {
+        plane,
+        fromShuffle = false,
+        fromNearest = false,
+        fromManual = false,
+      } = followRequest;
+
+      if (!plane) return;
+
+      // Convert to consistent format for centerOnPlane
+      const planeLogEntry = {
+        icao: plane.icao,
+        lat: plane.lat,
+        lon: plane.lon,
+        ...plane,
+      };
+
+      // Call existing centerOnPlane method with appropriate flags
+      this.centerOnPlane(
+        planeLogEntry,
+        fromShuffle || fromNearest,
+        fromShuffle
+      );
+    } finally {
+      this.isProcessingFollowRequest = false;
+    }
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
@@ -2026,7 +2103,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       pm.marker.setZIndexOffset(0); // Reset z-index offset
     }
   }
-
   /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
   centerOnPlane(
     plane: PlaneLogEntry | PlaneModel,
@@ -2042,10 +2118,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.unhighlightPlane(plane.icao);
       this.highlightedPlaneIcao = null;
       this.followNearest = false;
+
+      // Clear follow state
+      this.followCoordinatorService.clearAllModes();
+
       this.updatePlaneLog(Array.from(this.planeLog.values()));
       this.cdr.detectChanges();
       return;
+    } // Handle manual plane following - this disables automatic modes
+    if (!fromShuffle && !preserveFollowNearest) {
+      this.followCoordinatorService.followPlaneManually(plane as PlaneLogEntry);
     }
+
     // When manually centering/following a plane, disable automatic nearest following
     // and enable manual following instead
     this.followNearest = fromShuffle; // Only true if this is from shuffle mode
@@ -2098,7 +2182,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Could not highlight plane - marker missing or coordinates invalid would be logged here
     }
   }
-
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: any): void {
     // If this is a marker (not a real plane), do nothing
@@ -2106,15 +2189,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       return;
     }
     const isFromShuffle = !!plane.followMe;
-    // Always set followNearest to true for planes from shuffle
+
+    // Route through coordinator service for proper mode management
     if (isFromShuffle) {
+      // This is from shuffle mode, already managed by coordinator
       this.followNearest = true;
       // We need to call centerOnPlane with preserveFollowNearest=false so that
       // it doesn't skip updating the followNearest flag inside centerOnPlane
       this.centerOnPlane(plane, false, true); // pass fromShuffle=true
     } else {
-      // For regular plane selection, use the standard behavior
-      this.centerOnPlane(plane, false, false);
+      // Manual selection - route through coordinator for proper follow management
+      this.followCoordinatorService.followPlaneManually(plane);
     }
   }
   /** Handle centering map on selected airport coordinates */

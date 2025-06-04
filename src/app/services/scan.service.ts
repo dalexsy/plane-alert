@@ -6,6 +6,7 @@ import { BehaviorSubject, interval, Subscription } from 'rxjs';
 export class ScanService {
   private countdownSubject = new BehaviorSubject<number>(0);
   private activeSubject = new BehaviorSubject<boolean>(false);
+  private intervalSubject = new BehaviorSubject<number>(60);
   private tickSub: Subscription | null = null;
   private scanCallback: (() => void) | null = null;
   private intervalSeconds = 60;
@@ -20,16 +21,21 @@ export class ScanService {
     return this.activeSubject.asObservable();
   }
 
+  // Observable for scan interval changes to enable dynamic animation timing updates
+  get scanInterval$() {
+    return this.intervalSubject.asObservable();
+  }
+
   // Add getter for scan interval to be used by animation timing
   get scanInterval(): number {
     return this.intervalSeconds;
   }
-
   start(seconds: number, onScan: () => void): void {
     if (this.tickSub) {
       return;
     }
     this.intervalSeconds = seconds;
+    this.intervalSubject.next(seconds); // Emit interval change for animation timing updates
     this.scanCallback = onScan;
     this.current = this.intervalSeconds;
     this.countdownSubject.next(this.current);
@@ -68,9 +74,9 @@ export class ScanService {
       this.pendingForceScan = true; // Set flag if callback not yet available
     }
   }
-
   updateInterval(newSeconds: number): void {
     this.intervalSeconds = newSeconds;
+    this.intervalSubject.next(newSeconds); // Emit interval change for animation timing updates
     if (this.tickSub) {
       this.stop();
       this.start(this.intervalSeconds, this.scanCallback!);
