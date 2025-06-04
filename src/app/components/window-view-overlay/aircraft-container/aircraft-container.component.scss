@@ -15,7 +15,7 @@ $followed-plane-color: #00ffff;
 
 // Animation optimization for seamless movement
 // These properties ensure smooth transitions without visible delays
-$animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
+$animation-timing-function: linear;
 $animation-fill-mode: both;
 $animation-optimization: optimizeSpeed;
 
@@ -51,8 +51,12 @@ $animation-optimization: optimizeSpeed;
   font-family: "JetBrains Mono", monospace;
   color: #fff;
   // Smooth position and scale animations, but instant rotation changes
-  transition: none !important;
-  will-change: transform;
+  transition: left var(--plane-animation-duration, #{$plane-animation-duration})
+      $animation-timing-function,
+    bottom var(--plane-animation-duration, #{$plane-animation-duration})
+      $animation-timing-function,
+    transform $scale-transition-duration ease-out;
+  will-change: transform, left, bottom;
 
   // Performance optimizations for smooth animations
   backface-visibility: hidden;
@@ -64,8 +68,10 @@ $animation-optimization: optimizeSpeed;
   }
 
   &.skip-wrap {
-    // Disable transitions for wrap-around jumps
-    transition: transform $scale-transition-duration ease-out !important;
+    // Disable transitions for wrap-around jumps or use a very short one for scale
+    transition: transform $scale-transition-duration ease-out !important; // Keep scale transition
+    // Or, to disable all transitions on wrap:
+    // transition: none !important;
   }
 
   // Marker-specific styling

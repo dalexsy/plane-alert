@@ -107,12 +107,13 @@ export class PlaneListItemComponent implements OnChanges {
         const airportCenter = circle.getLatLng();
         const airportRadius = circle.getRadius(); // in meters
 
-        const distance = haversineDistance(
-          this.plane.lat!,
-          this.plane.lon!,
-          airportCenter.lat,
-          airportCenter.lng
-        ) * 1000; // convert km to meters
+        const distance =
+          haversineDistance(
+            this.plane.lat!,
+            this.plane.lon!,
+            airportCenter.lat,
+            airportCenter.lng
+          ) * 1000; // convert km to meters
 
         if (distance <= airportRadius) {
           return true;
@@ -198,25 +199,29 @@ export class PlaneListItemComponent implements OnChanges {
         lon: this.plane.airportLon,
       });
     }
-  }  ngOnChanges(changes: SimpleChanges): void {
+  }
+  ngOnChanges(changes: SimpleChanges): void {
     // Announce new planes at clicked airports only once per airport name
     if (this.plane.isNew && this.hostAirportClicked) {
       const airport = this.plane.airportName || 'Airport';
       // detect German words or umlauts to choose German locale
-      const isGerman = /[äöüß]|flughafen|hauptbahnhof|berlin|münchen|frankfurt|hamburg|düsseldorf|köln|stuttgart|hannover|nürnberg|dortmund|essen|bremen|dresden|leipzig/i.test(airport);
+      const isGerman =
+        /[äöüß]|flug|haupt|berlin|münchen|frankfurt|hamburg|düsseldorf|köln|stuttgart|hannover|nürnberg|dortmund|essen|bremen|dresden|leipzig/i.test(
+          airport
+        );
       const lang = isGerman ? 'de-DE' : navigator.language;
-      
+
       // Preprocess text for better pronunciation
       const speakableText = this.preprocessForSpeech(airport, isGerman);
-      
+
       // Debug log to see what's being spoken
       console.log('TTS Debug:', {
         original: airport,
         speakable: speakableText,
         language: lang,
-        isGerman: isGerman
+        isGerman: isGerman,
       });
-      
+
       this.tts.speakOnce(airport, speakableText, lang);
     }
   }
@@ -224,11 +229,8 @@ export class PlaneListItemComponent implements OnChanges {
   /** Preprocess text for better text-to-speech pronunciation */
   private preprocessForSpeech(text: string, isGerman: boolean): string {
     if (!isGerman) return text;
-    
+
     // Fix common German pronunciation issues
-    return text
-      .replace(/flughafen/gi, 'Flug-hafen') // Add hyphen for better pronunciation
-      .replace(/hauptbahnhof/gi, 'Haupt-bahnhof')
-      .replace(/zentralflughafen/gi, 'Zentral-flughafen');
+    return text;
   }
 }
