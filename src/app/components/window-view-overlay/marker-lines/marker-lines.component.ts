@@ -7,7 +7,7 @@ import { WindowViewPlane } from '../window-view-overlay.component';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './marker-lines.component.html',
-  styleUrl: './marker-lines.component.scss',
+  styleUrls: ['./marker-lines.component.scss'],
 })
 export class MarkerLinesComponent {
   @Input() markerPlanes: WindowViewPlane[] = [];

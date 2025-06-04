@@ -1306,7 +1306,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (!candidate) {
       let minDist = Infinity;
       for (const plane of this.planeLog.values()) {
-        if (plane.filteredOut || plane.lat == null || plane.lon == null)
+        // Exclude filtered, unpositioned, or unknown devices
+        if (
+          plane.filteredOut ||
+          plane.lat == null ||
+          plane.lon == null ||
+          plane.isUnknown
+        )
           continue;
         const d = haversineDistance(centerLat, centerLon, plane.lat, plane.lon);
         if (d < minDist) {
@@ -2691,7 +2697,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public getMoonBackgroundColor(): string {
     return this.isDaytime()
       ? 'rgba(255, 255, 255, 0.6)'
-      : 'rgba(135, 206, 250, 0.6)';
+      : 'rgba(16, 25, 55, 1)';
   }
 
   public get observerLat() {

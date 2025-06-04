@@ -17,6 +17,7 @@ import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
+import { UnknownListService } from './unknown-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
@@ -69,6 +70,7 @@ export class PlaneFinderService {
     private settings: SettingsService,
     private helicopterListService: HelicopterListService,
     private specialListService: SpecialListService,
+    private unknownListService: UnknownListService,
     private operatorCallSignService: OperatorCallSignService,
     private militaryPrefixService: MilitaryPrefixService,
     private altitudeColor: AltitudeColorService,
@@ -524,6 +526,8 @@ export class PlaneFinderService {
   }> {
     // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
+    // Refresh asset-based lists
+    await this.unknownListService.refreshUnknownList(manualUpdate);
     await this.specialListService.refreshSpecialList(manualUpdate);
     // Load any configured military prefixes
     await this.militaryPrefixService.loadPrefixes();
@@ -619,6 +623,7 @@ export class PlaneFinderService {
         }
 
         const isSpecial = this.specialListService.isSpecial(id);
+        const isUnknown = this.unknownListService.isUnknown(id);
 
         // Define isFiltered early after getting necessary info
         // Treat any callsign matching configured prefixes as military
@@ -702,6 +707,7 @@ export class PlaneFinderService {
           planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
           planeModelInstance.isSpecial = isSpecial;
           planeModelInstance.isMilitary = isMilitary; // update forced military flag
+          planeModelInstance.isUnknown = isUnknown;
         } // Update PlaneModel with potentially fetched aircraft data
         // Determine operator via prefix mapping or fallback to ownop from aircraft DB
         const prefixOperator =
@@ -717,7 +723,8 @@ export class PlaneFinderService {
         const cardinal = getCardinalDirection(bearing);
         const arrow = getArrowForDirection(cardinal);
         planeModelInstance.bearing = bearing;
-        planeModelInstance.cardinal = cardinal;        planeModelInstance.arrow = arrow;
+        planeModelInstance.cardinal = cardinal;
+        planeModelInstance.arrow = arrow;
         // Assign current altitude for overlay and shuffle mode
         planeModelInstance.altitude = altitude;
         // Store vertical rate from API for plane tilting functionality
@@ -799,24 +806,24 @@ export class PlaneFinderService {
           id === followedIcao
         );
         const { marker } = createOrUpdatePlaneMarker(
-          planeModelInstance.marker, // Pass existing marker from model
+          planeModelInstance.marker,
           map,
           lat,
           lon,
-          trackForMarker, // Use the determined trackForMarker
+          trackForMarker,
           extraStyle,
           isNew,
           onGround,
           tooltip,
-          customPlaneIcon, // Pass custom icon HTML if ICAO matches
+          customPlaneIcon,
           isMilitary,
           model,
           this.helicopterIdentificationService.isHelicopter(id, model),
           isSpecial,
-          altitude, // pass altitude for shadow scaling
-          followed, // <-- pass followed flag
-          this.settings.interval, // <-- pass scan interval for smooth transition timing
-          id // <-- pass ICAO for debugging
+          isUnknown,
+          altitude,
+          followed,
+          this.settings.interval
         );
         planeModelInstance.marker = marker; // Update marker reference on model
 

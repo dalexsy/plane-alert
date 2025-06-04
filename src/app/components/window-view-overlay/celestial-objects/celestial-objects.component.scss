@@ -81,7 +81,7 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
   }
 
   .moon-dark {
-    fill: #1a1a1a;
+    fill: #000; // pure black for nighttime dark side
   }
 
   .moon-rim {

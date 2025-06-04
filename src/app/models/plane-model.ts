@@ -33,6 +33,7 @@ export class PlaneModel implements Plane {
   onGround?: boolean;
   isSpecial?: boolean;
   isMilitary?: boolean;
+  isUnknown?: boolean;
   /** Distance from home in km, for closest-plane overlay */
   distanceKm?: number;
   airportName?: string; // Optional airport name assigned in MapComponent

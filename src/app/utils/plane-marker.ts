@@ -59,6 +59,7 @@ export function createOrUpdatePlaneMarker(
   model: string = '',
   isCustomHelicopter: boolean = false,
   isSpecial: boolean = false,
+  isUnknown: boolean = false,
   altitude: number | null = null,
   followed: boolean = false,
   scanInterval: number = 10, // Scan interval in seconds for smooth transition timing
@@ -71,10 +72,11 @@ export function createOrUpdatePlaneMarker(
   const iconData = isCopter
     ? { path: '', iconType: 'copter' as const }
     : getIconPathForModel(model);
-  // Only render SVG for non-helicopters
-  const iconInner = !isCopter
-    ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
-    : '';
+  // Only render inline SVG for non-helicopters that are not unknown devices
+  const iconInner =
+    !isCopter && !isUnknown
+      ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
+      : '';
 
   // --- Accurate shadow calculation ---
   // Get sun position at the marker's location
@@ -104,17 +106,17 @@ export function createOrUpdatePlaneMarker(
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon
   // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class
-  const classString = `plane-marker ${!isCopter ? 'svg-plane ' : ''}${
-    !isCopter ? iconData.iconType + ' ' : ''
-  }${
+  const classString = `plane-marker ${
+    !isCopter && !isUnknown ? 'svg-plane ' : ''
+  }${!isCopter && !isUnknown ? iconData.iconType + ' ' : ''}${
     isNew && isGrounded
       ? 'new-and-grounded'
       : isGrounded
       ? 'grounded-plane'
       : ''
   } ${isMilitary ? 'military-plane' : ''} ${isCopter ? 'copter-plane' : ''}${
-    followed ? ' followed-plane' : ''
-  }`;
+    isUnknown ? ' unknown-plane' : ''
+  }${followed ? ' followed-plane' : ''}`;
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation
   }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;

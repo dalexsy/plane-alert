@@ -15,4 +15,23 @@
       [style.left]="plane.x + '%'"
     ></div>
   </ng-container>
+
+  <!-- Label for mid-point markers -->
+  <ng-container
+    *ngIf="
+      plane.isMarker &&
+      (plane.callsign === 'Balcony' || plane.callsign === 'Streetside')
+    "
+  >
+    <div
+      class="marker-label"
+      [ngClass]="{
+        'balcony-label': plane.callsign === 'Balcony',
+        'streetside-label': plane.callsign === 'Streetside'
+      }"
+      [style.left]="plane.x + '%'"
+    >
+      {{ plane.callsign }}
+    </div>
+  </ng-container>
 </ng-container>

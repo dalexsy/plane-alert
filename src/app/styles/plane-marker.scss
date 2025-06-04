@@ -96,6 +96,14 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     animation: none;
   }
 
+  // Unknown device icon styling
+  &.unknown-plane::before {
+    content: "device_unknown";
+    font-family: "Material Symbols Sharp", "Material Icons";
+    font-size: 1.5rem;
+    color: #ffcc00;
+  }
+
   &.followed-plane {
     stroke: rgba(0, 255, 255, 0.5);
   }
