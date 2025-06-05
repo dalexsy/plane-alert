@@ -201,29 +201,65 @@ export class PlaneListItemComponent implements OnChanges {
     }
   }
   ngOnChanges(changes: SimpleChanges): void {
-    // Announce new planes at clicked airports only once per airport name
-    if (this.plane.isNew && this.hostAirportClicked) {
-      const airport = this.plane.airportName || 'Airport';
-      // detect German words or umlauts to choose German locale
-      const isGerman =
-        /[äöüß]|flug|haupt|berlin|münchen|frankfurt|hamburg|düsseldorf|köln|stuttgart|hannover|nürnberg|dortmund|essen|bremen|dresden|leipzig/i.test(
-          airport
-        );
-      const lang = isGerman ? 'de-DE' : navigator.language;
-
-      // Preprocess text for better pronunciation
-      const speakableText = this.preprocessForSpeech(airport, isGerman);
-
-      // Debug log to see what's being spoken
-      console.log('TTS Debug:', {
-        original: airport,
-        speakable: speakableText,
-        language: lang,
-        isGerman: isGerman,
-      });
-
-      this.tts.speakOnce(airport, speakableText, lang);
+    // Announce new planes - prioritize military announcements, then airports
+    if (this.plane.isNew) {
+      // Military aircraft announcements (highest priority)
+      if (this.plane.isMilitary) {
+        this.announceMilitaryAircraft();
+      }
+      // Airport announcements for planes at clicked airports
+      else if (this.hostAirportClicked) {
+        this.announceAirportArrival();
+      }
     }
+  }
+
+  /** Announce military aircraft with operator and model information */
+  private announceMilitaryAircraft(): void {
+    let announcement = '';
+    const callsign = this.plane.callsign?.trim();
+    const model = this.plane.model?.trim();
+    const operator = this.plane.operator?.trim();
+
+    // Build announcement based on available information
+    if (operator && model) {
+      announcement = `${operator} ${model}`;
+    } else if (operator) {
+      announcement = operator;
+    } else if (model) {
+      // Try to determine country for fallback operator
+      const origin = this.plane.origin;
+      const countryName = origin
+        ? this.countryService.getCountryName(origin)
+        : null;
+      if (countryName && countryName !== 'Unknown') {
+        announcement = `${countryName} military ${model}`;
+      } else {
+        announcement = `Military ${model}`;
+      }
+    } else if (callsign) {
+      announcement = `Military aircraft ${callsign}`;
+    } else {
+      announcement = 'Military aircraft';
+    } // Use a unique key per plane to avoid repeating the same plane
+    const ttsKey = `military-${this.plane.icao}`;
+    const lang = navigator.language;
+
+    this.tts.speakOnce(ttsKey, announcement, lang);
+  }
+
+  /** Announce airport arrival for non-military planes */
+  private announceAirportArrival(): void {
+    const airport = this.plane.airportName || 'Airport';
+    // detect German words or umlauts to choose German locale
+    const isGerman =
+      /[äöüß]|flug|haupt|berlin|münchen|frankfurt|hamburg|düsseldorf|köln|stuttgart|hannover|nürnberg|dortmund|essen|bremen|dresden|leipzig/i.test(
+        airport
+      );
+    const lang = isGerman ? 'de-DE' : navigator.language; // Preprocess text for better pronunciation
+    const speakableText = this.preprocessForSpeech(airport, isGerman);
+
+    this.tts.speakOnce(airport, speakableText, lang);
   }
 
   /** Preprocess text for better text-to-speech pronunciation */
