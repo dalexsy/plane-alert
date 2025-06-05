@@ -143,14 +143,21 @@ export class AutoFollowService implements OnDestroy {
       false
     );
   }
-
   /** Pick the nearest plane from the filtered list */
   private pickNearestPlane(planeList: PlaneLogEntry[]): void {
     const config = this.configSubject.value;
-    const pool = this.getFilteredPlanes(planeList, config);
+    let pool = this.getFilteredPlanes(planeList, config);
 
     if (pool.length === 0) {
       return;
+    }
+
+    // If military priority enabled, try military/special first
+    if (config.militaryPriority) {
+      const priority = pool.filter((p) => p.isMilitary || p.isSpecial);
+      if (priority.length > 0) {
+        pool = priority;
+      }
     }
 
     const centerLat = this.settings.lat ?? 0;
