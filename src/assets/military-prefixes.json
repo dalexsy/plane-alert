@@ -30,7 +30,6 @@
   "ROCAF",
   "PLAAF",
   "VPAF",
-  "EAF",
   "LAF",
   "BDF",
   "RNZAF",
@@ -55,5 +54,6 @@
   "JOKER",
   "MIT",
   "GAM",
-  "HAW"
+  "HAWK",
+  "TITAN"
 ]
