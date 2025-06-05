@@ -292,6 +292,7 @@ $grayscale-faded: 0.7;
 .direction-info {
   display: grid;
   grid-template-columns: auto auto $space-lg auto;
+  align-items: center;
   gap: $space-sm;
   justify-items: end;
   text-align: right;
