@@ -232,20 +232,62 @@ $animation-optimization: optimizeSpeed;
     border-radius: 0.25rem;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.49);
   }
+  // Tooltip-style background for labels with operator/model info (close planes)
+  &.has-details {
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 3px;
+    padding: 3px 5px;
+    border: 3px solid #333;
+    color: white;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgb(0 0 0);
+    outline: 1px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(0.5rem);
+    position: relative;
 
-  // Operator and model details for close planes
-  .plane-details {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 2px;
+    // Tooltip tail pointing downward (at the bottom)
+    &::after {
+      content: "";
+      position: absolute;
+      top: 106%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid rgba(0, 0, 0, 0.7);
+      z-index: 1;
+    }
 
-    .operator-model {
-      font-size: 0.65rem;
-      opacity: 0.85;
-      color: #e0e0e0;
-      text-align: center;
-      line-height: 1.1;
+    // Tooltip tail outline (white)
+    &::before {
+      content: "";
+      position: absolute;
+      top: 106%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 7px solid rgba(255, 255, 255, 0.8);
+      z-index: 0;
+    }
+
+    .plane-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 2px;
+
+      .operator-model {
+        font-size: 0.65rem;
+        opacity: 0.85;
+        color: white;
+        text-align: center;
+        line-height: 1.1;
+      }
     }
   }
 }
