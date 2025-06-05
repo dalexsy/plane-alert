@@ -98,10 +98,10 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
 
   // Unknown device icon styling
   &.unknown-plane::before {
-    content: "device_unknown";
+    content: "question_mark";
     font-family: "Material Symbols Sharp", "Material Icons";
     font-size: 1.5rem;
-    color: #ffcc00;
+    color: lightgrey;
   }
 
   &.followed-plane {

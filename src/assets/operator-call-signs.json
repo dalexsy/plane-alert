@@ -632,7 +632,7 @@
   "SWA": "Southwest Airlines",
   "SWG": "Sunwing Airlines",
   "SWR": "Swiss International Air Lines",
-  "SWT": "Swat Airlines",
+  "SWT": "Swiftair",
   "SWV": "Swazi Express Airways",
   "SXS": "SunExpress",
   "SYA": "Sky Angkor",
@@ -917,5 +917,6 @@
   "NBT": "Norse Atlantic Airways",
   "GFM": "Grafair",
   "PJV": "Premium Jet",
-  "SPS": "Smart Aviation"
+  "SPS": "Smart Aviation",
+  "SRR": "Star Air"
 }

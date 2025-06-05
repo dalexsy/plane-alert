@@ -22,6 +22,7 @@ import {
   PlaneLogEntry,
 } from '../components/results-overlay/results-overlay.component';
 import { CountryService } from '../services/country.service';
+import { AircraftCountryService } from '../services/aircraft-country.service';
 import { PlaneFinderService } from '../services/plane-finder.service';
 import { PlaneFilterService } from '../services/plane-filter.service';
 import { AircraftDbService } from '../services/aircraft-db.service';
@@ -56,6 +57,8 @@ import { LocationContextService } from '../services/location-context.service';
 import { PlaneFollowService } from '../services/plane-follow.service';
 import { AutoFollowService } from '../services/auto-follow.service';
 import { FollowCoordinatorService } from '../services/follow-coordinator.service';
+import { TtsService } from '../services/tts.service';
+import { OperatorCallSignService } from '../services/operator-call-sign.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
@@ -213,6 +216,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
+    private aircraftCountryService: AircraftCountryService,
     private mapService: MapService,
     private planeFinder: PlaneFinderService,
     private planeFilter: PlaneFilterService,
@@ -233,7 +237,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private debouncedClickService: DebouncedClickService,
     private planeFollowService: PlaneFollowService,
     private autoFollowService: AutoFollowService,
-    private followCoordinatorService: FollowCoordinatorService
+    private followCoordinatorService: FollowCoordinatorService,
+    private tts: TtsService,
+    private operatorCallSignService: OperatorCallSignService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -1170,6 +1176,96 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           playHerculesAlert();
         } else if (hasAlertPlanes) {
           playAlertSound();
+        } // Announce operator for new military planes
+        const newMilitaryPlanes = newVisible.filter(
+          (p) =>
+            this.aircraftDb.lookup(p.icao)?.mil ||
+            this.militaryPrefixService.isMilitaryCallsign(p.callsign)
+        );
+
+        // Group planes by operator for natural speech announcements
+        const operatorGroups: Map<string, string[]> = new Map();
+
+        for (const plane of newMilitaryPlanes) {
+          // Try to get operator information in order of preference
+          let baseOperator =
+            this.operatorCallSignService.getOperatorWithLogging(
+              plane.callsign
+            ) || plane.operator;
+
+          if (!baseOperator) {
+            // No operator found, create a more informative fallback
+            // Use sophisticated country detection with registration and ICAO hex
+            const countryDetection =
+              this.aircraftCountryService.getAircraftCountryDetailed(
+                plane.callsign, // registration/callsign
+                plane.icao, // ICAO hex
+                plane.origin // API-provided country
+              );
+
+            let countryName: string | undefined;
+
+            // Only use country detection if confidence is medium or high
+            if (
+              countryDetection.confidence !== 'low' &&
+              countryDetection.countryCode !== 'Unknown'
+            ) {
+              countryName = this.countryService.getCountryName(
+                countryDetection.countryCode
+              );
+            }
+
+            // Fallback to plane.origin if sophisticated detection didn't work
+            if (!countryName && plane.origin) {
+              countryName = this.countryService.getCountryName(plane.origin);
+            }
+
+            if (countryName && countryName !== 'Unknown') {
+              baseOperator = `${countryName} military`;
+            } else {
+              baseOperator = 'Military';
+            }
+          }
+
+          // Get the model for this plane
+          const model = plane.model?.trim();
+
+          // Group by operator
+          if (!operatorGroups.has(baseOperator)) {
+            operatorGroups.set(baseOperator, []);
+          }
+
+          // Add model to the group if we have one and it's not already there
+          if (model && !operatorGroups.get(baseOperator)!.includes(model)) {
+            operatorGroups.get(baseOperator)!.push(model);
+          }
+        }
+
+        // Create natural speech announcements for each operator group
+        for (const [operator, models] of operatorGroups.entries()) {
+          let announcement: string;
+
+          if (models.length === 0) {
+            // No models, just announce the operator
+            announcement =
+              operator === 'Military' ? 'Military aircraft' : operator;
+          } else if (models.length === 1) {
+            // Single model
+            announcement = `${operator} ${models[0]}`;
+          } else if (models.length === 2) {
+            // Two models: "German Army C-130 and Eurofighter"
+            announcement = `${operator} ${models[0]} and ${models[1]}`;
+          } else {
+            // Multiple models: "German Army C-130, Eurofighter, and F-16"
+            const lastModel = models[models.length - 1];
+            const otherModels = models.slice(0, -1).join(', ');
+            announcement = `${operator} ${otherModels}, and ${lastModel}`;
+          }
+
+          // Use the operator as key to avoid repeating the same operator group
+          const ttsKey = `military-operator-${operator}`;
+          const lang = navigator.language;
+          this.tts.speakOnce(ttsKey, announcement, lang);
         }
         const existing = new Set(currentIDs);
         for (const [id, plane] of this.planeLog.entries()) {
