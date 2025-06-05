@@ -191,7 +191,6 @@ export class AutoFollowService implements OnDestroy {
       false
     );
   }
-
   /** Get filtered plane list based on configuration */
   private getFilteredPlanes(
     planeList: PlaneLogEntry[],
@@ -205,6 +204,11 @@ export class AutoFollowService implements OnDestroy {
 
       // Must not be filtered out
       if (plane.filteredOut) {
+        return false;
+      }
+
+      // Exclude unknown objects
+      if (plane.isUnknown) {
         return false;
       }
 

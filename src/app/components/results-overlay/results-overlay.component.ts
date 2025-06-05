@@ -56,6 +56,7 @@ export interface PlaneLogEntry {
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
   isSpecial?: boolean; // Add special plane flag
+  isUnknown?: boolean; // Add unknown plane flag
   onGround?: boolean; // Indicates if plane is on the ground
   airportName?: string; // Name of airport if plane is on ground near one
   airportCode?: string; // IATA code for airport if available

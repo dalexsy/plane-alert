@@ -825,7 +825,7 @@
   "HGB": "Greater Bay Airlines",
   "PIK": "Polizei Sachsen-Anhalt",
   "JFL": "Jet Fly",
-  "SPA": "Private",
+  "SPA": "United States Air Force",
   "FRO": "Frost",
   "T7T": "Private",
   "JTD": "Jettime",
@@ -918,5 +918,6 @@
   "GFM": "Grafair",
   "PJV": "Premium Jet",
   "SPS": "Smart Aviation",
-  "SRR": "Star Air"
+  "SRR": "Star Air",
+  "VAN": "Armée de l'Air"
 }
