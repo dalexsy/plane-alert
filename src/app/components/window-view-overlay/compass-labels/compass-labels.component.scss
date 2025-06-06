@@ -19,6 +19,43 @@ $compass-label-color: #ffe066;
   justify-content: space-between;
   color: $compass-label-color;
   pointer-events: none;
+  position: relative;
+  // Chimney decorations
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 1.5rem;
+    width: 0.75rem;
+    height: 0.8rem;
+    background-color: var(--chimney-bg);
+
+    mix-blend-mode: none;
+
+    // Brick stripes over roof background
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 3px,
+        rgba(255, 255, 255, 0.2) 3px,
+        rgba(255, 255, 255, 0.2) 4px
+      ),
+      linear-gradient(
+        to right,
+        transparent 47%,
+        rgba(255, 255, 255, 0.2) 47%,
+        rgba(255, 255, 255, 0.2) 53%,
+        transparent 53%
+      );
+    background-size: 100% 4px, 100% 100%;
+  }
+
+  &::before {
+    left: 22%;
+  }
+  &::after {
+    left: 40%;
+  }
 
   // Shingle roof pattern background
   background-image: linear-gradient(

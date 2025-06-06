@@ -137,10 +137,11 @@ export class WindowViewOverlayComponent
     }
   }
   // unified altitude ticks use service default maxAltitude
-  /** CSS background gradient reflecting current sky color */
-  public skyBackground: string = '';
-  public compassBackground: string =
-    '#ff9753'; /** Cloud tile URL for window view background */
+  /** CSS background gradient reflecting current sky color */ public skyBackground: string =
+    '';
+  public compassBackground: string = '#ff9753';
+  public chimneyBackground: string = '#8b4513';
+  /** Cloud tile URL for window view background */
   windowCloudUrl: string | null = null;
   /** Cloud filter styles for night-time darkening */
   public cloudFilter: string = 'none';
@@ -758,7 +759,39 @@ export class WindowViewOverlayComponent
         litBaseRgb.b * materialRetention + horizonRgb.b * atmosphericInfluence
       ),
     }; // Set the final blended roof color (solid, no transparency)
-    this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`;
+    this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`; // Calculate chimney color with same lighting but different base
+    const chimneyBaseRgb = this.parseColor('#8b4513'); // Saddle brown base
+    const litChimneyRgb = {
+      r: Math.round(
+        chimneyBaseRgb.r * lightIntensity +
+          (255 - chimneyBaseRgb.r) * ambientLight * 0.1
+      ),
+      g: Math.round(
+        chimneyBaseRgb.g * lightIntensity +
+          (255 - chimneyBaseRgb.g) * ambientLight * 0.1
+      ),
+      b: Math.round(
+        chimneyBaseRgb.b * lightIntensity +
+          (255 - chimneyBaseRgb.b) * ambientLight * 0.1
+      ),
+    };
+
+    const blendedChimneyRgb = {
+      r: Math.round(
+        litChimneyRgb.r * materialRetention +
+          horizonRgb.r * atmosphericInfluence
+      ),
+      g: Math.round(
+        litChimneyRgb.g * materialRetention +
+          horizonRgb.g * atmosphericInfluence
+      ),
+      b: Math.round(
+        litChimneyRgb.b * materialRetention +
+          horizonRgb.b * atmosphericInfluence
+      ),
+    };
+
+    this.chimneyBackground = `rgb(${blendedChimneyRgb.r}, ${blendedChimneyRgb.g}, ${blendedChimneyRgb.b})`;
   }
 
   /** Parse color string to RGB values */
