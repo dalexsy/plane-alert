@@ -221,28 +221,15 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           end,
           band.innerKm,
           band.outerKm
-        ); // Style each segment - conditional stroke based on home/away
-        if (this.isAtHome) {
-          // At home: show stroke for cone sections
-          segment.setStyle({
-            color: bandColor,
-            fillColor: bandColor,
-            fillOpacity: 0.2 * this.opacity,
-            weight: 1.5,
-            opacity: 0.6 * this.opacity,
-            stroke: true,
-          });
-        } else {
-          // Away from home: show stroke for rings but avoid connecting lines
-          segment.setStyle({
-            color: bandColor,
-            fillColor: bandColor,
-            fillOpacity: 0.2 * this.opacity,
-            weight: 1.5,
-            opacity: 0.6 * this.opacity,
-            stroke: true,
-          });
-        }
+        ); // Style each segment - same styling for both home and away
+        segment.setStyle({
+          color: bandColor,
+          fillColor: bandColor,
+          fillOpacity: 0.2 * this.opacity,
+          weight: this.isAtHome ? 1.5 : 0.8, // Thinner border when away from home
+          opacity: 0.6 * this.opacity, // Border opacity same as home for full rings
+          stroke: true,
+        });
         segment.addTo(this.map);
         this.visualCones.push(segment);
         segment.bringToFront();
@@ -441,7 +428,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     outerKm: number
   ): L.Polygon {
     const pts: L.LatLng[] = [];
-    const step = 2; // Smaller step for smoother curves    // Create outer arc
+    const step = 1; // Finer step for smoother and more aligned boundaries    // Create outer arc
     for (let angle = startAngle; angle <= endAngle; angle += step) {
       const [olat, olon] = this.computeDestinationPoint(
         lat,
@@ -476,15 +463,13 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           angle
         );
         innerRing.push(L.latLng(ilat, ilon));
-      }
-
-      // Create polygon with hole: [outerRing, innerRing]
+      } // Create polygon with hole: [outerRing, innerRing]
       return L.polygon([outerRing, innerRing], {
         interactive: false,
         className: 'visual-cone',
         fill: true,
-        stroke: true,
-        weight: 1.5,
+        stroke: true, // Enable stroke but we'll control it with styling
+        weight: 1,
       });
     }
 

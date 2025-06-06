@@ -167,9 +167,9 @@ export class WindowViewOverlayComponent
   @Input() highlightedPlaneIcao: string | null = null;
   /** Planes to display in window view */
   @Input() windowViewPlanes: WindowViewPlane[] = [];
-
   @Input() observerLat!: number;
   @Input() observerLon!: number;
+  @Input() isAtHome: boolean = false;
 
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
 
@@ -538,6 +538,11 @@ export class WindowViewOverlayComponent
 
   /** Compute marker spans (Balcony and Streetside) to determine dim regions */
   private computeSpans(): void {
+    // Skip dimming logic when not at home
+    if (!this.isAtHome) {
+      this.dimSegments = [];
+      return;
+    }
     const planes = this.windowViewPlanes.filter((p) => p.isMarker);
     const bStart = planes.find(
       (p) => p.callsign.startsWith('Balcony') && p.callsign.endsWith('Start')
@@ -914,10 +919,20 @@ export class WindowViewOverlayComponent
   public trackByPlaneIcao(index: number, plane: WindowViewPlane): string {
     return plane.icao || plane.callsign || `${index}`;
   }
-
   /** Get only marker planes for marker lines component */
   public getMarkerPlanes(): WindowViewPlane[] {
-    return this.windowViewPlanes.filter((plane) => plane.isMarker);
+    let markerPlanes = this.windowViewPlanes.filter((plane) => plane.isMarker);
+
+    // Filter out balcony/streetside markers when not at home
+    if (!this.isAtHome) {
+      markerPlanes = markerPlanes.filter(
+        (plane) =>
+          !plane.callsign.startsWith('Balcony') &&
+          !plane.callsign.startsWith('Streetside')
+      );
+    }
+
+    return markerPlanes;
   }
 
   /** Get only celestial objects for celestial objects component */
