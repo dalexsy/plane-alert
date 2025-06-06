@@ -12,7 +12,7 @@
   flex-direction: column;
   max-height: calc(100vh - 12rem);
   height: fit-content;
-  min-height: 20rem;
+  min-height: 17rem;
   overflow: visible; // allow top-buttons to show outside bounds
   gap: 0.5rem;
   border-radius: 0 0.5rem 0.5rem 0.5rem;
@@ -129,7 +129,6 @@
     }
   } // Middle section should fill remaining space and constrain children
   .middle-section {
-    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -195,18 +194,15 @@
   }
   // Sky list fills remaining space
   .plane-section:first-of-type {
-    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
     .plane-list-wrapper {
-      flex: 1 1 auto;
       display: flex;
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
       .plane-list {
-        flex: 1 1 auto;
         overflow-y: auto;
       }
     }
@@ -230,7 +226,6 @@
     min-height: 0; // allow it to shrink below intrinsic size
     overflow: hidden; // prevent any overflow from this container
     .plane-list-wrapper {
-      flex: 1 1 auto;
       min-height: 0; // allow shrinking
       max-height: 100%; // fill container height
       overflow-y: auto; // scroll internally
