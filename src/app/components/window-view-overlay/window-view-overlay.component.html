@@ -10,6 +10,20 @@
     [cloudFilter]="cloudFilter"
     [cloudBacklightClass]="cloudBacklightClass"
   ></app-sky-background>
+  <!-- Sun sky gradient positioned to follow the sun -->
+  <div
+    *ngIf="getSunObject()"
+    class="sun-sky-gradient"
+    [ngClass]="{
+      'below-horizon': getSunObject()?.belowHorizon,
+      daytime: isDaytime() && !getSunObject()?.belowHorizon,
+      twilight: !isDaytime() && !getSunObject()?.belowHorizon,
+      night: getSunObject()?.belowHorizon,
+      'low-sun': getSunElevationAngle() < 15 && getSunElevationAngle() > -6
+    }"
+    [style.left]="getSunObject()?.x + '%'"
+    [style.bottom]="'calc(' + getSunObject()?.y + '% - 0.5rem)'"
+  ></div>
 
   <!-- Rain overlay -->
   <app-rain-overlay></app-rain-overlay>

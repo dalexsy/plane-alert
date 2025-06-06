@@ -14,10 +14,15 @@
         <!-- Sun: simple filled circle -->
         <span
           *ngIf="plane.celestialBodyType === 'sun'"
-          class="celestial-circle"
-          [ngClass]="{ 'below-horizon': plane.belowHorizon }"
-          aria-label="Sun marker"
-        ></span>
+          style="position: relative; display: inline-block"
+        >
+          <!-- Sun circle -->
+          <span
+            class="celestial-circle"
+            [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+            aria-label="Sun marker"
+          ></span>
+        </span>
         <!-- Moon: actual phase representation -->
         <span
           *ngIf="plane.celestialBodyType === 'moon'"

@@ -39,6 +39,8 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
   border-radius: 50%;
   display: inline-block;
   margin-bottom: 2px;
+  position: relative;
+  z-index: 2; // Above the gradient
 
   // Sun styling
   background: #ffe066;

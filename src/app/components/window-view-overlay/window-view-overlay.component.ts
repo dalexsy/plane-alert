@@ -948,6 +948,22 @@ export class WindowViewOverlayComponent
     return !!(sun && !sun.belowHorizon && sunElevation > 0);
   }
 
+  /** Get the sun object for template use */
+  public getSunObject(): WindowViewPlane | undefined {
+    return this.windowViewPlanes.find(
+      (p) => p.isCelestial === true && p.celestialBodyType === 'sun'
+    );
+  }
+
+  /** Get the sun elevation angle for template use */
+  public getSunElevationAngle(): number {
+    const sun = this.getSunObject();
+    if (sun && !sun.belowHorizon) {
+      return (sun.y / 100) * 90;
+    }
+    return sun ? -10 : -20; // Approximate below-horizon angle
+  }
+
   /** TrackBy function to prevent unnecessary DOM re-creation during animations */
   public trackByPlaneIcao(index: number, plane: WindowViewPlane): string {
     return plane.icao || plane.callsign || `${index}`;

@@ -44,10 +44,108 @@ $text-shadow-color: #000;
 
   // Typography
   text-shadow: -1px -1px 0 $text-shadow-color, 1px -1px 0 $text-shadow-color,
-    -1px 1px 0 $text-shadow-color, 1px 1px 0 $text-shadow-color;
-
-  // 3D perspective setup
+    -1px 1px 0 $text-shadow-color, 1px 1px 0 $text-shadow-color; // 3D perspective setup
   perspective: $overlay-perspective;
   transform-style: preserve-3d;
   pointer-events: none;
+}
+
+// =============================================================================
+// Sun Sky Gradient - Simulates atmospheric influence
+// =============================================================================
+
+.sun-sky-gradient {
+  position: absolute;
+  width: 60rem;
+  height: 15rem;
+  border-radius: 50%;
+  transform: translate(-50%, 50%); // Center horizontally on sun position
+  z-index: 0.8; // Below celestial objects but above sky background
+  pointer-events: none;
+  transition: all 0.5s ease-in-out;
+
+  // Daytime gradient - warm golden glow with brightening effect
+  &.daytime {
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 245, 180, 0.7) 15%,
+      rgba(255, 220, 120, 0.5) 30%,
+      rgba(255, 200, 100, 0.3) 50%,
+      rgba(255, 180, 80, 0.15) 70%,
+      transparent 100%
+    );
+    filter: blur(8px);
+    mix-blend-mode: screen;
+  }
+
+  // Twilight gradient - warm orange/red colors with brightening effect
+  &.twilight {
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 240, 180, 1) 8%,
+      rgba(255, 200, 120, 0.8) 20%,
+      rgba(255, 160, 80, 0.6) 35%,
+      rgba(255, 120, 60, 0.4) 50%,
+      rgba(200, 80, 120, 0.25) 70%,
+      rgba(100, 60, 150, 0.15) 85%,
+      transparent 100%
+    );
+    filter: blur(12px);
+    mix-blend-mode: screen;
+  }
+
+  // Night/below horizon - more visible subtle glow for nighttime
+  &.night,
+  &.below-horizon {
+    background: radial-gradient(
+      circle,
+      rgba(255, 224, 102, 0.7) 0%,
+      rgba(20, 200, 255, 0) 30%,
+      transparent 100%
+    );
+    filter: blur(6px);
+    opacity: 0.3;
+    mix-blend-mode: luminosity;
+  }
+
+  // Enhanced glow during sunrise/sunset when sun is low
+  &.twilight.low-sun {
+    width: 350px;
+    height: 350px;
+    filter: blur(20px);
+    mix-blend-mode: screen;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 245, 200, 1) 5%,
+      rgba(255, 210, 140, 0.9) 15%,
+      rgba(255, 180, 100, 0.7) 30%,
+      rgba(255, 140, 80, 0.5) 45%,
+      rgba(220, 100, 120, 0.3) 65%,
+      rgba(150, 80, 180, 0.15) 80%,
+      transparent 100%
+    );
+  }
+
+  // Enhanced nighttime glow when sun is low but below horizon
+  &.night.low-sun,
+  &.below-horizon.low-sun {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(
+      circle,
+      rgba(255, 224, 102, 0.2) 0%,
+      rgba(255, 200, 80, 0.15) 15%,
+      rgba(255, 180, 60, 0.12) 30%,
+      rgba(255, 160, 40, 0.08) 50%,
+      rgba(255, 140, 20, 0.05) 70%,
+      rgba(200, 100, 40, 0.03) 85%,
+      transparent 100%
+    );
+    filter: blur(10px);
+    opacity: 0.8;
+    mix-blend-mode: screen;
+  }
 }
