@@ -40,7 +40,20 @@ export class OperatorCallSignService {
     const prefix = callSign.slice(0, 3).toUpperCase();
     const operator = this.operatorMap[prefix]; // Log unknown call signs (but only once per prefix to avoid spam)
     if (!operator && !this.unknownCallSigns.has(prefix)) {
-      console.log(`[Unknown Call Sign] ${prefix} - Full callsign: ${callSign}`);
+      // Only log meaningful callsigns (3+ chars, not all numbers, not common patterns)
+      if (
+        callSign.length >= 3 &&
+        !/^\d+$/.test(callSign) &&
+        !prefix.startsWith('N') && // Skip US registration patterns
+        prefix !== 'VFR' &&
+        prefix !== 'IFR'
+      ) {
+        // Skip common flight rules
+        // Further reduce logging frequency - only log 1 in 10 unknown callsigns
+        if (Math.random() < 0.1) {
+          console.log(`[Unknown Call Sign] ${prefix}`);
+        }
+      }
       this.unknownCallSigns.add(prefix);
     }
 

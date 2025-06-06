@@ -18,6 +18,12 @@ export interface CountryDetectionResult {
     registrationPrefix?: string;
     icaoAllocation?: any;
     militaryPattern?: string;
+    coordinateBounds?: {
+      latMin: number;
+      latMax: number;
+      lonMin: number;
+      lonMax: number;
+    };
   };
 }
 
@@ -222,6 +228,74 @@ export class AircraftCountryService {
       : 'Invalid hex format'; // console.log(
     //   `ICAO hex lookup failed - ${icaoHex} (${decimalValue}) - no allocation found`
     // );
+
+    return {
+      countryCode: 'Unknown',
+      confidence: 'low',
+      source: 'unknown',
+    };
+  }
+
+  /**
+   * Coordinate-based country detection configuration
+   * These boundaries are approximate and used for airport locale detection
+   */
+  private readonly COORDINATE_COUNTRY_BOUNDARIES = [
+    {
+      countryCode: 'DE',
+      name: 'Germany',
+      bounds: { latMin: 47, latMax: 55, lonMin: 6, lonMax: 15 },
+    },
+    {
+      countryCode: 'FR',
+      name: 'France',
+      bounds: { latMin: 42, latMax: 51, lonMin: -5, lonMax: 8 },
+    },
+    {
+      countryCode: 'ES',
+      name: 'Spain',
+      bounds: { latMin: 36, latMax: 44, lonMin: -10, lonMax: 3 },
+    },
+    {
+      countryCode: 'IT',
+      name: 'Italy',
+      bounds: { latMin: 36, latMax: 47, lonMin: 6, lonMax: 19 },
+    },
+    {
+      countryCode: 'NL',
+      name: 'Netherlands',
+      bounds: { latMin: 50, latMax: 54, lonMin: 3, lonMax: 7 },
+    },
+  ];
+
+  /**
+   * Determines country from geographic coordinates
+   * @param latitude Latitude coordinate
+   * @param longitude Longitude coordinate
+   * @returns Country detection result with coordinate-based source
+   */
+  getCountryFromCoordinates(
+    latitude: number,
+    longitude: number
+  ): CountryDetectionResult {
+    for (const boundary of this.COORDINATE_COUNTRY_BOUNDARIES) {
+      const { bounds } = boundary;
+      if (
+        latitude >= bounds.latMin &&
+        latitude <= bounds.latMax &&
+        longitude >= bounds.lonMin &&
+        longitude <= bounds.lonMax
+      ) {
+        return {
+          countryCode: boundary.countryCode,
+          confidence: 'medium',
+          source: 'api', // Using 'api' as closest match since coordinates are external input
+          metadata: {
+            coordinateBounds: bounds,
+          },
+        };
+      }
+    }
 
     return {
       countryCode: 'Unknown',
