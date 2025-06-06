@@ -11,12 +11,14 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 12rem);
-  min-height: 13rem;
+  height: 100%;
+  min-height: 20rem;
   overflow: visible; // allow top-buttons to show outside bounds
   gap: 0.5rem;
   border-radius: 0 0.5rem 0.5rem 0.5rem;
   padding: 0.25rem 0;
-  backdrop-filter: blur(0.5rem);  h3 {
+  backdrop-filter: blur(0.5rem);
+  h3 {
     padding: 1rem;
     height: 3rem;
     display: flex;
@@ -125,7 +127,7 @@
     &-fade {
       display: none !important;
     }
-  }  // Middle section should fill remaining space and constrain children
+  } // Middle section should fill remaining space and constrain children
   .middle-section {
     flex: 1 1 auto;
     display: flex;
@@ -142,7 +144,6 @@
   .plane-list-wrapper {
     position: relative;
     overflow: hidden;
-    max-height: 64vh;
 
     // use pseudo-element with mix-blend-mode for a true mask fade
     &::after {
@@ -221,7 +222,7 @@
       max-height: 100%;
       overflow-y: auto;
     }
-  }  // Ensure seen section is limited and scrolls internally
+  } // Ensure seen section is limited and scrolls internally
   #seenResults {
     display: flex;
     flex-direction: column;
