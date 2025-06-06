@@ -561,17 +561,16 @@ export class PlaneFinderService {
       if (!response.ok)
         throw new Error(`ADSB One API fetch error ${response.status}`);
       const data = await response.json();
-      // Using external JSON-based REGISTRATION_COUNTRY_PREFIX
 
       // Prepare update containers for this scan
       const currentUpdateSet = new Set<string>();
       const updatedLogModels: PlaneModel[] = [];
-      let anyNew = false;
-      // Process ADSB One API response: derive country code
+      let anyNew = false; // Process ADSB One API response: derive country code
       data.ac?.forEach((ac: any) => {
         const id = ac.hex.toUpperCase();
-        const rawCallsign = ac.flight?.trim() || '';
+        const rawCallsign = ac.callsign?.trim() || '';
         const callsign = /^@+$/.test(rawCallsign) ? '' : rawCallsign;
+
         // Use ADSB One 'r' property for registration (registration code)
         const reg: string = ac.r?.trim() || '';
 
