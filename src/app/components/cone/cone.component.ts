@@ -22,6 +22,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
   @Input() lon!: number;
   @Input() opacity: number = 1;
   @Input() distanceKm!: number; // Maximum radius (search area)
+  @Input() isAtHome: boolean = true; // Whether the cone is at the home location
 
   private visualCones: L.Polygon[] = [];
   private arcElements: { path: SVGPathElement; textGroup: SVGElement }[] = [];
@@ -46,12 +47,13 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // Update opacity when it changes
     if ('opacity' in changes && this.mapInitialized) {
       this.updateOpacity();
-    }
-
-    // Redraw cones if position or distance changes (removed altitudeMeters)
+    } // Redraw cones if position, distance, or home status changes
     if (
       this.mapInitialized &&
-      (changes['lat'] || changes['lon'] || changes['distanceKm'])
+      (changes['lat'] ||
+        changes['lon'] ||
+        changes['distanceKm'] ||
+        changes['isAtHome'])
     ) {
       this.debouncedDrawCones();
     }
@@ -188,13 +190,21 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // 5. Assign colors based on these calculated practical altitudes
     visibilityBands.forEach((band) => {
       band.color = this.altitudeColor.getFillColor(band.practicalAltM);
-    });
+    }); // --- Drawing Logic ---
+    let angles: { start: number; end: number }[];
 
-    // --- Drawing Logic ---
-    const angles = [
-      { start: 75, end: 190 },
-      { start: 245, end: 345 },
-    ];
+    if (this.isAtHome) {
+      // At home location: show specific cone sections for Balcony and Streetside
+      angles = [
+        { start: 75, end: 190 }, // Balcony view
+        { start: 245, end: 345 }, // Streetside view
+      ];
+    } else {
+      // Away from home: show full circular bands
+      angles = [
+        { start: 0, end: 360 }, // Full 360-degree view
+      ];
+    }
 
     angles.forEach(({ start, end }) => {
       // Draw from furthest to nearest
@@ -211,42 +221,60 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           end,
           band.innerKm,
           band.outerKm
-        );
-        // Style each segment directly via Leaflet API
-        segment.setStyle({
-          color: bandColor,
-          fillColor: bandColor,
-          fillOpacity: 0.2 * this.opacity,
-          weight: 1.5,
-          opacity: 0.6 * this.opacity,
-        });
+        ); // Style each segment - conditional stroke based on home/away
+        if (this.isAtHome) {
+          // At home: show stroke for cone sections
+          segment.setStyle({
+            color: bandColor,
+            fillColor: bandColor,
+            fillOpacity: 0.2 * this.opacity,
+            weight: 1.5,
+            opacity: 0.6 * this.opacity,
+            stroke: true,
+          });
+        } else {
+          // Away from home: show stroke for rings but avoid connecting lines
+          segment.setStyle({
+            color: bandColor,
+            fillColor: bandColor,
+            fillOpacity: 0.2 * this.opacity,
+            weight: 1.5,
+            opacity: 0.6 * this.opacity,
+            stroke: true,
+          });
+        }
         segment.addTo(this.map);
         this.visualCones.push(segment);
         segment.bringToFront();
       }
-    });
-
-    // Prevent clipping of labels outside SVG bounds
+    }); // Prevent clipping of labels outside SVG bounds
     svg.style.overflow = 'visible';
 
-    // Draw custom text arcs for labels on the third cone ring (20km)
-    const ringRadiusKm = distancesKm[1];
-    angles.forEach(({ start, end }, idx) => {
-      const midStart = start - 10;
-      const midEnd = end + 10;
-      const label = idx === 0 ? 'Balcony' : 'Streetside';
-      // White text color for contrast
-      this.addTextArc(
-        svg,
-        label,
-        this.lat,
-        this.lon,
-        midStart,
-        midEnd,
-        ringRadiusKm,
-        '#fff'
-      );
-    });
+    // Draw custom text arcs for labels on the third cone ring (20km) - only when at home
+    if (this.isAtHome) {
+      const ringRadiusKm = distancesKm[1];
+      const labelAngles = [
+        { start: 75, end: 190 }, // Balcony view
+        { start: 245, end: 345 }, // Streetside view
+      ];
+
+      labelAngles.forEach(({ start, end }, idx) => {
+        const midStart = start - 10;
+        const midEnd = end + 10;
+        const label = idx === 0 ? 'Balcony' : 'Streetside';
+        // White text color for contrast
+        this.addTextArc(
+          svg,
+          label,
+          this.lat,
+          this.lon,
+          midStart,
+          midEnd,
+          ringRadiusKm,
+          '#fff'
+        );
+      });
+    }
   }
 
   private updateOpacity(): void {
@@ -401,7 +429,6 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       textGroup: textElement as SVGElement, // Use the correct variable name and type assertion
     });
   }
-
   /**
    * Create a ring segment between inner and outer radius for given angles
    */
@@ -414,8 +441,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     outerKm: number
   ): L.Polygon {
     const pts: L.LatLng[] = [];
-    const step = 5;
-    // outer arc
+    const step = 2; // Smaller step for smoother curves    // Create outer arc
     for (let angle = startAngle; angle <= endAngle; angle += step) {
       const [olat, olon] = this.computeDestinationPoint(
         lat,
@@ -425,7 +451,44 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
       );
       pts.push(L.latLng(olat, olon));
     }
-    // inner arc reversed
+
+    // For full circles (360 degrees), use Leaflet's polygon with holes feature
+    if (endAngle - startAngle >= 360) {
+      // Create outer ring
+      const outerRing: L.LatLng[] = [];
+      for (let angle = 0; angle <= 360; angle += step) {
+        const [olat, olon] = this.computeDestinationPoint(
+          lat,
+          lon,
+          outerKm,
+          angle
+        );
+        outerRing.push(L.latLng(olat, olon));
+      }
+
+      // Create inner ring (hole)
+      const innerRing: L.LatLng[] = [];
+      for (let angle = 0; angle <= 360; angle += step) {
+        const [ilat, ilon] = this.computeDestinationPoint(
+          lat,
+          lon,
+          innerKm,
+          angle
+        );
+        innerRing.push(L.latLng(ilat, ilon));
+      }
+
+      // Create polygon with hole: [outerRing, innerRing]
+      return L.polygon([outerRing, innerRing], {
+        interactive: false,
+        className: 'visual-cone',
+        fill: true,
+        stroke: true,
+        weight: 1.5,
+      });
+    }
+
+    // For partial arcs (cone sections), create proper ring segments with inner arc
     for (let angle = endAngle; angle >= startAngle; angle -= step) {
       const [ilat, ilon] = this.computeDestinationPoint(
         lat,
@@ -434,11 +497,15 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
         angle
       );
       pts.push(L.latLng(ilat, ilon));
-    }
-    // Polygon is created without pane option
+    } // Close the polygon
+    pts.push(pts[0]);
+
     return L.polygon(pts, {
       interactive: false,
       className: 'visual-cone',
+      fill: true,
+      stroke: true,
+      weight: 1.5,
     });
   }
 }

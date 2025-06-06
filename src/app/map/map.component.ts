@@ -765,16 +765,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const currentMainRadius = this.settings.radius ?? 5;
       this.updateMap(lat, lng, currentMainRadius); // This will trigger airport search
 
-      // Hide the cone when double-clicking to a new location
-      this.coneVisible = false;
-
-      // Update the Show View Axes checkbox to match
-      const coneCheckbox = document.getElementById(
-        'showCone'
-      ) as HTMLInputElement;
-      if (coneCheckbox) {
-        coneCheckbox.checked = false;
-      }
+      // Keep the cone visible when double-clicking to a new location
+      // The cone will now show full circular bands when away from home
+      // No need to hide it or update the checkbox
 
       this.reverseGeocode(lat, lng).then((address) => {
         // Guard against missing input reference
@@ -1804,18 +1797,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       homeLocation &&
       Math.abs(lat - homeLocation.lat) < 0.0001 &&
       Math.abs(lon - homeLocation.lon) < 0.0001;
-
     if (!atHome) {
-      // Hide the cone when navigating to a searched address (if not at home)
-      this.coneVisible = false;
-
-      // Update the Show View Axes checkbox to match
-      const coneCheckbox = document.getElementById(
-        'showCone'
-      ) as HTMLInputElement;
-      if (coneCheckbox) {
-        coneCheckbox.checked = false;
-      }
+      // Keep the cone visible when navigating to a searched address (if not at home)
+      // The cone will now show full circular bands when away from home
+      // No need to hide it or update the checkbox
     }
 
     // Set the MAIN radius setting if valid

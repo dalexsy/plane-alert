@@ -63,11 +63,12 @@
 <div id="map"></div>
 
 <app-cone
-  *ngIf="map && coneVisible && homeLocationValue"
+  *ngIf="map && coneVisible"
   [map]="map"
-  [lat]="homeLocationValue!.lat"
-  [lon]="homeLocationValue!.lon"
+  [lat]="currentLat"
+  [lon]="currentLon"
   [distanceKm]="radiusKm"
+  [isAtHome]="isAtHome"
 ></app-cone>
 
 <!-- Container for angle overlays -->
