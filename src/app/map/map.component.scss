@@ -1,6 +1,7 @@
 @use "../styles/plane-tooltip.scss" as *;
 @use "../styles/plane-marker.scss" as *;
 @use "../styles/overlay.scss" as *;
+@use "../styles/sky-overlay.scss" as *;
 
 #map {
   position: fixed;

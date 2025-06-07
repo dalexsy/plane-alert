@@ -59,6 +59,7 @@ import { AutoFollowService } from '../services/auto-follow.service';
 import { FollowCoordinatorService } from '../services/follow-coordinator.service';
 import { TtsService } from '../services/tts.service';
 import { OperatorCallSignService } from '../services/operator-call-sign.service';
+import { SkyOverlayService } from '../services/sky-overlay.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
@@ -236,10 +237,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private geocodingCache: GeocodingCacheService,
     private debouncedClickService: DebouncedClickService,
     private planeFollowService: PlaneFollowService,
-    private autoFollowService: AutoFollowService,
-    private followCoordinatorService: FollowCoordinatorService,
+    private autoFollowService: AutoFollowService,    private followCoordinatorService: FollowCoordinatorService,
     private tts: TtsService,
-    private operatorCallSignService: OperatorCallSignService
+    private operatorCallSignService: OperatorCallSignService,
+    private skyOverlayService: SkyOverlayService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
@@ -584,10 +585,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
     if (this.cloudLayer) {
       this.cloudLayer.remove();
-    }
-    if (this.rainLayer) {
+    }    if (this.rainLayer) {
       this.rainLayer.remove();
     }
+    // Clean up sky overlay service
+    this.skyOverlayService.destroy();
     window.removeEventListener('click', this.globalTooltipClickHandler);
   }
 
@@ -739,9 +741,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     )
       .addTo(this.map)
-      .on('tileerror', () => {
-        // ignore rain tile errors in console
+      .on('tileerror', () => {        // ignore rain tile errors in console
       });
+
+    // Initialize sky overlay service after all panes are created
+    this.skyOverlayService.initialize(this.map);
 
     // Create custom marker for current location
     const locationIcon = L.divIcon({

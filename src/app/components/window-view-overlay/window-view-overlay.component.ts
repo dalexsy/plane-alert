@@ -446,14 +446,13 @@ export class WindowViewOverlayComponent
     this.skyTopColor = skyColors.topColor;
 
     // Update cloud filtering based on sun elevation for night-time darkening
-    this.updateCloudFiltering(sunElevationAngle);
-
-    // Publish sky colors to the sync service for use by other components
+    this.updateCloudFiltering(sunElevationAngle);    // Publish sky colors to the sync service for use by other components
     this.skyColorSync.updateSkyColors({
       bottomColor: skyColors.bottomColor,
       topColor: skyColors.topColor,
       timestamp: Date.now(),
     });
+    console.log(`[WINDOW-VIEW] Publishing sky colors: ${skyColors.bottomColor} → ${skyColors.topColor}`);
   } /** Update cloud filtering based on sun elevation for night-time darkening */
   private updateCloudFiltering(sunElevationAngle: number): void {
     // Find moon marker for nighttime backlighting calculations
