@@ -122,16 +122,17 @@ export class SkyOverlayService implements OnDestroy {
     console.log('[SKY-OVERLAY] Created gradient definition with stops:', {
       id: this.gradientDef.id,
       stops: this.gradientDef.querySelectorAll('stop').length
-    });
-
-    // Create or find a background group for sky overlay
+    });    // Create or find a background group for sky overlay
     let backgroundGroup = this.svgContainer.querySelector('#sky-background-group') as SVGGElement;
     if (!backgroundGroup) {
       backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       backgroundGroup.setAttribute('id', 'sky-background-group');
       // Insert the background group at the very beginning
       this.svgContainer.insertBefore(backgroundGroup, this.svgContainer.firstChild);
-    }    // Create the sky overlay rectangle
+      
+      // Force sky background to stay at the beginning by moving all other groups after it
+      this.reorderSvgElements();
+    }// Create the sky overlay rectangle
     this.skyOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     this.skyOverlay.classList.add('sky-overlay');
     this.skyOverlay.setAttribute('fill', 'url(#skyGradient)'); // Explicitly set fill
@@ -369,5 +370,45 @@ export class SkyOverlayService implements OnDestroy {
     this.map = null;
     this.svgContainer = null;
     console.log('SkyOverlayService: Cleanup complete');
+  }
+
+  /**
+   * Reorder SVG elements to ensure sky background group stays at the beginning
+   * This method moves all non-sky groups after the sky background group
+   */
+  private reorderSvgElements(): void {
+    if (!this.svgContainer) return;
+
+    const skyBackgroundGroup = this.svgContainer.querySelector('#sky-background-group');
+    if (!skyBackgroundGroup) return;
+
+    // Get all direct child elements (groups and other elements)
+    const allChildren = Array.from(this.svgContainer.children);
+    
+    // Find elements that should come after the sky background
+    const elementsToMove = allChildren.filter(child => {
+      // Keep defs and sky background group at the beginning
+      if (child.tagName === 'defs' || child.id === 'sky-background-group') {
+        return false;
+      }
+      return true;
+    });
+
+    // Move all other elements after the sky background group
+    elementsToMove.forEach(element => {
+      this.svgContainer!.appendChild(element);
+    });
+
+    console.log('[SKY-OVERLAY] Reordered SVG elements - sky background group is now at the beginning');
+  }
+
+  /**
+   * Ensure sky overlay remains behind other elements
+   * Call this method after adding new elements to the SVG
+   */
+  ensureProperLayerOrder(): void {
+    if (!this.svgContainer) return;
+    
+    this.reorderSvgElements();
   }
 }

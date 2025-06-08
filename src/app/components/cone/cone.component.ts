@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import * as L from 'leaflet';
 import { AltitudeColorService } from '../../services/altitude-color.service';
+import { SkyOverlayService } from '../../services/sky-overlay.service';
 
 @Component({
   selector: 'app-cone',
@@ -16,7 +17,10 @@ import { AltitudeColorService } from '../../services/altitude-color.service';
   encapsulation: ViewEncapsulation.None,
 })
 export class ConeComponent implements OnChanges, OnDestroy, OnInit {
-  constructor(private altitudeColor: AltitudeColorService) {}
+  constructor(
+    private altitudeColor: AltitudeColorService,
+    private skyOverlayService: SkyOverlayService
+  ) {}
   @Input() map!: L.Map;
   @Input() lat!: number;
   @Input() lon!: number;
@@ -258,10 +262,12 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           midStart,
           midEnd,
           ringRadiusKm,
-          '#fff'
-        );
+          '#fff'        );
       });
     }
+    
+    // Ensure sky overlay stays behind cone elements
+    this.skyOverlayService.ensureProperLayerOrder();
   }
 
   private updateOpacity(): void {
