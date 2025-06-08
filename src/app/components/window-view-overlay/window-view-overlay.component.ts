@@ -146,10 +146,18 @@ export class WindowViewOverlayComponent
   /** Cloud filter styles for night-time darkening */
   public cloudFilter: string = 'none';
   /** Cloud backlighting CSS class for atmospheric effects */
-  public cloudBacklightClass: string = '';
-  /** Individual sky color components for template access */
+  public cloudBacklightClass: string =
+    ''; /** Individual sky color components for template access */
   public skyBottomColor: string = 'rgb(135, 206, 235)'; // Default sky blue
   public skyTopColor: string = 'rgb(25, 25, 112)'; // Default midnight blue
+
+  /** Prevent multiple simultaneous weather updates */
+  private isUpdatingWeather: boolean = false;
+  /** Last published sky colors to prevent redundant updates */
+  private lastPublishedSkyColors: {
+    bottomColor: string;
+    topColor: string;
+  } | null = null;
 
   /** Convert RGB color string to RGBA with specified opacity */
   public getRgbaColor(rgbColor: string, opacity: number): string {
@@ -248,8 +256,7 @@ export class WindowViewOverlayComponent
         this.prevXPositions.set(plane.icao, plane.x);
       });
       this.updateWindowCloud();
-      // initial sky update then fetch weather
-      this.updateSkyBackground();
+      // fetch weather which will update sky background
       this.updateWeather();
       // compute marker spans for dimming
       this.computeSpans();
@@ -314,15 +321,17 @@ export class WindowViewOverlayComponent
         n
     );
     this.windowCloudUrl = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=ffcc03a274b2d049bf4633584e7b5699`;
-  }
-  /** Fetch current weather and re-render sky */
+  } /** Fetch current weather and re-render sky */
   private updateWeather(): void {
     if (
       !Number.isFinite(this.observerLat) ||
-      !Number.isFinite(this.observerLon)
+      !Number.isFinite(this.observerLon) ||
+      this.isUpdatingWeather
     ) {
       return;
     }
+
+    this.isUpdatingWeather = true;
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${this.observerLat}&lon=${this.observerLon}&appid=${this.OPEN_WEATHER_MAP_API_KEY}`;
     this.http.get<any>(url).subscribe(
       (data) => {
@@ -339,6 +348,7 @@ export class WindowViewOverlayComponent
 
         this.updateSkyBackground();
         this.setCompassBackground();
+        this.isUpdatingWeather = false;
       },
       () => {
         this.weatherCondition = null;
@@ -349,6 +359,7 @@ export class WindowViewOverlayComponent
 
         this.updateSkyBackground();
         this.setCompassBackground();
+        this.isUpdatingWeather = false;
       }
     );
   }
@@ -443,16 +454,33 @@ export class WindowViewOverlayComponent
     ); // Create gradient from horizon to zenith
     this.skyBackground = `linear-gradient(to top, ${skyColors.bottomColor} 0%, ${skyColors.topColor} 100%)`; // Store individual sky color components for template access (e.g., moon gradient)
     this.skyBottomColor = skyColors.bottomColor;
-    this.skyTopColor = skyColors.topColor;
+    this.skyTopColor = skyColors.topColor; // Update cloud filtering based on sun elevation for night-time darkening
+    this.updateCloudFiltering(sunElevationAngle);
 
-    // Update cloud filtering based on sun elevation for night-time darkening
-    this.updateCloudFiltering(sunElevationAngle);    // Publish sky colors to the sync service for use by other components
-    this.skyColorSync.updateSkyColors({
-      bottomColor: skyColors.bottomColor,
-      topColor: skyColors.topColor,
-      timestamp: Date.now(),
-    });
-    console.log(`[WINDOW-VIEW] Publishing sky colors: ${skyColors.bottomColor} → ${skyColors.topColor}`);
+    // Only publish sky colors if they have actually changed
+    const hasColorsChanged =
+      !this.lastPublishedSkyColors ||
+      this.lastPublishedSkyColors.bottomColor !== skyColors.bottomColor ||
+      this.lastPublishedSkyColors.topColor !== skyColors.topColor;
+
+    if (hasColorsChanged) {
+      // Publish sky colors to the sync service for use by other components
+      this.skyColorSync.updateSkyColors({
+        bottomColor: skyColors.bottomColor,
+        topColor: skyColors.topColor,
+        timestamp: Date.now(),
+      });
+
+      // Store the published colors to prevent redundant updates
+      this.lastPublishedSkyColors = {
+        bottomColor: skyColors.bottomColor,
+        topColor: skyColors.topColor,
+      };
+
+      console.log(
+        `[WINDOW-VIEW] Publishing sky colors: ${skyColors.bottomColor} → ${skyColors.topColor}`
+      );
+    }
   } /** Update cloud filtering based on sun elevation for night-time darkening */
   private updateCloudFiltering(sunElevationAngle: number): void {
     // Find moon marker for nighttime backlighting calculations
