@@ -559,8 +559,19 @@ export class PlaneFinderService {
       const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
       const response = await fetch(url);
       if (!response.ok)
-        throw new Error(`ADSB One API fetch error ${response.status}`);
-      const data = await response.json();
+        throw new Error(`ADSB One API fetch error ${response.status}`);      const data = await response.json();
+
+      // Log the raw API response to debug callsign issues
+      console.log('🛩️ ADSB One API Response:', {
+        totalAircraft: data.ac?.length || 0,
+        timestamp: new Date().toISOString(),
+        url: url
+      });
+      
+      // Log first few aircraft for detailed inspection
+      if (data.ac && data.ac.length > 0) {
+        console.log('🔍 First 3 aircraft raw data:', data.ac.slice(0, 3));
+      }
 
       // Prepare update containers for this scan
       const currentUpdateSet = new Set<string>();
@@ -568,8 +579,14 @@ export class PlaneFinderService {
       let anyNew = false; // Process ADSB One API response: derive country code
       data.ac?.forEach((ac: any) => {
         const id = ac.hex.toUpperCase();
-        const rawCallsign = ac.callsign?.trim() || '';
+        
+        // API changed: 'callsign' field is now 'flight'
+        const rawCallsign = ac.flight?.trim() || ac.callsign?.trim() || '';
         const callsign = /^@+$/.test(rawCallsign) ? '' : rawCallsign;
+        
+        // Log callsign data for each aircraft to debug "Pending" issue
+        console.log(`✈️ Aircraft ${id}: flight="${ac.flight}", callsign="${ac.callsign}", processed="${callsign}"`);
+        
 
         // Use ADSB One 'r' property for registration (registration code)
         const reg: string = ac.r?.trim() || '';
