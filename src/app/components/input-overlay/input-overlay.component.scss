@@ -13,6 +13,7 @@
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   width: 20rem;
   backdrop-filter: blur(0.5rem);
+  overflow: visible;
 
   .top-buttons {
     position: absolute;
@@ -25,6 +26,7 @@
     border-radius: 0 0.5rem 0.5rem 0;
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-left: none;
+    overflow: visible;
   }
 
   h1 {
@@ -111,4 +113,35 @@
       display: block !important;
     }
   }
+}
+
+// Tooltip via data-tooltip attribute on wrapper
+.brightness-button-wrapper[data-tooltip].auto {
+  position: relative;
+}
+.brightness-button-wrapper[data-tooltip].auto:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1001;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(0.25rem);
+}
+
+// Hide the old explicit tooltip if still present
+.brightness-button-wrapper .brightness-tooltip {
+  display: none;
+}
+
+// Override right-side tab container to show overflow
+.options-overlay .top-buttons .right {
+  overflow: visible !important;
 }

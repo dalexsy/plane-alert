@@ -16,7 +16,8 @@ import { SkyColorSyncService, SkyColors } from './sky-color-sync.service';
 export class SkyOverlayService implements OnDestroy {
   private map: L.Map | null = null;
   private skyOverlay: SVGRectElement | null = null;
-  private svgContainer: SVGSVGElement | null = null;  private gradientDef: SVGLinearGradientElement | null = null;
+  private svgContainer: SVGSVGElement | null = null;
+  private gradientDef: SVGLinearGradientElement | null = null;
   private skyColorsSubscription: Subscription | null = null;
   private currentSkyColors: SkyColors | null = null;
   private lastTopColor: string = '';
@@ -34,9 +35,13 @@ export class SkyOverlayService implements OnDestroy {
           // Only update if colors actually changed
           if (!prev && !curr) return true;
           if (!prev || !curr) return false;
-          return prev.topColor === curr.topColor && prev.bottomColor === curr.bottomColor;
+          return (
+            prev.topColor === curr.topColor &&
+            prev.bottomColor === curr.bottomColor
+          );
         })
-      )      .subscribe((colors) => {
+      )
+      .subscribe((colors) => {
         this.currentSkyColors = colors;
         if (colors && this.gradientDef) {
           this.updateGradientColors(colors.bottomColor, colors.topColor);
@@ -57,11 +62,9 @@ export class SkyOverlayService implements OnDestroy {
    * Initialize the sky overlay service with the map instance
    */
   initialize(map: L.Map): void {
-    console.log('SkyOverlayService: Initialize called');
     this.map = map;
     this.setupSvgContainer();
     this.createSkyOverlay();
-    console.log('SkyOverlayService: Initialization complete');
   }
 
   /**
@@ -74,13 +77,11 @@ export class SkyOverlayService implements OnDestroy {
     this.svgContainer = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
-    
+
     if (!this.svgContainer) {
       console.error('SVG container not found in overlayPane');
       return;
     }
-
-    console.log('Using existing overlayPane SVG for sky overlay');
   }
   /**
    * Create SVG rectangle overlay covering the entire map view
@@ -91,59 +92,79 @@ export class SkyOverlayService implements OnDestroy {
     // Create or get the defs element for gradients
     let defsElement = this.svgContainer.querySelector('defs');
     if (!defsElement) {
-      defsElement = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      defsElement = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'defs'
+      );
       this.svgContainer.appendChild(defsElement);
-    }    // Create the gradient definition
-    this.gradientDef = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    } // Create the gradient definition
+    this.gradientDef = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'linearGradient'
+    );
     this.gradientDef.setAttribute('id', 'skyGradient');
     this.gradientDef.setAttribute('x1', '0%');
     this.gradientDef.setAttribute('y1', '0%');
     this.gradientDef.setAttribute('x2', '0%');
-    this.gradientDef.setAttribute('y2', '100%');    // Create gradient stops with initial colors that will be updated
-    const stopTop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    this.gradientDef.setAttribute('y2', '100%'); // Create gradient stops with initial colors that will be updated
+    const stopTop = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'stop'
+    );
     stopTop.setAttribute('offset', '0%');
     stopTop.setAttribute('stop-opacity', '1');
-    
-    const stopBottom = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+
+    const stopBottom = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'stop'
+    );
     stopBottom.setAttribute('offset', '100%');
     stopBottom.setAttribute('stop-opacity', '1');
 
     this.gradientDef.appendChild(stopTop);
     this.gradientDef.appendChild(stopBottom);
     defsElement.appendChild(this.gradientDef);
-    
+
     // Apply current sky colors if available, otherwise use defaults
     if (this.currentSkyColors) {
-      this.updateGradientColors(this.currentSkyColors.bottomColor, this.currentSkyColors.topColor);
+      this.updateGradientColors(
+        this.currentSkyColors.bottomColor,
+        this.currentSkyColors.topColor
+      );
     } else {
       this.setDefaultGradient();
     }
-    
-    console.log('[SKY-OVERLAY] Created gradient definition with stops:', {
-      id: this.gradientDef.id,
-      stops: this.gradientDef.querySelectorAll('stop').length
-    });    // Create or find a background group for sky overlay
-    let backgroundGroup = this.svgContainer.querySelector('#sky-background-group') as SVGGElement;
+
+    let backgroundGroup = this.svgContainer.querySelector(
+      '#sky-background-group'
+    ) as SVGGElement;
     if (!backgroundGroup) {
-      backgroundGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      backgroundGroup = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'g'
+      );
       backgroundGroup.setAttribute('id', 'sky-background-group');
       // Insert the background group at the very beginning
-      this.svgContainer.insertBefore(backgroundGroup, this.svgContainer.firstChild);
-      
+      this.svgContainer.insertBefore(
+        backgroundGroup,
+        this.svgContainer.firstChild
+      );
+
       // Force sky background to stay at the beginning by moving all other groups after it
       this.reorderSvgElements();
-    }// Create the sky overlay rectangle
-    this.skyOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    } // Create the sky overlay rectangle
+    this.skyOverlay = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'rect'
+    );
     this.skyOverlay.classList.add('sky-overlay');
     this.skyOverlay.setAttribute('fill', 'url(#skyGradient)'); // Explicitly set fill
-    
+
     // Add the sky overlay to the background group
     backgroundGroup.appendChild(this.skyOverlay);
 
     // Initial positioning
     this.updateSkyOverlay();
-    
-    console.log('[SKY-OVERLAY] Created SVG rectangle with gradient fill');
 
     // Update on map move/zoom
     this.map.on('viewreset zoom move', () => this.updateSkyOverlay());
@@ -163,8 +184,14 @@ export class SkyOverlayService implements OnDestroy {
     // Update rectangle attributes
     this.skyOverlay.setAttribute('x', topLeft.x.toString());
     this.skyOverlay.setAttribute('y', topLeft.y.toString());
-    this.skyOverlay.setAttribute('width', (bottomRight.x - topLeft.x).toString());
-    this.skyOverlay.setAttribute('height', (bottomRight.y - topLeft.y).toString());
+    this.skyOverlay.setAttribute(
+      'width',
+      (bottomRight.x - topLeft.x).toString()
+    );
+    this.skyOverlay.setAttribute(
+      'height',
+      (bottomRight.y - topLeft.y).toString()
+    );
   }
   /**
    * Update the sky overlay color based on atmospheric conditions
@@ -189,7 +216,7 @@ export class SkyOverlayService implements OnDestroy {
     if (stopElements.length >= 2) {
       // Top of sky (zenith)
       stopElements[0].setAttribute('stop-color', skyColors.topColor);
-      // Bottom of sky (horizon) 
+      // Bottom of sky (horizon)
       stopElements[1].setAttribute('stop-color', skyColors.bottomColor);
     }
   }
@@ -199,15 +226,23 @@ export class SkyOverlayService implements OnDestroy {
   setOpacity(opacity: number): void {
     if (!this.skyOverlay) return;
     // Use CSS style instead of SVG attribute for better SCSS integration
-    this.skyOverlay.style.opacity = Math.max(0, Math.min(1, opacity)).toString();
+    this.skyOverlay.style.opacity = Math.max(
+      0,
+      Math.min(1, opacity)
+    ).toString();
   }
 
   /**
    * Configure gradient direction and intensity
    */
-  setGradientDirection(x1: string = '0%', y1: string = '0%', x2: string = '0%', y2: string = '100%'): void {
+  setGradientDirection(
+    x1: string = '0%',
+    y1: string = '0%',
+    x2: string = '0%',
+    y2: string = '100%'
+  ): void {
     if (!this.gradientDef) return;
-    
+
     this.gradientDef.setAttribute('x1', x1);
     this.gradientDef.setAttribute('y1', y1);
     this.gradientDef.setAttribute('x2', x2);
@@ -217,17 +252,22 @@ export class SkyOverlayService implements OnDestroy {
   /**
    * Add multiple gradient stops for complex sky effects
    */
-  setGradientStops(stops: Array<{offset: string, color: string, opacity?: number}>): void {
+  setGradientStops(
+    stops: Array<{ offset: string; color: string; opacity?: number }>
+  ): void {
     if (!this.gradientDef) return;
 
     // Clear existing stops
     while (this.gradientDef.firstChild) {
       this.gradientDef.removeChild(this.gradientDef.firstChild);
-    }    // Add new stops
-    stops.forEach(stop => {
+    } // Add new stops
+    stops.forEach((stop) => {
       if (!this.gradientDef) return; // Additional null check for safety
-      
-      const stopElement = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+
+      const stopElement = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'stop'
+      );
       stopElement.setAttribute('offset', stop.offset);
       stopElement.setAttribute('stop-color', stop.color);
       if (stop.opacity !== undefined) {
@@ -235,7 +275,8 @@ export class SkyOverlayService implements OnDestroy {
       }
       this.gradientDef.appendChild(stopElement);
     });
-  }  /**
+  }
+  /**
    * Set solid color (single color overlay without gradient)
    */
   setSolidColor(color: string): void {
@@ -258,17 +299,23 @@ export class SkyOverlayService implements OnDestroy {
   setVisible(visible: boolean): void {
     if (!this.skyOverlay) return;
     this.skyOverlay.style.display = visible ? 'block' : 'none';
-  }  /**
+  }
+  /**
    * Update gradient colors with atmospheric sky colors from window overlay
    */
   private updateGradientColors(bottomColor: string, topColor: string): void {
     if (!this.gradientDef) {
-      console.error('[SKY-OVERLAY] No gradient definition found when trying to update colors');
+      console.error(
+        '[SKY-OVERLAY] No gradient definition found when trying to update colors'
+      );
       return;
     }
 
     // Skip update if colors haven't changed
-    if (this.lastTopColor === topColor && this.lastBottomColor === bottomColor) {
+    if (
+      this.lastTopColor === topColor &&
+      this.lastBottomColor === bottomColor
+    ) {
       return;
     }
 
@@ -277,21 +324,19 @@ export class SkyOverlayService implements OnDestroy {
       // Update both SVG attributes and CSS styles to override SCSS
       const topStop = stops[0] as SVGStopElement;
       const bottomStop = stops[1] as SVGStopElement;
-      
+
       // Set SVG attributes
       topStop.setAttribute('stop-color', topColor);
       bottomStop.setAttribute('stop-color', bottomColor);
-      
+
       // Also set CSS styles to override any SCSS rules
       topStop.style.setProperty('stop-color', topColor, 'important');
       bottomStop.style.setProperty('stop-color', bottomColor, 'important');
-      
+
       // Update tracking variables
       this.lastTopColor = topColor;
       this.lastBottomColor = bottomColor;
-      
-      console.log(`[SKY-OVERLAY] Applied gradient colors: ${topColor} → ${bottomColor}`);
-      
+
       // Force a repaint by recreating the gradient reference
       if (this.skyOverlay) {
         // Temporarily remove fill, then set it back to force SVG engine to re-evaluate
@@ -303,9 +348,13 @@ export class SkyOverlayService implements OnDestroy {
         });
       }
     } else {
-      console.error('[SKY-OVERLAY] Gradient does not have enough stop elements:', stops.length);
+      console.error(
+        '[SKY-OVERLAY] Gradient does not have enough stop elements:',
+        stops.length
+      );
     }
-  }  /**
+  }
+  /**
    * Set default gradient when atmospheric colors are not available
    */
   private setDefaultGradient(): void {
@@ -315,7 +364,10 @@ export class SkyOverlayService implements OnDestroy {
     const defaultBottomColor = '#304069'; // Lighter atmospheric blue at bottom
 
     // Skip update if already using default colors
-    if (this.lastTopColor === defaultTopColor && this.lastBottomColor === defaultBottomColor) {
+    if (
+      this.lastTopColor === defaultTopColor &&
+      this.lastBottomColor === defaultBottomColor
+    ) {
       return;
     }
 
@@ -323,19 +375,21 @@ export class SkyOverlayService implements OnDestroy {
     if (stops.length >= 2) {
       const topStop = stops[0] as SVGStopElement;
       const bottomStop = stops[1] as SVGStopElement;
-      
+
       // Set both SVG attributes and CSS styles
       topStop.setAttribute('stop-color', defaultTopColor);
       bottomStop.setAttribute('stop-color', defaultBottomColor);
-      
+
       topStop.style.setProperty('stop-color', defaultTopColor, 'important');
-      bottomStop.style.setProperty('stop-color', defaultBottomColor, 'important');
-      
+      bottomStop.style.setProperty(
+        'stop-color',
+        defaultBottomColor,
+        'important'
+      );
+
       // Update tracking variables
       this.lastTopColor = defaultTopColor;
       this.lastBottomColor = defaultBottomColor;
-      
-      console.log('Sky overlay using default atmospheric gradient colors');
     }
   }
   /**
@@ -343,7 +397,9 @@ export class SkyOverlayService implements OnDestroy {
    */
   destroy(): void {
     if (this.skyOverlay && this.svgContainer) {
-      const backgroundGroup = this.svgContainer.querySelector('#sky-background-group');
+      const backgroundGroup = this.svgContainer.querySelector(
+        '#sky-background-group'
+      );
       if (backgroundGroup && backgroundGroup.contains(this.skyOverlay)) {
         backgroundGroup.removeChild(this.skyOverlay);
       }
@@ -357,19 +413,18 @@ export class SkyOverlayService implements OnDestroy {
       }
       this.gradientDef = null;
     }
-    
+
     if (this.map) {
       this.map.off('viewreset zoom move');
     }
-    
+
     // Reset tracking variables
     this.lastTopColor = '';
     this.lastBottomColor = '';
     this.currentSkyColors = null;
-    
+
     this.map = null;
     this.svgContainer = null;
-    console.log('SkyOverlayService: Cleanup complete');
   }
 
   /**
@@ -379,14 +434,16 @@ export class SkyOverlayService implements OnDestroy {
   private reorderSvgElements(): void {
     if (!this.svgContainer) return;
 
-    const skyBackgroundGroup = this.svgContainer.querySelector('#sky-background-group');
+    const skyBackgroundGroup = this.svgContainer.querySelector(
+      '#sky-background-group'
+    );
     if (!skyBackgroundGroup) return;
 
     // Get all direct child elements (groups and other elements)
     const allChildren = Array.from(this.svgContainer.children);
-    
+
     // Find elements that should come after the sky background
-    const elementsToMove = allChildren.filter(child => {
+    const elementsToMove = allChildren.filter((child) => {
       // Keep defs and sky background group at the beginning
       if (child.tagName === 'defs' || child.id === 'sky-background-group') {
         return false;
@@ -395,11 +452,9 @@ export class SkyOverlayService implements OnDestroy {
     });
 
     // Move all other elements after the sky background group
-    elementsToMove.forEach(element => {
+    elementsToMove.forEach((element) => {
       this.svgContainer!.appendChild(element);
     });
-
-    console.log('[SKY-OVERLAY] Reordered SVG elements - sky background group is now at the beginning');
   }
 
   /**
@@ -408,7 +463,7 @@ export class SkyOverlayService implements OnDestroy {
    */
   ensureProperLayerOrder(): void {
     if (!this.svgContainer) return;
-    
+
     this.reorderSvgElements();
   }
 }

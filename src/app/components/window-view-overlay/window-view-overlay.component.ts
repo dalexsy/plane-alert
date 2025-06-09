@@ -476,10 +476,6 @@ export class WindowViewOverlayComponent
         bottomColor: skyColors.bottomColor,
         topColor: skyColors.topColor,
       };
-
-      console.log(
-        `[WINDOW-VIEW] Publishing sky colors: ${skyColors.bottomColor} → ${skyColors.topColor}`
-      );
     }
   } /** Update cloud filtering based on sun elevation for night-time darkening */
   private updateCloudFiltering(sunElevationAngle: number): void {

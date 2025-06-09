@@ -450,9 +450,6 @@ export class AnnouncementService {
       ? this.countryService.getCountryName(plane.origin)
       : null;
     const countryKey = originCountryName || 'Unknown';
-    console.log(
-      `[ANNOUNCE] Queueing ${countryKey} military: ${plane.icao} (operator: "${plane.operator}", callsign: "${plane.callsign}")`
-    );
 
     // Add to queue for this country
     if (!this.militaryQueue.has(countryKey)) {
@@ -476,10 +473,6 @@ export class AnnouncementService {
    */ private processMilitaryQueue(countryKey: string): void {
     const aircraft = this.militaryQueue.get(countryKey) || [];
     if (aircraft.length === 0) return;
-
-    console.log(
-      `[ANNOUNCE] Processing ${countryKey} queue with ${aircraft.length} aircraft`
-    );
 
     // Group aircraft by operator
     const operatorGroups = new Map<string, PlaneLogEntry[]>();
@@ -538,9 +531,6 @@ export class AnnouncementService {
     // Mark country as announced to prevent repetition
     if (countryKey !== 'Unknown') {
       this.announcedCountries.add(countryKey);
-      console.log(
-        `[ANNOUNCE] Country ${countryKey} marked as announced for operator group`
-      );
     }
 
     // Mark all aircraft as announced
@@ -607,7 +597,6 @@ export class AnnouncementService {
         planes[0].icao
       }`;
 
-      console.log(`[ANNOUNCE] Group announcement: "${announcement}"`);
       this.langSwitch.speakWithOverrides(baseKey, announcement);
     }
   }

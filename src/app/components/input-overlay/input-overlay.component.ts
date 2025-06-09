@@ -14,14 +14,16 @@ import {
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../services/settings.service';
 import { ScanService } from '../../services/scan.service';
+import { BrightnessState } from '../../services/brightness.service';
 import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
+import { TooltipDirective } from '../../directives/tooltip.directive';
 
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TabComponent],
+  imports: [CommonModule, ButtonComponent, TabComponent, TooltipDirective],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
@@ -46,6 +48,7 @@ export class InputOverlayComponent implements OnDestroy {
   @Input() showDateTime = true;
   @Output() toggleDateTimeOverlays = new EventEmitter<void>();
   @Input() brightness: number = 1;
+  @Input() brightnessState: BrightnessState | null = null;
   @Output() brightnessToggle = new EventEmitter<void>();
   /** Emit when zoom in button is clicked */
   @Output() zoomIn = new EventEmitter<void>();
@@ -59,6 +62,7 @@ export class InputOverlayComponent implements OnDestroy {
   @HostBinding('class.collapsed')
   collapsed: boolean = localStorage.getItem('inputOverlayCollapsed') === 'true';
   public currentAddress: string = '';
+  public showBrightnessTooltip = false;
 
   constructor(
     public settings: SettingsService,
@@ -164,5 +168,80 @@ export class InputOverlayComponent implements OnDestroy {
     // Toggle the internal flag and emit new state
     this.showAirportLabels = !this.showAirportLabels;
     this.toggleAirportLabels.emit(this.showAirportLabels);
+  }
+  /** Get brightness button icon based on current state */
+  get brightnessIcon(): string {
+    if (!this.brightnessState) return 'brightness_empty';
+
+    if (this.brightnessState.mode === 'auto') {
+      // Automatic mode - show icon based on sun elevation
+      if (this.brightnessState.sunElevation > 0) {
+        return 'brightness_5'; // Daytime
+      } else if (this.brightnessState.sunElevation > -6) {
+        return 'brightness_6'; // Civil twilight
+      } else if (this.brightnessState.sunElevation > -12) {
+        return 'brightness_7'; // Nautical twilight
+      } else {
+        return 'brightness_4'; // Night/astronomical twilight
+      }
+    } else {
+      // Manual mode - show brightness level
+      return this.brightnessState.brightness > 0.7
+        ? 'brightness_auto'
+        : 'brightness_auto';
+    }
+  }
+  /** Get brightness button tooltip based on current state */
+  get brightnessTooltip(): string {
+    if (!this.brightnessState) return 'Toggle map brightness';
+
+    if (this.brightnessState.mode === 'auto') {
+      const sunStatus =
+        this.brightnessState.sunElevation > 0
+          ? 'day'
+          : this.brightnessState.sunElevation > -6
+          ? 'civil twilight'
+          : this.brightnessState.sunElevation > -12
+          ? 'nautical twilight'
+          : 'night';
+      return `Auto brightness (${sunStatus}, ${Math.round(
+        this.brightnessState.brightness * 100
+      )}%) - Disable auto-dimming`;
+    } else {
+      const level = this.brightnessState.brightness > 0.7 ? 'bright' : 'dim';
+      return `Manual brightness (${level}, ${Math.round(
+        this.brightnessState.brightness * 100
+      )}%) - Enable auto-dimming`;
+    }
+  }
+
+  /** Get simple brightness button tooltip for title attribute */
+  get brightnessSimpleTooltip(): string {
+    if (!this.brightnessState) return 'Toggle map brightness';
+
+    return this.brightnessState.mode === 'auto'
+      ? 'Disable auto-dimming'
+      : 'Enable auto-dimming';
+  }
+
+  /** Get brightness status text for custom tooltip */
+  get brightnessStatusText(): string {
+    if (!this.brightnessState) return '';
+
+    if (this.brightnessState.mode === 'auto') {
+      const sunStatus =
+        this.brightnessState.sunElevation > 0
+          ? 'Daytime'
+          : this.brightnessState.sunElevation > -6
+          ? 'Civil twilight'
+          : this.brightnessState.sunElevation > -12
+          ? 'Nautical twilight'
+          : 'Night';
+      return `${sunStatus} (${Math.round(
+        this.brightnessState.brightness * 100
+      )}%)`;
+    }
+
+    return '';
   }
 }

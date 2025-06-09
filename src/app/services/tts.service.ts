@@ -63,17 +63,6 @@ export class TtsService {
         foundVoices++;
       }
     }
-    if (foundVoices > 0 && !this.voicesInitialized) {
-      console.log(
-        `[TTS] Initialized ${foundVoices}/${this.SUPPORTED_LANGUAGES.length} supported voices:`
-      );
-      this.voicesInitialized = true;
-
-      // Log which voices we're actually using for debugging
-      for (const [lang, voice] of this.usedVoices) {
-        console.log(`[TTS]   ${lang}: ${voice.name}`);
-      }
-    }
   }
   /** Speak the given text via the browser's SpeechSynthesis API with queueing */
   speak(text: string, lang?: string): void {
@@ -121,7 +110,6 @@ export class TtsService {
         // Only log when debugging French TTS issues
         if (lang.startsWith('fr')) {
           const voiceName = utterance.voice?.name || 'default';
-          console.log(`[TTS] Using French voice: ${voiceName}`);
         }
       }
 
@@ -134,8 +122,7 @@ export class TtsService {
       utterance.onend = () => {
         this.isCurrentlySpeaking = false;
         this.processQueue();
-      }; // Log what we're actually saying for debugging
-      console.log(`[TTS] Speaking: "${text}" (${lang || 'default'})`);
+      };
 
       // Check if speech synthesis is ready
       if (window.speechSynthesis.speaking) {

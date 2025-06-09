@@ -60,6 +60,7 @@ import { FollowCoordinatorService } from '../services/follow-coordinator.service
 import { TtsService } from '../services/tts.service';
 import { OperatorCallSignService } from '../services/operator-call-sign.service';
 import { SkyOverlayService } from '../services/sky-overlay.service';
+import { BrightnessService, BrightnessState } from '../services/brightness.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
@@ -203,6 +204,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public currentWindUnitIndex: number = 0;
   public isNight: boolean = false;
   public brightness: number = 1;
+  public brightnessState: BrightnessState | null = null;
   public moonFraction: number = 0;
   public moonAngle: number = 0;
   public moonIsWaning: boolean = false;
@@ -240,14 +242,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private autoFollowService: AutoFollowService,    private followCoordinatorService: FollowCoordinatorService,
     private tts: TtsService,
     private operatorCallSignService: OperatorCallSignService,
-    private skyOverlayService: SkyOverlayService
-  ) {
-    // Initialize UI toggles from stored settings
+    private skyOverlayService: SkyOverlayService,
+    private brightnessService: BrightnessService
+  ) {    // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
     this.rainVisible = this.settings.showRainCover;
     this.coneVisible = this.settings.showViewAxes;
     this.showDateTime = this.settings.showDateTimeOverlay;
     this.showAirportLabels = this.settings.showAirportLabels;
+    this.currentWindUnitIndex = this.settings.windUnitIndex;
+
+    // Initialize brightness service with current location if available
+    const currentLocation = this.settings.getCurrentLocation();
+    if (currentLocation) {
+      this.brightnessService.setLocation(currentLocation.lat, currentLocation.lon);
+    }
 
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
@@ -304,13 +313,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('click', this.globalTooltipClickHandler);
   }
 
-  /** Toggle map brightness between normal and dimmed */
-  public toggleBrightness(): void {
-    this.brightness = this.brightness === 1 ? 0.3 : 1;
-    const container = this.map.getContainer();
-    if (container) {
-      container.style.filter = `brightness(${this.brightness})`;
-    }
+  /** Toggle map brightness between normal and dimmed */  public toggleBrightness(): void {
+    // Toggle between automatic and manual brightness modes
+    this.brightnessService.toggleMode();
   }
   /** Zoom in the map */
   public onZoomIn(): void {
@@ -561,14 +566,25 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const center = this.map.getCenter();
       this.fetchWindDirection(center.lat, center.lng);
       this.cdr.detectChanges();
-    }, 60000); // update every minute
-
-    // Subscribe to sky color changes for cloud layer synchronization
+    }, 60000); // update every minute    // Subscribe to sky color changes for cloud layer synchronization
     this.skyColorSyncService.skyColors$.subscribe((skyColors) => {
       if (skyColors && this.cloudLayer) {
         this.applySkyColorsToCloudLayer(skyColors);
       }
     });
+
+    // Subscribe to brightness changes from BrightnessService
+    this.brightnessService.brightness$.subscribe((brightnessState) => {
+      this.ngZone.run(() => {
+        this.brightnessState = brightnessState;
+        this.brightness = brightnessState.brightness;
+        this.applyBrightnessToMap();
+        this.cdr.detectChanges();
+      });
+    });
+
+    // Initialize brightness service with current location
+    this.brightnessService.setLocation(lat, lon);
   }
 
   ngOnDestroy(): void {
@@ -588,6 +604,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }    if (this.rainLayer) {
       this.rainLayer.remove();
     }
+    // Clean up brightness service
+    this.brightnessService.ngOnDestroy();
     // Clean up sky overlay service
     this.skyOverlayService.destroy();
     window.removeEventListener('click', this.globalTooltipClickHandler);
@@ -986,7 +1004,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.scanService.forceScan();
       }
     }); // fetch and update current wind direction
-    this.fetchWindDirection(lat, lon);
+    this.fetchWindDirection(lat, lon);    // Update brightness service with new location
+    this.brightnessService.setLocation(lat, lon);
 
     // Update location context for explicit location changes (not map panning)
     this.locationContextService.updateFromMapCenter(lat, lon);
@@ -1073,11 +1092,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public getCurrentWindUnit(): string {
     return this.windUnits[this.currentWindUnitIndex];
   }
-
   /** Cycle to the next wind unit */
   public cycleWindUnit(): void {
     this.currentWindUnitIndex =
       (this.currentWindUnitIndex + 1) % this.windUnits.length;
+    // Save the wind unit preference
+    this.settings.setWindUnitIndex(this.currentWindUnitIndex);
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
@@ -2703,5 +2723,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
   public get observerLon() {
     return this.settings.lon ?? this.DEFAULT_COORDS[1];
+  }
+
+  /** Apply brightness to map container based on current brightness state */
+  private applyBrightnessToMap(): void {
+    const container = this.map?.getContainer();
+    if (container) {
+      container.style.filter = `brightness(${this.brightness})`;
+    }
   }
 }

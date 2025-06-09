@@ -20,15 +20,21 @@
         [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
         (click)="toggleDateTimeOverlays.emit()"
       ></app-button>
-      <app-button
-        class="toggle-brightness"
-        [icon]="'brightness_6'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="'Toggle map brightness'"
-        [title]="'Toggle map brightness'"
-        (click)="onBrightnessToggle()"
-      ></app-button>
+      <div
+        class="brightness-button-wrapper"
+        [class.auto]="brightnessState?.mode === 'auto'"
+      >
+        <app-button
+          class="toggle-brightness"
+          [icon]="brightnessIcon"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="brightnessSimpleTooltip"
+          [attr.title]="brightnessSimpleTooltip"
+          (click)="onBrightnessToggle()"
+          [appTooltip]="brightnessTooltip"
+        ></app-button>
+      </div>
       <app-button
         class="toggle-airport-labels"
         [icon]="showAirportLabels ? 'label' : 'label_off'"

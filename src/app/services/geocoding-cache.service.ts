@@ -38,9 +38,6 @@ export class GeocodingCacheService {
         return entry.promise;
       }
       if (now - entry.timestamp < this.CACHE_DURATION) {
-        if (!entry.address || entry.address.trim() === '') {
-          console.log('Returning empty cached result for:', key, entry.address);
-        }
         return Promise.resolve(entry.address);
       }
     }

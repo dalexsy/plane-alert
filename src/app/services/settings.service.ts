@@ -27,10 +27,17 @@ export class SettingsService {
   private _showDateTimeOverlay: boolean = true;
   // Key and backing store for showing view axes (cones)
   private viewAxesKey = 'showViewAxes';
-  private _showViewAxes: boolean = false;
-  // Key and backing store for airport labels visibility
+  private _showViewAxes: boolean = false;  // Key and backing store for airport labels visibility
   private airportLabelsKey = 'showAirportLabels';
-  private _showAirportLabels: boolean = true;  // Keys and backing stores for cloud and rain cover visibility
+  private _showAirportLabels: boolean = true;
+  
+  // Key and backing store for brightness mode preference
+  private brightnessAutoModeKey = 'brightnessAutoMode';
+  private _brightnessAutoMode: boolean = false;
+  
+  // Key and backing store for wind units preference
+  private windUnitIndexKey = 'windUnitIndex';
+  private _windUnitIndex: number = 0;// Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
   private _showCloudCover: boolean = true;
   private rainCoverKey = 'showRainCover';
@@ -238,6 +245,26 @@ export class SettingsService {
     localStorage.setItem(this.rainCoverKey, value.toString());
   }
 
+  /** Whether brightness auto-dimming mode is enabled */
+  get brightnessAutoMode(): boolean {
+    return this._brightnessAutoMode;
+  }
+  /** Persist brightness auto-dimming mode preference */
+  setBrightnessAutoMode(value: boolean): void {
+    this._brightnessAutoMode = value;
+    localStorage.setItem(this.brightnessAutoModeKey, value.toString());
+  }
+
+  /** Current wind unit index (0: m/s, 1: knots, 2: km/h, 3: mph) */
+  get windUnitIndex(): number {
+    return this._windUnitIndex;
+  }
+  /** Persist wind unit preference */
+  setWindUnitIndex(value: number): void {
+    this._windUnitIndex = value;
+    localStorage.setItem(this.windUnitIndexKey, value.toString());
+  }
+
   /** Get clicked airports from localStorage */
   getClickedAirports(): Set<number> {
     const saved = localStorage.getItem(this.clickedAirportsKey);
@@ -320,11 +347,25 @@ export class SettingsService {
     const dtStr = localStorage.getItem(this.dateTimeOverlayKey);
     if (dtStr !== null) {
       this._showDateTimeOverlay = dtStr === 'true';
-    }
-    // Load show/hide view axes (cones) preference
+    }    // Load show/hide view axes (cones) preference
     const axesStr = localStorage.getItem(this.viewAxesKey);
     if (axesStr !== null) {
       this._showViewAxes = axesStr === 'true';
+    }
+    
+    // Load brightness auto-dimming mode preference
+    const brightnessStr = localStorage.getItem(this.brightnessAutoModeKey);
+    if (brightnessStr !== null) {
+      this._brightnessAutoMode = brightnessStr === 'true';
+    }
+    
+    // Load wind unit preference
+    const windUnitStr = localStorage.getItem(this.windUnitIndexKey);
+    if (windUnitStr !== null) {
+      const windUnitIndex = parseInt(windUnitStr, 10);
+      if (!isNaN(windUnitIndex)) {
+        this._windUnitIndex = windUnitIndex;
+      }
     }
   }
 }

@@ -35,30 +35,14 @@ export class AircraftContainerComponent {
   } /** Debug function to log plane data when clicking on plane icon */
   handlePlaneIconClick(plane: WindowViewPlane, event: MouseEvent): void {
     event.stopPropagation();
-    console.group(`🛩️ DEBUG: Clicked on plane ${plane.callsign || plane.icao}`);
-    console.log('Movement direction:', plane.movementDirection);
-    console.log('Aircraft bearing:', plane.bearing);
-    console.log(
-      'Aircraft position: x =',
-      plane.x?.toFixed(2) + '%',
-      '(azimuth =',
-      ((plane.x / 100) * 360).toFixed(1) + '°)'
-    );
-    console.log('Calculated rotation:', this.getIconRotation(plane));
 
     // Show trail positions to see actual movement
     if (plane.historyTrail && plane.historyTrail.length > 1) {
-      console.log('📍 Trail positions (newest to oldest):');
       plane.historyTrail
         .slice()
         .reverse()
         .forEach((pos, i) => {
           const valid = pos.y > 0.1 && pos.x >= 0 && pos.x <= 100;
-          console.log(
-            `  ${i}: x=${pos.x.toFixed(2)}, y=${pos.y.toFixed(2)} ${
-              valid ? '✅' : '❌ INVALID'
-            }`
-          );
         });
 
       // Calculate movement from trail using validation logic
@@ -71,11 +55,7 @@ export class AircraftContainerComponent {
           const candidate = plane.historyTrail[i];
           if (candidate.y > 0.1 && candidate.x >= 0 && candidate.x <= 100) {
             previous = candidate;
-            console.log(
-              `Using previous position from index ${
-                plane.historyTrail.length - 1 - i
-              }: x=${previous.x.toFixed(2)}, y=${previous.y.toFixed(2)}`
-            );
+
             break;
           }
         }
@@ -92,11 +72,6 @@ export class AircraftContainerComponent {
           }
 
           const calculatedDirection = deltaX > 0 ? 'right' : 'left';
-          console.log(
-            `🔄 Trail movement: deltaX=${deltaX.toFixed(
-              2
-            )}, deltaY=${deltaY.toFixed(2)}, direction=${calculatedDirection}`
-          );
 
           // Calculate and log the full movement angle for both horizontal and vertical movement
           if (Math.abs(deltaX) > 0.05 || Math.abs(deltaY) > 0.05) {
@@ -104,29 +79,14 @@ export class AircraftContainerComponent {
             let normalizedMovementAngle = ((movementAngle % 360) + 360) % 360; // Normalize to 0-360
             let iconAngle =
               (((normalizedMovementAngle + 90) % 360) + 360) % 360; // Add 90° and normalize again
-            console.log(
-              `  Movement vector angle: ${movementAngle.toFixed(
-                1
-              )}° → normalized: ${normalizedMovementAngle.toFixed(1)}°`
-            );
-            console.log(
-              `  Trail-based icon rotation: ${iconAngle.toFixed(1)}°`
-            );
           } else {
-            console.log('  No significant movement detected, using fallback');
           }
         } else {
-          console.log(
-            '❌ No valid trail positions found for movement calculation'
-          );
         }
       }
-    } else {
-      console.log('No trail data available');
     }
-
     // Also log some other planes for comparison
-    console.log('\n📊 All planes rotation summary:');
+
     this.aircraftPlanes
       .filter((p) => !p.isMarker && !p.isCelestial)
       .slice(0, 5)
@@ -134,13 +94,6 @@ export class AircraftContainerComponent {
         const rotation = this.getIconRotation(p);
         const bearing =
           p.bearing !== undefined ? `${p.bearing.toFixed(0)}°` : 'N/A';
-        console.log(
-          `${
-            p.callsign || p.icao
-          }: ${rotation} (bearing: ${bearing}, movementDir: ${
-            p.movementDirection
-          })`
-        );
       });
 
     console.groupEnd();
