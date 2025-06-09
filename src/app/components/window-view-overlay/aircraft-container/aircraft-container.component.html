@@ -123,16 +123,11 @@
         </ng-container>
         <span
           class="plane-label"
-          [class.followed]="plane.icao === highlightedPlaneIcao"
-          [class.has-details]="
-            plane.distanceKm != null &&
-            plane.distanceKm <= 10 &&
-            (plane.operator || plane.model) &&
-            !plane.isGrounded
-          "
+          [class]="getLabelClasses(plane)"
           [style.color]="
             planeStyle.getLabelColor(plane, plane.icao === highlightedPlaneIcao)
           "
+          [ngStyle]="getAltitudeBorderStyle(plane)"
           (click)="handleLabelClick(plane, $event)"
           ><!-- Display operator and model for close planes (within 10km) but not when grounded -->
           <div

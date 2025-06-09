@@ -171,14 +171,15 @@ export class WindowViewOverlayComponent
   /** Current weather condition from API */
   public weatherCondition: string | null = null;
   /** Detailed weather description from API */
-  private weatherDescription: string | null = null;
-  /** Currently highlighted/followed plane ICAO */
+  private weatherDescription: string | null =
+    null; /** Currently highlighted/followed plane ICAO */
   @Input() highlightedPlaneIcao: string | null = null;
   /** Planes to display in window view */
   @Input() windowViewPlanes: WindowViewPlane[] = [];
   @Input() observerLat!: number;
   @Input() observerLon!: number;
   @Input() isAtHome: boolean = false;
+  @Input() showAltitudeBorders: boolean = false;
 
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
 

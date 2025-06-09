@@ -53,9 +53,12 @@ export class InputOverlayComponent implements OnDestroy {
   /** Emit when zoom in button is clicked */
   @Output() zoomIn = new EventEmitter<void>();
   /** Emit when zoom out button is clicked */
-  @Output() zoomOut = new EventEmitter<void>();
-  /** Whether to show view axes (cones) */
+  @Output() zoomOut =
+    new EventEmitter<void>(); /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
+  /** Whether to show altitude-colored tooltip borders */
+  @Input() showAltitudeBorders = false;
+  @Output() altitudeBordersChange = new EventEmitter<boolean>();
 
   scanButtonText = '';
   private sub!: Subscription;
@@ -222,21 +225,23 @@ export class InputOverlayComponent implements OnDestroy {
     return this.brightnessState.mode === 'auto'
       ? 'Disable auto-dimming'
       : 'Enable auto-dimming';
-  }  /** Get the full tooltip text with enable/disable and sun status */
+  } /** Get the full tooltip text with enable/disable and sun status */
   get sunStatusTooltip(): string {
     if (!this.brightnessState) return 'Toggle map brightness';
 
-    const enableDisableText = this.brightnessState.mode === 'auto'
-      ? 'Disable auto-dimming'
-      : 'Enable auto-dimming';
+    const enableDisableText =
+      this.brightnessState.mode === 'auto'
+        ? 'Disable auto-dimming'
+        : 'Enable auto-dimming';
 
-    const sunStatus = this.brightnessState.sunElevation > 0
-      ? 'Daytime'
-      : this.brightnessState.sunElevation > -6
-      ? 'Civil twilight'
-      : this.brightnessState.sunElevation > -12
-      ? 'Nautical twilight'
-      : 'Night';
+    const sunStatus =
+      this.brightnessState.sunElevation > 0
+        ? 'Daytime'
+        : this.brightnessState.sunElevation > -6
+        ? 'Civil twilight'
+        : this.brightnessState.sunElevation > -12
+        ? 'Nautical twilight'
+        : 'Night';
 
     return `${enableDisableText} - ${sunStatus}`;
   }
@@ -253,7 +258,9 @@ export class InputOverlayComponent implements OnDestroy {
 
   /** Get airport labels toggle tooltip text */
   get airportLabelsTooltip(): string {
-    return this.showAirportLabels ? 'Hide airport labels' : 'Show airport labels';
+    return this.showAirportLabels
+      ? 'Hide airport labels'
+      : 'Show airport labels';
   }
 
   /** Get cloud cover toggle tooltip text */
@@ -265,10 +272,16 @@ export class InputOverlayComponent implements OnDestroy {
   get rainCoverTooltip(): string {
     return this.showRainCover ? 'Hide rain cover' : 'Show rain cover';
   }
-
   /** Get view axes toggle tooltip text */
   get viewAxesTooltip(): string {
     return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
+  }
+
+  /** Get altitude borders toggle tooltip text */
+  get altitudeBordersTooltip(): string {
+    return this.showAltitudeBorders
+      ? 'Hide altitude-colored borders'
+      : 'Show altitude-colored borders';
   }
 
   /** Get force scan tooltip text */

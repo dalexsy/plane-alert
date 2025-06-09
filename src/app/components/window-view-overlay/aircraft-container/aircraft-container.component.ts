@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WindowViewPlane } from '../window-view-overlay.component';
 import { AltitudeColorService } from '../../../services/altitude-color.service';
@@ -13,15 +20,42 @@ import { calculateTiltAngle } from '../../../utils/vertical-rate.util';
   templateUrl: './aircraft-container.component.html',
   styleUrl: './aircraft-container.component.scss',
 })
-export class AircraftContainerComponent {
+export class AircraftContainerComponent implements OnChanges {
   @Input() aircraftPlanes: WindowViewPlane[] = [];
   @Input() highlightedPlaneIcao: string | null = null;
+  @Input() showAltitudeBorders: boolean = false;
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
-
+  // Cache for altitude border styles to avoid recalculation
+  private altitudeBorderCache = new Map<string, { [key: string]: string }>();
+  private labelClassCache = new Map<string, string>();
+  private readonly MAX_CACHE_SIZE = 1000; // Prevent memory leaks
   constructor(
     public altitudeColor: AltitudeColorService,
     public planeStyle: PlaneStyleService
   ) {}
+  ngOnChanges(changes: SimpleChanges): void {
+    // Clear caches when showAltitudeBorders changes or when planes data changes
+    if (changes['showAltitudeBorders'] || changes['aircraftPlanes']) {
+      this.clearCaches();
+    }
+  }
+  /** Clear all caches - useful when settings change */
+  private clearCaches(): void {
+    this.altitudeBorderCache.clear();
+    this.labelClassCache.clear();
+  }
+
+  /** Manage cache size to prevent memory leaks */
+  private manageCacheSize<K, V>(cache: Map<K, V>): void {
+    if (cache.size > this.MAX_CACHE_SIZE) {
+      // Remove oldest entries (first 20% of cache)
+      const entriesToRemove = Math.floor(this.MAX_CACHE_SIZE * 0.2);
+      const keys = Array.from(cache.keys());
+      for (let i = 0; i < entriesToRemove; i++) {
+        cache.delete(keys[i]);
+      }
+    }
+  }
 
   /** TrackBy function to prevent unnecessary DOM re-creation during animations */
   trackByPlaneIcao(index: number, plane: WindowViewPlane): string {
@@ -203,5 +237,65 @@ export class AircraftContainerComponent {
 
     // Final fallback: No rotation (nose pointing up)
     return 'rotateZ(0deg)';
+  } /** Get altitude-colored border style for window view tooltips */
+  getAltitudeBorderStyle(plane: WindowViewPlane): { [key: string]: string } {
+    // Quick return if altitude borders are disabled
+    if (!this.showAltitudeBorders || !plane.altitude) {
+      return {};
+    }
+
+    // Create cache key based on plane ICAO and altitude
+    const cacheKey = `${plane.icao}-${plane.altitude}`;
+
+    // Return cached result if available
+    if (this.altitudeBorderCache.has(cacheKey)) {
+      return this.altitudeBorderCache.get(cacheKey)!;
+    }
+
+    const altitudeColor = this.altitudeColor.getFillColor(plane.altitude);
+    const result = { 'border-color': altitudeColor }; // Cache the result
+    this.altitudeBorderCache.set(cacheKey, result);
+    this.manageCacheSize(this.altitudeBorderCache);
+    return result;
+  }
+
+  /** Get CSS classes for plane labels including altitude border class */
+  getLabelClasses(plane: WindowViewPlane): string {
+    // Create a more efficient cache key using only the essential properties
+    const hasDetails =
+      plane.distanceKm != null &&
+      plane.distanceKm <= 10 &&
+      (plane.operator || plane.model) &&
+      !plane.isGrounded;
+    const isFollowed = plane.icao === this.highlightedPlaneIcao;
+    const hasAltitudeBorder =
+      hasDetails && this.showAltitudeBorders && plane.altitude;
+
+    const cacheKey = `${plane.icao}-${isFollowed}-${hasDetails}-${hasAltitudeBorder}`;
+
+    // Return cached result if available
+    if (this.labelClassCache.has(cacheKey)) {
+      return this.labelClassCache.get(cacheKey)!;
+    }
+
+    const classes = [];
+
+    if (isFollowed) {
+      classes.push('followed');
+    }
+
+    if (hasDetails) {
+      classes.push('has-details');
+
+      if (hasAltitudeBorder) {
+        classes.push('altitude-bordered-tooltip');
+      }
+    }
+
+    const result = classes.join(' ');
+    // Cache the result
+    this.labelClassCache.set(cacheKey, result);
+    this.manageCacheSize(this.labelClassCache);
+    return result;
   }
 }

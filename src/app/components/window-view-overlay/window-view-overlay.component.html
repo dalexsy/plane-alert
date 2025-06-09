@@ -51,6 +51,7 @@
   <app-aircraft-container
     [aircraftPlanes]="getAircraftPlanes()"
     [highlightedPlaneIcao]="highlightedPlaneIcao"
+    [showAltitudeBorders]="showAltitudeBorders"
     (selectPlane)="handlePlaneSelection($event)"
   ></app-aircraft-container>
 </div>

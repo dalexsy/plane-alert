@@ -27,21 +27,24 @@ export class SettingsService {
   private _showDateTimeOverlay: boolean = true;
   // Key and backing store for showing view axes (cones)
   private viewAxesKey = 'showViewAxes';
-  private _showViewAxes: boolean = false;  // Key and backing store for airport labels visibility
+  private _showViewAxes: boolean = false; // Key and backing store for airport labels visibility
   private airportLabelsKey = 'showAirportLabels';
   private _showAirportLabels: boolean = true;
-  
+
   // Key and backing store for brightness mode preference
   private brightnessAutoModeKey = 'brightnessAutoMode';
   private _brightnessAutoMode: boolean = false;
-  
+
   // Key and backing store for wind units preference
   private windUnitIndexKey = 'windUnitIndex';
-  private _windUnitIndex: number = 0;// Keys and backing stores for cloud and rain cover visibility
+  private _windUnitIndex: number = 0; // Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
   private _showCloudCover: boolean = true;
   private rainCoverKey = 'showRainCover';
   private _showRainCover: boolean = true;
+  // Key and backing store for altitude borders visibility
+  private altitudeBordersKey = 'showAltitudeBorders';
+  private _showAltitudeBorders: boolean = false;
   // Key for clicked airports persistence
   private clickedAirportsKey = 'clickedAirports';
 
@@ -235,14 +238,23 @@ export class SettingsService {
   setShowCloudCover(value: boolean): void {
     this._showCloudCover = value;
     localStorage.setItem(this.cloudCoverKey, value.toString());
-  }
-  /** Whether rain coverage layer is shown */
+  } /** Whether rain coverage layer is shown */
   get showRainCover(): boolean {
     return this._showRainCover;
-  }  /** Persist rain coverage visibility preference */
+  } /** Persist rain coverage visibility preference */
   setShowRainCover(value: boolean): void {
     this._showRainCover = value;
     localStorage.setItem(this.rainCoverKey, value.toString());
+  }
+
+  /** Whether altitude borders are shown */
+  get showAltitudeBorders(): boolean {
+    return this._showAltitudeBorders;
+  }
+  /** Persist altitude borders visibility preference */
+  setShowAltitudeBorders(value: boolean): void {
+    this._showAltitudeBorders = value;
+    localStorage.setItem(this.altitudeBordersKey, value.toString());
   }
 
   /** Whether brightness auto-dimming mode is enabled */
@@ -295,11 +307,15 @@ export class SettingsService {
     const cloudStr = localStorage.getItem(this.cloudCoverKey);
     if (cloudStr !== null) {
       this._showCloudCover = cloudStr === 'true';
-    }
-    // Load rain cover visibility preference
+    } // Load rain cover visibility preference
     const rainStr = localStorage.getItem(this.rainCoverKey);
     if (rainStr !== null) {
       this._showRainCover = rainStr === 'true';
+    }
+    // Load altitude borders visibility preference
+    const altitudeBordersStr = localStorage.getItem(this.altitudeBordersKey);
+    if (altitudeBordersStr !== null) {
+      this._showAltitudeBorders = altitudeBordersStr === 'true';
     }
     const lat = parseFloat(localStorage.getItem('lastLat') || '');
     const lon = parseFloat(localStorage.getItem('lastLon') || '');
@@ -347,18 +363,18 @@ export class SettingsService {
     const dtStr = localStorage.getItem(this.dateTimeOverlayKey);
     if (dtStr !== null) {
       this._showDateTimeOverlay = dtStr === 'true';
-    }    // Load show/hide view axes (cones) preference
+    } // Load show/hide view axes (cones) preference
     const axesStr = localStorage.getItem(this.viewAxesKey);
     if (axesStr !== null) {
       this._showViewAxes = axesStr === 'true';
     }
-    
+
     // Load brightness auto-dimming mode preference
     const brightnessStr = localStorage.getItem(this.brightnessAutoModeKey);
     if (brightnessStr !== null) {
       this._brightnessAutoMode = brightnessStr === 'true';
     }
-    
+
     // Load wind unit preference
     const windUnitStr = localStorage.getItem(this.windUnitIndexKey);
     if (windUnitStr !== null) {

@@ -164,10 +164,23 @@ $new-plane-color: #ff6161;
       color: $followed-plane-color;
     }
   }
-
   &.special-plane-tooltip {
     border-color: gold;
     z-index: 10;
+  }
+
+  // Altitude-bordered tooltips maintain altitude color on all sides
+  &.altitude-bordered-tooltip {
+    // Ensure the altitude border color takes precedence over hover states
+    // but allow special states to override if needed
+    &:not(.special-plane-tooltip):not(.followed-plane-tooltip) {
+      &:hover,
+      &.hovered-tooltip,
+      &.highlighted-tooltip {
+        // Keep the altitude border color even on hover/highlight
+        border-color: inherit !important;
+      }
+    }
   }
 
   &.military-plane-tooltip.followed-plane-tooltip.highlighted-tooltip {

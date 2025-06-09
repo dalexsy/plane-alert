@@ -347,3 +347,18 @@ $animation-optimization: optimizeSpeed;
     transform: perspective(300px) rotateX(60deg) rotateZ(360deg);
   }
 }
+
+// =============================================================================
+// Altitude Border Styling
+// =============================================================================
+
+.altitude-bordered-tooltip {
+  // Ensure the altitude border color takes precedence over hover states
+  // but allow special states to override if needed
+  &:not(.followed) {
+    &:hover {
+      // Keep the altitude border color even on hover
+      border-color: inherit !important;
+    }
+  }
+}

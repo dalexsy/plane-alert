@@ -22,7 +22,8 @@
   (useCurrentLocation)="useCurrentLocation()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
   (cloudToggleChange)="toggleCloudCover($event)"
-  (rainToggleChange)="toggleRainCover($event)"  (setHome)="setCurrentAsHome()"
+  (rainToggleChange)="toggleRainCover($event)"
+  (setHome)="setCurrentAsHome()"
   (goToHome)="goToHome()"
   (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
   (brightnessToggle)="toggleBrightness()"
@@ -35,7 +36,9 @@
   [showCloudCover]="cloudVisible"
   [showRainCover]="rainVisible"
   [showAirportLabels]="showAirportLabels"
+  [showAltitudeBorders]="showAltitudeBorders"
   (toggleAirportLabels)="onToggleAirportLabels()"
+  (altitudeBordersChange)="onToggleAltitudeBorders($event)"
 ></app-input-overlay>
 
 <!-- Pass the set of active ICAOs to the results overlay -->
@@ -180,5 +183,6 @@
   [observerLat]="observerLat"
   [observerLon]="observerLon"
   [isAtHome]="isAtHome"
+  [showAltitudeBorders]="showAltitudeBorders"
   (selectPlane)="followNearestPlane($event)"
 ></app-window-view-overlay>

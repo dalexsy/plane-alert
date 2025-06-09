@@ -1,6 +1,8 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
-<div class="options-overlay" [class.collapsed]="collapsed">  <div class="top-buttons">
-    <app-tab side="right">      <app-button
+<div class="options-overlay" [class.collapsed]="collapsed">
+  <div class="top-buttons">
+    <app-tab side="right">
+      <app-button
         class="collapse-toggle"
         [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
         type="tertiary"
@@ -13,18 +15,21 @@
         class="toggle-datetime"
         [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
         type="tertiary"
-        size="medium"        [ariaLabel]="dateTimeTooltip"
+        size="medium"
+        [ariaLabel]="dateTimeTooltip"
         [appTooltip]="dateTimeTooltip"
         (click)="toggleDateTimeOverlays.emit()"
       ></app-button>
       <div
         class="brightness-button-wrapper"
         [class.auto]="brightnessState?.mode === 'auto'"
-      >        <app-button
+      >
+        <app-button
           class="toggle-brightness"
           [icon]="brightnessIcon"
           type="tertiary"
-          size="medium"          [ariaLabel]="brightnessSimpleTooltip"
+          size="medium"
+          [ariaLabel]="brightnessSimpleTooltip"
           [appTooltip]="sunStatusTooltip"
           (click)="onBrightnessToggle()"
         ></app-button>
@@ -33,7 +38,8 @@
         class="toggle-airport-labels"
         [icon]="showAirportLabels ? 'label' : 'label_off'"
         type="tertiary"
-        size="medium"        [ariaLabel]="airportLabelsTooltip"
+        size="medium"
+        [ariaLabel]="airportLabelsTooltip"
         [appTooltip]="airportLabelsTooltip"
         (click)="toggleAirportLabels.emit()"
       ></app-button>
@@ -42,7 +48,8 @@
         [icon]="showCloudCover ? 'cloud' : 'cloud_off'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="cloudCoverTooltip"        [appTooltip]="cloudCoverTooltip"
+        [ariaLabel]="cloudCoverTooltip"
+        [appTooltip]="cloudCoverTooltip"
         (click)="cloudToggleChange.emit(!showCloudCover)"
       ></app-button>
       <app-button
@@ -50,7 +57,8 @@
         [icon]="showRainCover ? 'rainy_heavy' : 'rainy_snow'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="rainCoverTooltip"        [appTooltip]="rainCoverTooltip"
+        [ariaLabel]="rainCoverTooltip"
+        [appTooltip]="rainCoverTooltip"
         (click)="rainToggleChange.emit(!showRainCover)"
       ></app-button>
       <!-- View axes toggle button -->
@@ -58,16 +66,28 @@
         class="toggle-view-axes"
         [icon]="showViewAxes ? 'target' : 'filter_tilt_shift'"
         type="tertiary"
-        size="medium"        [ariaLabel]="viewAxesTooltip"
+        size="medium"
+        [ariaLabel]="viewAxesTooltip"
         [appTooltip]="viewAxesTooltip"
         (click)="coneVisibilityChange.emit(!showViewAxes)"
+      ></app-button>
+      <!-- Altitude tooltip borders toggle button -->
+      <app-button
+        class="toggle-altitude-borders"
+        [icon]="showAltitudeBorders ? 'gradient' : 'border_color'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="altitudeBordersTooltip"
+        [appTooltip]="altitudeBordersTooltip"
+        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
       ></app-button>
       <!-- Force scan button -->
       <app-button
         class="force-scan"
         icon="refresh"
         type="tertiary"
-        size="medium"        [ariaLabel]="forceScanTooltip"
+        size="medium"
+        [ariaLabel]="forceScanTooltip"
         [appTooltip]="forceScanTooltip"
         (click)="onResolveAndUpdate($event)"
       ></app-button>
@@ -76,7 +96,8 @@
         class="zoom-in"
         icon="add"
         type="tertiary"
-        size="medium"        [ariaLabel]="zoomInTooltip"
+        size="medium"
+        [ariaLabel]="zoomInTooltip"
         [appTooltip]="zoomInTooltip"
         (click)="onZoomIn()"
       ></app-button>
@@ -84,7 +105,8 @@
         class="zoom-out"
         icon="remove"
         type="tertiary"
-        size="medium"        [ariaLabel]="zoomOutTooltip"
+        size="medium"
+        [ariaLabel]="zoomOutTooltip"
         [appTooltip]="zoomOutTooltip"
         (click)="onZoomOut()"
       ></app-button>

@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { haversineDistance } from '../utils/geo-utils';
+import { haversineDistance, computeBearing } from '../utils/geo-utils';
 import { RadiusComponent } from '../components/radius/radius.component';
 import { ConeComponent } from '../components/cone/cone.component';
 import { InputOverlayComponent } from '../components/input-overlay/input-overlay.component';
@@ -60,7 +60,11 @@ import { FollowCoordinatorService } from '../services/follow-coordinator.service
 import { TtsService } from '../services/tts.service';
 import { OperatorCallSignService } from '../services/operator-call-sign.service';
 import { SkyOverlayService } from '../services/sky-overlay.service';
-import { BrightnessService, BrightnessState } from '../services/brightness.service';
+import {
+  BrightnessService,
+  BrightnessState,
+} from '../services/brightness.service';
+import { AltitudeColorService } from '../services/altitude-color.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
@@ -187,6 +191,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // before: showAirportLabels: boolean = true;
   showAirportLabels = true; // Show airport labels by default
 
+  // Toggle for altitude-colored tooltip borders
+  showAltitudeBorders = false; // Default to disabled
+
   private _initialScanDone = false; // Flag to prevent double scan
 
   // New properties for location-overlay component
@@ -239,23 +246,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private geocodingCache: GeocodingCacheService,
     private debouncedClickService: DebouncedClickService,
     private planeFollowService: PlaneFollowService,
-    private autoFollowService: AutoFollowService,    private followCoordinatorService: FollowCoordinatorService,
+    private autoFollowService: AutoFollowService,
+    private followCoordinatorService: FollowCoordinatorService,
     private tts: TtsService,
     private operatorCallSignService: OperatorCallSignService,
     private skyOverlayService: SkyOverlayService,
-    private brightnessService: BrightnessService
-  ) {    // Initialize UI toggles from stored settings
+    private brightnessService: BrightnessService,
+    private altitudeColor: AltitudeColorService
+  ) {
+    // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
     this.rainVisible = this.settings.showRainCover;
     this.coneVisible = this.settings.showViewAxes;
     this.showDateTime = this.settings.showDateTimeOverlay;
     this.showAirportLabels = this.settings.showAirportLabels;
+    this.showAltitudeBorders = this.settings.showAltitudeBorders;
     this.currentWindUnitIndex = this.settings.windUnitIndex;
 
     // Initialize brightness service with current location if available
     const currentLocation = this.settings.getCurrentLocation();
     if (currentLocation) {
-      this.brightnessService.setLocation(currentLocation.lat, currentLocation.lon);
+      this.brightnessService.setLocation(
+        currentLocation.lat,
+        currentLocation.lon
+      );
     }
 
     // Update tooltip classes on special list changes
@@ -313,7 +327,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('click', this.globalTooltipClickHandler);
   }
 
-  /** Toggle map brightness between normal and dimmed */  public toggleBrightness(): void {
+  /** Toggle map brightness between normal and dimmed */ public toggleBrightness(): void {
     // Toggle between automatic and manual brightness modes
     this.brightnessService.toggleMode();
   }
@@ -601,7 +615,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
     if (this.cloudLayer) {
       this.cloudLayer.remove();
-    }    if (this.rainLayer) {
+    }
+    if (this.rainLayer) {
       this.rainLayer.remove();
     }
     // Clean up brightness service
@@ -759,7 +774,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
     )
       .addTo(this.map)
-      .on('tileerror', () => {        // ignore rain tile errors in console
+      .on('tileerror', () => {
+        // ignore rain tile errors in console
       });
 
     // Initialize sky overlay service after all panes are created
@@ -1004,7 +1020,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.scanService.forceScan();
       }
     }); // fetch and update current wind direction
-    this.fetchWindDirection(lat, lon);    // Update brightness service with new location
+    this.fetchWindDirection(lat, lon); // Update brightness service with new location
     this.brightnessService.setLocation(lat, lon);
 
     // Update location context for explicit location changes (not map panning)
@@ -1287,14 +1303,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 // Tooltips handled above
               }
             }
-          }
-          // --- Set tooltip classes for new planes (not grounded) ---
+          } // --- Set tooltip classes for new planes (not grounded) ---
           if (planeModel.marker && planeModel.marker.getTooltip()) {
             const tooltipEl = planeModel.marker.getTooltip()?.getElement();
             if (tooltipEl) {
               tooltipEl.classList.toggle('new-plane-tooltip', planeModel.isNew);
             }
           }
+
+          // Apply altitude border styling to the plane's tooltip if enabled
+          this.applyTooltipAltitudeBorder(planeModel);
+
           // Always update the log regardless of filter status
           this.planeLog.set(planeModel.icao, planeModel);
         }
@@ -2616,120 +2635,184 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /** Toggle altitude-colored borders on plane tooltips */
+  onToggleAltitudeBorders(enabled: boolean): void {
+    this.showAltitudeBorders = enabled;
+
+    // Save the setting for persistence
+    this.settings.setShowAltitudeBorders(enabled);
+
+    // Update all existing tooltips with the new border style
+    this.updateTooltipAltitudeBorders();
+
+    this.cdr.detectChanges();
+  }
+
+  /** Update all existing plane tooltips with altitude-colored borders based on current setting */
+  private updateTooltipAltitudeBorders(): void {
+    this.planeLog.forEach((plane) => {
+      if (plane.marker && plane.marker.getTooltip()) {
+        this.applyTooltipAltitudeBorder(plane);
+      }
+    });
+  }
+  /** Apply or remove altitude-colored border styling to a plane's tooltip */
+  private applyTooltipAltitudeBorder(plane: PlaneModel): void {
+    const tooltipEl = plane.marker?.getTooltip()?.getElement();
+    if (!tooltipEl) return;
+
+    if (
+      this.showAltitudeBorders &&
+      plane.altitude !== null &&
+      plane.altitude !== undefined
+    ) {
+      // Get altitude color from the service
+      const altitudeColor = this.altitudeColor.getFillColor(plane.altitude);
+
+      // Apply altitude-colored border to all sides
+      tooltipEl.style.borderColor = altitudeColor;
+      tooltipEl.classList.add('altitude-bordered-tooltip');
+    } else {
+      // Remove altitude border styling
+      tooltipEl.style.borderColor = '';
+      tooltipEl.classList.remove('altitude-bordered-tooltip');
+    }
+  }
+
+  /** Update sun angle and related astronomical data */
   private updateSunAngle(): void {
     const now = new Date();
-    const center = this.map.getCenter();
-    const sunPos = SunCalc.getPosition(now, center.lat, center.lng);
+    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
+    // Calculate sun position using SunCalc
+    const sunPos = SunCalc.getPosition(now, lat, lon);
+    const moonPos = SunCalc.getMoonPosition(now, lat, lon);
     const moonIllum = SunCalc.getMoonIllumination(now);
-    const moonPos = SunCalc.getMoonPosition(now, center.lat, center.lng);
 
-    // determine if the sun is below the horizon
+    // Convert azimuth from radians to degrees (0° = North, 90° = East)
+    const sunAzimuthDeg = (sunPos.azimuth * 180) / Math.PI;
+    this.sunAngle = (sunAzimuthDeg + 180) % 360; // Adjust for display
+
+    // Check if it's night (sun below horizon)
     this.isNight = sunPos.altitude < 0;
-    // compute moon illumination fraction and rotation
-    const p = moonIllum.phase;
-    this.moonFraction = moonIllum.fraction;
-    this.moonIllumAngleDeg = (moonIllum.angle * 180) / Math.PI;
-    this.moonIsWaning = p > 0.5;
-    this.moonIcon = this.moonIsWaning ? 'dark_mode' : 'light_mode';
 
-    // Convert SunCalc.azimuth (0 = south, positive westwards) to compass bearing from North (0°=N, clockwise)
-    const sunAzDeg = (sunPos.azimuth * 180) / Math.PI;
-    this.sunAngle = (sunAzDeg + 180 + 360) % 360; // adjust from south-based azimuth and normalize    // Determine next sun event time
-    const timesToday = SunCalc.getTimes(now, center.lat, center.lng);
-    let eventTime: Date;
-    let label: string;
-    if (!this.isNight) {
-      // Daytime: show sunset
-      eventTime = timesToday.sunset;
-      label = 'Sunset: ';
+    // Calculate next sun event
+    const sunTimes = SunCalc.getTimes(now, lat, lon);
+    const currentTime = now.getTime();
+
+    if (this.isNight) {
+      // If it's night, show time until sunrise
+      const sunrise = sunTimes.sunrise.getTime();
+      const timeUntilSunrise = Math.max(0, sunrise - currentTime);
+      const hoursUntilSunrise = Math.floor(timeUntilSunrise / (1000 * 60 * 60));
+      const minutesUntilSunrise = Math.floor(
+        (timeUntilSunrise % (1000 * 60 * 60)) / (1000 * 60)
+      );
+      this.sunEventText = `Sunrise ${hoursUntilSunrise}h ${minutesUntilSunrise}m`;
     } else {
-      // Nighttime: show next sunrise
-      const sunriseToday = timesToday.sunrise;
-      const sunsetToday = timesToday.sunset;
-      if (now > sunsetToday) {
-        // after today's sunset, use tomorrow's sunrise
-        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        eventTime = SunCalc.getTimes(tomorrow, center.lat, center.lng).sunrise;
+      // If it's day, show time until sunset
+      const sunset = sunTimes.sunset.getTime();
+      const timeUntilSunset = Math.max(0, sunset - currentTime);
+      const hoursUntilSunset = Math.floor(timeUntilSunset / (1000 * 60 * 60));
+      const minutesUntilSunset = Math.floor(
+        (timeUntilSunset % (1000 * 60 * 60)) / (1000 * 60)
+      );
+      this.sunEventText = `Sunset ${hoursUntilSunset}h ${minutesUntilSunset}m`;
+    }
+
+    // Update moon properties for night display
+    if (this.isNight) {
+      this.moonFraction = moonIllum.fraction;
+      this.moonIsWaning = moonIllum.phase > 0.5;
+
+      // Calculate moon phase name
+      const phase = moonIllum.phase;
+      if (phase < 0.1 || phase > 0.9) {
+        this.moonPhaseName = 'New Moon';
+      } else if (phase < 0.3) {
+        this.moonPhaseName = 'Waxing Crescent';
+      } else if (phase < 0.4) {
+        this.moonPhaseName = 'First Quarter';
+      } else if (phase < 0.6) {
+        this.moonPhaseName = 'Waxing Gibbous';
+      } else if (phase < 0.7) {
+        this.moonPhaseName = 'Full Moon';
+      } else if (phase < 0.9) {
+        this.moonPhaseName = 'Waning Gibbous';
       } else {
-        // before today's sunrise
-        eventTime = sunriseToday;
+        this.moonPhaseName = 'Last Quarter';
       }
-      label = 'Sunrise: ';
-    } // Convert SunCalc time to the actual local time for the map location
-    const timezone = this.locationContextService.timezone;
-    let localEventTime: Date;
-    if (timezone) {
-      // SunCalc returns time in browser's timezone, convert to location's timezone
-      // First, neutralize the browser timezone effect to get UTC
-      const browserOffset = eventTime.getTimezoneOffset(); // Browser offset in minutes
-      const utcTime = eventTime.getTime() + browserOffset * 60000; // Convert to UTC
 
-      // Then apply the location's actual timezone offset to get local time
-      const locationOffsetMs = timezone.utcOffset * 3600000; // Location offset in milliseconds
-      localEventTime = new Date(utcTime + locationOffsetMs);
-    } else {
-      // Fallback: use SunCalc time as-is if timezone data not available
-      localEventTime = eventTime;
+      // Use moon azimuth when night
+      const moonAzimuthDeg = (moonPos.azimuth * 180) / Math.PI;
+      this.sunAngle = (moonAzimuthDeg + 180) % 360;
     }
-
-    // Format as HH:MM using the timezone-adjusted time
-    this.sunEventText =
-      label +
-      localEventTime.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
   }
 
-  private calculateAzimuth(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    // Returns azimuth in degrees from (lat1, lon1) to (lat2, lon2), 0 = North
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const toDeg = (rad: number) => (rad * 180) / Math.PI;
-    const dLon = toRad(lon2 - lon1);
-    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-    const x =
-      Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-      Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-    let brng = Math.atan2(y, x);
-    brng = toDeg(brng);
-    return (brng + 360) % 360;
-  } /** Simple check if it's daytime based on sun position */
-  private isDaytime(): boolean {
-    const now = new Date();
-    const center = this.map.getCenter();
-    const sunPos = SunCalc.getPosition(now, center.lat, center.lng);
-    return sunPos.altitude > 0;
-  }
-
-  /** Get the color for the moon's lit part - white during daytime, yellowish during night */
-  public getMoonLitColor(): string {
-    return this.isDaytime() ? '#ffffff' : '#f4e4a6';
-  }
-
-  /** Get the color for the moon's background - white during daytime, light blue during night */
-  public getMoonBackgroundColor(): string {
-    return this.isDaytime()
-      ? 'rgba(255, 255, 255, 0.6)'
-      : 'rgba(16, 25, 55, 1)';
-  }
-
-  public get observerLat() {
-    return this.settings.lat ?? this.DEFAULT_COORDS[0];
-  }
-  public get observerLon() {
-    return this.settings.lon ?? this.DEFAULT_COORDS[1];
-  }
-
-  /** Apply brightness to map container based on current brightness state */
+  /** Apply brightness effects to the map container using CSS filters */
   private applyBrightnessToMap(): void {
-    const container = this.map?.getContainer();
-    if (container) {
-      container.style.filter = `brightness(${this.brightness})`;
+    if (!this.brightnessState) {
+      return;
     }
+
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+      return;
+    }
+
+    const brightness = this.brightnessState.brightness;
+    const isDimming = this.brightnessState.isDimming;
+
+    // Create CSS filter based on brightness state
+    let filterString = `brightness(${brightness})`;
+
+    // Add additional effects during dimming
+    if (isDimming) {
+      const contrastValue = Math.max(0.8, brightness * 1.2);
+      const saturationValue = Math.max(0.7, brightness * 1.1);
+      filterString += ` contrast(${contrastValue}) saturate(${saturationValue})`;
+      // Add subtle blue tint during night hours
+      if (brightness < 0.3) {
+        filterString += ` hue-rotate(10deg)`;
+      }
+    }
+
+    // Apply the filter to the map container
+    mapContainer.style.filter = filterString;
+    mapContainer.style.transition = 'filter 0.5s ease-in-out';
+  }
+
+  /** Calculate azimuth (bearing) from one point to another */
+  private calculateAzimuth(
+    fromLat: number,
+    fromLon: number,
+    toLat: number,
+    toLon: number
+  ): number {
+    // Use the existing computeBearing utility function
+    return computeBearing(fromLat, fromLon, toLat, toLon);
+  }
+
+  /** Get the background color for the moon (dark side) */
+  public getMoonBackgroundColor(): string {
+    // Return dark color for the moon's shadow
+    return '#000000';
+  }
+
+  /** Get the lit color for the moon (illuminated side) */
+  public getMoonLitColor(): string {
+    // Return light color for the moon's illuminated side
+    return '#d4d4d4';
+  }
+
+  /** Observer latitude (current map center latitude) */
+  public get observerLat(): number {
+    return this.currentLat;
+  }
+
+  /** Observer longitude (current map center longitude) */
+  public get observerLon(): number {
+    return this.currentLon;
   }
 }
