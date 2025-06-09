@@ -223,6 +223,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private sunAngleInterval: any;
   private locationUpdateSubscription: any;
   private globalTooltipClickHandler!: (e: MouseEvent) => void;
+  /** Terminator tilt for moon (degrees) */
+  moonTerminatorAngle: number = 0;
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -2702,8 +2704,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const currentTime = now.getTime();
 
     if (this.isNight) {
-      // If it's night, show time until sunrise
-      const sunrise = sunTimes.sunrise.getTime();
+      // If it's night, find the next sunrise (today or tomorrow)
+      let sunriseDate = sunTimes.sunrise;
+      if (sunriseDate.getTime() <= currentTime) {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        sunriseDate = SunCalc.getTimes(tomorrow, lat, lon).sunrise;
+      }
+      const sunrise = sunriseDate.getTime();
       const timeUntilSunrise = Math.max(0, sunrise - currentTime);
       const hoursUntilSunrise = Math.floor(timeUntilSunrise / (1000 * 60 * 60));
       const minutesUntilSunrise = Math.floor(
@@ -2747,6 +2755,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Use moon azimuth when night
       const moonAzimuthDeg = (moonPos.azimuth * 180) / Math.PI;
       this.sunAngle = (moonAzimuthDeg + 180) % 360;
+      // Store terminator tilt (phase angle) for mask rotation
+      this.moonTerminatorAngle = (moonIllum.angle * 180) / Math.PI;
     }
   }
 
@@ -2769,8 +2779,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Add additional effects during dimming
     if (isDimming) {
-      const contrastValue = Math.max(0.8, brightness * 1.2);
-      const saturationValue = Math.max(0.7, brightness * 1.1);
+      const contrastValue = 1;
+      const saturationValue = 1;
       filterString += ` contrast(${contrastValue}) saturate(${saturationValue})`;
       // Add subtle blue tint during night hours
       if (brightness < 0.3) {

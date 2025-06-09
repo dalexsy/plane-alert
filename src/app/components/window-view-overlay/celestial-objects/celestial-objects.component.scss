@@ -58,6 +58,16 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     filter: grayscale(0.7) brightness(0.7);
     opacity: 0.5;
   }
+
+  // Full-moon fallback styling
+  &.moon-full {
+    background: #d4d4d4; // light grey moon surface
+    border: 1px solid #f0f0f0; // subtle rim
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    width: $celestial-icon-size;
+    height: $celestial-icon-size;
+    border-radius: 50%;
+  }
 }
 
 .moon-svg {

@@ -11,7 +11,11 @@ export class CelestialService {
     const now = new Date();
     const sunPos = SunCalc.getPosition(now, lat, lon);
     const moonPos = SunCalc.getMoonPosition(now, lat, lon);
-    const moonIllum = SunCalc.getMoonIllumination(now);
+    const {
+      fraction: moonFraction,
+      phase: moonPhase,
+      angle: illumAngle,
+    } = SunCalc.getMoonIllumination(now);
 
     // Convert azimuth/altitude to x/y percentages
     const azToX = (az: number) => {
@@ -36,9 +40,8 @@ export class CelestialService {
       belowHorizon: sunBelow,
     };
 
-    // Determine moon orientation toward Sun
-    const moonToSunAz = sunPos.azimuth - moonPos.azimuth;
-    const moonAngle = (moonToSunAz * 180) / Math.PI;
+    // Use SunCalc's directly provided illumination angle for terminator orientation
+    const moonAngle = (illumAngle * 180) / Math.PI;
     const moon: WindowViewPlane = {
       x: azToX(moonPos.azimuth),
       y: altToY(moonPos.altitude),
@@ -49,10 +52,10 @@ export class CelestialService {
       isCelestial: true,
       celestialBodyType: 'moon',
       scale: 1,
-      moonPhase: moonIllum.phase,
-      moonFraction: moonIllum.fraction,
+      moonPhase: moonPhase,
+      moonFraction: moonFraction,
       moonAngle: moonAngle,
-      moonIsWaning: moonIllum.phase > 0.5,
+      moonIsWaning: moonPhase >= 0.5,
       belowHorizon: moonPos.altitude < 0,
     };
 

@@ -84,7 +84,10 @@
     class="sun-angle-overlay"
     [title]="
       isNight
-        ? moonPhaseName + ' - Moon azimuth: ' + sunAngle.toFixed(1) + '°'
+        ? moonPhaseName +
+          ' - Illumination: ' +
+          (moonFraction * 100).toFixed(0) +
+          '%'
         : 'Sun azimuth: ' + sunAngle.toFixed(1) + '°'
     "
   >
@@ -97,45 +100,67 @@
         role="img"
         [attr.aria-label]="moonPhaseName + ' - Moon direction'"
       >
-        <svg
-          class="moon-icon"
-          width="2rem"
-          height="2rem"
-          viewBox="0 0 22 22"
-          style="z-index: 1; position: relative; display: block; margin: 0 auto"
-          [style.transform]="'rotate(90deg)'"
-        >
-          <defs>
-            <mask id="moon-phase-mask">
-              <rect width="22" height="22" fill="white" />
-              <circle
-                [attr.cx]="
-                  moonIsWaning
-                    ? 11 + 10 * (2 * moonFraction - 1)
-                    : 11 - 10 * (2 * moonFraction - 1)
-                "
-                cy="11"
-                r="10"
-                fill="black"
-              />
-            </mask>
-          </defs>
-          <!-- Draw the lit part first -->
-          <circle
-            cx="11"
-            cy="11"
-            r="10"
-            [attr.fill]="getMoonBackgroundColor()"
-          />
-          <!-- Overlay the shadow part using the mask -->
-          <circle
-            cx="11"
-            cy="11"
-            r="10"
-            [attr.fill]="getMoonLitColor()"
-            [attr.mask]="'url(#moon-phase-mask)'"
-          />
-        </svg>
+        <!-- Full moon fallback -->
+        <ng-container *ngIf="moonFraction >= 0.9; else maskedMoon">
+          <svg
+            class="moon-icon"
+            width="2rem"
+            height="2rem"
+            viewBox="0 0 22 22"
+            style="
+              z-index: 1;
+              position: relative;
+              display: block;
+              margin: 0 auto;
+            "
+            [style.transform]="'rotate(90deg)'"
+          >
+            <circle cx="11" cy="11" r="10" [attr.fill]="getMoonLitColor()" />
+          </svg>
+        </ng-container>
+        <!-- Masked moon for other phases -->
+        <ng-template #maskedMoon>
+          <svg
+            class="moon-icon"
+            width="2rem"
+            height="2rem"
+            viewBox="0 0 22 22"
+            style="
+              z-index: 1;
+              position: relative;
+              display: block;
+              margin: 0 auto;
+            "
+            [style.transform]="'rotate(90deg)'"
+          >
+            <defs>
+              <mask id="moon-phase-mask">
+                <rect width="22" height="22" fill="white" />
+                <circle
+                  [attr.cx]="11 + (1 - 2 * moonFraction) * 10"
+                  cy="11"
+                  r="10"
+                  fill="black"
+                />
+              </mask>
+            </defs>
+            <!-- Draw the lit part first -->
+            <circle
+              cx="11"
+              cy="11"
+              r="10"
+              [attr.fill]="getMoonBackgroundColor()"
+            />
+            <!-- Overlay the shadow part using the mask -->
+            <circle
+              cx="11"
+              cy="11"
+              r="10"
+              [attr.fill]="getMoonLitColor()"
+              [attr.mask]="'url(#moon-phase-mask)'"
+            />
+          </svg>
+        </ng-template>
       </span>
     </ng-container>
     <ng-template #sunArrow>
