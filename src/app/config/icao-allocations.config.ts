@@ -92,10 +92,10 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   {
     start: 0x480000,
     end: 0x49ffff,
-    countryCode: 'NL',
-    countryName: 'Netherlands',
+    countryCode: 'CZ',
+    countryName: 'Czech Republic',
     type: 'mixed',
-    notes: 'Dutch aviation',
+    notes: 'Czech aviation',
   },
   {
     start: 0x4a0000,
