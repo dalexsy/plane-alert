@@ -1,22 +1,27 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
 <div class="results-overlay" [class.collapsed]="collapsed">
   <div class="top-buttons">
-    <app-tab side="left">      <app-button
+    <app-tab side="left">
+      <app-button
         class="collapse-toggle"
         [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
         type="tertiary"
-        size="medium"        [ariaLabel]="collapseTooltip"
+        size="medium"
+        [ariaLabel]="collapseTooltip"
         [appTooltip]="collapseTooltip"
         tooltipPosition="left"
         (click)="toggleCollapsed()"
-      ></app-button>      <app-button
+      ></app-button>
+      <app-button
         [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
         type="tertiary"
-        size="medium"        [ariaLabel]="commercialFilterTooltip"
+        size="medium"
+        [ariaLabel]="commercialFilterTooltip"
         [appTooltip]="commercialFilterTooltip"
         tooltipPosition="left"
         (click)="onToggleCommercialFilter()"
-      ></app-button>      <app-button
+      ></app-button>
+      <app-button
         [icon]="commercialMute ? 'volume_off' : 'volume_up'"
         type="tertiary"
         size="medium"
@@ -24,7 +29,8 @@
         [appTooltip]="commercialMuteTooltip"
         tooltipPosition="left"
         (click)="onToggleCommercialMute()"
-      ></app-button>      <!-- Shuffle follow mode toggle -->
+      ></app-button>
+      <!-- Shuffle follow mode toggle -->
       <app-button
         class="shuffle-toggle"
         [icon]="shuffleMode ? 'pause' : 'shuffle'"
@@ -35,7 +41,8 @@
         tooltipPosition="left"
         [ngClass]="{ active: shuffleMode }"
         (click)="toggleShuffle()"
-      ></app-button>      <!-- Nearest follow toggle -->
+      ></app-button>
+      <!-- Nearest follow toggle -->
       <app-button
         class="nearest-toggle"
         [icon]="nearestMode ? 'my_location' : 'location_searching'"
@@ -46,8 +53,10 @@
         tooltipPosition="left"
         [ngClass]="{ active: nearestMode }"
         (click)="toggleNearest()"
-      ></app-button><!-- Military priority toggle -->
-      <div class="military-toggle-wrapper">        <app-button
+      ></app-button
+      ><!-- Military priority toggle -->
+      <div class="military-toggle-wrapper">
+        <app-button
           class="military-priority-toggle"
           [icon]="militaryPriority ? 'star_shine' : 'star'"
           type="tertiary"
@@ -60,6 +69,18 @@
         ></app-button>
         <span class="military-badge">{{ militaryCount }}</span>
       </div>
+      <!-- end .military-toggle-wrapper -->
+      <!-- Altitude tooltip borders toggle button -->
+      <app-button
+        class="toggle-altitude-borders"
+        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="altitudeBordersTooltip"
+        [appTooltip]="altitudeBordersTooltip"
+        tooltipPosition="left"
+        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
+      ></app-button>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">
@@ -98,7 +119,8 @@
             #skyList
             (scroll)="onSkyScroll($event)"
             [@listAnimation]="highlightedPlaneIcao"
-          >            <app-plane-list-item
+          >
+            <app-plane-list-item
               *ngFor="let plane of filteredSkyPlaneLog"
               [plane]="plane"
               [listType]="'sky'"
@@ -139,7 +161,8 @@
             #airportList
             (scroll)="onAirportScroll($event)"
             [@listAnimation]="highlightedPlaneIcao"
-          >            <app-plane-list-item
+          >
+            <app-plane-list-item
               *ngFor="let plane of filteredAirportPlaneLog"
               [plane]="plane"
               [listType]="'airport'"
@@ -161,8 +184,14 @@
         </div>
       </div>
     </div>
-    <!-- .middle-section -->    <div id="seenResults" [class.collapsed]="seenCollapsed">
-      <h3 class="top" (click)="toggleSeenCollapsed()" [appTooltip]="seenSectionTooltip" tooltipPosition="left">
+    <!-- .middle-section -->
+    <div id="seenResults" [class.collapsed]="seenCollapsed">
+      <h3
+        class="top"
+        (click)="toggleSeenCollapsed()"
+        [appTooltip]="seenSectionTooltip"
+        tooltipPosition="left"
+      >
         All Planes Peeped ({{ seenPlaneLog.length }})<span>
           <!-- Collapse toggle button -->
           <app-button
@@ -198,7 +227,8 @@
             #seenList
             (scroll)="onSeenScroll($event)"
             [@listAnimation]="highlightedPlaneIcao"
-          >            <app-plane-list-item
+          >
+            <app-plane-list-item
               *ngFor="let plane of filteredSeenPlaneLog"
               [plane]="plane"
               [listType]="'seen'"

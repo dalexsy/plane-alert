@@ -68,7 +68,8 @@ export interface PlaneLogEntry {
 
 @Component({
   selector: 'app-results-overlay',
-  standalone: true,  imports: [
+  standalone: true,
+  imports: [
     CommonModule,
     ButtonComponent,
     TabComponent,
@@ -163,6 +164,16 @@ export class ResultsOverlayComponent
   @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+  /** Whether altitude-colored borders are enabled */
+  @Input() showAltitudeBorders: boolean = false;
+  /** Emit when altitude borders toggle is clicked */
+  @Output() altitudeBordersChange = new EventEmitter<boolean>();
+  /** Get altitude borders toggle tooltip text */
+  get altitudeBordersTooltip(): string {
+    return this.showAltitudeBorders
+      ? 'Hide altitude-colored borders'
+      : 'Show altitude-colored borders';
+  }
   // Shuffle mode: pick random plane to follow every interval
   shuffleMode = false;
   // Nearest follow mode: pick nearest plane to follow every interval
@@ -851,7 +862,8 @@ export class ResultsOverlayComponent
           return true;
         }
       }
-    }    return false;
+    }
+    return false;
   }
 
   /** Get collapse/expand tooltip text */
@@ -861,12 +873,16 @@ export class ResultsOverlayComponent
 
   /** Get commercial filter toggle tooltip text */
   get commercialFilterTooltip(): string {
-    return this.settings.excludeDiscount ? 'Show commercial' : 'Hide commercial';
+    return this.settings.excludeDiscount
+      ? 'Show commercial'
+      : 'Hide commercial';
   }
 
   /** Get commercial mute toggle tooltip text */
   get commercialMuteTooltip(): string {
-    return this.commercialMute ? 'Unmute commercial alert' : 'Mute military alert';
+    return this.commercialMute
+      ? 'Unmute commercial alert'
+      : 'Mute military alert';
   }
 
   /** Get shuffle mode toggle tooltip text */
@@ -876,11 +892,15 @@ export class ResultsOverlayComponent
 
   /** Get nearest follow toggle tooltip text */
   get nearestTooltip(): string {
-    return this.nearestMode ? 'Disable nearest follow' : 'Enable nearest follow';
+    return this.nearestMode
+      ? 'Disable nearest follow'
+      : 'Enable nearest follow';
   }
   /** Get military priority toggle tooltip text */
   get militaryPriorityTooltip(): string {
-    return this.militaryPriority ? 'Disable military priority' : 'Enable military priority';
+    return this.militaryPriority
+      ? 'Disable military priority'
+      : 'Enable military priority';
   }
 
   /** Get seen planes section toggle tooltip text */

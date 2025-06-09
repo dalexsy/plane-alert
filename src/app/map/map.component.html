@@ -51,6 +51,8 @@
   [activePlaneIcaos]="activePlaneIcaos"
   [clickedAirports]="clickedAirports"
   [airportCircles]="airportCircles"
+  [showAltitudeBorders]="showAltitudeBorders"
+  (altitudeBordersChange)="onToggleAltitudeBorders($event)"
   (centerPlane)="followNearestPlane($event)"
   (centerAirport)="onCenterAirport($event)"
   (hoverPlane)="onHoverOverlayPlane($event)"

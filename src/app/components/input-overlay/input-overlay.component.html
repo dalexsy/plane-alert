@@ -71,16 +71,7 @@
         [appTooltip]="viewAxesTooltip"
         (click)="coneVisibilityChange.emit(!showViewAxes)"
       ></app-button>
-      <!-- Altitude tooltip borders toggle button -->
-      <app-button
-        class="toggle-altitude-borders"
-        [icon]="showAltitudeBorders ? 'gradient' : 'border_color'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="altitudeBordersTooltip"
-        [appTooltip]="altitudeBordersTooltip"
-        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
-      ></app-button>
+      <!-- Altitude tooltip borders toggle button moved to results overlay -->
       <!-- Force scan button -->
       <app-button
         class="force-scan"
