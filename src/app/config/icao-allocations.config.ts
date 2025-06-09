@@ -88,14 +88,21 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
     countryName: 'Italy',
     type: 'mixed',
     notes: 'Italian aviation',
-  },
-  {
+  },  {
     start: 0x480000,
-    end: 0x4bffff,
+    end: 0x49ffff,
     countryCode: 'NL',
     countryName: 'Netherlands',
     type: 'mixed',
     notes: 'Dutch aviation',
+  },
+  {
+    start: 0x4a0000,
+    end: 0x4bffff,
+    countryCode: 'SE',
+    countryName: 'Sweden',
+    type: 'mixed',
+    notes: 'Swedish aviation including military aircraft',
   },
   {
     start: 0x4c0000,
