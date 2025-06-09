@@ -88,7 +88,8 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
     countryName: 'Italy',
     type: 'mixed',
     notes: 'Italian aviation',
-  },  {
+  },
+  {
     start: 0x480000,
     end: 0x49ffff,
     countryCode: 'NL',

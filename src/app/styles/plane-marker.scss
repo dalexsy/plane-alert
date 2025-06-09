@@ -75,11 +75,9 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
       font-size: 1rem;
     }
   }
-
   &.copter-plane::before {
     content: "toys_fan";
     animation: spin 1.5s linear infinite;
-    color: white;
   }
 
   &.grounded-plane {
