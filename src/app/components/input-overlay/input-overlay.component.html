@@ -1,51 +1,40 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
-<div class="options-overlay" [class.collapsed]="collapsed">
-  <div class="top-buttons">
-    <app-tab side="right">
-      <app-button
+<div class="options-overlay" [class.collapsed]="collapsed">  <div class="top-buttons">
+    <app-tab side="right">      <app-button
         class="collapse-toggle"
         [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
-        [title]="collapsed ? 'Expand options' : 'Collapse options'"
+        [ariaLabel]="collapseTooltip"
+        [appTooltip]="collapseTooltip"
         (click)="toggleCollapsed()"
       ></app-button>
       <app-button
         class="toggle-datetime"
         [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
         type="tertiary"
-        size="medium"
-        [ariaLabel]="showDateTime ? 'Hide date/time' : 'Show date/time'"
-        [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+        size="medium"        [ariaLabel]="dateTimeTooltip"
+        [appTooltip]="dateTimeTooltip"
         (click)="toggleDateTimeOverlays.emit()"
       ></app-button>
       <div
         class="brightness-button-wrapper"
         [class.auto]="brightnessState?.mode === 'auto'"
-      >
-        <app-button
+      >        <app-button
           class="toggle-brightness"
           [icon]="brightnessIcon"
           type="tertiary"
-          size="medium"
-          [ariaLabel]="brightnessSimpleTooltip"
-          [attr.title]="brightnessSimpleTooltip"
+          size="medium"          [ariaLabel]="brightnessSimpleTooltip"
+          [appTooltip]="sunStatusTooltip"
           (click)="onBrightnessToggle()"
-          [appTooltip]="brightnessTooltip"
         ></app-button>
       </div>
       <app-button
         class="toggle-airport-labels"
         [icon]="showAirportLabels ? 'label' : 'label_off'"
         type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          showAirportLabels ? 'Hide airport labels' : 'Show airport labels'
-        "
-        [title]="
-          showAirportLabels ? 'Hide airport labels' : 'Show airport labels'
-        "
+        size="medium"        [ariaLabel]="airportLabelsTooltip"
+        [appTooltip]="airportLabelsTooltip"
         (click)="toggleAirportLabels.emit()"
       ></app-button>
       <app-button
@@ -53,8 +42,7 @@
         [icon]="showCloudCover ? 'cloud' : 'cloud_off'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="showCloudCover ? 'Hide cloud cover' : 'Show cloud cover'"
-        [title]="showCloudCover ? 'Hide cloud cover' : 'Show cloud cover'"
+        [ariaLabel]="cloudCoverTooltip"        [appTooltip]="cloudCoverTooltip"
         (click)="cloudToggleChange.emit(!showCloudCover)"
       ></app-button>
       <app-button
@@ -62,8 +50,7 @@
         [icon]="showRainCover ? 'rainy_heavy' : 'rainy_snow'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="showRainCover ? 'Hide rain cover' : 'Show rain cover'"
-        [title]="showRainCover ? 'Hide rain cover' : 'Show rain cover'"
+        [ariaLabel]="rainCoverTooltip"        [appTooltip]="rainCoverTooltip"
         (click)="rainToggleChange.emit(!showRainCover)"
       ></app-button>
       <!-- View axes toggle button -->
@@ -71,9 +58,8 @@
         class="toggle-view-axes"
         [icon]="showViewAxes ? 'target' : 'filter_tilt_shift'"
         type="tertiary"
-        size="medium"
-        [ariaLabel]="showViewAxes ? 'Hide view axes' : 'Show view axes'"
-        [title]="showViewAxes ? 'Hide view axes' : 'Show view axes'"
+        size="medium"        [ariaLabel]="viewAxesTooltip"
+        [appTooltip]="viewAxesTooltip"
         (click)="coneVisibilityChange.emit(!showViewAxes)"
       ></app-button>
       <!-- Force scan button -->
@@ -81,9 +67,8 @@
         class="force-scan"
         icon="refresh"
         type="tertiary"
-        size="medium"
-        ariaLabel="Force scan now"
-        title="Force scan now"
+        size="medium"        [ariaLabel]="forceScanTooltip"
+        [appTooltip]="forceScanTooltip"
         (click)="onResolveAndUpdate($event)"
       ></app-button>
       <!-- Zoom controls -->
@@ -91,18 +76,16 @@
         class="zoom-in"
         icon="add"
         type="tertiary"
-        size="medium"
-        ariaLabel="Zoom in"
-        title="Zoom in"
+        size="medium"        [ariaLabel]="zoomInTooltip"
+        [appTooltip]="zoomInTooltip"
         (click)="onZoomIn()"
       ></app-button>
       <app-button
         class="zoom-out"
         icon="remove"
         type="tertiary"
-        size="medium"
-        ariaLabel="Zoom out"
-        title="Zoom out"
+        size="medium"        [ariaLabel]="zoomOutTooltip"
+        [appTooltip]="zoomOutTooltip"
         (click)="onZoomOut()"
       ></app-button>
     </app-tab>

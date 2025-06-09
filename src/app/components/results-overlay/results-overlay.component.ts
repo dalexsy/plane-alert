@@ -38,6 +38,7 @@ import {
   animate,
 } from '@angular/animations';
 import { IconComponent } from '../ui/icon.component';
+import { TooltipDirective } from '../../directives/tooltip.directive';
 import * as L from 'leaflet';
 
 export interface PlaneLogEntry {
@@ -67,12 +68,12 @@ export interface PlaneLogEntry {
 
 @Component({
   selector: 'app-results-overlay',
-  standalone: true,
-  imports: [
+  standalone: true,  imports: [
     CommonModule,
     ButtonComponent,
     TabComponent,
     PlaneListItemComponent,
+    TooltipDirective,
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
@@ -850,8 +851,40 @@ export class ResultsOverlayComponent
           return true;
         }
       }
-    }
+    }    return false;
+  }
 
-    return false;
+  /** Get collapse/expand tooltip text */
+  get collapseTooltip(): string {
+    return this.collapsed ? 'Expand results' : 'Collapse results';
+  }
+
+  /** Get commercial filter toggle tooltip text */
+  get commercialFilterTooltip(): string {
+    return this.settings.excludeDiscount ? 'Show commercial' : 'Hide commercial';
+  }
+
+  /** Get commercial mute toggle tooltip text */
+  get commercialMuteTooltip(): string {
+    return this.commercialMute ? 'Unmute commercial alert' : 'Mute military alert';
+  }
+
+  /** Get shuffle mode toggle tooltip text */
+  get shuffleTooltip(): string {
+    return this.shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode';
+  }
+
+  /** Get nearest follow toggle tooltip text */
+  get nearestTooltip(): string {
+    return this.nearestMode ? 'Disable nearest follow' : 'Enable nearest follow';
+  }
+  /** Get military priority toggle tooltip text */
+  get militaryPriorityTooltip(): string {
+    return this.militaryPriority ? 'Disable military priority' : 'Enable military priority';
+  }
+
+  /** Get seen planes section toggle tooltip text */
+  get seenSectionTooltip(): string {
+    return `Click to ${this.seenCollapsed ? 'expand' : 'collapse'}`;
   }
 }

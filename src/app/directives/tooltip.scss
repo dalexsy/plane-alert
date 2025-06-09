@@ -1,0 +1,57 @@
+// Tooltip styles for the custom tooltip directive
+
+// SCSS Variables for easy customization
+$tooltip-offset: 6px;
+$tooltip-background: rgba(0, 0, 0, 0.7);
+$tooltip-border-color: rgba(0, 0, 0, 0.3);
+$tooltip-padding: 0.6rem 0.75rem;
+$tooltip-border-radius: 6px;
+$tooltip-font-size: 0.75rem;
+$tooltip-z-index: 10000;
+
+.app-tooltip {
+  --tooltip-offset: #{$tooltip-offset - 1px}; // Closer by default
+
+  position: fixed;
+  background: $tooltip-background;
+  color: white;
+  padding: $tooltip-padding;
+  border-radius: $tooltip-border-radius;
+  font-size: $tooltip-font-size;
+  white-space: nowrap;
+  z-index: $tooltip-z-index;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: 1px solid $tooltip-border-color;
+  backdrop-filter: blur(0.25rem);
+  font-family: "Instrument Sans", sans-serif; // Positioning variants - no transforms needed since positioning is handled in TypeScript
+  &.tooltip-right {
+    transform: translateY(-50%);
+  }
+
+  &.tooltip-top {
+    transform: translateX(-50%);
+  }
+
+  &.tooltip-bottom {
+    transform: translateX(-50%);
+  }
+
+  &.tooltip-left {
+    transform: translateY(-50%);
+  }
+
+  // Animation
+  opacity: 0;
+
+  &.tooltip-visible {
+    opacity: 1;
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    --tooltip-offset: #{$tooltip-offset - 2px};
+  }
+}

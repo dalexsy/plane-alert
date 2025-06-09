@@ -1,89 +1,60 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
 <div class="results-overlay" [class.collapsed]="collapsed">
   <div class="top-buttons">
-    <app-tab side="left">
-      <app-button
+    <app-tab side="left">      <app-button
         class="collapse-toggle"
         [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
         type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          collapsed ? 'Expand results overlay' : 'Collapse results overlay'
-        "
-        [title]="collapsed ? 'Expand results' : 'Collapse results'"
+        size="medium"        [ariaLabel]="collapseTooltip"
+        [appTooltip]="collapseTooltip"
+        tooltipPosition="left"
         (click)="toggleCollapsed()"
-      ></app-button>
-      <app-button
+      ></app-button>      <app-button
         [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
         type="tertiary"
-        size="medium"
-        [ariaLabel]="
-          settings.excludeDiscount
-            ? 'Show commercial planes'
-            : 'Hide commercial planes'
-        "
-        [title]="
-          settings.excludeDiscount ? 'Show commercial' : 'Hide commercial'
-        "
+        size="medium"        [ariaLabel]="commercialFilterTooltip"
+        [appTooltip]="commercialFilterTooltip"
+        tooltipPosition="left"
         (click)="onToggleCommercialFilter()"
-      ></app-button>
-      <app-button
+      ></app-button>      <app-button
         [icon]="commercialMute ? 'volume_off' : 'volume_up'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          commercialMute ? 'Unmute commercial alert' : 'Mute military alert'
-        "
-        [title]="
-          commercialMute ? 'Unmute commercial alert' : 'Mute military alert'
-        "
+        [ariaLabel]="commercialMuteTooltip"
+        [appTooltip]="commercialMuteTooltip"
+        tooltipPosition="left"
         (click)="onToggleCommercialMute()"
-      ></app-button>
-      <!-- Shuffle follow mode toggle -->
+      ></app-button>      <!-- Shuffle follow mode toggle -->
       <app-button
         class="shuffle-toggle"
         [icon]="shuffleMode ? 'pause' : 'shuffle'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'
-        "
-        [title]="shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'"
+        [ariaLabel]="shuffleTooltip"
+        [appTooltip]="shuffleTooltip"
+        tooltipPosition="left"
         [ngClass]="{ active: shuffleMode }"
         (click)="toggleShuffle()"
-      ></app-button>
-      <!-- Nearest follow toggle -->
+      ></app-button>      <!-- Nearest follow toggle -->
       <app-button
         class="nearest-toggle"
         [icon]="nearestMode ? 'my_location' : 'location_searching'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          nearestMode ? 'Disable nearest follow' : 'Enable nearest follow'
-        "
-        [title]="
-          nearestMode ? 'Disable nearest follow' : 'Enable nearest follow'
-        "
+        [ariaLabel]="nearestTooltip"
+        [appTooltip]="nearestTooltip"
+        tooltipPosition="left"
         [ngClass]="{ active: nearestMode }"
         (click)="toggleNearest()"
-      ></app-button>
-      <!-- Military priority toggle -->
-      <div class="military-toggle-wrapper">
-        <app-button
+      ></app-button><!-- Military priority toggle -->
+      <div class="military-toggle-wrapper">        <app-button
           class="military-priority-toggle"
           [icon]="militaryPriority ? 'star_shine' : 'star'"
           type="tertiary"
           size="medium"
-          [ariaLabel]="
-            militaryPriority
-              ? 'Disable military priority'
-              : 'Enable military priority'
-          "
-          [title]="
-            militaryPriority
-              ? 'Disable military priority'
-              : 'Enable military priority'
-          "
+          [ariaLabel]="militaryPriorityTooltip"
+          [appTooltip]="militaryPriorityTooltip"
+          tooltipPosition="left"
           [ngClass]="{ active: militaryPriority }"
           (click)="toggleMilitaryPriority()"
         ></app-button>
@@ -191,7 +162,7 @@
       </div>
     </div>
     <!-- .middle-section -->    <div id="seenResults" [class.collapsed]="seenCollapsed">
-      <h3 class="top" (click)="toggleSeenCollapsed()" title="Click to {{ seenCollapsed ? 'expand' : 'collapse' }}">
+      <h3 class="top" (click)="toggleSeenCollapsed()" [appTooltip]="seenSectionTooltip" tooltipPosition="left">
         All Planes Peeped ({{ seenPlaneLog.length }})<span>
           <!-- Collapse toggle button -->
           <app-button

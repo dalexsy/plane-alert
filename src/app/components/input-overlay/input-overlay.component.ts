@@ -222,6 +222,68 @@ export class InputOverlayComponent implements OnDestroy {
     return this.brightnessState.mode === 'auto'
       ? 'Disable auto-dimming'
       : 'Enable auto-dimming';
+  }  /** Get the full tooltip text with enable/disable and sun status */
+  get sunStatusTooltip(): string {
+    if (!this.brightnessState) return 'Toggle map brightness';
+
+    const enableDisableText = this.brightnessState.mode === 'auto'
+      ? 'Disable auto-dimming'
+      : 'Enable auto-dimming';
+
+    const sunStatus = this.brightnessState.sunElevation > 0
+      ? 'Daytime'
+      : this.brightnessState.sunElevation > -6
+      ? 'Civil twilight'
+      : this.brightnessState.sunElevation > -12
+      ? 'Nautical twilight'
+      : 'Night';
+
+    return `${enableDisableText} - ${sunStatus}`;
+  }
+
+  /** Get collapse/expand tooltip text */
+  get collapseTooltip(): string {
+    return this.collapsed ? 'Expand options' : 'Collapse options';
+  }
+
+  /** Get date/time toggle tooltip text */
+  get dateTimeTooltip(): string {
+    return this.showDateTime ? 'Hide date/time' : 'Show date/time';
+  }
+
+  /** Get airport labels toggle tooltip text */
+  get airportLabelsTooltip(): string {
+    return this.showAirportLabels ? 'Hide airport labels' : 'Show airport labels';
+  }
+
+  /** Get cloud cover toggle tooltip text */
+  get cloudCoverTooltip(): string {
+    return this.showCloudCover ? 'Hide cloud cover' : 'Show cloud cover';
+  }
+
+  /** Get rain cover toggle tooltip text */
+  get rainCoverTooltip(): string {
+    return this.showRainCover ? 'Hide rain cover' : 'Show rain cover';
+  }
+
+  /** Get view axes toggle tooltip text */
+  get viewAxesTooltip(): string {
+    return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
+  }
+
+  /** Get force scan tooltip text */
+  get forceScanTooltip(): string {
+    return 'Force scan now';
+  }
+
+  /** Get zoom in tooltip text */
+  get zoomInTooltip(): string {
+    return 'Zoom in';
+  }
+
+  /** Get zoom out tooltip text */
+  get zoomOutTooltip(): string {
+    return 'Zoom out';
   }
 
   /** Get brightness status text for custom tooltip */
