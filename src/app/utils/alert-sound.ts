@@ -27,3 +27,8 @@ export function playHerculesAlert(): void {
   const audio = new Audio('assets/alerts/hercules.mp3');
   audio.play();
 }
+
+export function playA400Alert(): void {
+  const audio = new Audio('assets/alerts/iago.mp3');
+  audio.play();
+}

@@ -120,11 +120,18 @@ describe('AnnouncementService', () => {
       );
     });
   });
-
   describe('isSpecialModelPublic', () => {
     it('should identify Hercules as special model', () => {
       const plane: PlaneLogEntry = {
         model: 'C-130 Hercules',
+      } as PlaneLogEntry;
+
+      expect(service.isSpecialModelPublic(plane)).toBe(true);
+    });
+
+    it('should identify A400 as special model', () => {
+      const plane: PlaneLogEntry = {
+        model: 'A400M Atlas',
       } as PlaneLogEntry;
 
       expect(service.isSpecialModelPublic(plane)).toBe(true);

@@ -276,14 +276,14 @@ export class AnnouncementService {
   }
   /**
    * Check if aircraft is a special model that deserves custom announcement
-   * Currently includes: Hercules
+   * Currently includes: Hercules, A400
    */
   private isSpecialModel(plane: PlaneLogEntry): boolean {
     const model = plane.model?.toLowerCase().trim();
     if (!model) return false;
 
     // Check for special aircraft models
-    const specialModels = ['hercules'];
+    const specialModels = ['hercules', 'a400'];
     return specialModels.some((specialModel) => model.includes(specialModel));
   }
 
