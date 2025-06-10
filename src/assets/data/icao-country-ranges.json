@@ -1837,26 +1837,8 @@
   },
   {
     "startHex": "480000",
-    "finishHex": "480BFF",
-    "startDec": 4718592,
-    "finishDec": 4721663,
-    "isMilitary": false,
-    "countryISO2": "NL",
-    "significantBitmask": "FC0000"
-  },
-  {
-    "startHex": "480C00",
-    "finishHex": "480FFF",
-    "startDec": 4721664,
-    "finishDec": 4722687,
-    "isMilitary": false,
-    "countryISO2": "CZ",
-    "significantBitmask": "FFFF00"
-  },
-  {
-    "startHex": "481000",
     "finishHex": "4BFFFF",
-    "startDec": 4722688,
+    "startDec": 4718592,
     "finishDec": 4980735,
     "isMilitary": false,
     "countryISO2": "NL",
@@ -1909,11 +1891,20 @@
   },
   {
     "startHex": "503C00",
-    "finishHex": "503FFF",
+    "finishHex": "503DFF",
     "startDec": 5258240,
-    "finishDec": 5259263,
+    "finishDec": 5258751,
     "isMilitary": false,
     "countryISO2": "CZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "503E00",
+    "finishHex": "503EFF",
+    "startDec": 5258752,
+    "finishDec": 5259007,
+    "isMilitary": false,
+    "countryISO2": "LT",
     "significantBitmask": "FFFF00"
   },
   {
