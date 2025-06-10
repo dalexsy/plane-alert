@@ -469,57 +469,49 @@ export class AnnouncementService {
     this.militaryQueueTimers.set(countryKey, timer);
   }
   /**
-   * Process queued military aircraft from a country, prioritizing those with operators
-   */ private processMilitaryQueue(countryKey: string): void {
+   * Process queued military aircraft from a country, creating one natural announcement per country
+   */
+  private processMilitaryQueue(countryKey: string): void {
     const aircraft = this.militaryQueue.get(countryKey) || [];
     if (aircraft.length === 0) return;
 
-    // Group aircraft by operator
-    const operatorGroups = new Map<string, PlaneLogEntry[]>();
-    const noOperator: PlaneLogEntry[] = [];
-
-    aircraft.forEach((plane) => {
-      const operator = plane.operator?.trim();
-      if (operator) {
-        if (!operatorGroups.has(operator)) {
-          operatorGroups.set(operator, []);
-        }
-        operatorGroups.get(operator)!.push(plane);
-      } else {
-        noOperator.push(plane);
-      }
+    console.log(
+      `PROCESSING MILITARY QUEUE for ${countryKey}: ${aircraft.length} aircraft`
+    );
+    aircraft.forEach((plane, i) => {
+      console.log(
+        `   ${i + 1}. ${plane.icao} - Operator: "${
+          plane.operator || 'Unknown'
+        }" - Model: "${plane.model || 'Unknown'}"`
+      );
     });
 
-    // Announce grouped operators first
-    for (const [operator, planes] of operatorGroups) {
-      this.announceOperatorGroup(operator, planes, countryKey);
+    // Mark country as announced to prevent repetition
+    if (countryKey !== 'Unknown') {
+      this.announcedCountries.add(countryKey);
     }
 
-    // Then announce aircraft without operators individually (prioritizing meaningful callsigns)
-    noOperator.sort((a, b) => {
-      const aHasMeaningful = a.callsign
-        ? this.processCallsignForSpeech(a.callsign) !== a.callsign
-        : false;
-      const bHasMeaningful = b.callsign
-        ? this.processCallsignForSpeech(b.callsign) !== b.callsign
-        : false;
-
-      if (aHasMeaningful && !bHasMeaningful) return -1;
-      if (!aHasMeaningful && bHasMeaningful) return 1;
-
-      return 0;
+    // Mark all aircraft as announced
+    aircraft.forEach((plane) => {
+      this.announcedAircraft.add(plane.icao);
     });
 
-    noOperator.forEach((plane) => {
-      const baseKey = `aircraft-${plane.icao}`;
-      this.announceMilitaryAircraft(plane, baseKey);
-    }); // Clean up
+    // Create one natural announcement for the entire country
+    const announcement = this.buildCountryAnnouncement(countryKey, aircraft);
+    const baseKey = `country-military-${countryKey.replace(/\s+/g, '-')}-${
+      aircraft[0].icao
+    }`;
+
+    console.log(`FINAL ANNOUNCEMENT: "${announcement}"`);
+    this.langSwitch.speakWithOverrides(baseKey, announcement);
+
+    // Clean up
     this.militaryQueue.delete(countryKey);
     this.militaryQueueTimers.delete(countryKey);
   }
-
   /**
    * Announce a group of aircraft with the same operator in a natural way
+   * Says the operator once followed by all aircraft models with proper grammar
    */
   private announceOperatorGroup(
     operator: string,
@@ -551,45 +543,45 @@ export class AnnouncementService {
         this.langSwitch.speakWithOverrides(baseKey, operator);
       }
     } else {
-      // Multiple aircraft from same operator - group them naturally
+      // Multiple aircraft from same operator - say operator once, then list models
       const models = planes
         .map((plane) => plane.model?.trim())
-        .filter((model) => model && model.length > 0);
+        .filter(
+          (model): model is string => model !== undefined && model.length > 0
+        );
 
       // Remove duplicates while preserving order
       const uniqueModels = [...new Set(models)];
-
       let announcement: string;
       if (uniqueModels.length === 0) {
         // No models known for any aircraft
-        announcement = `${operator} ${planes.length} aircraft`;
-      } else if (uniqueModels.length === 1 && models.length === planes.length) {
-        // All aircraft have the same model specified
-        if (planes.length === 2) {
-          announcement = `${operator} ${planes.length} ${uniqueModels[0]}s`;
+        announcement = `${operator}, ${planes.length} aircraft`;
+      } else if (uniqueModels.length === 1) {
+        // Only one model type known
+        const modelCount = models.filter((m) => m === uniqueModels[0]).length;
+        if (modelCount === planes.length && planes.length === 2) {
+          // Two aircraft of the same model - say "Luftwaffe, two F-16s"
+          announcement = `${operator}, two ${uniqueModels[0]}s`;
+        } else if (modelCount === planes.length && planes.length > 2) {
+          // Multiple aircraft of the same model - say "Luftwaffe, three F-16s"
+          const countWord = this.numberToWord(planes.length);
+          announcement = `${operator}, ${countWord} ${uniqueModels[0]}s`;
+        } else if (modelCount < planes.length) {
+          // Some aircraft have unknown models - say "Luftwaffe, F-16 and others"
+          const unknownCount = planes.length - modelCount;
+          if (unknownCount === 1) {
+            announcement = `${operator}, ${uniqueModels[0]} and one other`;
+          } else {
+            announcement = `${operator}, ${uniqueModels[0]} and ${unknownCount} others`;
+          }
         } else {
-          announcement = `${operator} ${planes.length} ${uniqueModels[0]} aircraft`;
+          // Just announce the known model
+          announcement = `${operator}, ${uniqueModels[0]}`;
         }
       } else {
-        // Either multiple different models, or some aircraft have unknown models
-        // Only announce what we know for certain
-        if (models.length === 0) {
-          // No models known
-          announcement = `${operator} ${planes.length} aircraft`;
-        } else if (models.length < planes.length) {
-          // Some aircraft have unknown models - be conservative
-          announcement = `${operator} ${planes.length} aircraft`;
-        } else {
-          // All aircraft have models, but they're different - list them naturally
-          const modelList =
-            uniqueModels.length === 2
-              ? `${uniqueModels[0]} and ${uniqueModels[1]}`
-              : `${uniqueModels
-                  .slice(0, -1)
-                  .join(', ')}, and ${uniqueModels.slice(-1)}`;
-
-          announcement = `${operator} ${modelList}`;
-        }
+        // Multiple different models - list them naturally after the operator
+        const modelList = this.formatModelList(uniqueModels);
+        announcement = `${operator}, ${modelList}`;
       }
 
       // Use the first aircraft's ICAO for the announcement key
@@ -598,6 +590,139 @@ export class AnnouncementService {
       }`;
 
       this.langSwitch.speakWithOverrides(baseKey, announcement);
+    }
+  }
+
+  /**
+   * Format a list of aircraft models with proper grammar
+   * Examples: "F-16", "F-16 and F-18", "F-16, F-18, and C-130"
+   */
+  private formatModelList(models: string[]): string {
+    if (models.length === 1) {
+      return models[0];
+    } else if (models.length === 2) {
+      return `${models[0]} and ${models[1]}`;
+    } else {
+      return `${models.slice(0, -1).join(', ')}, and ${
+        models[models.length - 1]
+      }`;
+    }
+  }
+
+  /**
+   * Convert numbers to words for natural announcements
+   * Examples: 2 -> "two", 3 -> "three", etc.
+   */
+  private numberToWord(num: number): string {
+    const words = [
+      '',
+      'one',
+      'two',
+      'three',
+      'four',
+      'five',
+      'six',
+      'seven',
+      'eight',
+      'nine',
+      'ten',
+    ];
+    return words[num] || num.toString();
+  }
+
+  /**
+   * Build a natural announcement for all military aircraft from a country
+   * Examples: "German military", "Luftwaffe", "Luftwaffe Eurofighter and transport"
+   */
+  private buildCountryAnnouncement(
+    countryKey: string,
+    aircraft: PlaneLogEntry[]
+  ): string {
+    if (aircraft.length === 0) return `${countryKey} military`;
+
+    // Group by operator
+    const operatorGroups = new Map<string, PlaneLogEntry[]>();
+    const noOperator: PlaneLogEntry[] = [];
+
+    aircraft.forEach((plane) => {
+      const operator = plane.operator?.trim();
+      if (operator) {
+        if (!operatorGroups.has(operator)) {
+          operatorGroups.set(operator, []);
+        }
+        operatorGroups.get(operator)!.push(plane);
+      } else {
+        noOperator.push(plane);
+      }
+    });
+
+    // If only one operator and it covers most aircraft, use that operator
+    if (operatorGroups.size === 1 && noOperator.length === 0) {
+      const [operator, planes] = Array.from(operatorGroups.entries())[0];
+      return this.buildOperatorAnnouncement(operator, planes);
+    }
+
+    // If multiple operators but one dominant operator, use that
+    if (operatorGroups.size > 0) {
+      const largestGroup = Array.from(operatorGroups.entries()).sort(
+        ([, a], [, b]) => b.length - a.length
+      )[0];
+
+      if (largestGroup[1].length >= aircraft.length * 0.7) {
+        // If one operator has 70%+ of aircraft, just announce that operator
+        return this.buildOperatorAnnouncement(largestGroup[0], largestGroup[1]);
+      }
+    }
+
+    // Fallback: use country name
+    if (aircraft.length === 1) {
+      return `${countryKey} military`;
+    } else {
+      return `${countryKey} military, ${aircraft.length} aircraft`;
+    }
+  }
+
+  /**
+   * Build announcement for a specific operator and their aircraft
+   * Examples: "Luftwaffe", "Luftwaffe Eurofighter", "Luftwaffe, two aircraft"
+   */
+  private buildOperatorAnnouncement(
+    operator: string,
+    aircraft: PlaneLogEntry[]
+  ): string {
+    if (aircraft.length === 1) {
+      const model = aircraft[0].model?.trim();
+      return model ? `${operator} ${model}` : operator;
+    }
+
+    // Multiple aircraft - get models
+    const models = aircraft
+      .map((plane) => plane.model?.trim())
+      .filter(
+        (model): model is string => model !== undefined && model.length > 0
+      );
+
+    const uniqueModels = [...new Set(models)];
+
+    if (uniqueModels.length === 0) {
+      // No models known
+      return aircraft.length === 2
+        ? `${operator}, two aircraft`
+        : `${operator}, ${aircraft.length} aircraft`;
+    } else if (uniqueModels.length === 1) {
+      // All same model or only one model known
+      if (models.length === aircraft.length && aircraft.length === 2) {
+        return `${operator}, two ${uniqueModels[0]}s`;
+      } else if (models.length === aircraft.length) {
+        const countWord = this.numberToWord(aircraft.length);
+        return `${operator}, ${countWord} ${uniqueModels[0]}s`;
+      } else {
+        return `${operator} ${uniqueModels[0]}`;
+      }
+    } else {
+      // Multiple different models - list them
+      const modelList = this.formatModelList(uniqueModels);
+      return `${operator} ${modelList}`;
     }
   }
 }

@@ -35,7 +35,6 @@ export class TtsService {
       (window as any).clearTTSCache = () => this.clearSpokenKeys();
     }
   }
-
   /**
    * Initialize only the voices we actually need
    */
@@ -47,16 +46,22 @@ export class TtsService {
 
     // Find and cache only the voices for languages we support
     for (const lang of this.SUPPORTED_LANGUAGES) {
-      // Try exact match first
-      let voice = allVoices.find((v) => v.lang === lang);
+      // Prefer non-multilingual voices for better accent
+      const langPrefix = lang.split('-')[0].toLowerCase();
+      const candidateVoices = allVoices.filter((v) =>
+        v.lang.toLowerCase().startsWith(langPrefix)
+      );
 
-      // If no exact match, try language prefix (e.g., 'en' for 'en-US')
-      if (!voice) {
-        const langPrefix = lang.split('-')[0].toLowerCase();
-        voice = allVoices.find((v) =>
-          v.lang.toLowerCase().startsWith(langPrefix)
-        );
-      }
+      // Sort: prefer non-multilingual, then exact match, then any match
+      const voice = candidateVoices.sort((a, b) => {
+        const aMulti = a.name.toLowerCase().includes('multilingual');
+        const bMulti = b.name.toLowerCase().includes('multilingual');
+        if (aMulti && !bMulti) return 1;
+        if (!aMulti && bMulti) return -1;
+        if (a.lang === lang && b.lang !== lang) return -1;
+        if (a.lang !== lang && b.lang === lang) return 1;
+        return 0;
+      })[0];
 
       if (voice) {
         this.usedVoices.set(lang, voice);
@@ -72,8 +77,7 @@ export class TtsService {
     }
 
     this.speakImmediately(text, lang);
-  }
-  /** Speak immediately without queueing (for urgent announcements) */
+  } /** Speak immediately without queueing (for urgent announcements) */
   private speakImmediately(text: string, lang?: string): void {
     // Cancel any ongoing speech to prevent queue issues
     window.speechSynthesis.cancel();
@@ -93,29 +97,23 @@ export class TtsService {
         utterance.lang = lang;
 
         // Use our cached voice for this language
-        const voice = this.usedVoices.get(lang);
+        let voice = this.usedVoices.get(lang);
+        if (!voice) {
+          // Fallback: try language prefix (e.g., 'de' for 'de-DE')
+          const langPrefix = lang.split('-')[0].toLowerCase();
+          voice = Array.from(this.usedVoices.values()).find((v) =>
+            v.lang.toLowerCase().startsWith(langPrefix)
+          );
+        }
         if (voice) {
           utterance.voice = voice;
-        } else {
-          // Fallback: try to find voice from language prefix
-          const langPrefix = lang.split('-')[0].toLowerCase();
-          for (const [cachedLang, cachedVoice] of this.usedVoices) {
-            if (cachedLang.toLowerCase().startsWith(langPrefix)) {
-              utterance.voice = cachedVoice;
-              break;
-            }
-          }
-        }
-
-        // Only log when debugging French TTS issues
-        if (lang.startsWith('fr')) {
-          const voiceName = utterance.voice?.name || 'default';
         }
       }
 
       // Add error handling and completion tracking
       utterance.onerror = (event) => {
         console.error('TTS Error:', event.error, 'for text:', text);
+
         this.isCurrentlySpeaking = false;
         this.processQueue();
       };

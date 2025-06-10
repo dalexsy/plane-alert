@@ -15,6 +15,10 @@ export class LanguageSwitchService {
     Luftwaffe: 'de-DE',
   };
 
+  // Track all announcements to show complete output
+  private currentAnnouncementParts: string[] = [];
+  private currentAnnouncementKey: string = '';
+
   constructor(private tts: TtsService) {}
   /**
    * Speaks the given text, switching to override locales for matched words,
@@ -28,23 +32,50 @@ export class LanguageSwitchService {
     text: string,
     defaultLang: string = navigator.language
   ): void {
-    // Special case: if the entire text contains "Bombardier", speak it all in French
-    if (text.toLowerCase().includes('bombardier')) {
-      this.tts.speakOnce(keyPrefix, text, 'fr-FR');
+    // DEBUG: Log the complete announcement
+    console.log(`COMPLETE ANNOUNCEMENT: "${text}" (key: ${keyPrefix})`);
+
+    // Split text by all override phrases and speak each segment in its locale or default
+    const keys = Object.keys(this.overrides);
+    const sorted = keys
+      .sort((a, b) => b.length - a.length)
+      .map((p) => p.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'));
+    const regex = new RegExp(`(${sorted.join('|')})`, 'gi');
+    const matches = Array.from(text.matchAll(regex));
+
+    // If any overrides found, speak counts in their locales first
+    if (matches.length === 0) {
+      console.log(`   Speaking entire text in ${defaultLang}: "${text}"`);
+      this.tts.speakOnce(keyPrefix, text, defaultLang);
       return;
     }
 
-    // Special case: if the entire text contains "Luftwaffe", speak it all in German
-    if (text.toLowerCase().includes('luftwaffe')) {
-      // Use Swiss German for "Schweizer Luftwaffe", regular German for other Luftwaffe
-      const locale = text.toLowerCase().includes('schweizer')
-        ? 'de-CH'
-        : 'de-DE';
-      this.tts.speakOnce(keyPrefix, text, locale);
-      return;
+    console.log(
+      `   Found ${matches.length} language override(s), splitting into segments:`
+    );
+    let lastIndex = 0;
+    let part = 0;
+    for (const match of matches) {
+      const idx = match.index!;
+      const matchText = match[0];
+      const before = text.substring(lastIndex, idx).trim();
+      if (before) {
+        console.log(`       Part ${part}: "${before}" (${defaultLang})`);
+        this.tts.speakOnce(`${keyPrefix}-${part++}`, before, defaultLang);
+      }
+      // Override locale for matched phrase
+      const phraseKey = keys.find(
+        (k) => k.toLowerCase() === matchText.toLowerCase()
+      )!;
+      const locale = this.overrides[phraseKey];
+      console.log(`       Part ${part}: "${matchText}" (${locale})`);
+      this.tts.speakOnce(`${keyPrefix}-${part++}`, matchText, locale);
+      lastIndex = idx + matchText.length;
     }
-
-    // For other cases, use default language
-    this.tts.speakOnce(keyPrefix, text, defaultLang);
+    const after = text.substring(lastIndex).trim();
+    if (after) {
+      console.log(`       Part ${part}: "${after}" (${defaultLang})`);
+      this.tts.speakOnce(`${keyPrefix}-${part++}`, after, defaultLang);
+    }
   }
 }
