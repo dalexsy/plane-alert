@@ -22,7 +22,7 @@
       'low-sun': getSunElevationAngle() < 15 && getSunElevationAngle() > -6
     }"
     [style.left]="getSunObject()?.x + '%'"
-    [style.bottom]="'calc(' + getSunObject()?.y + '% - 0.5rem)'"
+    [style.bottom]="getSunGradientBottomPosition()"
   ></div>
 
   <!-- Rain overlay -->

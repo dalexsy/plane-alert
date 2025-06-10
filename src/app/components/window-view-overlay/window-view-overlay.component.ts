@@ -978,7 +978,6 @@ export class WindowViewOverlayComponent
       (p) => p.isCelestial === true && p.celestialBodyType === 'sun'
     );
   }
-
   /** Get the sun elevation angle for template use */
   public getSunElevationAngle(): number {
     const sun = this.getSunObject();
@@ -986,6 +985,24 @@ export class WindowViewOverlayComponent
       return (sun.y / 100) * 90;
     }
     return sun ? -10 : -20; // Approximate below-horizon angle
+  }
+
+  /** Calculate constrained bottom position for sun gradient to prevent overflow above container */
+  public getSunGradientBottomPosition(): string {
+    const sun = this.getSunObject();
+    if (!sun) return '0%';
+
+    const sunY = sun.y;
+    const basePosition = `calc(${sunY}% - 0.5rem)`;
+
+    // The gradient is 15rem tall and transform moves it 50% down (7.5rem)
+    // So when positioned, its top edge is at: bottom + 7.5rem
+    // To prevent top edge from going above container (100%), we need:
+    // bottom + 7.5rem <= 100%
+    // Therefore: bottom <= calc(100% - 7.5rem)
+    const constrainedPosition = `min(${basePosition}, calc(100% - 7.5rem))`;
+
+    return constrainedPosition;
   }
 
   /** TrackBy function to prevent unnecessary DOM re-creation during animations */
