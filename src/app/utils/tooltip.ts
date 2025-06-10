@@ -116,7 +116,7 @@ export function planeTooltip(
   getAltitudeColor?: (alt: number) => string
 ): string {
   // Single place to control white mixing amount for both altitude text and arrow
-  const WHITE_MIX_AMOUNT = 0.4;
+  const WHITE_MIX_AMOUNT = 0.3;
 
   // Pre-calculate mixed altitude color if available
   let mixedAltitudeColor: string | undefined;

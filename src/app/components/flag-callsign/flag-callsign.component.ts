@@ -12,6 +12,12 @@ import { CountryService } from '../../services/country.service';
       <span class="callsign" [ngClass]="{ 'none-callsign': isPending }">
         {{ displayCallsign }}
       </span>
+      <span
+        *ngIf="isMilitary"
+        class="material-symbols-sharp icon small military-star-tooltip"
+        aria-label="Military aircraft"
+        >star</span
+      >
     </span>
   `,
   styleUrls: ['./flag-callsign.component.scss'],
@@ -19,6 +25,7 @@ import { CountryService } from '../../services/country.service';
 export class FlagCallsignComponent {
   @Input() callsign: string = '';
   @Input() origin: string = '';
+  @Input() isMilitary: boolean = false;
 
   constructor(public countryService: CountryService) {}
 
