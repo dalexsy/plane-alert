@@ -766,7 +766,9 @@ export class PlaneFinderService {
           onGround,
           isMilitary,
           isSpecial,
-          verticalRate
+          verticalRate,
+          altitude,
+          (alt: number) => this.altitudeColor.getFillColor(alt)
         );
         const extraStyle = this.computeExtraStyle(altitude, onGround);
 
