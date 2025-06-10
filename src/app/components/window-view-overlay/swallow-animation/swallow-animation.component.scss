@@ -20,13 +20,14 @@ $wing-ease: ease-in-out;
   bottom: 1.5rem; // Match window view bottom spacing
   height: 10rem; // Match window view height
   pointer-events: none;
-  z-index: 100; // Much higher z-index for testing
+  z-index: 400;
   overflow: hidden;
+  mix-blend-mode: darken;
 }
 
 .swallow {
   position: absolute;
-  color: #2d3748; // Dark gray-blue silhouette
+  color: #ff0000; // Dark gray-blue silhouette
   will-change: transform, opacity;
   .bird-v {
     position: relative;
@@ -97,12 +98,10 @@ $wing-ease: ease-in-out;
 // Atmospheric lighting effects based on time of day
 .window-view-overlay.daytime .swallow {
   color: #1a202c; // Darker during day for visibility
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .window-view-overlay:not(.daytime) .swallow {
-  color: #4a5568; // Lighter during twilight/night
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+  color: #ff0000; // Lighter during twilight/night
 }
 
 // Storm intensity variations - temporarily disabled for testing positioning

@@ -92,7 +92,9 @@ export class AnnouncementService {
     const model = plane.model?.trim();
     const originCountryName = plane.origin
       ? this.countryService.getCountryName(plane.origin)
-      : null; // PRIORITY 1: Detailed announcements if operator/model known (highest priority for military)
+      : null;
+
+    // PRIORITY 1: Detailed announcements if operator/model known (highest priority for military)
     if (operator && model) {
       // If we have operator, just use operator + model (no country needed)
       // Mark this country as announced to prevent repetition
@@ -118,42 +120,23 @@ export class AnnouncementService {
       const processedCallsign = this.processCallsignForSpeech(callsign);
       // If the callsign was processed (meaningful word detected), prioritize it over everything
       if (processedCallsign !== callsign) {
-        // Check if we've already announced this country to avoid repetition
-        const shouldIncludeCountry =
-          originCountryName &&
-          originCountryName !== 'Unknown' &&
-          !this.announcedCountries.has(originCountryName);
-
-        if (shouldIncludeCountry) {
-          this.announcedCountries.add(originCountryName);
+        // Combine callsign and model if model exists
+        let announcementText = processedCallsign;
+        if (model) {
+          announcementText = `${processedCallsign} ${model}`;
         }
-
-        const text = shouldIncludeCountry
-          ? `${originCountryName} ${processedCallsign}`
-          : processedCallsign;
-        this.langSwitch.speakWithOverrides(baseKey, text);
+        // Speak callsign and model without country prefix
+        this.langSwitch.speakWithOverrides(baseKey, announcementText);
         return;
       }
-    }
-
-    // PRIORITY 3: Model only (when no operator or meaningful callsign)
+    } // PRIORITY 3: Model only (when no operator or meaningful callsign)
     if (model) {
-      // Only use special military prefixes when we actually know the operator
-      // Don't assume "Luftwaffe" just because it's German military
-
-      // Include country for first aircraft from this country
-      const shouldIncludeCountry =
-        originCountryName &&
-        originCountryName !== 'Unknown' &&
-        !this.announcedCountries.has(originCountryName);
-
-      if (shouldIncludeCountry) {
-        this.announcedCountries.add(originCountryName);
-      }
-
-      const text = shouldIncludeCountry
-        ? `${originCountryName} ${model}`
-        : model;
+      // No operator - announce country + military + model
+      const countryPrefix =
+        originCountryName && originCountryName !== 'Unknown'
+          ? `${originCountryName} military`
+          : 'Military';
+      const text = `${countryPrefix} ${model}`;
       this.langSwitch.speakWithOverrides(baseKey, text);
       return;
     } else if (plane.callsign) {
@@ -161,47 +144,22 @@ export class AnnouncementService {
       const callsign = plane.callsign.trim();
       let speakCallsign = this.processCallsignForSpeech(callsign);
 
-      // Check if we've already announced this country to avoid repetition
-      const shouldIncludeCountry =
-        originCountryName &&
-        originCountryName !== 'Unknown' &&
-        !this.announcedCountries.has(originCountryName);
-
-      if (shouldIncludeCountry) {
-        this.announcedCountries.add(originCountryName);
-      }
-
-      const text = shouldIncludeCountry
-        ? `${originCountryName} ${speakCallsign}`
-        : speakCallsign;
+      // No operator - announce country + military + callsign
+      const countryPrefix =
+        originCountryName && originCountryName !== 'Unknown'
+          ? `${originCountryName} military`
+          : 'Military';
+      const text = `${countryPrefix} ${speakCallsign}`;
       this.langSwitch.speakWithOverrides(baseKey, text);
       return;
     }
-    // Fallback: aggregate unknown operator/model cases by country
+
+    // Fallback: announce country + military
     const label =
       originCountryName && originCountryName !== 'Unknown'
-        ? originCountryName
+        ? `${originCountryName} military`
         : 'Military';
-    this.genericCountrySet.add(label);
-    if (!this.genericAnnounceTimer) {
-      this.genericAnnounceTimer = window.setTimeout(() => {
-        const countries = Array.from(this.genericCountrySet);
-        const list =
-          countries.length === 1
-            ? countries[0]
-            : countries.length === 2
-            ? `${countries[0]} and ${countries[1]}`
-            : `${countries.slice(0, -1).join(', ')}, and ${countries.slice(
-                -1
-              )}`;
-        this.langSwitch.speakWithOverrides(
-          'military-generic',
-          `${list} military`
-        );
-        this.genericCountrySet.clear();
-        this.genericAnnounceTimer = undefined;
-      }, 500);
-    }
+    this.langSwitch.speakWithOverrides(baseKey, label);
   }
 
   /**
@@ -479,6 +437,21 @@ export class AnnouncementService {
    */ private processMilitaryQueue(countryKey: string): void {
     const aircraft = this.militaryQueue.get(countryKey) || [];
     if (aircraft.length === 0) return;
+
+    // Handle single military aircraft immediately with detailed announcement
+    if (aircraft.length === 1) {
+      const plane = aircraft[0];
+      // Mark country as announced to prevent repetition
+      if (countryKey !== 'Unknown') {
+        this.announcedCountries.add(countryKey);
+      }
+      // Use detailed announcement for single military aircraft
+      this.announceMilitaryAircraft(plane, `aircraft-${plane.icao}`);
+      // Clean up queue and timers
+      this.militaryQueue.delete(countryKey);
+      this.militaryQueueTimers.delete(countryKey);
+      return;
+    }
 
     // Mark country as announced to prevent repetition
     if (countryKey !== 'Unknown') {
