@@ -3,6 +3,7 @@
     *ngFor="let swallow of swallows; trackBy: trackBySwallowId"
     class="swallow"
     [ngStyle]="getSwallowPosition(swallow)"
+    [style.--flap-delay]="swallow.flapDelay + 's'"
   >
     <!-- Simple V-shaped bird silhouette -->
     <div class="bird-v">

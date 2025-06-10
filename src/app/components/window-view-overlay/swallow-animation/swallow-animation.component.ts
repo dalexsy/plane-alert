@@ -40,8 +40,10 @@ export interface SwallowBird {
   scale: number;
   /** Animation delay in milliseconds */
   delay: number;
-  /** Wing flap animation offset */
+  /** Wing flap animation offset for JS style */
   flapOffset: number;
+  /** CSS animation delay in seconds to stagger wing flapping */
+  flapDelay: number;
   /** Direction bird is facing (1 = right, -1 = left) */
   direction: number;
   /** Opacity for fade in/out */
@@ -244,6 +246,7 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
       scale: 0.8 + Math.random() * 0.4,
       delay: 0,
       flapOffset: Math.random() * Math.PI * 2,
+      flapDelay: Math.random() * 0.3, // Random delay in seconds for wing flap animation
       direction: 1, // Flying right
       opacity: 0,
     };

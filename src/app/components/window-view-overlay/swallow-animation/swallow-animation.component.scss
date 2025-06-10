@@ -2,6 +2,17 @@
 // Swallow Storm Animation Component - Low Pressure Weather Indicator
 // =============================================================================
 
+// Define scalable size variables for swallow and wings
+$swallow-scale: 0.5 !default;
+$swallow-width: 1.25rem * $swallow-scale;
+$swallow-height: 0.625rem * $swallow-scale;
+$wing-width: 0.75rem * $swallow-scale;
+$wing-height: 0.125rem * $swallow-scale;
+$wing-top-offset: 0.25rem * $swallow-scale;
+$wing-flap-duration: 0.4s;
+$wing-transition-duration: 0.15s;
+$wing-ease: ease-in-out;
+
 .swallow-container {
   position: fixed; // Match the window view positioning
   left: 0;
@@ -19,32 +30,34 @@
   will-change: transform, opacity;
   .bird-v {
     position: relative;
-    width: 20px;
-    height: 10px;
+    width: $swallow-width;
+    height: $swallow-height;
 
     .wing-left,
     .wing-right {
       position: absolute;
-      width: 12px;
-      height: 2px;
+      width: $wing-width;
+      height: $wing-height;
       background-color: currentColor;
       transform-origin: right center;
-      transition: transform 0.15s ease-in-out;
+      transition: transform $wing-transition-duration $wing-ease;
     }
     .wing-left {
-      top: 4px;
+      top: $wing-top-offset;
       left: 0;
       transform: rotate(25deg);
       transform-origin: right center;
-      animation: flap-left 0.3s ease-in-out infinite alternate;
+      animation: flap-left $wing-flap-duration $wing-ease infinite alternate;
+      animation-delay: var(--flap-delay);
     }
 
     .wing-right {
-      top: 4px;
+      top: $wing-top-offset;
       right: 0;
       transform: rotate(-25deg);
       transform-origin: left center;
-      animation: flap-right 0.3s ease-in-out infinite alternate;
+      animation: flap-right $wing-flap-duration $wing-ease infinite alternate;
+      animation-delay: var(--flap-delay);
     }
   }
 }
@@ -52,19 +65,19 @@
 // Wing flapping animations
 @keyframes flap-left {
   0% {
-    transform: rotate(35deg); // Wing up position
+    transform: rotate(45deg); // Wing up position (more pronounced)
   }
   100% {
-    transform: rotate(15deg); // Wing down position
+    transform: rotate(-15deg); // Wing down position (below horizontal)
   }
 }
 
 @keyframes flap-right {
   0% {
-    transform: rotate(-35deg); // Wing up position
+    transform: rotate(-45deg); // Wing up position (more pronounced)
   }
   100% {
-    transform: rotate(-15deg); // Wing down position
+    transform: rotate(15deg); // Wing down position (below horizontal)
   }
 }
 
