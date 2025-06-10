@@ -83,11 +83,27 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   },
   {
     start: 0x440000,
+    end: 0x45ffff,
+    countryCode: 'IT',
+    countryName: 'Italy',
+    type: 'mixed',
+    notes: 'Italian aviation (part 1)',
+  },
+  {
+    start: 0x460000,
+    end: 0x46ffff,
+    countryCode: 'FI',
+    countryName: 'Finland',
+    type: 'civil',
+    notes: 'Finnish aviation',
+  },
+  {
+    start: 0x470000,
     end: 0x47ffff,
     countryCode: 'IT',
     countryName: 'Italy',
     type: 'mixed',
-    notes: 'Italian aviation',
+    notes: 'Italian aviation (part 2)',
   },
   {
     start: 0x480000,

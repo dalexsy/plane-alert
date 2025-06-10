@@ -50,15 +50,6 @@ export class AircraftCountryService {
     icaoHex?: string,
     apiCountry?: string
   ): CountryDetectionResult {
-    // First priority: Use API-provided country if valid
-    if (apiCountry && /^[A-Za-z]{2}$/.test(apiCountry)) {
-      return {
-        countryCode: apiCountry.toUpperCase(),
-        confidence: 'high',
-        source: 'api',
-      };
-    }
-
     // Second priority: Military registration patterns (specialized handling)
     if (registration) {
       const militaryResult =
@@ -74,14 +65,20 @@ export class AircraftCountryService {
       if (regResult.countryCode !== 'Unknown') {
         return regResult;
       }
-    }
-
-    // Fourth priority: ICAO hex lookup (enhanced with configuration)
+    } // Fourth priority: ICAO hex lookup (enhanced with configuration)
     if (icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup) {
       const icaoResult = this.getCountryFromIcaoHexDetailed(icaoHex);
       if (icaoResult.countryCode !== 'Unknown') {
         return icaoResult;
       }
+    }
+    // Next priority: Use API-provided country if valid
+    if (apiCountry && /^[A-Za-z]{2}$/.test(apiCountry)) {
+      return {
+        countryCode: apiCountry.toUpperCase(),
+        confidence: 'high',
+        source: 'api',
+      };
     } // Log when country lookup fails to return a result
     const decimalValue = icaoHex ? parseInt(icaoHex, 16) : null; // console.log(
     //   `Aircraft country lookup failed - ICAO: ${icaoHex} (${decimalValue}), Registration: ${
