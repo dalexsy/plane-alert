@@ -243,9 +243,7 @@ $animation-optimization: optimizeSpeed;
     box-shadow: 0 1px 3px rgb(0 0 0);
     outline: 1px solid rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(0.5rem);
-    position: relative;
-
-    // Tooltip tail pointing downward (at the bottom)
+    position: relative; // Tooltip tail pointing downward (at the bottom)
     &::after {
       content: "";
       position: absolute;
@@ -273,6 +271,13 @@ $animation-optimization: optimizeSpeed;
       border-right: 7px solid transparent;
       border-top: 7px solid rgba(255, 255, 255, 0.8);
       z-index: 0;
+    }
+
+    // When altitude borders are enabled, use altitude color for tooltip tail
+    &.altitude-bordered-tooltip {
+      &::after {
+        border-top-color: inherit;
+      }
     }
 
     .plane-details {
