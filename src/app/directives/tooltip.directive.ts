@@ -86,6 +86,12 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     this.hideTimeout = setTimeout(() => this.hideTooltip(), 100);
   }
   private createTooltip() {
+    // Auto position tooltips for items inside an app-tab to match its side
+    const tabEl = this.el.nativeElement.closest('app-tab');
+    if (tabEl) {
+      const side = tabEl.getAttribute('side') as 'left' | 'right';
+      this.position = side;
+    }
     // Let the tooltip manager handle hiding any existing tooltips
     this.tooltipManager.hideCurrentTooltip(true);
 

@@ -745,7 +745,7 @@
   "ZLT": "Zulutime",
   "ZMA": "Zambia Skyways",
   "MSC": "Air Cairo",
-  "GAF": "German Air Force",
+  "GAF": "Luftwaffe",
   "NIL": "Nile Air",
   "BOX": "DHL Aviation",
   "TKJ": "A Jet",
@@ -808,7 +808,7 @@
   "FSF": "Fly7 Finland",
   "BBG": "Bluebird Airways",
   "ICE": "Icelandair",
-  "JOK": "German Air Force",
+  "JOK": "Luftwaffe",
   "CAO": "Air China Cargo",
   "LYB": "Private",
   "GAM": "German Army",
@@ -933,5 +933,7 @@
   "SVF": "Swedish Air Force",
   "VLJ": "VallJet Raytheon",
   "HKY": "United States Air Force",
-  "CEF": "Czech Air Force"
+  "CEF": "Czech Air Force",
+  "VENOM": "Luftwaffe",
+  "NATO": "NATO"
 }

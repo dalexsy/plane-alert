@@ -19,42 +19,59 @@ export class OperatorCallSignService {
       .subscribe((data) => (this.operatorMap = data));
   }
   /**
-   * Returns the operator name for a given callsign (first 3 letters), or undefined if not found.
+   * Returns the operator name for a given callsign by matching the longest possible prefix, or undefined if not found.
    */
   getOperator(callSign: string): string | undefined {
-    if (!callSign || callSign.length < 3) {
+    if (!callSign) {
       return undefined;
     }
-    const prefix = callSign.slice(0, 3).toUpperCase();
-    return this.operatorMap[prefix];
+    const cs = callSign.toUpperCase();
+    // Try longest map keys first
+    const prefixes = Object.keys(this.operatorMap).sort(
+      (a, b) => b.length - a.length
+    );
+    for (const prefix of prefixes) {
+      if (cs.startsWith(prefix)) {
+        return this.operatorMap[prefix];
+      }
+    }
+    return undefined;
   }
 
   /**
    * Returns the operator name for a given callsign and logs unknown call signs.
-   * This is the recommended method to use when you want to track unknown operators.
+   * Matches the longest possible prefix, but logs using the first three letters if unknown.
    */
   getOperatorWithLogging(callSign: string): string | undefined {
-    if (!callSign || callSign.length < 3) {
+    if (!callSign) {
       return undefined;
     }
-    const prefix = callSign.slice(0, 3).toUpperCase();
-    const operator = this.operatorMap[prefix]; // Log unknown call signs (but only once per prefix to avoid spam)
-    if (!operator && !this.unknownCallSigns.has(prefix)) {
-      // Only log meaningful callsigns (3+ chars, not all numbers, not common patterns)
+    const cs = callSign.toUpperCase();
+    const prefixes = Object.keys(this.operatorMap).sort(
+      (a, b) => b.length - a.length
+    );
+    let foundPrefix: string | undefined;
+    for (const prefix of prefixes) {
+      if (cs.startsWith(prefix)) {
+        foundPrefix = prefix;
+        break;
+      }
+    }
+    const operator = foundPrefix ? this.operatorMap[foundPrefix] : undefined;
+    // Log unknown call signs on first unseen prefix (using first 3 letters)
+    const logPrefix = cs.slice(0, 3);
+    if (!operator && !this.unknownCallSigns.has(logPrefix)) {
       if (
-        callSign.length >= 3 &&
         !/^\d+$/.test(callSign) &&
-        !prefix.startsWith('N') && // Skip US registration patterns
-        prefix !== 'VFR' &&
-        prefix !== 'IFR'
+        !logPrefix.startsWith('N') &&
+        logPrefix !== 'VFR' &&
+        logPrefix !== 'IFR'
       ) {
-        // Skip common flight rules
-        // Further reduce logging frequency - only log 1 in 10 unknown callsigns
         if (Math.random() < 0.1) {
-          console.log(`[Unknown Call Sign] ${prefix}`);
+          console.log(`[Unknown Call Sign] ${logPrefix}`);
         }
       }
-      this.unknownCallSigns.add(prefix);
+      this.unknownCallSigns.add(logPrefix);
     }
 
     return operator;

@@ -298,6 +298,10 @@ export class InputOverlayComponent implements OnDestroy {
   get zoomOutTooltip(): string {
     return 'Zoom out';
   }
+  /** Get go home tooltip text */
+  get goHomeTooltip(): string {
+    return 'Go to home position';
+  }
 
   /** Get brightness status text for custom tooltip */
   get brightnessStatusText(): string {

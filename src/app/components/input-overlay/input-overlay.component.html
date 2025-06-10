@@ -101,6 +101,16 @@
         [appTooltip]="zoomOutTooltip"
         (click)="onZoomOut()"
       ></app-button>
+      <app-button
+        class="go-home"
+        icon="home"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="goHomeTooltip"
+        [appTooltip]="goHomeTooltip"
+        tooltipPosition="left"
+        (click)="onGoToHome()"
+      ></app-button>
     </app-tab>
   </div>
   <form
