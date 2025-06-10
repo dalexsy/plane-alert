@@ -1140,15 +1140,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   reverseGeocode(lat: number, lon: number): Promise<string> {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
-
   // Helper to check if alert should be muted
-  shouldMuteCommercialAlert(newUnfiltered: PlaneModel[]): boolean {
-    // If mute is enabled, only commercial planes are present, and all new planes are commercial, mute the alert
+  shouldMuteMilitaryAlert(newUnfiltered: PlaneModel[]): boolean {
+    // If mute is enabled, only military planes are present, and all new planes are military, mute the alert
     if (!this.resultsOverlayComponent) return false;
-    if (!this.resultsOverlayComponent.commercialMute) return false;
-    if (!this.resultsOverlayComponent.onlyCommercial) return false;
-    // If all new planes are non-military (commercial), mute
-    return newUnfiltered.every((p) => !this.aircraftDb.lookup(p.icao)?.mil);
+    if (!this.resultsOverlayComponent.militaryMute) return false;
+    if (!this.resultsOverlayComponent.onlyMilitary) return false;
+    // If all new planes are military, mute
+    return newUnfiltered.every((p) => this.aircraftDb.lookup(p.icao)?.mil);
   }
 
   findPlanes(): void {
@@ -1197,7 +1196,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
         const newUnfiltered = updatedLog.filter(
           (p) => p.isNew && !p.filteredOut
-        ); // Alert on any new visible plane, but suppress only when hide-commercial filter and commercial mute are both on and all new are commercial
+        ); // Alert on any new visible plane, but suppress only when military mute is enabled and all new planes are military
         const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
         // Determine if any new visible plane is a Hercules model
         const hasHercules = newVisible.some((p) =>
@@ -1212,14 +1211,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           (p) =>
             this.aircraftDb.lookup(p.icao)?.mil ||
             this.specialListService.isSpecial(p.icao)
-        );
-        // Play appropriate alert sound: Hercules and A400 priority
-        if (hasHercules) {
-          playHerculesAlert();
-        } else if (hasA400) {
-          playA400Alert();
-        } else if (hasAlertPlanes) {
-          playAlertSound();
+        ); // Play appropriate alert sound: Hercules and A400 priority
+        // Check if military alerts should be muted
+        if (!this.shouldMuteMilitaryAlert(newUnfiltered)) {
+          if (hasHercules) {
+            playHerculesAlert();
+          } else if (hasA400) {
+            playA400Alert();
+          } else if (hasAlertPlanes) {
+            playAlertSound();
+          }
         }
         // Military announcement logic has been moved to AnnouncementService
         // to prevent duplicate TTS chaos and provide better per-aircraft control

@@ -1,0 +1,131 @@
+// =============================================================================
+// Swallow Storm Animation Component - Low Pressure Weather Indicator
+// =============================================================================
+
+.swallow-container {
+  position: fixed; // Match the window view positioning
+  left: 0;
+  right: 0;
+  bottom: 1.5rem; // Match window view bottom spacing
+  height: 10rem; // Match window view height
+  pointer-events: none;
+  z-index: 100; // Much higher z-index for testing
+  overflow: hidden;
+}
+
+.swallow {
+  position: absolute;
+  color: #2d3748; // Dark gray-blue silhouette
+  will-change: transform, opacity;
+  .bird-v {
+    position: relative;
+    width: 20px;
+    height: 10px;
+
+    .wing-left,
+    .wing-right {
+      position: absolute;
+      width: 12px;
+      height: 2px;
+      background-color: currentColor;
+      transform-origin: right center;
+      transition: transform 0.15s ease-in-out;
+    }
+    .wing-left {
+      top: 4px;
+      left: 0;
+      transform: rotate(25deg);
+      transform-origin: right center;
+      animation: flap-left 0.3s ease-in-out infinite alternate;
+    }
+
+    .wing-right {
+      top: 4px;
+      right: 0;
+      transform: rotate(-25deg);
+      transform-origin: left center;
+      animation: flap-right 0.3s ease-in-out infinite alternate;
+    }
+  }
+}
+
+// Wing flapping animations
+@keyframes flap-left {
+  0% {
+    transform: rotate(35deg); // Wing up position
+  }
+  100% {
+    transform: rotate(15deg); // Wing down position
+  }
+}
+
+@keyframes flap-right {
+  0% {
+    transform: rotate(-35deg); // Wing up position
+  }
+  100% {
+    transform: rotate(-15deg); // Wing down position
+  }
+}
+
+// Different sizes for visual variety (handled by component scale) - temporarily disabled
+/*
+.swallow {
+  &.small {
+    transform: scale(0.7);
+  }
+  
+  &.large {
+    transform: scale(1.3);
+  }
+}
+*/
+
+// Atmospheric lighting effects based on time of day
+.window-view-overlay.daytime .swallow {
+  color: #1a202c; // Darker during day for visibility
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.window-view-overlay:not(.daytime) .swallow {
+  color: #4a5568; // Lighter during twilight/night
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+// Storm intensity variations - temporarily disabled for testing positioning
+/*
+@media (prefers-reduced-motion: no-preference) {
+  .swallow {
+    animation: subtle-bob 3s ease-in-out infinite;
+    animation-delay: var(--swallow-delay, 0s);
+  }
+  
+  @keyframes subtle-bob {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+}
+*/
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .swallow {
+    color: #000;
+    filter: none;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .swallow {
+    animation: none;
+  }
+
+  .swallow-wings {
+    transition: none;
+  }
+}

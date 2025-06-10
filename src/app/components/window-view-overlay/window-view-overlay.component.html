@@ -24,9 +24,13 @@
     [style.left]="getSunObject()?.x + '%'"
     [style.bottom]="getSunGradientBottomPosition()"
   ></div>
-
   <!-- Rain overlay -->
   <app-rain-overlay></app-rain-overlay>
+  <!-- Swallow storm animation -->
+  <app-swallow-animation
+    [pressureIntensity]="0.8"
+    [isStormApproaching]="true"
+  ></app-swallow-animation>
   <!-- Compass labels with roof background -->
   <app-compass-labels
     [compassBackground]="compassBackground"

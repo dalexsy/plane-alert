@@ -201,10 +201,9 @@ export class ResultsOverlayComponent
   // Debouncing for button clicks
   private lastToggleTime = 0;
   private readonly DEBOUNCE_TIME = 500; // ms
-
-  // commercialMute now backed by SettingsService
-  get commercialMute(): boolean {
-    return this.settings.commercialMute;
+  // militaryMute now backed by SettingsService
+  get militaryMute(): boolean {
+    return this.settings.militaryMute;
   }
 
   private NEW_PLANE_MINUTES = 1; // Plane is 'new' for 1 minute
@@ -248,7 +247,7 @@ export class ResultsOverlayComponent
     this.militaryPrefixService.loadPrefixes().then(() => {
       this.resultsUpdated = true;
     });
-    // commercialMute is loaded by SettingsService.load()
+    // militaryMute is loaded by SettingsService.load()
     // Collapse state already loaded by SettingsService.load()
     // Just update the time every second
     this.refreshSub = interval(1000).subscribe(() => {
@@ -398,13 +397,24 @@ export class ResultsOverlayComponent
     this.settings.setExcludeDiscount(checked);
     this.resultsUpdated = true;
   }
-
   /**
-   * Toggle muting alert sound for commercial-only results
+   * Toggle muting alert sound for military-only results
    */
-  onToggleCommercialMute(): void {
-    // Toggle and persist commercial mute through settings service
-    this.settings.setCommercialMute(!this.settings.commercialMute);
+  onToggleMilitaryMute(): void {
+    // Toggle and persist military mute through settings service
+    this.settings.setMilitaryMute(!this.settings.militaryMute);
+  }
+  /**
+   * Returns true if only military planes are found (no commercial in sky or airport)
+   */
+  get onlyMilitary(): boolean {
+    return (
+      this.filteredSkyPlaneLog.concat(this.filteredAirportPlaneLog).length >
+        0 &&
+      this.filteredSkyPlaneLog
+        .concat(this.filteredAirportPlaneLog)
+        .every((p) => p.isMilitary)
+    );
   }
 
   /**
@@ -877,12 +887,10 @@ export class ResultsOverlayComponent
       ? 'Show commercial'
       : 'Hide commercial';
   }
-
-  /** Get commercial mute toggle tooltip text */
-  get commercialMuteTooltip(): string {
-    return this.commercialMute
-      ? 'Unmute commercial alert'
-      : 'Mute military alert';
+  /** Get military mute toggle tooltip text */ get militaryMuteTooltip(): string {
+    return this.militaryMute
+      ? 'Unmute military alerts'
+      : 'Mute military alerts';
   }
 
   /** Get shuffle mode toggle tooltip text */

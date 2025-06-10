@@ -22,13 +22,13 @@
         (click)="onToggleCommercialFilter()"
       ></app-button>
       <app-button
-        [icon]="commercialMute ? 'volume_off' : 'volume_up'"
+        [icon]="militaryMute ? 'volume_off' : 'volume_up'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="commercialMuteTooltip"
-        [appTooltip]="commercialMuteTooltip"
+        [ariaLabel]="militaryMuteTooltip"
+        [appTooltip]="militaryMuteTooltip"
         tooltipPosition="left"
-        (click)="onToggleCommercialMute()"
+        (click)="onToggleMilitaryMute()"
       ></app-button>
       <!-- Shuffle follow mode toggle -->
       <app-button

@@ -39,6 +39,8 @@ import {
   DimSegment,
 } from './dim-overlay/dim-overlay.component';
 import { AircraftContainerComponent } from './aircraft-container/aircraft-container.component';
+import { SwallowAnimationComponent } from './swallow-animation/swallow-animation.component';
+import { StormPressureService } from '../../services/storm-pressure.service';
 
 export interface WindowViewPlane {
   x: number; // 0-100, left-right position (azimuth)
@@ -116,6 +118,7 @@ export interface WindowViewPlane {
     MarkerLinesComponent,
     DimOverlayComponent,
     AircraftContainerComponent,
+    SwallowAnimationComponent,
   ],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
@@ -150,9 +153,13 @@ export class WindowViewOverlayComponent
     ''; /** Individual sky color components for template access */
   public skyBottomColor: string = 'rgb(135, 206, 235)'; // Default sky blue
   public skyTopColor: string = 'rgb(25, 25, 112)'; // Default midnight blue
-
   /** Prevent multiple simultaneous weather updates */
   private isUpdatingWeather: boolean = false;
+
+  // Storm pressure monitoring for swallow animations
+  public stormDropIntensity: number = 0;
+  public isStormApproaching: boolean = false;
+  private stormPressureSubscription?: Subscription;
   /** Last published sky colors to prevent redundant updates */
   private lastPublishedSkyColors: {
     bottomColor: string;
@@ -200,7 +207,6 @@ export class WindowViewOverlayComponent
   public streetsideEndX?: number; /** Segments to dim outside marker spans */
   public dimSegments: DimSegment[] = [];
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
-
   constructor(
     private celestial: CelestialService,
     public planeStyle: PlaneStyleService,
@@ -211,7 +217,8 @@ export class WindowViewOverlayComponent
     private atmosphericSky: AtmosphericSkyService,
     private rainService: RainService,
     private skyColorSync: SkyColorSyncService,
-    private scanService: ScanService
+    private scanService: ScanService,
+    private stormPressureService: StormPressureService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -224,12 +231,22 @@ export class WindowViewOverlayComponent
         this.updateAnimationTiming();
       }
     );
-  }
 
+    // Subscribe to storm pressure analysis for swallow animations
+    this.stormPressureSubscription = this.stormPressureService
+      .getStormAnalysis()
+      .subscribe((analysis) => {
+        this.stormDropIntensity = analysis.dropIntensity;
+        this.isStormApproaching = analysis.isStormApproaching;
+      });
+  }
   ngOnDestroy(): void {
     // Clean up subscription to prevent memory leaks
     if (this.scanIntervalSubscription) {
       this.scanIntervalSubscription.unsubscribe();
+    }
+    if (this.stormPressureSubscription) {
+      this.stormPressureSubscription.unsubscribe();
     }
   }
 
@@ -390,9 +407,7 @@ export class WindowViewOverlayComponent
       const humidity = weatherData.main?.humidity || 50; // percentage
       const pressure = weatherData.main?.pressure || 1013.25; // hPa
       const temperature = weatherData.main?.temp || 288.15; // Kelvin
-      const visibility = weatherData.visibility || 10000; // meters
-
-      // Update rain service with comprehensive weather conditions
+      const visibility = weatherData.visibility || 10000; // meters      // Update rain service with comprehensive weather conditions
       this.rainService.updateWeatherConditions(
         condition,
         description,
@@ -403,9 +418,30 @@ export class WindowViewOverlayComponent
         temperature,
         visibility
       );
+
+      // Update storm pressure service for swallow animation triggers
+      this.stormPressureService.updatePressure(
+        pressure,
+        temperature,
+        humidity,
+        windSpeed
+      );
     } else {
       // Stop rain if weather conditions don't indicate precipitation
       this.rainService.stopRain();
+
+      // Still update storm pressure service even when not raining
+      const humidity = weatherData.main?.humidity || 50; // percentage
+      const pressure = weatherData.main?.pressure || 1013.25; // hPa
+      const temperature = weatherData.main?.temp || 288.15; // Kelvin
+      const windSpeed = weatherData.wind?.speed || 0; // m/s
+
+      this.stormPressureService.updatePressure(
+        pressure,
+        temperature,
+        humidity,
+        windSpeed
+      );
     }
   }
   /** Compute and set sky background gradient using atmospheric scattering calculations */

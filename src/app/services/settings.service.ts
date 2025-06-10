@@ -21,8 +21,8 @@ export class SettingsService {
   private _seenCollapsed: boolean = false;
   private inputOverlayCollapsedKey = 'inputOverlayCollapsed';
   private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
-  private commercialMuteKey = 'commercialMute';
-  private _commercialMute: boolean = false;
+  private militaryMuteKey = 'militaryMute';
+  private _militaryMute: boolean = false;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = true;
   // Key and backing store for showing view axes (cones)
@@ -91,14 +91,13 @@ export class SettingsService {
   setResultsOverlayCollapsed(value: boolean): void {
     localStorage.setItem(this.resultsOverlayCollapsedKey, value.toString());
   }
-
-  /** Whether commercial alerts are muted */
-  get commercialMute(): boolean {
-    return this._commercialMute;
+  /** Whether military alerts are muted */
+  get militaryMute(): boolean {
+    return this._militaryMute;
   }
-  setCommercialMute(value: boolean): void {
-    this._commercialMute = value;
-    localStorage.setItem(this.commercialMuteKey, value.toString());
+  setMilitaryMute(value: boolean): void {
+    this._militaryMute = value;
+    localStorage.setItem(this.militaryMuteKey, value.toString());
   }
 
   // Event emitted when exclude discount setting changes
@@ -353,11 +352,10 @@ export class SettingsService {
     const seenStr = localStorage.getItem(this.seenCollapsedKey);
     if (seenStr !== null) {
       this._seenCollapsed = seenStr === 'true';
-    }
-    // Load commercial mute preference
-    const muteStr = localStorage.getItem(this.commercialMuteKey);
+    } // Load military mute preference
+    const muteStr = localStorage.getItem(this.militaryMuteKey);
     if (muteStr !== null) {
-      this._commercialMute = muteStr === 'true';
+      this._militaryMute = muteStr === 'true';
     }
     // Load show/hide date-time overlay preference
     const dtStr = localStorage.getItem(this.dateTimeOverlayKey);
