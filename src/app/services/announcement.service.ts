@@ -3,6 +3,7 @@ import { TtsService } from './tts.service';
 import { CountryService } from './country.service';
 import { AircraftCountryService } from './aircraft-country.service';
 import { LanguageSwitchService } from './language-switch.service';
+import { SettingsService } from './settings.service';
 import { PlaneLogEntry } from '../components/results-overlay/results-overlay.component';
 
 export interface AnnouncementContext {
@@ -28,7 +29,8 @@ export class AnnouncementService {
     private tts: TtsService,
     private countryService: CountryService,
     private aircraftCountryService: AircraftCountryService,
-    private langSwitch: LanguageSwitchService
+    private langSwitch: LanguageSwitchService,
+    private settings: SettingsService
   ) {}
   /**
    * Handle announcements for new aircraft based on priority:
@@ -54,14 +56,20 @@ export class AnnouncementService {
     this.announcedAircraft.add(plane.icao);
 
     // Use a single TTS key per aircraft to prevent overlapping announcements
-    const baseKey = `aircraft-${plane.icao}`;
-
-    // Special model announcements (highest priority - Hercules is rarer)
+    const baseKey = `aircraft-${plane.icao}`; // Special model announcements (highest priority - Hercules is rarer)
     if (this.isSpecialModel(plane)) {
+      // Check if military mute is enabled for special military aircraft
+      if (plane.isMilitary && this.settings.militaryMute) {
+        return; // Skip announcement if military mute is enabled
+      }
       this.announceSpecialModel(plane, baseKey);
       return; // Exit early to prevent multiple announcements
     } // Military aircraft announcements (medium priority) - queue by country to prioritize operators
     else if (plane.isMilitary) {
+      // Check if military mute is enabled
+      if (this.settings.militaryMute) {
+        return; // Skip announcement if military mute is enabled
+      }
       this.queueMilitaryAircraft(plane, baseKey);
       return; // Exit early to prevent multiple announcements
     }
@@ -245,9 +253,7 @@ export class AnnouncementService {
         this.tts.speakOnce(baseKey, text, navigator.language);
         return;
       }
-    }
-
-    // PRIORITY 2: Build announcement based on available information
+    } // PRIORITY 2: Build announcement based on available information
     let announcement = '';
     if (operator && model) {
       announcement = `${operator} ${model}`;
@@ -259,8 +265,8 @@ export class AnnouncementService {
       announcement = 'Special aircraft';
     }
 
-    // Use a unique key per plane to avoid repeating the same plane
-    this.tts.speakOnce(baseKey, announcement, navigator.language);
+    // Use language switching for special aircraft announcements to handle terms like "Luftwaffe"
+    this.langSwitch.speakWithOverrides(baseKey, announcement);
   }
 
   /**
@@ -470,21 +476,9 @@ export class AnnouncementService {
   }
   /**
    * Process queued military aircraft from a country, creating one natural announcement per country
-   */
-  private processMilitaryQueue(countryKey: string): void {
+   */ private processMilitaryQueue(countryKey: string): void {
     const aircraft = this.militaryQueue.get(countryKey) || [];
     if (aircraft.length === 0) return;
-
-    console.log(
-      `PROCESSING MILITARY QUEUE for ${countryKey}: ${aircraft.length} aircraft`
-    );
-    aircraft.forEach((plane, i) => {
-      console.log(
-        `   ${i + 1}. ${plane.icao} - Operator: "${
-          plane.operator || 'Unknown'
-        }" - Model: "${plane.model || 'Unknown'}"`
-      );
-    });
 
     // Mark country as announced to prevent repetition
     if (countryKey !== 'Unknown') {
@@ -502,7 +496,6 @@ export class AnnouncementService {
       aircraft[0].icao
     }`;
 
-    console.log(`FINAL ANNOUNCEMENT: "${announcement}"`);
     this.langSwitch.speakWithOverrides(baseKey, announcement);
 
     // Clean up

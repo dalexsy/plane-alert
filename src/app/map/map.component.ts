@@ -1140,16 +1140,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   reverseGeocode(lat: number, lon: number): Promise<string> {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
-  // Helper to check if alert should be muted
-  shouldMuteMilitaryAlert(newUnfiltered: PlaneModel[]): boolean {
-    // If mute is enabled, only military planes are present, and all new planes are military, mute the alert
-    if (!this.resultsOverlayComponent) return false;
-    if (!this.resultsOverlayComponent.militaryMute) return false;
-    if (!this.resultsOverlayComponent.onlyMilitary) return false;
-    // If all new planes are military, mute
-    return newUnfiltered.every((p) => this.aircraftDb.lookup(p.icao)?.mil);
-  }
-
   findPlanes(): void {
     const previousPlaneKeys = new Set(this.planeLog.keys());
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
@@ -1212,8 +1202,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.aircraftDb.lookup(p.icao)?.mil ||
             this.specialListService.isSpecial(p.icao)
         ); // Play appropriate alert sound: Hercules and A400 priority
-        // Check if military alerts should be muted
-        if (!this.shouldMuteMilitaryAlert(newUnfiltered)) {
+        // Simple check: if military mute is enabled, don't play ANY alert sounds
+        if (!this.settings.militaryMute) {
           if (hasHercules) {
             playHerculesAlert();
           } else if (hasA400) {

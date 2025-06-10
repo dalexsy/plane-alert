@@ -18,7 +18,6 @@ export class TtsService {
     'it-IT', // Italian
     'nl-NL', // Dutch
   ];
-
   constructor() {
     this.initializeVoices();
 
@@ -33,12 +32,14 @@ export class TtsService {
     if (typeof window !== 'undefined') {
       (window as any).testTTS = () => this.test();
       (window as any).clearTTSCache = () => this.clearSpokenKeys();
+      (window as any).testGermanTTS = () => this.testGerman();
+      (window as any).listTTSVoices = () => this.listAvailableVoices();
     }
   }
+
   /**
    * Initialize only the voices we actually need
-   */
-  private initializeVoices(): void {
+   */ private initializeVoices(): void {
     const allVoices = window.speechSynthesis.getVoices();
     if (allVoices.length === 0) return;
 
@@ -68,6 +69,8 @@ export class TtsService {
         foundVoices++;
       }
     }
+
+    this.voicesInitialized = true;
   }
   /** Speak the given text via the browser's SpeechSynthesis API with queueing */
   speak(text: string, lang?: string): void {
@@ -77,8 +80,11 @@ export class TtsService {
     }
 
     this.speakImmediately(text, lang);
-  } /** Speak immediately without queueing (for urgent announcements) */
-  private speakImmediately(text: string, lang?: string): void {
+  }
+  /** Speak immediately without queueing (for urgent announcements) */ private speakImmediately(
+    text: string,
+    lang?: string
+  ): void {
     // Cancel any ongoing speech to prevent queue issues
     window.speechSynthesis.cancel();
     this.isCurrentlySpeaking = true;
@@ -93,6 +99,7 @@ export class TtsService {
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
+
       if (lang) {
         utterance.lang = lang;
 
@@ -105,6 +112,7 @@ export class TtsService {
             v.lang.toLowerCase().startsWith(langPrefix)
           );
         }
+
         if (voice) {
           utterance.voice = voice;
         }
@@ -179,14 +187,35 @@ export class TtsService {
     processed = this.improveCallsignPronunciation(processed);
 
     return processed;
-  }
-  /** Improve pronunciation of callsigns by detecting meaningful words */
+  } /** Improve pronunciation of callsigns by detecting meaningful words */
   private improveCallsignPronunciation(text: string): string {
     // Convert long uppercase letter sequences to word pronunciation
     // This handles callsigns like HERKY03 -> Herky03, VALOR21 -> Valor21
     return text.replace(/\b[A-Z]{4,}\b/g, (match) => {
       // Convert to Title Case (first letter uppercase, rest lowercase)
       return match.charAt(0) + match.slice(1).toLowerCase();
+    });
+  }
+  /** Test German TTS specifically with Luftwaffe */
+  testGerman(): void {
+    this.speak('Luftwaffe', 'de-DE');
+  }
+
+  /** List all available voices for debugging */
+  listAvailableVoices(): void {
+    const allVoices = window.speechSynthesis.getVoices();
+    console.log('All available TTS voices:');
+    allVoices.forEach((voice, index) => {
+      console.log(
+        `${index + 1}. ${voice.name} (${voice.lang}) - Local: ${
+          voice.localService
+        }`
+      );
+    });
+
+    console.log('\nCurrently cached voices:');
+    this.usedVoices.forEach((voice, lang) => {
+      console.log(`${lang}: ${voice.name} (${voice.lang})`);
     });
   }
 }
