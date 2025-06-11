@@ -1,0 +1,107 @@
+<!-- Celestial objects container (behind everything else) -->
+<ng-container *ngFor="let plane of celestialObjects; trackBy: trackByPlaneIcao">
+  <ng-container *ngIf="plane.isCelestial">
+    <div
+      class="celestial-object"
+      [style.left]="plane.x + '%'"
+      [style.bottom]="'calc(' + plane.y + '% - .5rem)'"
+    >
+      <span
+        class="celestial-wrapper"
+        [style.transform]="'scale(1)'"
+        [style.transformOrigin]="'center center'"
+      >
+        <!-- Sun: simple filled circle -->
+        <span
+          *ngIf="plane.celestialBodyType === 'sun'"
+          style="position: relative; display: inline-block"
+        >
+          <!-- Sun circle -->
+          <span
+            class="celestial-circle"
+            [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+            aria-label="Sun marker"
+          ></span>
+        </span>
+        <!-- Moon: actual phase representation -->
+        <span
+          *ngIf="plane.celestialBodyType === 'moon'"
+          style="display: inline-block; position: relative"
+        >
+          <ng-container
+            *ngIf="(plane.moonFraction ?? 0) >= 0.9; else maskedMoon"
+          >
+            <span
+              class="celestial-circle moon-full"
+              [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+              aria-label="Full Moon"
+            ></span>
+          </ng-container>
+          <ng-template #maskedMoon>
+            <svg
+              class="moon-svg"
+              [ngClass]="{ 'below-horizon': plane.belowHorizon }"
+              width="22"
+              height="22"
+              viewBox="0 0 22 22"
+              aria-label="Moon marker"
+              [style.transform]="'rotateZ(' + (plane.moonAngle || 0) + 'deg)'"
+              [style.transformOrigin]="'center center'"
+              style="z-index: 1"
+            >
+              <defs>
+                <mask [attr.id]="'moon-phase-mask-' + plane.icao">
+                  <rect width="22" height="22" fill="white" />
+                  <circle
+                    [attr.cx]="11 - (2 * (plane.moonFraction || 0) - 1) * 10"
+                    cy="11"
+                    r="10"
+                    fill="black"
+                  />
+                </mask>
+                <!-- Inverted mask for dark side -->
+                <mask [attr.id]="'moon-phase-mask-dark-' + plane.icao">
+                  <rect width="22" height="22" fill="black" />
+                  <circle
+                    [attr.cx]="11 - (2 * (plane.moonFraction || 0) - 1) * 10"
+                    cy="11"
+                    r="10"
+                    fill="white"
+                  />
+                </mask>
+              </defs>
+              <!-- Outer glow/halo -->
+              <circle class="moon-glow" cx="11" cy="11" r="12" />
+              <!-- Lit part using mask - draw this FIRST -->
+              <circle
+                class="moon-lit"
+                cx="11"
+                cy="11"
+                r="10"
+                stroke-width="1"
+                [attr.mask]="'url(#moon-phase-mask-' + plane.icao + ')'"
+              />
+              <!-- Main dark part (shadow) - draw OVER the lit part -->
+              <circle
+                class="moon-dark"
+                cx="11"
+                cy="11"
+                r="10"
+                [attr.mask]="'url(#moon-phase-mask-dark-' + plane.icao + ')'"
+              />
+              <!-- Subtle rim light -->
+              <circle
+                class="moon-rim"
+                cx="11"
+                cy="11"
+                r="10"
+                fill="none"
+                stroke-width="0.5"
+              />
+            </svg>
+          </ng-template>
+        </span>
+      </span>
+    </div>
+  </ng-container>
+</ng-container>

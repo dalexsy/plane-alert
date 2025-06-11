@@ -60,11 +60,48 @@ describe('OperatorCallSignService', () => {
     expect(mappings['ASL']).toBe('GetJet Airlines');
     expect(Object.keys(mappings).length).toBeGreaterThan(10);
   });
-
   it('should add and remove mappings correctly', () => {
     service.addMapping('TST', 'Test Airline');
     expect(service.getOperator('TST001')).toBe('Test Airline');
     service.removeMapping('TST');
     expect(service.getOperator('TST001')).toBeUndefined();
+  });
+
+  it('should log unknown call signs', () => {
+    const consoleSpy = spyOn(console, 'log');
+
+    // Test with unknown call sign
+    expect(service.getOperatorWithLogging('XYZ123')).toBeUndefined();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[Unknown Call Sign] XYZ - Full callsign: XYZ123'
+    );
+
+    // Should only log once per prefix
+    service.getOperatorWithLogging('XYZ456');
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+
+    // Test with known call sign - should not log
+    service.getOperatorWithLogging('CTN123');
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should track unknown call signs', () => {
+    service.clearUnknownCallSigns();
+    expect(service.getUnknownCallSigns()).toEqual([]);
+
+    service.getOperatorWithLogging('ABC123');
+    service.getOperatorWithLogging('DEF456');
+    service.getOperatorWithLogging('ABC789'); // Same prefix, shouldn't duplicate
+
+    const unknowns = service.getUnknownCallSigns();
+    expect(unknowns).toEqual(['ABC', 'DEF']);
+  });
+
+  it('should clear unknown call signs', () => {
+    service.getOperatorWithLogging('GHI123');
+    expect(service.getUnknownCallSigns().length).toBeGreaterThan(0);
+
+    service.clearUnknownCallSigns();
+    expect(service.getUnknownCallSigns()).toEqual([]);
   });
 });

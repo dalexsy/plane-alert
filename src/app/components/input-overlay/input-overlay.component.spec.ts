@@ -8,9 +8,8 @@ describe('InputOverlayComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [InputOverlayComponent]
-    })
-    .compileComponents();
+      imports: [InputOverlayComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(InputOverlayComponent);
     component = fixture.componentInstance;

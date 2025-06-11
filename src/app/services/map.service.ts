@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { ensureStripedPattern } from '../utils/svg-utils';
+import { SkyOverlayService } from './sky-overlay.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapService {
@@ -11,6 +12,8 @@ export class MapService {
   private mainRadiusCircle?: L.Circle;
   private airportCircles: Map<number, L.Circle> = new Map();
   private radiusLayerLocked: boolean = false;
+
+  constructor(private skyOverlayService: SkyOverlayService) {}
 
   initializeMap(
     mapId: string,
@@ -41,6 +44,8 @@ export class MapService {
     const svg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
+    // disable pointer events on all vector overlays to speed up input handling
+    svg.style.pointerEvents = 'none';
     ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
     L.tileLayer(
       'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
@@ -74,11 +79,11 @@ export class MapService {
       color: 'white',
       weight: 2,
       className: 'main-radius-circle',
+      interactive: false, // disable pointer events for performance
       fill: true,
       fillColor: 'rgba(0, 0, 0, 1)',
       fillOpacity: 0.3,
-    }).addTo(this.map);
-    // Bring to back so other overlays render above
+    }).addTo(this.map);    // Bring to back so other overlays render above
     this.mainRadiusCircle.bringToBack();
     // Insert the circle's group at the bottom of overlayPane SVG to ensure it is behind all other paths
     try {
@@ -92,8 +97,11 @@ export class MapService {
         // debug: main radius group prepended
       }
     } catch (e) {
-      console.warn('[MapService] failed to prepend main radius group', e);
+      // Failed to prepend main radius group
     }
+
+    // Ensure sky overlay stays behind radius circles
+    this.skyOverlayService.ensureProperLayerOrder();
 
     // Optional: re-draw on view changes to stay centered
     this.map.on('moveend viewreset zoomend', () => {
@@ -125,14 +133,19 @@ export class MapService {
       fill: true,
       fillColor: 'url(#airportStripedPattern)',
       fillOpacity: 0.8,
-      interactive: false,
-    }).addTo(this.map);
+      interactive: false,    }).addTo(this.map);
     // ensure pattern
     const svg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
     ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
     this.airportCircles.set(id, circle);
+    
+    // Ensure sky overlay stays behind airport circles
+    this.skyOverlayService.ensureProperLayerOrder();
+    
+    // Ensure sky overlay stays behind airport circles
+    this.skyOverlayService.ensureProperLayerOrder();
   }
 
   removeAirportCircle(id: number): void {

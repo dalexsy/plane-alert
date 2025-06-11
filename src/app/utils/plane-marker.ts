@@ -3,6 +3,42 @@ import * as L from 'leaflet';
 import { getIconPathForModel } from './plane-icons';
 import SunCalc from 'suncalc';
 
+// Smooth lerping animation function
+function smoothLerpToPosition(
+  marker: L.Marker,
+  startLatLng: L.LatLng,
+  endLatLng: L.LatLng,
+  duration: number
+): void {
+  const startTime = Date.now();
+  const startLat = startLatLng.lat;
+  const startLng = startLatLng.lng;
+  const endLat = endLatLng.lat;
+  const endLng = endLatLng.lng; // Cubic-bezier easing function to match CSS transitions: cubic-bezier(0.25, 0.0, 0.25, 1.0)
+  // This creates smooth acceleration and deceleration for natural movement
+  const cubicBezier = (t: number): number => {
+    // P0 = (0, 0), P1 = (0.25, 0), P2 = (0.25, 1), P3 = (1, 1)
+    // Simplified cubic-bezier calculation for the specified control points
+    return t * t * (3.0 - 2.0 * t); // Smoothstep function that approximates the cubic-bezier
+  };
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Linear interpolation for constant-speed movement
+    const currentLat = startLat + (endLat - startLat) * progress;
+    const currentLng = startLng + (endLng - startLng) * progress;
+    marker.setLatLng([currentLat, currentLng]);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  // Start the animation
+  requestAnimationFrame(animate);
+}
+
 // --- SHADOW CALCULATION ---
 // Instead of a fixed offset, calculate the shadow direction based on the sun's azimuth and the plane's rotation.
 // The shadow should be cast in the direction opposite to the sun, relative to the plane's heading.
@@ -23,26 +59,24 @@ export function createOrUpdatePlaneMarker(
   model: string = '',
   isCustomHelicopter: boolean = false,
   isSpecial: boolean = false,
+  isUnknown: boolean = false,
   altitude: number | null = null,
-  followed: boolean = false
+  followed: boolean = false,
+  scanInterval: number = 10, // Scan interval in seconds for smooth transition timing
+  icao: string = '' // ICAO identifier for debugging
 ): { marker: L.Marker; isNewMarker: boolean } {
-  // Check if this is a helicopter based on model name or our custom list
-  const modelLower = model.toLowerCase();
-  const isCopter =
-    isCustomHelicopter ||
-    modelLower.includes('copter') ||
-    modelLower.includes('helicopter') ||
-    modelLower.includes('heli') ||
-    modelLower.includes('chopper');
+  // Use centralized helicopter identification via isCustomHelicopter parameter
+  const isCopter = isCustomHelicopter;
 
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter
     ? { path: '', iconType: 'copter' as const }
     : getIconPathForModel(model);
-  // Only render SVG for non-helicopters
-  const iconInner = !isCopter
-    ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
-    : '';
+  // Only render inline SVG for non-helicopters that are not unknown devices
+  const iconInner =
+    !isCopter && !isUnknown
+      ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
+      : '';
 
   // --- Accurate shadow calculation ---
   // Get sun position at the marker's location
@@ -65,22 +99,24 @@ export function createOrUpdatePlaneMarker(
   // Only apply shadow for non-grounded planes
   const shadowStyle =
     !isGrounded && length > 0
-      ? `filter: drop-shadow(${shadowDx.toFixed(1)}px ${shadowDy.toFixed(1)}px 1px rgba(0,0,1,0.6));`
+      ? `filter: drop-shadow(${shadowDx.toFixed(1)}px ${shadowDy.toFixed(
+          1
+        )}px 1px rgba(0,0,1,0.6));`
       : '';
 
   // Build class list: non-helicopters get svg-plane to hide pseudo-icon
   // Only apply 'new-and-grounded' when plane is both new and grounded; no 'new-plane' CSS class
-  const classString = `plane-marker ${!isCopter ? 'svg-plane ' : ''}${
-    !isCopter ? iconData.iconType + ' ' : ''
-  }${
+  const classString = `plane-marker ${
+    !isCopter && !isUnknown ? 'svg-plane ' : ''
+  }${!isCopter && !isUnknown ? iconData.iconType + ' ' : ''}${
     isNew && isGrounded
       ? 'new-and-grounded'
       : isGrounded
       ? 'grounded-plane'
       : ''
   } ${isMilitary ? 'military-plane' : ''} ${isCopter ? 'copter-plane' : ''}${
-    followed ? ' followed-plane' : ''
-  }`;
+    isUnknown ? ' unknown-plane' : ''
+  }${followed ? ' followed-plane' : ''}`;
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation
   }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
@@ -119,60 +155,42 @@ export function createOrUpdatePlaneMarker(
       tooltipEl.style.zIndex = tooltipZIndex;
     }
   };
-
   if (oldMarker) {
-    oldMarker.setLatLng([lat, lon]);
+    // Get the current position for smooth interpolation
+    const currentLatLng = oldMarker.getLatLng();
+    const newLatLng = L.latLng(lat, lon);
+
+    // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
+    // Make this more sensitive to catch smaller movements
+    const latDiff = Math.abs(currentLatLng.lat - lat);
+    const lngDiff = Math.abs(currentLatLng.lng - lon);
+    const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
+    if (hasPositionChanged) {
+      // Calculate animation duration: use 95% of scan interval for seamless movement
+      // This matches the window view animation timing to prevent delays/pauses
+      const animationDuration = Math.max(2, scanInterval * 0.95) * 1000; // Convert to milliseconds
+
+      // Perform smooth lerping animation for all planes with position changes
+      smoothLerpToPosition(
+        oldMarker,
+        currentLatLng,
+        newLatLng,
+        animationDuration
+      );
+    } else {
+      // For planes that haven't moved significantly, update position immediately
+      oldMarker.setLatLng([lat, lon]);
+    }
     oldMarker.setIcon(icon);
 
-    // Recreate marker if pane needs to change when follow status toggles
-    const oldPane = (oldMarker.options as any).pane;
-    const desiredPane = followed ? 'followedMarkerPane' : undefined;
-    if (oldPane !== desiredPane) {
-      const wasOnMap = map.hasLayer(oldMarker);
-      oldMarker.remove();
-      const newMarker = L.marker(
-        [lat, lon],
-        buildMarkerOptions(icon, followed)
-      );
-      newMarker.bindTooltip(tooltip, tooltipOptions);
-      if (wasOnMap) newMarker.addTo(map);
-      // Event handlers will be re-attached
-      const bring = () => manageZIndex(newMarker, true);
-      const send = () => manageZIndex(newMarker, false);
-      newMarker.on('mouseover', bring);
-      newMarker.on('mouseout', send);
-      newMarker.on('tooltipopen', () => {
-        const tel = newMarker.getTooltip()?.getElement();
-        if (tel) {
-          tel.addEventListener('mouseenter', bring);
-          tel.addEventListener('mouseleave', send);
-          tel.addEventListener('click', (e: MouseEvent) => {
-            // Ignore clicks on the callsign (handled by tooltip onclick)
-            if ((e.target as HTMLElement).closest('.callsign-text')) {
-              return;
-            }
-            const w = (e.target as HTMLElement).closest(
-              '.tooltip-follow-wrapper'
-            );
-            if (!w) return;
-            e.stopPropagation();
-            e.preventDefault();
-            const icao = w.getAttribute('data-icao');
-            if (icao)
-              window.dispatchEvent(
-                new CustomEvent('plane-tooltip-follow', { detail: { icao } })
-              );
-          });
-        }
-      });
-      newMarker.on('tooltipclose', () => {
-        const tel = newMarker.getTooltip()?.getElement();
-        if (tel) {
-          tel.removeEventListener('mouseenter', bring);
-          tel.removeEventListener('mouseleave', send);
-        }
-      });
-      return { marker: newMarker, isNewMarker: true };
+    // Instead of recreating marker when pane changes, just update the z-index
+    // This prevents interrupting ongoing animations
+    if (followed) {
+      // Bring followed planes to front
+      oldMarker.setZIndexOffset(10000);
+    } else {
+      // Reset z-index for non-followed planes
+      oldMarker.setZIndexOffset(0);
     }
 
     // Remove old tooltip and create a new one with updated classes/options

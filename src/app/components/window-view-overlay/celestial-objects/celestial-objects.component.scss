@@ -1,0 +1,137 @@
+// =============================================================================
+// Celestial Objects Component - Sun/Moon Styling
+// =============================================================================
+
+$celestial-icon-size: 22px;
+$transition-duration: 0.3s;
+$celestial-animation-duration: 1.2s;
+
+// Animation optimization for seamless movement
+$animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
+
+:host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0.5; // Above cloud background, below aircraft
+  pointer-events: none;
+}
+
+.celestial-object {
+  position: absolute;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  pointer-events: none; // Smooth celestial movement animation with optimized easing
+  transition: none !important;
+  will-change: transform;
+
+  // Performance optimizations for smooth animations
+  backface-visibility: hidden;
+  transform: translateZ(0); // Force hardware acceleration
+}
+
+.celestial-circle {
+  width: $celestial-icon-size;
+  height: $celestial-icon-size;
+  border-radius: 50%;
+  display: inline-block;
+  margin-bottom: 2px;
+  position: relative;
+  z-index: 2; // Above the gradient
+
+  // Sun styling
+  background: #ffe066;
+  border: 2px solid #fff59d;
+  box-shadow: 0 0 12px 4px rgba(255, 224, 102, 0.6);
+
+  transition: filter $transition-duration, opacity $transition-duration,
+    border $transition-duration, background $transition-duration,
+    box-shadow $transition-duration;
+
+  &.below-horizon {
+    background: rgba(255, 224, 102, 0.2);
+    border: 2px dashed #fff59d;
+    box-shadow: none;
+    filter: grayscale(0.7) brightness(0.7);
+    opacity: 0.5;
+  }
+
+  // Full-moon fallback styling
+  &.moon-full {
+    background: #d4d4d4; // light grey moon surface
+    border: 1px solid #f0f0f0; // subtle rim
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    width: $celestial-icon-size;
+    height: $celestial-icon-size;
+    border-radius: 50%;
+  }
+}
+
+.moon-svg {
+  display: inline-block;
+  margin-bottom: 2px;
+  transition: filter $transition-duration, opacity $transition-duration; // Default nighttime styling
+  filter: drop-shadow(0 0 4px rgba(220, 220, 220, 0.2))
+    drop-shadow(0 0 2px rgba(220, 220, 220, 0.3));
+
+  &.below-horizon {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 2px rgba(220, 220, 220, 0.1))
+      drop-shadow(0 0 1px rgba(220, 220, 220, 0.15));
+  }
+
+  // Moon component styling - nighttime colors by default
+  .moon-glow {
+    fill: rgba(220, 220, 220, 0.08);
+  }
+  .moon-lit {
+    fill: #d4d4d4;
+    stroke: rgba(220, 220, 220, 0.4);
+  }
+
+  .moon-dark {
+    fill: #000; // pure black for nighttime dark side
+  }
+
+  .moon-rim {
+    stroke: rgba(220, 220, 220, 0.3);
+  }
+}
+
+// =============================================================================
+// Daytime Moon Styling Overrides
+// =============================================================================
+
+:host-context(.daytime) .moon-svg {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+
+  &.below-horizon {
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))
+      drop-shadow(0 0 2px rgba(255, 255, 255, 0.4));
+  }
+
+  .moon-glow {
+    fill: rgba(255, 255, 255, 0.15);
+  }
+  .moon-lit {
+    fill: #c8dcff;
+    stroke: rgba(255, 255, 255, 0.9);
+  }
+
+  .moon-dark {
+    fill: rgba(
+      135,
+      206,
+      250,
+      0.4
+    ); // Light sky blue during daytime, more subtle
+  }
+
+  .moon-rim {
+    stroke: rgba(255, 255, 255, 0.8);
+  }
+}

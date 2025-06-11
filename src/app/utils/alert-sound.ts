@@ -1,30 +1,34 @@
 export function playAlertSound(): void {
-  const shiftSemitones = Math.floor(Math.random() * 7) - 3;
-  const multiplier = Math.pow(3, shiftSemitones / 12);
+  // Randomly choose between the two alert sounds
+  const alertSounds = [
+    'assets/alerts/precious_little_life_forms.mp3',
+    'assets/alerts/tiny_little_life_forms.mp3',
+  ];
+  const randomSound =
+    alertSounds[Math.floor(Math.random() * alertSounds.length)];
+
+  // Use Web Audio API for volume amplification beyond 100%
   const audioCtx = new (window.AudioContext ||
     (window as any).webkitAudioContext)();
-  const now = audioCtx.currentTime;
-  const sequence = [
-    { freq: 261.63, duration: 0.3 },
-    { freq: 261.63, duration: 0.3 },
-    { freq: 261.63, duration: 0.3 },
-    { freq: 261.63, duration: 0.3 },
-    { freq: 261.63, duration: 0.3 },
-    { freq: 783.99, duration: 1.0 },
-    { freq: 880, duration: 1.0 },
-  ];
+  const audio = new Audio(randomSound);
+  const source = audioCtx.createMediaElementSource(audio);
+  const gainNode = audioCtx.createGain();
 
-  const pauseDuration = 0.1;
-  let time = now;
-  sequence.forEach((note) => {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.value = note.freq * multiplier;
-    gain.gain.setValueAtTime(0.1, time);
-    osc.start(time);
-    osc.stop(time + note.duration);
-    time += note.duration + pauseDuration;
-  });
+  // Amplify beyond 100% - adjust this value as needed (2.0 = 200% volume)
+  gainNode.gain.value = 5;
+
+  source.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  audio.play();
+}
+
+export function playHerculesAlert(): void {
+  const audio = new Audio('assets/alerts/hercules.mp3');
+  audio.play();
+}
+
+export function playA400Alert(): void {
+  const audio = new Audio('assets/alerts/iago.mp3');
+  audio.play();
 }

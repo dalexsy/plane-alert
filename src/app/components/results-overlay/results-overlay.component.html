@@ -7,37 +7,28 @@
         [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          collapsed ? 'Expand results overlay' : 'Collapse results overlay'
-        "
-        [title]="collapsed ? 'Expand results' : 'Collapse results'"
+        [ariaLabel]="collapseTooltip"
+        [appTooltip]="collapseTooltip"
+        tooltipPosition="left"
         (click)="toggleCollapsed()"
       ></app-button>
       <app-button
         [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          settings.excludeDiscount
-            ? 'Show commercial planes'
-            : 'Hide commercial planes'
-        "
-        [title]="
-          settings.excludeDiscount ? 'Show commercial' : 'Hide commercial'
-        "
+        [ariaLabel]="commercialFilterTooltip"
+        [appTooltip]="commercialFilterTooltip"
+        tooltipPosition="left"
         (click)="onToggleCommercialFilter()"
       ></app-button>
       <app-button
-        [icon]="commercialMute ? 'volume_off' : 'volume_up'"
+        [icon]="militaryMute ? 'volume_off' : 'volume_up'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
-        "
-        [title]="
-          commercialMute ? 'Unmute commercial alert' : 'Mute commercial alert'
-        "
-        (click)="onToggleCommercialMute()"
+        [ariaLabel]="militaryMuteTooltip"
+        [appTooltip]="militaryMuteTooltip"
+        tooltipPosition="left"
+        (click)="onToggleMilitaryMute()"
       ></app-button>
       <!-- Shuffle follow mode toggle -->
       <app-button
@@ -45,35 +36,51 @@
         [icon]="shuffleMode ? 'pause' : 'shuffle'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="
-          shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'
-        "
-        [title]="shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode'"
+        [ariaLabel]="shuffleTooltip"
+        [appTooltip]="shuffleTooltip"
+        tooltipPosition="left"
         [ngClass]="{ active: shuffleMode }"
         (click)="toggleShuffle()"
       ></app-button>
-      <!-- Military priority toggle -->
+      <!-- Nearest follow toggle -->
+      <app-button
+        class="nearest-toggle"
+        [icon]="nearestMode ? 'my_location' : 'location_searching'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="nearestTooltip"
+        [appTooltip]="nearestTooltip"
+        tooltipPosition="left"
+        [ngClass]="{ active: nearestMode }"
+        (click)="toggleNearest()"
+      ></app-button>
+      <!-- Altitude tooltip borders toggle button -->
+      <app-button
+        class="toggle-altitude-borders"
+        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="altitudeBordersTooltip"
+        [appTooltip]="altitudeBordersTooltip"
+        tooltipPosition="left"
+        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
+      ></app-button
+      ><!-- Military priority toggle -->
       <div class="military-toggle-wrapper">
         <app-button
           class="military-priority-toggle"
           [icon]="militaryPriority ? 'star_shine' : 'star'"
           type="tertiary"
           size="medium"
-          [ariaLabel]="
-            militaryPriority
-              ? 'Disable military priority'
-              : 'Enable military priority'
-          "
-          [title]="
-            militaryPriority
-              ? 'Disable military priority'
-              : 'Enable military priority'
-          "
+          [ariaLabel]="militaryPriorityTooltip"
+          [appTooltip]="militaryPriorityTooltip"
+          tooltipPosition="left"
           [ngClass]="{ active: militaryPriority }"
           (click)="toggleMilitaryPriority()"
         ></app-button>
         <span class="military-badge">{{ militaryCount }}</span>
       </div>
+      <!-- end .military-toggle-wrapper -->
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">
@@ -122,6 +129,8 @@
               [now]="now"
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
+              [clickedAirports]="clickedAirports"
+              [airportCircles]="airportCircles"
               (centerPlane)="handleCenterPlane($event)"
               (centerAirport)="handleCenterAirport($event)"
               (filterPrefix)="handleFilterPrefix($event)"
@@ -162,6 +171,8 @@
               [now]="now"
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
+              [clickedAirports]="clickedAirports"
+              [airportCircles]="airportCircles"
               (centerPlane)="handleCenterPlane($event)"
               (centerAirport)="handleCenterAirport($event)"
               (filterPrefix)="handleFilterPrefix($event)"
@@ -174,9 +185,13 @@
       </div>
     </div>
     <!-- .middle-section -->
-
     <div id="seenResults" [class.collapsed]="seenCollapsed">
-      <h3 class="top">
+      <h3
+        class="top"
+        (click)="toggleSeenCollapsed()"
+        [appTooltip]="seenSectionTooltip"
+        tooltipPosition="left"
+      >
         All Planes Peeped ({{ seenPlaneLog.length }})<span>
           <!-- Collapse toggle button -->
           <app-button
@@ -184,7 +199,7 @@
             [icon]="seenCollapsed ? 'expand_less' : 'expand_more'"
             type="tertiary"
             [size]="'medium'"
-            (click)="toggleSeenCollapsed()"
+            (click)="toggleSeenCollapsed(); $event.stopPropagation()"
             [ariaLabel]="
               seenCollapsed ? 'Expand seen list' : 'Collapse seen list'
             "
@@ -222,6 +237,8 @@
               [now]="now"
               [activePlaneIcaos]="activePlaneIcaos"
               [followedPlaneIcao]="highlightedPlaneIcao"
+              [clickedAirports]="clickedAirports"
+              [airportCircles]="airportCircles"
               (centerPlane)="handleCenterPlane($event)"
               (filterPrefix)="handleFilterPrefix($event)"
               (toggleSpecial)="handleToggleSpecial($event)"

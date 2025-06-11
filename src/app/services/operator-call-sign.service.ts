@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 })
 export class OperatorCallSignService {
   private operatorMap: Record<string, string> = {};
+  private unknownCallSigns = new Set<string>();
 
   constructor(private http: HttpClient) {
     this.loadMappings();
@@ -17,16 +18,63 @@ export class OperatorCallSignService {
       .get<Record<string, string>>('assets/operator-call-signs.json')
       .subscribe((data) => (this.operatorMap = data));
   }
-
   /**
-   * Returns the operator name for a given callsign (first 3 letters), or undefined if not found.
+   * Returns the operator name for a given callsign by matching the longest possible prefix, or undefined if not found.
    */
   getOperator(callSign: string): string | undefined {
-    if (!callSign || callSign.length < 3) {
+    if (!callSign) {
       return undefined;
     }
-    const prefix = callSign.slice(0, 3).toUpperCase();
-    return this.operatorMap[prefix];
+    const cs = callSign.toUpperCase();
+    // Try longest map keys first
+    const prefixes = Object.keys(this.operatorMap).sort(
+      (a, b) => b.length - a.length
+    );
+    for (const prefix of prefixes) {
+      if (cs.startsWith(prefix)) {
+        return this.operatorMap[prefix];
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns the operator name for a given callsign and logs unknown call signs.
+   * Matches the longest possible prefix, but logs using the first three letters if unknown.
+   */
+  getOperatorWithLogging(callSign: string): string | undefined {
+    if (!callSign) {
+      return undefined;
+    }
+    const cs = callSign.toUpperCase();
+    const prefixes = Object.keys(this.operatorMap).sort(
+      (a, b) => b.length - a.length
+    );
+    let foundPrefix: string | undefined;
+    for (const prefix of prefixes) {
+      if (cs.startsWith(prefix)) {
+        foundPrefix = prefix;
+        break;
+      }
+    }
+    const operator = foundPrefix ? this.operatorMap[foundPrefix] : undefined;
+    // Log unknown call signs on first unseen prefix (using first 3 letters)
+    const logPrefix = cs.slice(0, 3);
+    if (!operator && !this.unknownCallSigns.has(logPrefix)) {
+      if (
+        !/^\d+$/.test(callSign) &&
+        !logPrefix.startsWith('N') &&
+        logPrefix !== 'VFR' &&
+        logPrefix !== 'IFR'
+      ) {
+        if (Math.random() < 0.1) {
+          console.log(`[Unknown Call Sign] ${logPrefix}`);
+        }
+      }
+      this.unknownCallSigns.add(logPrefix);
+    }
+
+    return operator;
   }
 
   /**
@@ -42,11 +90,24 @@ export class OperatorCallSignService {
   addMapping(prefix: string, operatorName: string): void {
     this.operatorMap[prefix.toUpperCase()] = operatorName;
   }
-
   /**
    * Removes a mapping by its 3-letter prefix.
    */
   removeMapping(prefix: string): void {
     delete this.operatorMap[prefix.toUpperCase()];
+  }
+
+  /**
+   * Returns a copy of all unknown call sign prefixes that have been logged.
+   */
+  getUnknownCallSigns(): string[] {
+    return Array.from(this.unknownCallSigns).sort();
+  }
+
+  /**
+   * Clears the log of unknown call signs. Useful for resetting the logging.
+   */
+  clearUnknownCallSigns(): void {
+    this.unknownCallSigns.clear();
   }
 }

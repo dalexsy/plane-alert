@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { haversineDistance } from '../utils/geo-utils';
+import { haversineDistance, computeBearing } from '../utils/geo-utils';
 import { RadiusComponent } from '../components/radius/radius.component';
 import { ConeComponent } from '../components/cone/cone.component';
 import { InputOverlayComponent } from '../components/input-overlay/input-overlay.component';
@@ -22,12 +22,17 @@ import {
   PlaneLogEntry,
 } from '../components/results-overlay/results-overlay.component';
 import { CountryService } from '../services/country.service';
+import { AircraftCountryService } from '../services/aircraft-country.service';
 import { PlaneFinderService } from '../services/plane-finder.service';
 import { PlaneFilterService } from '../services/plane-filter.service';
 import { AircraftDbService } from '../services/aircraft-db.service';
 import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
-import { playAlertSound } from '../utils/alert-sound';
+import {
+  playAlertSound,
+  playHerculesAlert,
+  playA400Alert,
+} from '../utils/alert-sound';
 import { PlaneModel } from '../models/plane-model';
 import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused later
 import { SpecialListService } from '../services/special-list.service';
@@ -42,9 +47,32 @@ import { LocationOverlayComponent } from '../components/location-overlay/locatio
 import { LocationService } from '../services/location.service';
 import SunCalc from 'suncalc';
 import { IconComponent } from '../components/ui/icon.component';
+import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
+import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
+import { getIconPathForModel } from '../utils/plane-icons';
+import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
+import { calculateVerticalRateFromHistory } from '../utils/vertical-rate.util';
+import { HelicopterListService } from '../services/helicopter-list.service';
+import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
+import { SkyColorSyncService } from '../services/sky-color-sync.service';
+import { GeocodingCacheService } from '../services/geocoding-cache.service';
+import { DebouncedClickService } from '../services/debounced-click.service';
+import { LocationContextService } from '../services/location-context.service';
+import { PlaneFollowService } from '../services/plane-follow.service';
+import { AutoFollowService } from '../services/auto-follow.service';
+import { FollowCoordinatorService } from '../services/follow-coordinator.service';
+import { TtsService } from '../services/tts.service';
+import { OperatorCallSignService } from '../services/operator-call-sign.service';
+import { SkyOverlayService } from '../services/sky-overlay.service';
+import {
+  BrightnessService,
+  BrightnessState,
+} from '../services/brightness.service';
+import { AltitudeColorService } from '../services/altitude-color.service';
+import '../utils/plane-debug'; // Import debugging utilities for browser console
 
-// OpenWeatherMap tile service API key - replace with your own key
-const OPEN_WEATHER_MAP_API_KEY = '6f2c97ad14d775fd86df2f6e1384b7af';
+// OpenWeatherMap tile service API key
+const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
 
 // Interface for Overpass API airport results
 interface OverpassElement {
@@ -72,6 +100,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     ClosestPlaneOverlayComponent,
     LocationOverlayComponent,
     IconComponent, // added for sun angle overlay
+    WindowViewOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -103,19 +132,29 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private toggling = false;
   private locationErrorShown = false;
 
+  // before: coneVisible = false; // Default to hidden
   coneVisible = false; // Default to hidden
+  // before: cloudVisible = true; // Show cloud layer by default
   cloudVisible = true; // Show cloud layer by default
-  cloudOpacity = 1;
+  // before: rainVisible = true; // Show rain layer by default
+  rainVisible = true; // Show rain layer by default
+
+  // Opacity settings for weather layers
+  cloudOpacity: number = 1;
+  rainOpacity: number = 0.8;
+
+  // Planes for window-view overlay
+  windowViewPlanes: WindowViewPlane[] = [];
 
   // Store found airports and their circles
-  private airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
+  airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
   private svgPatternRetryTimeout: any = null;
   private mainRadiusCircle?: L.Circle;
   private coneLayers: L.Polygon[] = [];
   // Cache computed radii (km) per airport ID to avoid repeat Overpass calls
-  private airportRadiusCache = new Map<number, number>();
-  // Store metadata for each airport: name and IATA code
-  private airportData = new Map<number, { name: string; code?: string }>();
+  private airportRadiusCache = new Map<number, number>(); // Store metadata for each airport: name and IATA code
+  private airportData = new Map<number, { name: string; code?: string }>(); // Track clicked airports for color toggling
+  clickedAirports = new Set<number>();
 
   // Flag for airport fetching (loading) to show loading indicator
   loadingAirports = false;
@@ -125,6 +164,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Tile layer for cloud coverage overlay from OpenWeatherMap
   private cloudLayer?: L.TileLayer;
+
+  // Tile layer for rain coverage overlay from OpenWeatherMap
+  private rainLayer?: L.TileLayer;
 
   // Currently highlighted plane ICAO (for persistent tooltip/marker highlight)
   highlightedPlaneIcao: string | null = null;
@@ -143,9 +185,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   followNearest = false;
 
   private airportsLoading = false; // guard for Overpass fetches
+  private isProcessingFollowRequest = false; // guard against recursive follow calls
   currentTime: string = '';
 
-  showDateTime = true;
+  // Replace showDateTime property initializer
+  public showDateTime = true; // Show date/time overlay by default
+
+  // Toggle for airport labels tooltips
+  // before: showAirportLabels: boolean = true;
+  showAirportLabels = true; // Show airport labels by default
+
+  // Toggle for altitude-colored tooltip borders
+  showAltitudeBorders = false; // Default to disabled
 
   private _initialScanDone = false; // Flag to prevent double scan
 
@@ -155,11 +206,33 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Sun angle for solar position overlay
   public sunAngle: number = 0;
+  // Wind direction for wind indicator overlay
+  public windAngle: number = 0; // Latest wind speed in m/s
+  public windSpeed: number = 0;
+  public windStat: number = 0; // intensity level 0-3
+  // Wind unit cycling
+  public windUnits: string[] = ['m/s', 'knots', 'km/h', 'mph'];
+  public currentWindUnitIndex: number = 0;
+  public isNight: boolean = false;
+  public brightness: number = 1;
+  public brightnessState: BrightnessState | null = null;
+  public moonFraction: number = 0;
+  public moonAngle: number = 0;
+  public moonIsWaning: boolean = false;
+  public moonIcon: string = 'dark_mode';
+  public moonPhaseName: string = '';
+  public moonIllumAngleDeg: number = 0;
+  // Label for next sun event (Sunset during day, Sunrise at night)
+  public sunEventText: string = '';
   private sunAngleInterval: any;
-
+  private locationUpdateSubscription: any;
+  private globalTooltipClickHandler!: (e: MouseEvent) => void;
+  /** Terminator tilt for moon (degrees) */
+  moonTerminatorAngle: number = 0;
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
+    private aircraftCountryService: AircraftCountryService,
     private mapService: MapService,
     private planeFinder: PlaneFinderService,
     private planeFilter: PlaneFilterService,
@@ -171,8 +244,157 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private militaryPrefixService: MilitaryPrefixService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private helicopterListService: HelicopterListService,
+    private helicopterIdentificationService: HelicopterIdentificationService,
+    private skyColorSyncService: SkyColorSyncService,
+    private locationContextService: LocationContextService,
+    private geocodingCache: GeocodingCacheService,
+    private debouncedClickService: DebouncedClickService,
+    private planeFollowService: PlaneFollowService,
+    private autoFollowService: AutoFollowService,
+    private followCoordinatorService: FollowCoordinatorService,
+    private tts: TtsService,
+    private operatorCallSignService: OperatorCallSignService,
+    private skyOverlayService: SkyOverlayService,
+    private brightnessService: BrightnessService,
+    private altitudeColor: AltitudeColorService
   ) {
+    // Initialize UI toggles from stored settings
+    this.cloudVisible = this.settings.showCloudCover;
+    this.rainVisible = this.settings.showRainCover;
+    this.coneVisible = this.settings.showViewAxes;
+    this.showDateTime = this.settings.showDateTimeOverlay;
+    this.showAirportLabels = this.settings.showAirportLabels;
+    this.showAltitudeBorders = this.settings.showAltitudeBorders;
+    this.currentWindUnitIndex = this.settings.windUnitIndex;
+
+    // Initialize brightness service with current location if available
+    const currentLocation = this.settings.getCurrentLocation();
+    if (currentLocation) {
+      this.brightnessService.setLocation(
+        currentLocation.lat,
+        currentLocation.lon
+      );
+    }
+
+    // Update tooltip classes on special list changes
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.planeLog.forEach((plane) => {
+        const tooltipEl = plane.marker?.getTooltip()?.getElement();
+        if (tooltipEl) {
+          tooltipEl.classList.toggle(
+            'special-plane-tooltip',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+        // Also update marker icon class
+        const markerEl = plane.marker?.getElement();
+        if (markerEl) {
+          markerEl.classList.toggle(
+            'special-plane',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+      });
+    }); // Listen for tooltip follow/unfollow events
+    window.addEventListener('plane-tooltip-follow', (e: Event) => {
+      const icao = (e as CustomEvent).detail?.icao;
+      if (!icao) return;
+      this.ngZone.run(() => {
+        if (this.highlightedPlaneIcao === icao) {
+          // Unfollow currently followed plane
+          this.followCoordinatorService.clearAllModes();
+        } else {
+          // Follow new plane manually - this will disable automatic modes
+          const pm = this.planeLog.get(icao);
+          if (pm) {
+            // Use coordinator service for proper mode management
+            this.followCoordinatorService.followPlaneManually(pm as any);
+
+            // Center map on followed plane with smooth panning
+            if (pm.lat != null && pm.lon != null) {
+              this.map.panTo([pm.lat, pm.lon], {
+                animate: true,
+                duration: 1.0,
+              });
+              // Update both address input overlay and location overlay info with single geocoding call
+              this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+                this.inputOverlayComponent.addressInputRef.nativeElement.value =
+                  address;
+                this.locationDistrict = address;
+                this.cdr.detectChanges();
+              });
+            }
+          }
+        }
+      });
+    }); // Add global click handler for tooltip follow
+    window.addEventListener('click', this.globalTooltipClickHandler);
+  }
+
+  /** Toggle map brightness between normal and dimmed */ public toggleBrightness(): void {
+    // Toggle between automatic and manual brightness modes
+    this.brightnessService.toggleMode();
+  }
+  /** Zoom in the map */
+  public onZoomIn(): void {
+    if (this.map) {
+      this.map.zoomIn();
+    }
+  }
+
+  /** Zoom out the map */
+  public onZoomOut(): void {
+    if (this.map) {
+      this.map.zoomOut();
+    }
+  }
+
+  /** Toggle display of airport labels tooltips universally (permanent on map) */
+  public onToggleAirportLabels(): void {
+    this.showAirportLabels = !this.showAirportLabels;
+    // Persist preference
+    this.settings.setShowAirportLabels(this.showAirportLabels);
+    this.airportCircles.forEach((circle, id) => {
+      const data = this.airportData.get(id);
+      if (!data) return;
+      // Rebind tooltip with permanent flag toggled
+      circle.unbindTooltip();
+      circle.bindTooltip(data.name, {
+        direction: 'center',
+        className: 'airport-tooltip',
+        opacity: 0.8,
+        offset: [0, 0],
+        permanent: this.showAirportLabels,
+      });
+      // Open or close tooltip based on permanent flag
+      if (this.showAirportLabels) {
+        circle.openTooltip();
+      } else {
+        circle.closeTooltip();
+      }
+    });
+  }
+
+  async ngAfterViewInit(): Promise<void> {
+    await this.countryService.init();
+    await this.aircraftDb.load();
+    await this.militaryPrefixService.loadPrefixes();
+    this.settings.load();
+    this.showDateTime = this.settings.showDateTimeOverlay;
+
+    // Load clicked airports from settings
+    this.clickedAirports = this.settings.getClickedAirports();
+
+    // --- Clear all historical trail data on startup to prevent lag ---
+    this.planeHistoricalLog = [];
+    this.resultsOverlayComponent.seenPlaneLog = [];
+    this.planeLog.forEach((plane) => {
+      plane.positionHistory = [];
+      if (plane.historyTrailSegments) plane.historyTrailSegments = [];
+    });
+
     // Update tooltip classes on special list changes
     this.specialListService.specialListUpdated$.subscribe(() => {
       this.planeLog.forEach((plane) => {
@@ -194,67 +416,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       });
     });
 
-    // Listen for tooltip follow/unfollow events
-    window.addEventListener('plane-tooltip-follow', (e: Event) => {
-      const icao = (e as CustomEvent).detail?.icao;
-      if (!icao) return;
-      this.ngZone.run(() => {
-        if (this.highlightedPlaneIcao === icao) {
-          this.unhighlightPlane(icao);
-          this.highlightedPlaneIcao = null;
-          this.followNearest = false;
-        } else {
-          this.highlightedPlaneIcao = icao;
-          this.followNearest = true;
-          // Center map on followed plane
-          const pm = this.planeLog.get(icao);
-          if (pm && pm.lat != null && pm.lon != null) {
-            this.map.panTo([pm.lat, pm.lon]);
-            // Update address input overlay to this plane's location
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                address;
-            });
-            // Update location overlay info
-            this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-              this.locationStreet = address;
-              this.locationDistrict = '';
-              this.cdr.detectChanges();
-            });
-          }
-        }
-        this.updatePlaneLog(Array.from(this.planeLog.values()));
-        this.updateFollowedStyles(); // <-- ensure all planes update
-        this.cdr.detectChanges();
-      });
-    });
-
     // Add global click handler for tooltip follow
-    window.addEventListener('click', (e: MouseEvent) => {
-      const wrapper = (e.target as HTMLElement).closest(
-        '.tooltip-follow-wrapper'
-      );
-      if (!wrapper) return;
-      e.stopPropagation();
-      e.preventDefault();
-      const icao = wrapper.getAttribute('data-icao');
-      if (icao) {
-        window.dispatchEvent(
-          new CustomEvent('plane-tooltip-follow', { detail: { icao } })
-        );
-      }
-    });
-  }
+    window.addEventListener('click', this.globalTooltipClickHandler);
 
-  async ngAfterViewInit(): Promise<void> {
-    await this.countryService.init();
-    await this.aircraftDb.load();
-    // Load configured military prefix list for overlay flags
-    await this.militaryPrefixService.loadPrefixes();
-    this.settings.load();
-    // Restore saved show/hide date-time overlay setting
-    this.showDateTime = this.settings.showDateTimeOverlay;
-
+    // Initialize input overlay component inputs if necessary
+    if (this.inputOverlayComponent) {
+      // Sync input props
+      this.inputOverlayComponent.showDateTime = this.showDateTime;
+      this.inputOverlayComponent.showCloudCover = this.settings.showCloudCover;
+      this.inputOverlayComponent.showRainCover = this.settings.showRainCover;
+      this.inputOverlayComponent.showViewAxes = this.settings.showViewAxes;
+      this.inputOverlayComponent.showAirportLabels =
+        this.settings.showAirportLabels;
+    }
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
@@ -266,6 +440,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Initialize map and overlays
     this.initMap(lat, lon, radius);
+    // Apply map layer visibility based on saved preferences
+    this.toggleCloudCover(this.settings.showCloudCover);
+    this.toggleRainCover(this.settings.showRainCover);
+    this.toggleConeVisibility(this.settings.showViewAxes);
+    // Apply airport labels visibility
+    this.showAirportLabels = this.settings.showAirportLabels;
+    this.airportCircles.forEach((circle, id) => {
+      circle[this.showAirportLabels ? 'openTooltip' : 'closeTooltip']();
+    });
     // Provide the created map instance to the service
     this.mapService.setMapInstance(this.map);
     // Main radius will be drawn by updateMap to avoid duplicate initial draw
@@ -305,13 +488,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Re-filter planes when commercial toggle changes
       this.onExcludeDiscountChange();
     });
-
     this.resultsOverlayComponent.clearHistoricalList.subscribe(() =>
       this.clearSeenList()
     );
     this.resultsOverlayComponent.exportFilterList.subscribe(() =>
       this.exportFilterList()
     );
+
+    // Subscribe to follow service state changes
+    this.planeFollowService.followState$.subscribe((followState) => {
+      this.handleFollowStateChange(followState);
+    });
+
+    // Subscribe to follow service for follow requests
+    this.planeFollowService.follow$.subscribe((followRequest) => {
+      this.handleFollowRequest(followRequest);
+    });
     this.resultsOverlayComponent.filterPrefix.subscribe(
       (plane: PlaneLogEntry) => {
         const prefix = this.planeFilter.extractAirlinePrefix(plane.callsign);
@@ -333,12 +525,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
 
           // Update the filteredOut status directly on the model
-          planeModel.filteredOut = shouldBeFiltered;
-
-          // --- Handle Visuals ---
+          planeModel.filteredOut = shouldBeFiltered; // --- Handle Visuals ---
           if (shouldBeFiltered) {
-            planeModel.marker?.remove();
-            planeModel.path?.remove();
+            planeModel.removeVisuals(this.map);
           } else if (
             planeModel.marker &&
             !this.map.hasLayer(planeModel.marker)
@@ -388,24 +577,34 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     // Initialize map panning service
-    this.mapPanService.init(this.map);
-
-    // Periodic debug log to check shuffle/follow state
-    this.ngZone.runOutsideAngular(() => {
-      setInterval(() => {
-        console.log(
-          `[ShuffleCheck] shuffleMode=${this.resultsOverlayComponent.shuffleMode}, ` +
-            `followNearest=${this.followNearest}, highlightedPlaneIcao=${this.highlightedPlaneIcao}`
-        );
-      }, 20000);
-    });
-
-    // Initialize sun angle overlay
+    this.mapPanService.init(this.map); // Initialize sun angle overlay and kick off periodic updates
     this.updateSunAngle();
+    // note: initial wind fetch occurs in updateMap, so no extra one here
     this.sunAngleInterval = setInterval(() => {
       this.updateSunAngle();
+      // Update wind direction periodically
+      const center = this.map.getCenter();
+      this.fetchWindDirection(center.lat, center.lng);
       this.cdr.detectChanges();
-    }, 60000); // update every minute
+    }, 60000); // update every minute    // Subscribe to sky color changes for cloud layer synchronization
+    this.skyColorSyncService.skyColors$.subscribe((skyColors) => {
+      if (skyColors && this.cloudLayer) {
+        this.applySkyColorsToCloudLayer(skyColors);
+      }
+    });
+
+    // Subscribe to brightness changes from BrightnessService
+    this.brightnessService.brightness$.subscribe((brightnessState) => {
+      this.ngZone.run(() => {
+        this.brightnessState = brightnessState;
+        this.brightness = brightnessState.brightness;
+        this.applyBrightnessToMap();
+        this.cdr.detectChanges();
+      });
+    });
+
+    // Initialize brightness service with current location
+    this.brightnessService.setLocation(lat, lon);
   }
 
   ngOnDestroy(): void {
@@ -420,6 +619,76 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (this.sunAngleInterval) {
       clearInterval(this.sunAngleInterval);
     }
+    if (this.cloudLayer) {
+      this.cloudLayer.remove();
+    }
+    if (this.rainLayer) {
+      this.rainLayer.remove();
+    }
+    // Clean up brightness service
+    this.brightnessService.ngOnDestroy();
+    // Clean up sky overlay service
+    this.skyOverlayService.destroy();
+    window.removeEventListener('click', this.globalTooltipClickHandler);
+  }
+
+  /**
+   * Handle follow state changes from PlaneFollowService
+   */
+  private handleFollowStateChange(followState: any): void {
+    // Update internal follow state based on service state
+    if (followState.mode === 'none') {
+      this.followNearest = false;
+      this.highlightedPlaneIcao = null;
+    } else if (followState.followedPlaneIcao) {
+      this.highlightedPlaneIcao = followState.followedPlaneIcao;
+
+      // Set followNearest based on mode type
+      this.followNearest = followState.mode !== 'manual';
+    }
+
+    // Update visual indicators
+    this.updateFollowedStyles();
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Handle follow requests from PlaneFollowService
+   */ private handleFollowRequest(followRequest: any): void {
+    // Prevent infinite recursion
+    if (this.isProcessingFollowRequest) {
+      return;
+    }
+
+    this.isProcessingFollowRequest = true;
+
+    try {
+      const {
+        plane,
+        fromShuffle = false,
+        fromNearest = false,
+        fromManual = false,
+      } = followRequest;
+
+      if (!plane) return;
+
+      // Convert to consistent format for centerOnPlane
+      const planeLogEntry = {
+        icao: plane.icao,
+        lat: plane.lat,
+        lon: plane.lon,
+        ...plane,
+      };
+
+      // Call existing centerOnPlane method with appropriate flags
+      this.centerOnPlane(
+        planeLogEntry,
+        fromShuffle || fromNearest,
+        fromShuffle
+      );
+    } finally {
+      this.isProcessingFollowRequest = false;
+    }
   }
 
   private initMap(lat: number, lon: number, radius: number): void {
@@ -429,11 +698,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       doubleClickZoom: false,
     }).setView([lat, lon], 12);
 
-    // Disable overlay pointer-events while panning
-    this.map.on('movestart', () =>
-      this.ngZone.run(() => (this.panning = true))
-    );
-    this.map.on('moveend', () => this.ngZone.run(() => (this.panning = false)));
+    // Disable CD for frequent panning events, only toggle class inside Angular when needed
+    this.ngZone.runOutsideAngular(() => {
+      this.map.on('movestart', () =>
+        this.ngZone.run(() => (this.panning = true))
+      );
+      this.map.on('moveend', () =>
+        this.ngZone.run(() => (this.panning = false))
+      );
+    });
 
     // Add SVG renderer for vector overlays (draws into overlayPane)
     L.svg().addTo(this.map);
@@ -442,14 +715,23 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.map.createPane('followedMarkerPane');
     const followedPane = this.map.getPane('followedMarkerPane') as HTMLElement;
     followedPane.style.zIndex = '610';
-    followedPane.style.pointerEvents = 'auto';
-
-    // Define airport striped pattern in overlayPane's SVG
+    followedPane.style.pointerEvents = 'auto'; // Define airport striped patterns in overlayPane's SVG
     const overlaySvg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement | null;
     if (overlaySvg) {
-      ensureStripedPattern(overlaySvg, 'airportStripedPattern', 'cyan', 0.5);
+      ensureStripedPattern(
+        overlaySvg,
+        'airportStripedPatternCyan',
+        'cyan',
+        0.5
+      );
+      ensureStripedPattern(
+        overlaySvg,
+        'airportStripedPatternGold',
+        'gold',
+        0.5
+      );
     }
 
     L.tileLayer(
@@ -460,21 +742,50 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
     ).addTo(this.map);
 
-    // Cloud coverage overlay from OpenWeatherMap
+    // Create a custom pane for cloud coverage above markers
+    this.map.createPane('cloudPane');
+    const cloudPane = this.map.getPane('cloudPane') as HTMLElement;
+    cloudPane.style.zIndex = '620';
+    cloudPane.style.pointerEvents = 'none';
+
+    // Create a custom pane for rain coverage above markers, below clouds
+    this.map.createPane('rainPane');
+    const rainPane = this.map.getPane('rainPane') as HTMLElement;
+    rainPane.style.zIndex = '615'; // Below cloudPane (620)
+    rainPane.style.pointerEvents = 'none';
+
+    // Cloud coverage overlay from OpenWeatherMap in the cloudPane
     this.cloudLayer = L.tileLayer(
       `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
       {
+        pane: 'cloudPane',
         className: 'cloud-layer',
         opacity: this.cloudOpacity,
         attribution: 'Weather data © OpenWeatherMap',
       }
     )
       .addTo(this.map)
-      .on('tileerror', (error) =>
-        console.error('Cloud tile load error:', error)
-      );
-    // Ensure clouds render above base tiles
-    this.cloudLayer.setZIndex(650);
+      .on('tileerror', () => {
+        // ignore cloud tile errors in console
+      });
+
+    // Rain coverage overlay from OpenWeatherMap in the rainPane
+    this.rainLayer = L.tileLayer(
+      `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
+      {
+        pane: 'rainPane',
+        className: 'rain-layer',
+        opacity: this.rainOpacity, // Use the rainOpacity property
+        attribution: 'Weather data © OpenWeatherMap',
+      }
+    )
+      .addTo(this.map)
+      .on('tileerror', () => {
+        // ignore rain tile errors in console
+      });
+
+    // Initialize sky overlay service after all panes are created
+    this.skyOverlayService.initialize(this.map);
 
     // Create custom marker for current location
     const locationIcon = L.divIcon({
@@ -489,9 +800,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }).addTo(this.map);
 
     // Check if we're at home location and hide the current marker if so
-    this.updateMarkersVisibility(lat, lon);
-
-    // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
+    this.updateMarkersVisibility(lat, lon); // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
     // const mainRadiusCircle = L.circle([lat, lon], { ... }).addTo(this.map);
 
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
@@ -500,20 +809,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const currentMainRadius = this.settings.radius ?? 5;
       this.updateMap(lat, lng, currentMainRadius); // This will trigger airport search
 
-      // Hide the cone when double-clicking to a new location
-      this.coneVisible = false;
-
-      // Update the Show View Axes checkbox to match
-      const coneCheckbox = document.getElementById(
-        'showCone'
-      ) as HTMLInputElement;
-      if (coneCheckbox) {
-        coneCheckbox.checked = false;
-      }
+      // Keep the cone visible when double-clicking to a new location
+      // The cone will now show full circular bands when away from home
+      // No need to hide it or update the checkbox
 
       this.reverseGeocode(lat, lng).then((address) => {
-        this.inputOverlayComponent.addressInputRef.nativeElement.value =
-          address;
+        // Guard against missing input reference
+        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
+          this.inputOverlayComponent.addressInputRef.nativeElement.value =
+            address;
+        }
       });
       this.scanService.forceScan(); // Restart the scan
     });
@@ -659,7 +964,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // Central update function
+  /** Central update function */
   updateMap(
     lat: number,
     lon: number,
@@ -717,14 +1022,104 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Prevent double scan on initial load: only force scan if not immediately after ngAfterViewInit
       if (!this._initialScanDone) {
         this._initialScanDone = true;
-        // console.log('[MapComponent] Skipping forceScan after initial load');
       } else {
-        // console.log(
-        //   '[MapComponent] Calling scanService.forceScan from updateMap'
-        // );
         this.scanService.forceScan();
       }
-    });
+    }); // fetch and update current wind direction
+    this.fetchWindDirection(lat, lon); // Update brightness service with new location
+    this.brightnessService.setLocation(lat, lon);
+
+    // Update location context for explicit location changes (not map panning)
+    this.locationContextService.updateFromMapCenter(lat, lon);
+  }
+
+  /** Fetch wind direction from OpenWeatherMap and update windAngle */
+  private fetchWindDirection(lat: number, lon: number): void {
+    fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPEN_WEATHER_MAP_API_KEY}`
+    )
+      .then((res) => {
+        if (res.status === 429) {
+          // Too Many Requests: skip update, optionally show warning
+          // Rate limit warning would be logged here
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data) return; // skip if rate-limited
+        // debug wind values from API
+        const speed = data.wind?.speed ?? 0;
+        this.windSpeed = speed;
+        const windFrom = data.wind?.deg ?? 0;
+        // compute stat 0-3 based on speed
+        let stat = 0;
+        if (speed >= 6) stat = 3;
+        else if (speed >= 3) stat = 2;
+        else if (speed >= 0.5) stat = 1;
+        // update both intensity stat and wind direction
+        this.windStat = stat;
+        this.windAngle = windFrom;
+        this.cdr.detectChanges();
+      });
+  }
+  /** Convert wind direction in degrees to compass point (e.g. N, NE, E, etc.) */
+  public getWindFromDirection(deg: number): string {
+    const directions = [
+      'N',
+      'NNE',
+      'NE',
+      'ENE',
+      'E',
+      'ESE',
+      'SE',
+      'SSE',
+      'S',
+      'SSW',
+      'SW',
+      'WSW',
+      'W',
+      'WNW',
+      'NW',
+      'NNW',
+    ];
+    const index = Math.round((deg % 360) / 22.5);
+    return directions[index % directions.length];
+  }
+
+  /** Convert wind speed from m/s to the specified unit */
+  public convertWindSpeed(speedMs: number, unit: string): number {
+    switch (unit) {
+      case 'knots':
+        return speedMs * 1.94384; // m/s to knots
+      case 'km/h':
+        return speedMs * 3.6; // m/s to km/h
+      case 'mph':
+        return speedMs * 2.23694; // m/s to mph
+      case 'm/s':
+      default:
+        return speedMs;
+    }
+  }
+
+  /** Get the current wind speed in the selected unit */
+  public getCurrentWindSpeed(): number {
+    return this.convertWindSpeed(
+      this.windSpeed,
+      this.windUnits[this.currentWindUnitIndex]
+    );
+  }
+
+  /** Get the current wind unit string */
+  public getCurrentWindUnit(): string {
+    return this.windUnits[this.currentWindUnitIndex];
+  }
+  /** Cycle to the next wind unit */
+  public cycleWindUnit(): void {
+    this.currentWindUnitIndex =
+      (this.currentWindUnitIndex + 1) % this.windUnits.length;
+    // Save the wind unit preference
+    this.settings.setWindUnitIndex(this.currentWindUnitIndex);
   }
 
   removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
@@ -734,9 +1129,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         plane.lon == null ||
         haversineDistance(lat, lon, plane.lat, plane.lon) > radius
       ) {
-        plane.marker?.remove();
-        plane.path?.remove();
-        plane.removeVisuals(this.map); // Use the comprehensive removal method
+        plane.removeVisuals(this.map);
         this.planeLog.delete(icao);
       }
     }
@@ -744,42 +1137,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.activePlaneIcaos = new Set(this.planeLog.keys());
     this.updatePlaneLog(Array.from(this.planeLog.values()));
   }
-
   reverseGeocode(lat: number, lon: number): Promise<string> {
-    return fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const addr = data.address || {};
-        const district = addr.suburb || addr.city_district || addr.county || addr.state || '';
-        const state = addr.state || '';
-        const country = addr.country || '';
-        if (district) {
-          if (country.toLowerCase() === 'germany') {
-            return state
-              ? `Near ${district}, ${state}`
-              : `Near ${district}`;
-          } else {
-            return state
-              ? `Near ${district}, ${state}, ${country}`
-              : `Near ${district} ${country}`;
-          }
-        }
-        return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-      });
+    return this.geocodingCache.reverseGeocode(lat, lon);
   }
-
-  // Helper to check if alert should be muted
-  shouldMuteCommercialAlert(newUnfiltered: PlaneModel[]): boolean {
-    // If mute is enabled, only commercial planes are present, and all new planes are commercial, mute the alert
-    if (!this.resultsOverlayComponent) return false;
-    if (!this.resultsOverlayComponent.commercialMute) return false;
-    if (!this.resultsOverlayComponent.onlyCommercial) return false;
-    // If all new planes are non-military (commercial), mute
-    return newUnfiltered.every((p) => !this.aircraftDb.lookup(p.icao)?.mil);
-  }
-
   findPlanes(): void {
     const previousPlaneKeys = new Set(this.planeLog.keys());
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
@@ -826,24 +1186,39 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
         const newUnfiltered = updatedLog.filter(
           (p) => p.isNew && !p.filteredOut
-        );
-        // Alert on any new visible plane, but suppress only when hide-commercial filter and commercial mute are both on and all new are commercial
+        ); // Alert on any new visible plane, but suppress only when military mute is enabled and all new planes are military
         const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
-        if (newVisible.length > 0) {
-          const allCommercial = newVisible.every(
-            (p) => !this.aircraftDb.lookup(p.icao)?.mil
-          );
-          // Only suppress when commercial-mute is on and ALL new visible planes are commercial
-          if (!(allCommercial && this.settings.commercialMute)) {
+        // Determine if any new visible plane is a Hercules model
+        const hasHercules = newVisible.some((p) =>
+          p.model?.toLowerCase().includes('hercules')
+        );
+        // Determine if any new visible plane is an A400 model
+        const hasA400 = newVisible.some((p) =>
+          p.model?.toLowerCase().includes('a400')
+        );
+        // Determine if any other alert-worthy planes (military or special)
+        const hasAlertPlanes = newVisible.some(
+          (p) =>
+            this.aircraftDb.lookup(p.icao)?.mil ||
+            this.specialListService.isSpecial(p.icao)
+        ); // Play appropriate alert sound: Hercules and A400 priority
+        // Simple check: if military mute is enabled, don't play ANY alert sounds
+        if (!this.settings.militaryMute) {
+          if (hasHercules) {
+            playHerculesAlert();
+          } else if (hasA400) {
+            playA400Alert();
+          } else if (hasAlertPlanes) {
             playAlertSound();
           }
         }
+        // Military announcement logic has been moved to AnnouncementService
+        // to prevent duplicate TTS chaos and provide better per-aircraft control
 
         const existing = new Set(currentIDs);
         for (const [id, plane] of this.planeLog.entries()) {
           if (!existing.has(id)) {
-            plane.marker?.remove();
-            plane.path?.remove();
+            plane.removeVisuals(this.map);
             this.planeLog.delete(id);
           }
         }
@@ -930,14 +1305,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 // Tooltips handled above
               }
             }
-          }
-          // --- Set tooltip classes for new planes (not grounded) ---
+          } // --- Set tooltip classes for new planes (not grounded) ---
           if (planeModel.marker && planeModel.marker.getTooltip()) {
             const tooltipEl = planeModel.marker.getTooltip()?.getElement();
             if (tooltipEl) {
               tooltipEl.classList.toggle('new-plane-tooltip', planeModel.isNew);
             }
           }
+
+          // Apply altitude border styling to the plane's tooltip if enabled
+          this.applyTooltipAltitudeBorder(planeModel);
+
           // Always update the log regardless of filter status
           this.planeLog.set(planeModel.icao, planeModel);
         }
@@ -947,6 +1325,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
         // Update both the overlay and lists via updatePlaneLog
         this.updatePlaneLog(updatedPlaneModels);
+        // Update the closest-plane-overlay with latest distance/operator/ETA info
+        this.computeClosestPlane();
         this.manualUpdate = false;
         // Reapply tooltip highlight after updates if a plane is followed
         if (this.highlightedPlaneIcao) {
@@ -955,6 +1335,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           tooltipEl?.classList.add('highlighted-tooltip');
         }
         this.cdr.detectChanges();
+      })
+      .catch((err) => {
+        // Error in findPlanes would be logged here
       });
   }
 
@@ -970,7 +1353,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (!candidate) {
       let minDist = Infinity;
       for (const plane of this.planeLog.values()) {
-        if (plane.filteredOut || plane.lat == null || plane.lon == null)
+        // Exclude filtered, unpositioned, or unknown devices
+        if (
+          plane.filteredOut ||
+          plane.lat == null ||
+          plane.lon == null ||
+          plane.isUnknown
+        )
           continue;
         const d = haversineDistance(centerLat, centerLon, plane.lat, plane.lon);
         if (d < minDist) {
@@ -996,6 +1385,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       candidate.lon!
     );
     this.closestDistance = Math.round(dist * 10) / 10;
+
     this.closestOperator = candidate.operator || null;
     // Only show ETA if velocity >= 200
     const vel = candidate.velocity ?? null;
@@ -1005,14 +1395,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     } else {
       this.closestVelocity = null;
       this.closestSecondsAway = null;
-    }
-
-    // Always update location information for the closest plane,
+    } // Always update location information for the closest plane,
     // even if we're not following it yet
     if (candidate && candidate.lat !== null && candidate.lon !== null) {
       this.reverseGeocode(candidate.lat, candidate.lon).then((address) => {
+        if (!address || address.trim() === '') {
+          console.log('Empty geocoding result for closest plane:', address);
+        }
         this.locationStreet = address;
-        this.locationDistrict = '';
+        this.locationDistrict = address;
+        if (!this.locationDistrict || this.locationDistrict.trim() === '') {
+          console.log(
+            'locationDistrict is empty after setting:',
+            this.locationDistrict
+          );
+        }
         this.cdr.detectChanges();
       });
     }
@@ -1032,9 +1429,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const links =
       this.document.querySelectorAll<HTMLLinkElement>(linkSelectors);
     if (!links.length) {
-      console.warn(
-        '[Favicon] No <link rel="icon"> or <link rel="shortcut icon"> tags found'
-      );
+      // No favicon link tags found warning would be logged here
       return;
     }
     links.forEach((link) => {
@@ -1082,6 +1477,95 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // Add window view markers for cone boundaries and midpoints
+  private updateWindowViewMarkers(): void {
+    // Define the azimuth ranges directly matching ConeComponent angles
+    const cones = [
+      { label: 'Balcony', start: 75, end: 190 }, // ENE to S
+      { label: 'Streetside', start: 245, end: 345 }, // SW to N
+    ];
+    // Use a fixed radius for window view markers (e.g., 10km)
+    const markerRadiusKm = 10;
+    // Get home location as the anchor
+    const home = this.homeLocationValue;
+    if (!home) return;
+    const lat = home.lat;
+    const lon = home.lon;
+    // Helper to convert azimuth (deg, 0=N) to window view x (0-100, 0=left, 100=right)
+    // 0° = North at center (50), 90° E at right (75), 270° W at left (25)
+    const azToX = (az: number) => (((az + 180) % 360) / 360) * 100;
+    // Helper to convert azimuth to compass direction
+    const azToCompass = (az: number) => {
+      const dirs = [
+        'N',
+        'NNE',
+        'NE',
+        'ENE',
+        'E',
+        'ESE',
+        'SE',
+        'SSE',
+        'S',
+        'SSW',
+        'SW',
+        'WSW',
+        'W',
+        'WNW',
+        'NW',
+        'NNW',
+      ];
+      return dirs[Math.round((az % 360) / 22.5) % 16];
+    };
+    // Helper to convert radius to y (altitude) for window view (fixed at 10km)
+    const y = (10 / 12) * 70; // 10km out of 12km max altitude (scaled down to avoid clipping)    // Build marker objects
+    const markers = cones.flatMap(({ label, start, end }) => {
+      const mid = (start + end) / 2;
+      const width = (end - start + 360) % 360;
+      return [
+        {
+          x: azToX(start),
+          y,
+          callsign: `${label} Start`,
+          altitude: -1, // negative altitude to indicate not a real plane
+          isMarker: true,
+          azimuth: start,
+          compass: azToCompass(start),
+          icao: `marker-${label}-start`, // Assign dummy icao for type safety
+          origin: '', // Empty origin for marker objects
+        },
+        {
+          x: azToX(mid),
+          y,
+          callsign: label,
+          altitude: -1,
+          isMarker: true,
+          azimuth: mid,
+          compass: azToCompass(mid),
+          icao: `marker-${label}-mid`, // Assign dummy icao for type safety
+          origin: '', // Empty origin for marker objects
+        },
+        {
+          x: azToX(end),
+          y,
+          callsign: `${label} End`,
+          altitude: -1,
+          isMarker: true,
+          azimuth: end,
+          compass: azToCompass(end),
+          icao: `marker-${label}-end`, // Assign dummy icao for type safety
+          origin: '', // Empty origin for marker objects
+        },
+      ];
+    });
+    // Merge with actual planes for overlay, preserving all real planes (including grounded) and adding markers
+    this.windowViewPlanes = [
+      // keep only real plane entries (exclude marker objects)
+      ...this.windowViewPlanes.filter((p) => !p.isMarker),
+      // then append marker entries
+      ...markers,
+    ];
+  }
+
   private updatePlaneLog(planes: PlaneModel[]): void {
     // Assign airport code/name for planes within airport circles
     planes.forEach((p) => {
@@ -1099,7 +1583,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (p.lat != null && p.lon != null && p.airportCode == null) {
           const dist =
             haversineDistance(p.lat, p.lon, center.lat, center.lng) * 1000;
-          if (dist <= radiusMeters) {
+          // allow assignment for planes within circle or within 3km outside
+          if (dist <= radiusMeters + 3000) {
             const data = this.airportData.get(id);
             if (data) {
               p.airportCode = data.code || undefined;
@@ -1123,8 +1608,94 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.resultsOverlayComponent.airportPlaneLog =
       airportPlanes as unknown as PlaneLogEntry[];
 
-    // Compute nearest (or followed) plane for overlay
-    this.computeClosestPlane();
+    // Update the window view overlay with airborne planes only
+    this.windowViewPlanes = visiblePlanes
+      // include grounded planes as well
+      .filter((p) => (p.altitude ?? 0) > 0 || p.onGround)
+      .map((plane) => {
+        const isGrounded = !!plane.onGround;
+        // Calculate azimuth (bearing) from homeLocation to plane
+        const azimuth = this.calculateAzimuth(
+          this.settings.lat ?? this.DEFAULT_COORDS[0],
+          this.settings.lon ?? this.DEFAULT_COORDS[1],
+          plane.lat,
+          plane.lon
+        ); // 0 = North, 90 = East, etc.
+        const azimuthFromSouth = (azimuth + 180) % 360;
+        const x = (azimuthFromSouth / 360) * 100; // Altitude: map 0-20000m to 0-100% (cap at 20km, consistent with window view visual scale)
+        // For grounded planes, use 0 altitude for consistency
+        const alt = isGrounded ? 0 : plane.altitude ?? 0;
+        const y = (Math.min(alt, 20000) / 20000) * 100;
+        const iconData = getIconPathForModel(plane.model);
+        // Calculate scale, distance
+        const distKm = haversineDistance(
+          centerLat,
+          centerLon,
+          plane.lat!,
+          plane.lon!
+        );
+        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
+        // Dramatic scaling for planes within 10km, normal scaling beyond
+        let scale = 1.0; // Default scale
+        if (distKm <= 10) {
+          // Within 10km: scale from 3.0 at 0km to 1.0 at 10km with exponential curve
+          const normalizedDistance = distKm / 10; // 0 to 1 within 10km
+          const exponentialCurve = Math.pow(normalizedDistance, 1.5); // Smooth exponential falloff
+          scale = Math.max(1.0, 3.0 - exponentialCurve * 2.0); // 3.0 to 1.0 range
+        } else {
+          // Beyond 10km: gradual scaling from 1.0 to 0.5 based on max radius
+          const beyondNormalized = Math.min(
+            (distKm - 10) / (maxRadius - 10),
+            1
+          );
+          scale = Math.max(0.5, 1.0 - beyondNormalized * 0.5); // 1.0 to 0.5 range
+        }
+        // Compute history positions for window view
+        const rawHistory = computeWindowHistoryPositions(
+          plane.positionHistory,
+          centerLat,
+          centerLon
+        );
+        const historyTrail = rawHistory.map((hp, idx, arr) => ({
+          x: hp.x,
+          y: hp.y,
+          opacity: 0.1 + (0.9 * idx) / (arr.length - 1 || 1),
+        }));
+        return {
+          x,
+          y,
+          callsign: plane.callsign || '',
+          altitude: alt,
+          lat: plane.lat!,
+          lon: plane.lon!,
+          bearing: plane.track ?? 0,
+          iconPath: iconData.path,
+          iconType: iconData.iconType,
+          isHelicopter: this.helicopterIdentificationService.isHelicopter(
+            plane.icao,
+            plane.model
+          ),
+          velocity: plane.velocity ?? 0,
+          verticalRate:
+            plane.verticalRate ??
+            calculateVerticalRateFromHistory(plane.positionHistory) ??
+            undefined,
+          // historical trail for window view
+          historyTrail,
+          scale,
+          distanceKm: distKm,
+          isNew: plane.isNew,
+          isMilitary: plane.isMilitary,
+          isSpecial: plane.isSpecial,
+          icao: plane.icao, // for type safety
+          origin: plane.origin, // Origin country for flag display
+          isGrounded,
+          operator: plane.operator, // Add operator for display
+          model: plane.model, // Add model for display
+        };
+      });
+    // Add window view markers for cone boundaries and midpoints
+    this.updateWindowViewMarkers();
 
     // Merge into historical log
     const mergedMap = new Map<string, PlaneModel>();
@@ -1164,9 +1735,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       if (!this.planeLog.has(this.highlightedPlaneIcao)) {
         if (isShuffleMode) {
           // In shuffle mode, we need to pick a new plane instead of unfollowing
-          console.log(
-            '[updatePlaneLog] Shuffle-followed plane lost, requesting new shuffle...'
-          );
+          // Shuffle-followed plane lost, requesting new shuffle would be logged here
           // Trigger a new shuffle via the component (will pick a new plane)
           this.ngZone.run(() => {
             setTimeout(() => {
@@ -1175,9 +1744,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           });
         } else {
           // Normal mode - unfollow if plane is gone
-          console.log(
-            '[updatePlaneLog] Followed plane lost, clearing follow state'
-          );
+          // Followed plane lost, clearing follow state would be logged here
           this.followNearest = false;
           this.highlightedPlaneIcao = null;
         }
@@ -1255,28 +1822,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  goToAirport(): void {
-    // This now goes to the *default* coordinates, as there's no single "the airport"
-    // Hide the cone when navigating to airport
-    this.coneVisible = false;
-
-    // Update the Show View Axes checkbox to match
-    const coneCheckbox = document.getElementById(
-      'showCone'
-    ) as HTMLInputElement;
-    if (coneCheckbox) {
-      coneCheckbox.checked = false;
-    }
-
-    // Use current main radius for update
-    const currentMainRadius = this.settings.radius ?? 5;
-    this.updateMap(
-      this.DEFAULT_COORDS[0],
-      this.DEFAULT_COORDS[1],
-      currentMainRadius // Pass main radius
-    ); // Triggers airport search
-  }
-
   resolveAndUpdateFromAddress(): void {
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
@@ -1297,18 +1842,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       homeLocation &&
       Math.abs(lat - homeLocation.lat) < 0.0001 &&
       Math.abs(lon - homeLocation.lon) < 0.0001;
-
     if (!atHome) {
-      // Hide the cone when navigating to a searched address (if not at home)
-      this.coneVisible = false;
-
-      // Update the Show View Axes checkbox to match
-      const coneCheckbox = document.getElementById(
-        'showCone'
-      ) as HTMLInputElement;
-      if (coneCheckbox) {
-        coneCheckbox.checked = false;
-      }
+      // Keep the cone visible when navigating to a searched address (if not at home)
+      // The cone will now show full circular bands when away from home
+      // No need to hide it or update the checkbox
     }
 
     // Set the MAIN radius setting if valid
@@ -1455,6 +1992,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   toggleConeVisibility(show: boolean): void {
     // Show or hide cones regardless of current map view, always anchored at home
     this.coneVisible = show;
+    this.settings.setShowViewAxes(show);
   }
 
   /** Adjust cloud layer opacity */
@@ -1462,6 +2000,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cloudOpacity = opacity;
     if (this.cloudLayer) {
       this.cloudLayer.setOpacity(opacity);
+    }
+  }
+
+  /** Adjust rain layer opacity */
+  setRainOpacity(opacity: number): void {
+    this.rainOpacity = opacity;
+    if (this.rainLayer) {
+      this.rainLayer.setOpacity(opacity);
     }
   }
 
@@ -1474,6 +2020,117 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       } else {
         this.cloudLayer.remove();
       }
+    }
+    this.settings.setShowCloudCover(show);
+  }
+
+  /** Toggle display of rain coverage layer */
+  toggleRainCover(show: boolean): void {
+    this.rainVisible = show;
+    if (this.rainLayer) {
+      if (show) {
+        this.rainLayer.addTo(this.map);
+      } else {
+        this.rainLayer.remove();
+      }
+    }
+    this.settings.setShowRainCover(show);
+  }
+
+  /** Apply sky colors from window view to cloud layer for visual synchronization */
+  private applySkyColorsToCloudLayer(skyColors: {
+    bottomColor: string;
+    topColor: string;
+    timestamp: number;
+  }): void {
+    if (!this.cloudLayer) return;
+
+    // Create CSS filter effects based on sky colors
+    const cloudElements = document.querySelectorAll('.cloud-layer');
+    cloudElements.forEach((element) => {
+      const el = element as HTMLElement;
+
+      // Apply a subtle color overlay that blends with the sky colors
+      // Use CSS filters to tint the cloud layer based on atmospheric conditions
+      const filter = this.createCloudLayerFilter(
+        skyColors.bottomColor,
+        skyColors.topColor
+      );
+      el.style.filter = filter;
+      el.style.mixBlendMode = 'multiply';
+    });
+  }
+
+  /** Create CSS filter string for cloud layer based on sky colors */
+  private createCloudLayerFilter(
+    bottomColor: string,
+    topColor: string
+  ): string {
+    // Extract RGB values from the colors
+    const bottomRgb = this.extractRgbFromColor(bottomColor);
+    const topRgb = this.extractRgbFromColor(topColor);
+
+    if (!bottomRgb || !topRgb) return '';
+
+    // Calculate average color for cloud tinting
+    const avgR = Math.round((bottomRgb.r + topRgb.r) / 2);
+    const avgG = Math.round((bottomRgb.g + topRgb.g) / 2);
+    const avgB = Math.round((bottomRgb.b + topRgb.b) / 2);
+
+    // Calculate brightness and color intensity
+    const brightness = (avgR + avgG + avgB) / (3 * 255);
+    const saturation = Math.max(avgR, avgG, avgB) - Math.min(avgR, avgG, avgB);
+
+    // Create filter based on atmospheric conditions
+    const hueShift = this.calculateHueShift(avgR, avgG, avgB);
+    const saturationAdjust = Math.max(
+      0.8,
+      Math.min(1.2, 1 + (saturation / 255) * 0.3)
+    );
+    const brightnessAdjust = Math.max(0.7, Math.min(1.3, brightness * 1.2));
+
+    return `hue-rotate(${hueShift}deg) saturate(${saturationAdjust}) brightness(${brightnessAdjust}) contrast(1.1)`;
+  }
+
+  /** Extract RGB values from color string */
+  private extractRgbFromColor(
+    color: string
+  ): { r: number; g: number; b: number } | null {
+    // Handle various color formats (hex, rgb, rgba)
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      if (hex.length === 6) {
+        return {
+          r: parseInt(hex.slice(0, 2), 16),
+          g: parseInt(hex.slice(2, 4), 16),
+          b: parseInt(hex.slice(4, 6), 16),
+        };
+      }
+    } else if (color.startsWith('rgb')) {
+      const match = color.match(/\d+/g);
+      if (match && match.length >= 3) {
+        return {
+          r: parseInt(match[0]),
+          g: parseInt(match[1]),
+          b: parseInt(match[2]),
+        };
+      }
+    }
+    return null;
+  }
+
+  /** Calculate hue shift based on RGB values */
+  private calculateHueShift(r: number, g: number, b: number): number {
+    // Calculate hue shift based on dominant color
+    if (r > g && r > b) {
+      // Red dominant - sunrise/sunset tones
+      return -10 + (g / 255) * 20;
+    } else if (b > r && b > g) {
+      // Blue dominant - day/night tones
+      return 10 - (r / 255) * 20;
+    } else {
+      // Green or mixed - neutral tones
+      return 0;
     }
   }
 
@@ -1491,7 +2148,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       pm.marker.setZIndexOffset(0); // Reset z-index offset
     }
   }
-
   /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
   centerOnPlane(
     plane: PlaneLogEntry | PlaneModel,
@@ -1504,22 +2160,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.highlightedPlaneIcao === plane.icao &&
       !preserveFollowNearest
     ) {
-      console.log(`Unfollowing plane: ICAO=${plane.icao}`);
       this.unhighlightPlane(plane.icao);
       this.highlightedPlaneIcao = null;
       this.followNearest = false;
+
+      // Clear follow state
+      this.followCoordinatorService.clearAllModes();
+
       this.updatePlaneLog(Array.from(this.planeLog.values()));
       this.cdr.detectChanges();
       return;
+    } // Handle manual plane following - this disables automatic modes
+    if (!fromShuffle && !preserveFollowNearest) {
+      this.followCoordinatorService.followPlaneManually(plane as PlaneLogEntry);
     }
-    // When manually centering/following a plane, enable tracking override
-    this.followNearest = true;
-    // Log manual center/follow action
-    console.log(
-      `CenterOnPlane called: ICAO=${plane.icao}, preserveFollowNearest=${preserveFollowNearest}, followNearest=${this.followNearest}`
-    );
 
-    // Determine followNearest based on preserve flag or shuffle (handled above)
+    // When manually centering/following a plane, disable automatic nearest following
+    // and enable manual following instead
+    this.followNearest = fromShuffle; // Only true if this is from shuffle mode
 
     const icao = plane.icao;
 
@@ -1530,9 +2188,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.highlightedPlaneIcao = icao;
     const pm = this.planeLog.get(icao);
     if (pm?.marker && plane.lat != null && plane.lon != null) {
-      // Pan map to plane location without changing zoom
-      this.map.panTo([plane.lat, plane.lon]);
-      console.log(`map.panTo for ICAO=${icao} at [${plane.lat}, ${plane.lon}]`);
+      // Pan map to plane location without changing zoom with smooth animation
+      this.map.panTo([plane.lat, plane.lon], { animate: true, duration: 1.0 });
 
       pm.marker.setZIndexOffset(20000);
       pm.marker.openTooltip();
@@ -1543,18 +2200,23 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
-
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
-        this.inputOverlayComponent.addressInputRef.nativeElement.value =
-          address;
-        console.log(`Address overlay updated: ${address}`);
-      });
-
-      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
-        this.locationStreet = address;
-        this.locationDistrict = '';
+        // Guard against missing input reference
+        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
+          this.inputOverlayComponent.addressInputRef.nativeElement.value =
+            address;
+        } // Update location overlay info using the same address result
+        if (!address || address.trim() === '') {
+          console.log('Empty geocoding result for followed plane:', address);
+        }
+        this.locationDistrict = address;
+        if (!this.locationDistrict || this.locationDistrict.trim() === '') {
+          console.log(
+            'locationDistrict is empty after setting (followed plane):',
+            this.locationDistrict
+          );
+        }
         this.cdr.detectChanges();
-        console.log(`Location overlay updated: ${address}`);
       });
 
       // Refresh logs and overlays
@@ -1562,44 +2224,33 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.updatePlaneLog(Array.from(this.planeLog.values()));
       this.cdr.detectChanges();
     } else {
-      console.warn(
-        '[CenterOnPlane] Could not highlight plane - marker missing or coordinates invalid',
-        {
-          hasMarker: !!pm?.marker,
-          lat: plane.lat,
-          lon: plane.lon,
-        }
-      );
+      // Could not highlight plane - marker missing or coordinates invalid would be logged here
     }
   }
-
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: any): void {
-    console.log('[followNearestPlane] payload:', plane);
-    console.log('[followNearestPlane] followMe flag:', plane.followMe);
+    // If this is a marker (not a real plane), do nothing
+    if (plane.isMarker) {
+      return;
+    }
     const isFromShuffle = !!plane.followMe;
-    console.log('[followNearestPlane] Is from shuffle:', isFromShuffle);
 
-    // Always set followNearest to true for planes from shuffle
+    // Route through coordinator service for proper mode management
     if (isFromShuffle) {
+      // This is from shuffle mode, already managed by coordinator
       this.followNearest = true;
-      console.log(
-        '[followNearestPlane] Setting followNearest=true for shuffled plane'
-      );
-
       // We need to call centerOnPlane with preserveFollowNearest=false so that
       // it doesn't skip updating the followNearest flag inside centerOnPlane
       this.centerOnPlane(plane, false, true); // pass fromShuffle=true
     } else {
-      // For regular plane selection, use the standard behavior
-      this.centerOnPlane(plane, false, false);
+      // Manual selection - route through coordinator for proper follow management
+      this.followCoordinatorService.followPlaneManually(plane);
     }
   }
-
   /** Handle centering map on selected airport coordinates */
   public onCenterAirport(coords: { lat: number; lon: number }): void {
-    // Pan map to airport coordinates
-    this.map.panTo([coords.lat, coords.lon]);
+    // Pan map to airport coordinates with smooth animation
+    this.map.panTo([coords.lat, coords.lon], { animate: true, duration: 1.0 });
   }
 
   // New function to find and display airports
@@ -1609,15 +2260,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm: number
   ): Promise<void> {
     if (this.airportsLoading) {
-      console.debug(
-        '[MapComponent] findAndDisplayAirports skipped: already loading'
-      );
+      // findAndDisplayAirports skipped: already loading would be logged here
       return;
     }
     this.airportsLoading = true;
-    console.debug(
-      `[MapComponent] findAndDisplayAirports start lat=${lat}, lon=${lon}, radiusKm=${radiusKm}`
-    );
+    // findAndDisplayAirports start would be logged here
     this.ngZone.run(() => {
       this.loadingAirports = true;
       this.cdr.detectChanges();
@@ -1635,7 +2282,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         (
           node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
           way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-          relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
+                   relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
         );
         out center;
       `;
@@ -1669,45 +2316,96 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             const defaultKm = code
               ? MAJOR_AIRPORT_RADIUS_KM
               : MINOR_AIRPORT_RADIUS_KM;
-            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm;
-
-            // Check if circle already exists
+            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm; // Check if circle already exists
             if (!this.airportCircles.has(airportId)) {
+              // Determine initial color based on clicked state
+              const isClicked = this.clickedAirports.has(airportId);
+              const circleColor = isClicked ? 'gold' : 'cyan';
+              const fillPattern = isClicked
+                ? 'url(#airportStripedPatternGold)'
+                : 'url(#airportStripedPatternCyan)';
+
               const circle = L.circle([airportLat, airportLon], {
                 radius: useKm * 1000,
-                color: 'cyan',
+                color: circleColor,
                 weight: 2,
                 fill: true,
-                fillColor: 'url(#airportStripedPattern)',
-                fillOpacity: 0.3, // initial low opacity
+                fillColor: fillPattern,
+                fillOpacity: 0.3,
                 className: 'airport-radius',
-                interactive: false,
+                interactive: true,
               }).addTo(this.map);
-              this.airportCircles.set(airportId, circle);
+              // Add click event handler to toggle color
+              circle.on('click', () => {
+                const currentlyClicked = this.clickedAirports.has(airportId);
+                if (currentlyClicked) {
+                  // Remove from clicked set and change to cyan
+                  this.clickedAirports.delete(airportId);
+                  circle.setStyle({
+                    color: 'cyan',
+                    fillColor: 'url(#airportStripedPatternCyan)',
+                  });
+                } else {
+                  // Add to clicked set and change to gold
+                  this.clickedAirports.add(airportId);
+                  circle.setStyle({
+                    color: 'gold',
+                    fillColor: 'url(#airportStripedPatternGold)',
+                  });
+                }
+                // Save clicked airports to settings
+                this.settings.setClickedAirports(this.clickedAirports);
+              });
 
-              // Use default radius until bulk runway query updates it
+              // Always bind tooltip; use `permanent` to show/hide labels
+              circle.bindTooltip(name, {
+                direction: 'center',
+                className: 'airport-tooltip',
+                opacity: 0.8,
+                offset: [0, 0],
+                permanent: this.showAirportLabels,
+              });
+              this.airportCircles.set(airportId, circle); // Use default radius until bulk runway query updates it
               if (!this.airportRadiusCache.has(airportId)) {
                 const defaultKm = code
                   ? MAJOR_AIRPORT_RADIUS_KM
                   : MINOR_AIRPORT_RADIUS_KM;
                 this.airportRadiusCache.set(airportId, defaultKm);
               }
+            } else {
+              // Update existing circle color based on clicked state
+              const existingCircle = this.airportCircles.get(airportId);
+              if (existingCircle) {
+                const isClicked = this.clickedAirports.has(airportId);
+                const circleColor = isClicked ? 'gold' : 'cyan';
+                const fillPattern = isClicked
+                  ? 'url(#airportStripedPatternGold)'
+                  : 'url(#airportStripedPatternCyan)';
+                existingCircle.setStyle({
+                  color: circleColor,
+                  fillColor: fillPattern,
+                });
+              }
             }
           }
         }
-      }
-
-      // Remove circles for airports no longer in the result set
+      } // Remove circles for airports no longer in the result set
       this.airportCircles.forEach((circle, id) => {
         if (!foundAirportIds.has(id)) {
           circle.remove();
           this.airportCircles.delete(id);
           // Remove stored airport metadata
           this.airportData.delete(id);
+          // Remove from clicked airports set
+          this.clickedAirports.delete(id);
         }
       });
 
+      // Save clicked airports to settings if any were removed
+      this.settings.setClickedAirports(this.clickedAirports);
+
       // --- Bulk fetch runway data for all airports at once ---
+
       if (this.airportCircles.size > 0) {
         const airportList = Array.from(this.airportCircles.entries()).map(
           ([id, circle]) => ({
@@ -1724,7 +2422,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const maxLat = Math.max(...lats) + radiusKm / 111;
         const minLon = Math.min(...lons) - radiusKm / 111;
         const maxLon = Math.max(...lons) + radiusKm / 111;
+
         const runwayQuery = `
+         
           [out:json][timeout:25];
           (
             way[\"aeroway\"=\"runway\"](${minLat},${minLon},${maxLat},${maxLon});
@@ -1772,6 +2472,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 lengthsByAirport.set(bestId, Math.max(prev, lenKm));
               }
             });
+
             // apply computed radii
             airportList.forEach((a) => {
               const circle = this.airportCircles.get(a.id);
@@ -1801,10 +2502,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       });
     } catch (error) {
-      console.error(
-        '[MapComponent] Failed to fetch or process airport data:',
-        error
-      );
+      // Failed to fetch or process airport data error would be logged here
       // Hide loading indicator on error
       this.ngZone.run(() => {
         this.loadingAirports = false;
@@ -1872,7 +2570,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.cdr.detectChanges();
     }, 500);
   }
-
   /** Temporarily highlight marker and tooltip on overlay hover */
   onHoverOverlayPlane(plane: PlaneLogEntry): void {
     const pm = this.planeLog.get(plane.icao);
@@ -1911,12 +2608,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Update location information for the followed plane */
   private updatePlaneLocationInfo(): void {
     // Only fetch location when a plane is being followed
+
     if (this.followNearest && this.highlightedPlaneIcao && this.closestPlane) {
       const plane = this.closestPlane;
       if (plane && plane.lat !== null && plane.lon !== null) {
         this.reverseGeocode(plane.lat, plane.lon).then((address) => {
+          if (!address || address.trim() === '') {
+            console.log('Empty geocoding result for plane update:', address);
+          }
           this.locationStreet = address;
-          this.locationDistrict = '';
+          this.locationDistrict = address;
+          if (!this.locationDistrict || this.locationDistrict.trim() === '') {
+            console.log(
+              'locationDistrict is empty after setting (plane update):',
+              this.locationDistrict
+            );
+          }
           this.cdr.detectChanges();
         });
       }
@@ -1925,15 +2632,197 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onToggleDateTimeOverlays(): void {
     this.showDateTime = !this.showDateTime;
+
     this.settings.setShowDateTimeOverlay(this.showDateTime);
     this.cdr.detectChanges();
   }
 
+  /** Toggle altitude-colored borders on plane tooltips */
+  onToggleAltitudeBorders(enabled: boolean): void {
+    this.showAltitudeBorders = enabled;
+
+    // Save the setting for persistence
+    this.settings.setShowAltitudeBorders(enabled);
+
+    // Update all existing tooltips with the new border style
+    this.updateTooltipAltitudeBorders();
+
+    this.cdr.detectChanges();
+  }
+
+  /** Update all existing plane tooltips with altitude-colored borders based on current setting */
+  private updateTooltipAltitudeBorders(): void {
+    this.planeLog.forEach((plane) => {
+      if (plane.marker && plane.marker.getTooltip()) {
+        this.applyTooltipAltitudeBorder(plane);
+      }
+    });
+  }
+  /** Apply or remove altitude-colored border styling to a plane's tooltip */
+  private applyTooltipAltitudeBorder(plane: PlaneModel): void {
+    const tooltipEl = plane.marker?.getTooltip()?.getElement();
+    if (!tooltipEl) return;
+
+    if (
+      this.showAltitudeBorders &&
+      plane.altitude !== null &&
+      plane.altitude !== undefined
+    ) {
+      // Get altitude color from the service
+      const altitudeColor = this.altitudeColor.getFillColor(plane.altitude);
+
+      // Apply altitude-colored border to all sides
+      tooltipEl.style.borderColor = altitudeColor;
+      tooltipEl.classList.add('altitude-bordered-tooltip');
+    } else {
+      // Remove altitude border styling
+      tooltipEl.style.borderColor = '';
+      tooltipEl.classList.remove('altitude-bordered-tooltip');
+    }
+  }
+
+  /** Update sun angle and related astronomical data */
   private updateSunAngle(): void {
-    if (!this.map) return;
-    const center = this.map.getCenter();
-    const sunPos = SunCalc.getPosition(new Date(), center.lat, center.lng);
-    // Convert azimuth to degrees for CSS rotation (arrow points toward sun)
-    this.sunAngle = (sunPos.azimuth * 180) / Math.PI;
+    const now = new Date();
+    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
+    // Calculate sun position using SunCalc
+    const sunPos = SunCalc.getPosition(now, lat, lon);
+    const moonPos = SunCalc.getMoonPosition(now, lat, lon);
+    const moonIllum = SunCalc.getMoonIllumination(now);
+
+    // Convert azimuth from radians to degrees (0° = North, 90° = East)
+    const sunAzimuthDeg = (sunPos.azimuth * 180) / Math.PI;
+    this.sunAngle = (sunAzimuthDeg + 180) % 360; // Adjust for display
+
+    // Check if it's night (sun below horizon)
+    this.isNight = sunPos.altitude < 0;
+
+    // Calculate next sun event
+    const sunTimes = SunCalc.getTimes(now, lat, lon);
+    const currentTime = now.getTime();
+
+    if (this.isNight) {
+      // If it's night, find the next sunrise (today or tomorrow)
+      let sunriseDate = sunTimes.sunrise;
+      if (sunriseDate.getTime() <= currentTime) {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        sunriseDate = SunCalc.getTimes(tomorrow, lat, lon).sunrise;
+      }
+      const sunrise = sunriseDate.getTime();
+      const timeUntilSunrise = Math.max(0, sunrise - currentTime);
+      const hoursUntilSunrise = Math.floor(timeUntilSunrise / (1000 * 60 * 60));
+      const minutesUntilSunrise = Math.floor(
+        (timeUntilSunrise % (1000 * 60 * 60)) / (1000 * 60)
+      );
+      this.sunEventText = `Sunrise ${hoursUntilSunrise}h ${minutesUntilSunrise}m`;
+    } else {
+      // If it's day, show time until sunset
+      const sunset = sunTimes.sunset.getTime();
+      const timeUntilSunset = Math.max(0, sunset - currentTime);
+      const hoursUntilSunset = Math.floor(timeUntilSunset / (1000 * 60 * 60));
+      const minutesUntilSunset = Math.floor(
+        (timeUntilSunset % (1000 * 60 * 60)) / (1000 * 60)
+      );
+      this.sunEventText = `Sunset ${hoursUntilSunset}h ${minutesUntilSunset}m`;
+    }
+
+    // Update moon properties for night display
+    if (this.isNight) {
+      this.moonFraction = moonIllum.fraction;
+      this.moonIsWaning = moonIllum.phase > 0.5;
+
+      // Calculate moon phase name
+      const phase = moonIllum.phase;
+      if (phase < 0.1 || phase > 0.9) {
+        this.moonPhaseName = 'New Moon';
+      } else if (phase < 0.3) {
+        this.moonPhaseName = 'Waxing Crescent';
+      } else if (phase < 0.4) {
+        this.moonPhaseName = 'First Quarter';
+      } else if (phase < 0.6) {
+        this.moonPhaseName = 'Waxing Gibbous';
+      } else if (phase < 0.7) {
+        this.moonPhaseName = 'Full Moon';
+      } else if (phase < 0.9) {
+        this.moonPhaseName = 'Waning Gibbous';
+      } else {
+        this.moonPhaseName = 'Last Quarter';
+      }
+
+      // Use moon azimuth when night
+      const moonAzimuthDeg = (moonPos.azimuth * 180) / Math.PI;
+      this.sunAngle = (moonAzimuthDeg + 180) % 360;
+      // Store terminator tilt (phase angle) for mask rotation
+      this.moonTerminatorAngle = (moonIllum.angle * 180) / Math.PI;
+    }
+  }
+
+  /** Apply brightness effects to the map container using CSS filters */
+  private applyBrightnessToMap(): void {
+    if (!this.brightnessState) {
+      return;
+    }
+
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+      return;
+    }
+
+    const brightness = this.brightnessState.brightness;
+    const isDimming = this.brightnessState.isDimming;
+
+    // Create CSS filter based on brightness state
+    let filterString = `brightness(${brightness})`;
+
+    // Add additional effects during dimming
+    if (isDimming) {
+      const contrastValue = 1;
+      const saturationValue = 1;
+      filterString += ` contrast(${contrastValue}) saturate(${saturationValue})`;
+      // Add subtle blue tint during night hours
+      if (brightness < 0.3) {
+        filterString += ` hue-rotate(10deg)`;
+      }
+    }
+
+    // Apply the filter to the map container
+    mapContainer.style.filter = filterString;
+    mapContainer.style.transition = 'filter 0.5s ease-in-out';
+  }
+
+  /** Calculate azimuth (bearing) from one point to another */
+  private calculateAzimuth(
+    fromLat: number,
+    fromLon: number,
+    toLat: number,
+    toLon: number
+  ): number {
+    // Use the existing computeBearing utility function
+    return computeBearing(fromLat, fromLon, toLat, toLon);
+  }
+
+  /** Get the background color for the moon (dark side) */
+  public getMoonBackgroundColor(): string {
+    // Return dark color for the moon's shadow
+    return '#000000';
+  }
+
+  /** Get the lit color for the moon (illuminated side) */
+  public getMoonLitColor(): string {
+    // Return light color for the moon's illuminated side
+    return '#d4d4d4';
+  }
+
+  /** Observer latitude (current map center latitude) */
+  public get observerLat(): number {
+    return this.currentLat;
+  }
+
+  /** Observer longitude (current map center longitude) */
+  public get observerLon(): number {
+    return this.currentLon;
   }
 }

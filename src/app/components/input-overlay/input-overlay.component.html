@@ -7,8 +7,8 @@
         [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="collapsed ? 'Expand options' : 'Collapse options'"
-        [title]="collapsed ? 'Expand options' : 'Collapse options'"
+        [ariaLabel]="collapseTooltip"
+        [appTooltip]="collapseTooltip"
         (click)="toggleCollapsed()"
       ></app-button>
       <app-button
@@ -16,9 +16,100 @@
         [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="showDateTime ? 'Hide date/time' : 'Show date/time'"
-        [title]="showDateTime ? 'Hide date/time' : 'Show date/time'"
+        [ariaLabel]="dateTimeTooltip"
+        [appTooltip]="dateTimeTooltip"
         (click)="toggleDateTimeOverlays.emit()"
+      ></app-button>
+      <div
+        class="brightness-button-wrapper"
+        [class.auto]="brightnessState?.mode === 'auto'"
+      >
+        <app-button
+          class="toggle-brightness"
+          [icon]="brightnessIcon"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="brightnessSimpleTooltip"
+          [appTooltip]="sunStatusTooltip"
+          (click)="onBrightnessToggle()"
+        ></app-button>
+      </div>
+      <app-button
+        class="toggle-airport-labels"
+        [icon]="showAirportLabels ? 'label' : 'label_off'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="airportLabelsTooltip"
+        [appTooltip]="airportLabelsTooltip"
+        (click)="toggleAirportLabels.emit()"
+      ></app-button>
+      <app-button
+        class="toggle-cloud-cover"
+        [icon]="showCloudCover ? 'cloud' : 'cloud_off'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="cloudCoverTooltip"
+        [appTooltip]="cloudCoverTooltip"
+        (click)="cloudToggleChange.emit(!showCloudCover)"
+      ></app-button>
+      <app-button
+        class="toggle-rain-cover"
+        [icon]="showRainCover ? 'rainy_heavy' : 'rainy_snow'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="rainCoverTooltip"
+        [appTooltip]="rainCoverTooltip"
+        (click)="rainToggleChange.emit(!showRainCover)"
+      ></app-button>
+      <!-- View axes toggle button -->
+      <app-button
+        class="toggle-view-axes"
+        [icon]="showViewAxes ? 'target' : 'filter_tilt_shift'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="viewAxesTooltip"
+        [appTooltip]="viewAxesTooltip"
+        (click)="coneVisibilityChange.emit(!showViewAxes)"
+      ></app-button>
+      <!-- Altitude tooltip borders toggle button moved to results overlay -->
+      <!-- Force scan button -->
+      <app-button
+        class="force-scan"
+        icon="refresh"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="forceScanTooltip"
+        [appTooltip]="forceScanTooltip"
+        (click)="onResolveAndUpdate($event)"
+      ></app-button>
+      <!-- Zoom controls -->
+      <app-button
+        class="zoom-in"
+        icon="add"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="zoomInTooltip"
+        [appTooltip]="zoomInTooltip"
+        (click)="onZoomIn()"
+      ></app-button>
+      <app-button
+        class="zoom-out"
+        icon="remove"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="zoomOutTooltip"
+        [appTooltip]="zoomOutTooltip"
+        (click)="onZoomOut()"
+      ></app-button>
+      <app-button
+        class="go-home"
+        icon="home"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="goHomeTooltip"
+        [appTooltip]="goHomeTooltip"
+        tooltipPosition="left"
+        (click)="onGoToHome()"
       ></app-button>
     </app-tab>
   </div>
@@ -27,7 +118,6 @@
     (submit)="onResolveAndUpdate($event)"
     autocomplete="off"
   >
-    <h1>Precious Little Lifeforms</h1>
     <div class="form-group">
       <label for="address">Address</label>
       <div *ngIf="currentAddress" class="current-address">
@@ -56,40 +146,30 @@
       />
     </div>
     <div class="form-group">
-      <label for="checkInterval">Check Interval (minutes):</label>
+      <label for="checkInterval">Check Interval (seconds):</label>
       <input
         #checkIntervalInput
         type="number"
         autocomplete="off"
         id="checkInterval"
-        placeholder="Enter check interval (minutes)"
+        placeholder="Enter check interval (seconds)"
         step="any"
-        [value]="settings.interval / 60"
+        [value]="settings.interval"
         (change)="onIntervalChange($event)"
       />
     </div>
-    <div class="form-group">
+    <!-- <div class="form-group">
       <label class="checkbox-inline" for="showCone">
         <input
           type="checkbox"
           id="showCone"
           [checked]="showViewAxes"
-          (change)="onShowConeChange($event)"
+          (change)="coneVisibilityChange.emit($event.target?.checked)"
         />
         Show view axes
       </label>
-    </div>
-    <div class="form-group">
-      <label class="checkbox-inline" for="showCloud">
-        <input
-          type="checkbox"
-          id="showCloud"
-          [checked]="showCloudCover"
-          (change)="onShowCloudCoverChange($event)"
-        />
-        Show Cloud Cover
-      </label>
-    </div>
+    </div> -->
+
     <div class="button-group">
       <app-button
         id="findButton"
@@ -105,12 +185,6 @@
         [text]="'Use My Current Location'"
         type="secondary"
         (click)="onUseCurrentLocation()"
-      ></app-button>
-      <app-button
-        id="berButton"
-        [text]="'Search near BER'"
-        type="secondary"
-        (click)="onGoToAirport()"
       ></app-button>
       <app-button
         id="setHomeButton"

@@ -35,6 +35,9 @@
           target="_blank"
           title="Open in ADS-B Exchange"
           rel="noopener noreferrer"
+          [style.color]="
+            planeStyle.getLabelColor(plane, plane.icao === followedPlaneIcao)
+          "
         >
           {{ plane.callsign }}
         </a>
@@ -73,12 +76,12 @@
 
   <!-- Right side: Direction (Sky/Airport) OR Time Ago (Seen) -->
   <ng-container *ngIf="listType === 'sky' || listType === 'airport'">
-    <span class="direction-info">
-      <!-- Display IATA code (Airport only) -->
+    <span class="direction-info">      <!-- Display IATA code (Airport only) - only show if plane has airport badge criteria -->
       <span
         ><span
           class="airport-code clickable"
-          *ngIf="listType === 'airport' && plane.airportCode"
+          *ngIf="listType === 'airport' && plane.airportCode && plane.airportName && 
+                 (plane.onGround === true || (plane.altitude != null && plane.altitude <= 200))"
           [title]="plane.airportName"
           (click)="onCenterAirport($event)"
         >
@@ -87,15 +90,16 @@
         <span
           class="airport-name clickable"
           *ngIf="
-            listType === 'airport' && !plane.airportCode && plane.airportName
+            listType === 'airport' && !plane.airportCode && plane.airportName &&
+            (plane.onGround === true || (plane.altitude != null && plane.altitude <= 200))
           "
           (click)="onCenterAirport($event)"
         >
           {{ plane.airportName }}
-        </span>
-        <!-- Clickable airport code for sky list -->
+        </span><!-- Clickable airport code for sky list - only show if plane has airport badge criteria -->
         <span
-          *ngIf="listType === 'sky' && plane.airportCode"
+          *ngIf="listType === 'sky' && plane.airportCode && plane.airportName && 
+                 (plane.onGround === true || (plane.altitude != null && plane.altitude <= 200))"
           class="airport-code clickable"
           [title]="plane.airportName"
           (click)="onCenterAirport($event)"
@@ -110,7 +114,7 @@
       >
         navigation
       </span>
-      <span>{{ distanceKm }} km</span>
+      <span>{{ distanceKm | number : "1.1-1" }} km</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">

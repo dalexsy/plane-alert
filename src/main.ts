@@ -12,4 +12,6 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(HttpClientModule, BrowserAnimationsModule),
     Title,
   ],
-}).catch((err) => console.error(err));
+}).catch((err) => {
+  // Error handling removed - errors will be thrown naturally
+});

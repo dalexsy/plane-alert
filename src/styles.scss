@@ -1,5 +1,6 @@
 @use "app/styles/plane-marker" as *;
 @use "app/styles/plane-tooltip" as *;
+@use "app/directives/tooltip" as *;
 @import url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/6.6.6/css/flag-icons.min.css");
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 @import "leaflet/dist/leaflet.css";
@@ -62,7 +63,7 @@ a:active {
 
 a:hover {
   opacity: 0.8;
-  transform: scale(1.02);
+  transform: scale(1.04);
 }
 
 // Font family variables
@@ -125,6 +126,8 @@ h3 {
     font-family: $font-body !important;
     font-weight: 600;
     letter-spacing: 2px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+      1px 1px 0 #000;
   }
 }
 
@@ -152,4 +155,9 @@ input {
 
 ::-webkit-scrollbar-track {
   background-color: transparent;
+}
+
+/* Shift date and time overlay right when input overlay is collapsed */
+app-input-overlay.collapsed ~ app-clock .clock-container {
+  left: 3.5rem;
 }

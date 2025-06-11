@@ -1,218 +1,445 @@
-// src/app/components/plane-list-item/plane-list-item.component.scss
-$new-plane-color: #ff6161;
-$followed-plane-color: #00ffff;
+// ============================================================================
+// PLANE LIST ITEM COMPONENT STYLES
+// ============================================================================
+
+// ============================================================================
+// DESIGN TOKENS
+// ============================================================================
+
+// Color System
+$color-military: #89d138;
+$color-airport: gold;
+$color-followed: #00ffff;
+$color-new-plane: #ff6161;
+$color-text-muted: #aaa;
+$color-border: rgba(255, 255, 255, 0.4);
+$color-background-white: white;
+$color-text-dark: black;
+
+// Spacing System
+$space-xs: 0.25rem;
+$space-sm: 0.5rem;
+$space-md: 1rem;
+$space-lg: 1.5rem;
+$space-xl: 2rem;
+
+// Border System
+$border-width-thin: 1px;
+$border-width-medium: 2px;
+$border-width-thick: 3px;
+$border-width-airport-tag: 1.5px;
+
+// Typography
+$font-family-mono: "JetBrains Mono", monospace;
+$font-size-small: 0.75rem;
+$font-size-base: 1rem;
+$font-weight-normal: 320;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+
+// Layout Constants
+$grid-button-width: 2rem;
+$grid-flag-width: 1.75rem;
+$grid-direction-icon-size: 1.75rem;
+$grid-spacing: $space-xs;
+
+// Animation & Effects
+$transition-standard: 0.2s ease;
+$hover-opacity: 0.8;
+$blur-subtle: 0.5px;
+$grayscale-faded: 0.7;
+
+// ============================================================================
+// MIXINS
+// ============================================================================
+
+// Border with padding compensation mixin
+@mixin border-with-compensation(
+  $side: left,
+  $width: $border-width-thick,
+  $color: currentColor
+) {
+  border-#{$side}: $width solid $color;
+
+  @if $side == left {
+    padding-left: calc(#{$space-md} - #{$width});
+  }
+}
+
+// Gradient background mixin
+@mixin gradient-background($color, $opacity-start: 0.2, $opacity-end: 0.05) {
+  background: linear-gradient(
+    90deg,
+    rgba($color, $opacity-start) 0%,
+    rgba($color, $opacity-end) 100%
+  );
+}
+
+// Modern color-mix with fallback
+@mixin color-mix-background($color, $percentage: 15%) {
+  background-color: color-mix(in srgb, $color $percentage, transparent);
+
+  // Fallback for browsers without color-mix support
+  @supports not (
+    background-color: color-mix(in srgb, $color $percentage, transparent)
+  ) {
+    background-color: rgba($color, $percentage / 100%);
+  }
+}
+
+// Hover effect mixin
+@mixin hover-tint($opacity: 20%) {
+  &:hover {
+    background-color: color-mix(in srgb, currentColor $opacity, transparent);
+
+    @supports not (
+      background-color: color-mix(in srgb, currentColor $opacity, transparent)
+    ) {
+      background-color: currentColor;
+      opacity: $opacity / 100%;
+    }
+  }
+}
+
+// Airport tag styling mixin
+@mixin airport-tag-style($color) {
+  color: $color !important;
+  background: rgba($color, 0.2) !important;
+  font-weight: $font-weight-semibold;
+  border: $border-width-airport-tag solid $color;
+  box-shadow: 0 0 6px rgba($color, 0.3);
+}
+
+// ============================================================================
+// HOST COMPONENT STYLES
+// ============================================================================
 
 :host {
+  // Layout
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-  padding: 0.5rem 1rem; // restore overlay item padding
-  mix-blend-mode: plus-lighter; // overlay blend mode
-  font-family: "JetBrains Mono", monospace;
   align-items: center;
+
+  // Spacing
+  padding: $space-sm $space-md;
+
+  // Visual
+  border-bottom: $border-width-thin solid $color-border;
+  mix-blend-mode: plus-lighter;
+  font-family: $font-family-mono;
   cursor: pointer;
+
+  // Transitions
+  transition: background-color $transition-standard,
+    opacity $transition-standard, filter $transition-standard;
 
   &:last-of-type {
     border-bottom: none;
   }
 
-  .none-callsign,
-  .unknown-operator {
-    opacity: 0.8;
-    font-style: italic;
+  // Hover effects
+  @include hover-tint(20%);
+}
+
+// ============================================================================
+// STATE MODIFIERS
+// ============================================================================
+
+// New Plane State
+:host.new-plane {
+  color: $color-new-plane;
+}
+
+// Followed Plane State
+:host.followed-plane {
+  color: $color-followed;
+  @include border-with-compensation(left, $border-width-thick, $color-followed);
+  @include gradient-background($color-followed);
+
+  // Typography adjustments
+  font-variation-settings: none;
+
+  a,
+  .direction-info {
+    font-variation-settings: normal;
+  }
+}
+
+// Military Plane State
+:host.military-plane {
+  color: $color-military;
+  @include border-with-compensation(left, $border-width-thick, $color-military);
+  @include color-mix-background($color-military, 15%);
+
+  // Military-specific airport tag styling
+  .airport-code,
+  .airport-name {
+    @include airport-tag-style($color-military);
   }
 
-  &.new-plane {
-    color: $new-plane-color;
-  }
+  // Override followed styling for military planes
   &.followed-plane {
-    color: $followed-plane-color;
-    border-left: 3px solid $followed-plane-color;
-    background: linear-gradient(
-      90deg,
-      rgba(0, 255, 255, 0.2) 0%,
-      rgba(0, 255, 255, 0.05) 100%
+    color: $color-military;
+    @include border-with-compensation(
+      left,
+      $border-width-thick,
+      $color-military
     );
-    font-variation-settings: none;
-    a,
-    .direction-info {
-      font-variation-settings: normal;
+    @include gradient-background($color-military);
+
+    a {
+      color: $color-military;
     }
   }
+}
+
+// Special Plane State
+:host.special-plane {
+  color: $color-airport;
+}
+
+// Highlighted Plane State
+:host.highlighted-plane {
+  color: $color-followed;
+  @include border-with-compensation(
+    left,
+    $border-width-medium,
+    $color-followed
+  );
+  @include gradient-background($color-followed);
+
+  // Military variant of highlighted state
   &.military-plane {
-    color: #89d138;
-    // Override followed styling on military planes
-    &.followed-plane {
-      // Match military color
-      color: #89d138;
-      border-left: 3px solid #89d138;
-      background: linear-gradient(
-        90deg,
-        rgba(137, 209, 56, 0.2) 0%,
-        rgba(137, 209, 56, 0.05) 100%
-      );
-      a {
-        color: #89d138;
-      }
-    }
-  }
-  &.special-plane {
-    color: gold;
-  }
-  &.filtered-out,
-  &.hide-commercial {
-    display: none !important;
-  }
-  &.highlighted-plane {
-    color: #00ffff;
-    background: linear-gradient(
-      90deg,
-      rgba(0, 255, 255, 0.2) 0%,
-      rgba(0, 255, 255, 0.05) 100%
+    color: $color-military;
+    @include border-with-compensation(
+      left,
+      $border-width-medium,
+      $color-military
     );
-    border-left: 2px solid #00ffff;
-    padding-left: calc(1rem - 2px);
+    @include gradient-background($color-military);
   }
-  &.military-plane.highlighted-plane {
-    color: #89d138;
-    background: linear-gradient(
-      90deg,
-      rgba(137, 209, 56, 0.2) 0%,
-      rgba(137, 209, 56, 0.05) 100%
-    );
-    border-left: 2px solid #89d138;
-    padding-left: calc(1rem - 2px);
+}
+
+// Airport Clicked State
+:host.airport-clicked {
+  @include border-with-compensation(left, $border-width-thick, $color-airport);
+  @include color-mix-background($color-airport, 20%);
+
+  .airport-code,
+  .airport-name {
+    @include airport-tag-style($color-airport);
+    box-shadow: 0 0 6px rgba($color-airport, 0.4);
+  }
+}
+
+// Faded Out State
+:host.faded-out {
+  opacity: 0.7;
+}
+
+// Filter States
+:host.filtered-out,
+:host.hide-commercial {
+  display: none !important;
+}
+
+// ============================================================================
+// LAYOUT COMPONENTS
+// ============================================================================
+
+// Top and Bottom Row Layout
+.top,
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.bottom {
+  align-items: start;
+}
+
+// ============================================================================
+// CONTENT SECTIONS
+// ============================================================================
+
+// Flag and Callsign Section
+.flag-callsign {
+  display: grid;
+  grid-template-columns: $grid-button-width $grid-flag-width auto auto;
+  gap: $grid-spacing;
+  align-items: center;
+  margin-left: -$space-sm; // Align with overlay
+
+  app-button {
+    align-self: start; // Align button to top
+  }
+}
+
+// Operator and Visibility Section
+.operator-visibility {
+  display: grid;
+  grid-template-columns: $grid-button-width auto;
+  gap: $grid-spacing;
+  align-items: center;
+  margin-left: -$space-sm; // Align button edge
+
+  app-button {
+    align-self: center; // Keep button centered vertically
+  }
+}
+
+// Direction Information Section
+.direction-info {
+  display: grid;
+  grid-template-columns: auto auto $space-lg auto;
+  align-items: center;
+  gap: $space-sm;
+  justify-items: end;
+  text-align: right;
+  font-variation-settings: "FILL" 0, "wght" $font-weight-normal, "GRAD" 0,
+    "opsz" 20;
+  transform-origin: center;
+
+  .direction-icon {
+    width: $grid-direction-icon-size;
+    height: $grid-direction-icon-size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center;
+  }
+}
+
+// ============================================================================
+// TEXT ELEMENTS
+// ============================================================================
+
+// Special Text States
+.none-callsign,
+.unknown-operator {
+  opacity: $hover-opacity;
+  font-style: italic;
+}
+
+// Time Display
+.time-ago {
+  text-align: right;
+  color: $color-text-muted;
+}
+
+// Callsign Container
+.call-sign {
+  display: flex;
+  flex-direction: row;
+  gap: $space-xs;
+  align-items: center;
+}
+
+// Model Information
+.model {
+  text-align: right;
+  hyphens: auto;
+  position: relative;
+  bottom: -4px;
+
+  a {
+    display: flex;
+    gap: $space-xs;
+  }
+}
+
+// ============================================================================
+// AIRPORT TAGS
+// ============================================================================
+
+.airport-code,
+.airport-name {
+  // Layout
+  display: block;
+  text-align: right;
+
+  // Typography
+  font-size: $font-size-small;
+  font-variation-settings: "FILL" 0, "wght" $font-weight-medium, "GRAD" 0,
+    "opsz" 20;
+
+  // Visual
+  color: $color-text-dark;
+  background: $color-background-white;
+  padding: 0 $space-xs;
+  border-radius: $space-xs;
+
+  // Interaction
+  transition: opacity $transition-standard, transform $transition-standard;
+
+  &:hover {
+    opacity: $hover-opacity;
+    transform: scale(1.03);
   }
 
-  .top,
-  .bottom {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    align-items: center; // Vertically center items in both rows
+  // Clickable state
+  &.clickable {
+    cursor: pointer;
+  }
+}
+
+// ============================================================================
+// ICONS
+// ============================================================================
+
+.icon.small {
+  font-size: $font-size-base;
+  width: $font-size-base;
+  height: $font-size-base;
+}
+
+.military-star {
+  color: $color-military;
+}
+
+// ============================================================================
+// RESPONSIVE DESIGN
+// ============================================================================
+
+// Small screens
+@media (max-width: 768px) {
+  :host {
+    padding: $space-xs $space-sm;
   }
 
   .flag-callsign,
-  .direction-info,
   .operator-visibility {
-    display: grid;
-    gap: 0.25rem;
-    align-items: center;
-  }
-
-  .flag-callsign {
-    grid-template-columns: 2rem 1.75rem auto auto; // match overlay structure
-    margin-left: -0.5rem; // align with overlay
-    app-button {
-      align-self: start; // align button to top
-    }
-  }
-
-  .operator-visibility {
-    // Styles for the new wrapper
-    grid-template-columns: 2rem auto; // Button column + Operator column
-    margin-left: -0.5rem; // Align button edge
-    app-button {
-      align-self: center;
-    } // Keep button centered vertically
+    gap: $space-xs / 2;
   }
 
   .direction-info {
-    grid-template-columns: auto auto 1.5rem auto; // restore overlay ordering
-    gap: 0.5rem;
-    justify-items: end;
-    text-align: right;
-    font-variation-settings: "FILL" 0, "wght" 320, "GRAD" 0, "opsz" 20;
-    transform-origin: center;
-
-    .direction-icon {
-      width: 1.75rem;
-      height: 1.75rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transform-origin: center;
-    }
+    gap: $space-xs;
   }
+}
 
-  .time-ago {
-    text-align: right;
-    color: #aaa;
+// ============================================================================
+// ACCESSIBILITY
+// ============================================================================
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  :host {
+    border-bottom-color: currentColor;
   }
 
   .airport-code,
   .airport-name {
-    text-align: right;
-    color: black;
-    background: white;
-    font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20;
-    font-size: 0.75rem;
-    padding: 0 0.25rem;
-    display: block;
-
-    border-radius: 0.25rem;
-
-    &:hover {
-      opacity: 0.8;
-      transform: scale(1.03);
-    }
-  }
-
-  // Cursor pointer for clickable airport elements
-  .airport-code.clickable,
-  .airport-name.clickable {
-    cursor: pointer;
-  }
-
-  .model {
-    text-align: right;
-    hyphens: auto;
-    a {
-      display: flex;
-      gap: 0.25rem;
-    }
-  }
-
-  .icon.small {
-    font-size: 1rem;
-    width: 1rem;
-    height: 1rem;
-  }
-
-  .call-sign {
-    display: flex;
-    flex-direction: row;
-    gap: 0.25rem;
-    align-items: center;
-  }
-
-  .military-star {
-    color: #89d138; // Match military color
-  }
-
-  // Tint background on hover using CSS Color Module if supported
-  &:hover {
-    background-color: color-mix(in srgb, currentColor 20%, transparent);
-  }
-
-  // Fallback for browsers without color-mix support
-  @supports not (
-    background-color: color-mix(in srgb, currentColor 20%, transparent)
-  ) {
-    &:hover {
-      background-color: currentColor;
-      opacity: 0.2;
-    }
+    border-width: 2px;
   }
 }
 
-.faded-out {
-  opacity: 0.4;
-  pointer-events: none;
-  filter: grayscale(0.7) blur(0.5px);
-  transition: opacity 0.2s, filter 0.2s;
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  .airport-code,
+  .airport-name {
+    transition: none;
+  }
 }
-
-// --- Global styles that might need adjustment if moved ---
-// Ensure .military-star, .special-icon styles are available or defined here.
-// Ensure flag styles are global or defined here/passed via service.

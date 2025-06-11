@@ -1,0 +1,13 @@
+<div class="altitude-bands">
+  <ng-container *ngFor="let tick of altitudeTicks; let i = index">
+    <ng-container *ngIf="i < altitudeTicks.length - 1">
+      <div
+        class="altitude-band-color"
+        [style.bottom]="tick.y + '%'"
+        [style.height]="altitudeTicks[i + 1].y - tick.y + '%'"
+        [style.border]="'1px dotted ' + tick.color"
+        [style.backgroundColor]="tick.fillColor"
+      ></div>
+    </ng-container>
+  </ng-container>
+</div>

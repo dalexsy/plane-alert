@@ -1,8 +1,11 @@
 import { Component, Input, OnChanges, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 
 @Component({
   selector: 'app-radius',
+  standalone: true,
+  imports: [CommonModule],
   template: '',
 })
 export class RadiusComponent implements OnChanges, OnDestroy {

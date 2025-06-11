@@ -1,5 +1,7 @@
 @use "../styles/plane-tooltip.scss" as *;
 @use "../styles/plane-marker.scss" as *;
+@use "../styles/overlay.scss" as *;
+@use "../styles/sky-overlay.scss" as *;
 
 #map {
   position: fixed;
@@ -44,24 +46,184 @@ app-map.map-panning app-input-overlay {
   pointer-events: none;
 }
 
-.sun-angle-overlay {
+// Shared angle indicator overlay styles
+%angle-overlay {
   position: fixed;
-  top: 0.25rem;
+  -webkit-backdrop-filter: blur(0.25rem);
+  backdrop-filter: blur(0.25rem);
   z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 65%);
+}
+
+// Shared icon styling for angle indicators
+%angle-icon {
+  pointer-events: none;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  white-space: normal;
+  width: 100%;
+  height: 100%;
+
+  span {
+    font-size: 4rem !important;
+    font-variation-settings: "FILL" 0, "wght" 140, "GRAD" 0, "opsz" 20 !important;
+    position: relative;
+  }
+}
+
+// Container for both sun and wind overlays
+.angle-overlay-container {
+  @extend %angle-overlay;
+  top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+
+  // fixed square for each icon overlay
+  .sun-angle-overlay,
+  .wind-angle-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+}
+.angle-overlay-container.collapsed {
+  right: 3.5rem;
+}
+.angle-overlay-container:not(.collapsed) {
+  right: calc(25rem + 3.5rem);
+}
+
+.sun-angle-overlay {
+  @extend %angle-overlay;
+  top: 0.25rem;
+
+  .sun-info {
+    @extend %overlay-info;
+  }
 
   .sun-angle-icon {
-    pointer-events: none;
-    span {
-      font-size: 4rem !important;
-      font-variation-settings: "FILL" 0, "wght" 160, "GRAD" 0, "opsz" 20 !important;
+    @extend %angle-icon;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--angle, 0deg));
+    position: relative;
+    &::before {
+      content: "";
+      position: absolute;
+      width: 2rem;
+      height: 2rem;
+      background: #ffe066;
+      border: 2px solid #fff59d;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px 4px #ffe06699;
+    }
+    &::after {
+      content: "";
+      position: absolute;
+      width: 45px;
+      height: 35px;
+      background: linear-gradient(0deg, #ffe06699, transparent);
+      top: -3px;
+      z-index: -1;
+      left: 50%;
+      transform: translateX(-50%);
+      clip-path: polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%);
     }
   }
 
-  // Position to the left of results overlay by 0.5rem
-  &.collapsed {
-    right: 3rem; // collapsed overlay width (~2.5rem) + 0.5rem gap
+  .moon-angle-icon {
+    @extend %angle-icon;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(var(--angle, 0deg));
+    position: relative;
+    &::after {
+      content: "";
+      position: absolute;
+      width: 39px;
+      height: 35px;
+      background: linear-gradient(0deg, #ffffffcc, transparent);
+      top: -3px;
+      z-index: -1;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%) rotate(180deg);
+      clip-path: polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%);
+    }
+    svg {
+      position: relative;
+      z-index: 1;
+    }
   }
-  &:not(.collapsed) {
-    right: calc(25rem + 3.5rem); // results width + right offset + gap
+}
+
+.wind-angle-overlay {
+  @extend %angle-overlay;
+  top: 5.5rem;
+
+  // Position wind-info text to the left of the icon
+  .wind-info {
+    @extend %overlay-info;
   }
+
+  .wind-intensity-icon {
+    @extend %angle-icon;
+  }
+}
+
+/* Cloud layer sky color synchronization styles */
+.cloud-layer {
+  transition: filter 0.5s ease-in-out, mix-blend-mode 0.3s ease;
+
+  // Enhanced blending for atmospheric effects
+  &.sky-synchronized {
+    mix-blend-mode: multiply;
+    opacity: 0.8;
+  }
+
+  // Smooth transitions when sky colors change
+  img {
+    transition: filter 0.5s ease-in-out;
+  }
+}
+
+/* Weather layer pane positioning and effects */
+.leaflet-pane.leaflet-cloud-pane {
+  z-index: 200;
+
+  .cloud-layer {
+    // Ensure smooth rendering of atmospheric effects
+    image-rendering: smooth;
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+.leaflet-pane.leaflet-rain-pane {
+  z-index: 210;
+}
+
+// Airport circle styles
+.airport-radius {
+  // Remove native focus ring when clicking on airport circles
+  outline: none !important;
+
+  // Add subtle hover effect
+  &:hover {
+    cursor: pointer;
+    opacity: 0.8;
+  }
+
+  // Ensure smooth interaction
+  transition: opacity 0.2s ease;
 }
