@@ -49,7 +49,7 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   // Europe - Germany
   {
     start: 0x380000,
-    end: 0x3bffff,
+    end: 0x39ffff,
     countryCode: 'DE',
     countryName: 'Germany',
     type: 'civil',
@@ -74,12 +74,20 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
     notes: 'UK civil and military aviation',
   },
   {
-    start: 0x0a0000,
-    end: 0x0a7fff,
+    start: 0x3a0000,
+    end: 0x3bffff,
     countryCode: 'FR',
     countryName: 'France',
-    type: 'civil',
-    notes: 'French civil aviation',
+    type: 'mixed',
+    notes: 'French aviation (civil and military)',
+  },
+  {
+    start: 0x3a0000,
+    end: 0x3affff,
+    countryCode: 'FR',
+    countryName: 'France',
+    type: 'military',
+    notes: 'French military aviation',
   },
   {
     start: 0x440000,

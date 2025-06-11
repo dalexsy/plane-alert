@@ -13,6 +13,7 @@ export class LanguageSwitchService {
     Bombardier: 'fr-FR',
     'Schweizer Luftwaffe': 'de-CH', // Swiss Air Force phrase in Swiss German
     Luftwaffe: 'de-DE',
+    'Força Aérea Portuguesa': 'pt-PT', // Portuguese Air Force pronounced in Portuguese
   };
 
   // Track all announcements to show complete output
