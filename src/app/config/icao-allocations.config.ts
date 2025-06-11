@@ -107,6 +107,14 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   },
   {
     start: 0x480000,
+    end: 0x49ffff,
+    countryCode: 'PT',
+    countryName: 'Portugal',
+    type: 'civil',
+    notes: 'Portuguese civil aviation',
+  },
+  {
+    start: 0x4a0000,
     end: 0x4bffff,
     countryCode: 'NL',
     countryName: 'Netherlands',
