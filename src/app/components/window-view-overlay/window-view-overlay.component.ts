@@ -262,7 +262,10 @@ export class WindowViewOverlayComponent
       changes['observerLon']
     ) {
       // First inject celestial markers to get the complete plane list
-      this.injectCelestialMarkers(); // Detect movement direction BEFORE updating previous positions
+      this.injectCelestialMarkers();
+
+      // Detect movement direction BEFORE updating previous positions
+      // This ensures chemtrail angles are recalculated each scan interval
       this.windowViewPlanes.forEach((plane) => {
         const direction = this.getMovementDirection(plane); // This will update lastKnownDirections
         plane.movementDirection = direction; // Assign direction to the plane object
