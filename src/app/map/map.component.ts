@@ -1327,6 +1327,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.updatePlaneLog(updatedPlaneModels);
         // Update the closest-plane-overlay with latest distance/operator/ETA info
         this.computeClosestPlane();
+
+        // Track followed plane camera position if following is active
+        this.trackFollowedPlane();
+
         this.manualUpdate = false;
         // Reapply tooltip highlight after updates if a plane is followed
         if (this.highlightedPlaneIcao) {
@@ -1340,14 +1344,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Error in findPlanes would be logged here
       });
   }
-
   /** Compute and update the overlay to show the nearest plane (or tracked) */
   private computeClosestPlane(): void {
     const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     // Use PlaneModel entries from planeLog
     let candidate: PlaneModel | undefined;
-    if (this.followNearest && this.highlightedPlaneIcao) {
+    // Show followed plane in overlay regardless of follow mode (manual, shuffle, or nearest)
+    if (this.highlightedPlaneIcao) {
       candidate = this.planeLog.get(this.highlightedPlaneIcao) || undefined;
     }
     if (!candidate) {
@@ -1436,7 +1440,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       link.href = iconUrl;
     });
   }
-
   /** Update followed styles for all planes based on current follow state */
   private updateFollowedStyles(): void {
     for (const plane of this.planeLog.values()) {
@@ -1453,8 +1456,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         marker.setZIndexOffset(0);
       }
     }
-    // Now apply followed style to the currently followed plane only
-    if (this.followNearest && this.highlightedPlaneIcao) {
+    // Now apply followed style to any currently highlighted plane (manual, shuffle, or nearest)
+    if (this.highlightedPlaneIcao) {
       const followed = this.planeLog.get(this.highlightedPlaneIcao);
       if (followed && followed.marker) {
         const markerEl = followed.marker.getElement();
@@ -1474,6 +1477,50 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           tooltipEl.classList.add('followed-plane-tooltip');
         }
       }
+    }
+  }
+
+  /** Track and pan camera to followed plane's current position */
+  private trackFollowedPlane(): void {
+    // Only track if we have a followed plane and following is active
+    if (!this.highlightedPlaneIcao || !this.map) {
+      return;
+    }
+
+    const followedPlane = this.planeLog.get(this.highlightedPlaneIcao);
+    if (
+      !followedPlane ||
+      followedPlane.lat == null ||
+      followedPlane.lon == null
+    ) {
+      return;
+    }
+
+    // Get current map center
+    const currentCenter = this.map.getCenter();
+    const followedPosition = [followedPlane.lat, followedPlane.lon] as [
+      number,
+      number
+    ];
+
+    // Calculate distance between current center and followed plane
+    const distance = haversineDistance(
+      currentCenter.lat,
+      currentCenter.lng,
+      followedPosition[0],
+      followedPosition[1]
+    );
+
+    // Only pan if the plane has moved a significant distance (>50m) from map center
+    // This prevents constant micro-adjustments and unnecessary camera movement
+    const panThresholdKm = 0.05; // 50 meters
+    if (distance > panThresholdKm) {
+      // Pan map to followed plane with smooth animation
+      this.map.panTo(followedPosition, {
+        animate: true,
+        duration: 1.5, // Slightly longer duration for smoother tracking
+        easeLinearity: 0.1, // Smooth easing
+      });
     }
   }
 
