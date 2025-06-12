@@ -233,10 +233,94 @@ export class AircraftContainerComponent implements OnChanges {
 
       const rotation = rotationMap[plane.movementDirection] || 0;
       return `rotateZ(${rotation}deg)`;
+    } // Final fallback: No rotation (nose pointing up)
+    return 'rotateZ(0deg)';
+  }
+  /** Get chemtrail rotation based on plane movement direction - trails behind the plane */ getChemtrailRotation(
+    plane: WindowViewPlane
+  ): string {
+    // Skip chemtrails for markers, helicopters, grounded planes, and celestial objects
+    if (
+      plane.isMarker ||
+      plane.isHelicopter ||
+      plane.isGrounded ||
+      plane.isCelestial
+    ) {
+      return '';
     }
 
-    // Final fallback: No rotation (nose pointing up)
-    return 'rotateZ(0deg)';
+    // Primary method: Use history trail data for accurate movement direction
+    if (plane.historyTrail && plane.historyTrail.length >= 2) {
+      // Find the most recent valid trail positions
+      let current = plane.historyTrail[plane.historyTrail.length - 1];
+      let previous: any = null;
+
+      // Look backwards through trail to find a valid previous position
+      for (let i = plane.historyTrail.length - 2; i >= 0; i--) {
+        const candidate = plane.historyTrail[i];
+        // Skip positions with invalid coordinates (y=0 indicates corrupt data)
+        if (candidate.y > 0.1 && candidate.x >= 0 && candidate.x <= 100) {
+          previous = candidate;
+          break;
+        }
+      }
+
+      // Only proceed if we have both valid current and previous positions
+      if (previous && current.y > 0.1 && current.x >= 0 && current.x <= 100) {
+        let deltaX = current.x - previous.x;
+        let deltaY = current.y - previous.y;
+
+        // Handle wrap-around for X coordinate in window view (0-100% wraps around)
+        if (deltaX > 50) {
+          deltaX -= 100;
+        } else if (deltaX < -50) {
+          deltaX += 100;
+        }
+
+        // Calculate visual movement direction in window coordinates
+        // Check if there's significant movement to calculate direction
+        if (Math.abs(deltaX) > 0.05 || Math.abs(deltaY) > 0.05) {
+          // Calculate the angle of movement using atan2
+          // Invert deltaY because screen Y increases downward, but window coordinates Y increases upward
+          let movementAngle = Math.atan2(-deltaY, deltaX) * (180 / Math.PI);
+
+          // Convert to 0-360 range
+          movementAngle = ((movementAngle % 360) + 360) % 360;
+
+          // For chemtrail, we want it to point in the direction the plane came FROM (180° opposite)
+          // This makes the trail appear behind the plane
+          let trailRotation = (movementAngle + 180) % 360;
+
+          return `rotate(${trailRotation.toFixed(1)}deg)`;
+        }
+      }
+    }
+
+    // Fallback method: Use compass bearing for immediate directional chemtrails
+    // This provides correct rotation for new planes before history trail data accumulates
+    if (plane.bearing !== undefined && plane.bearing !== null) {
+      // Convert compass bearing to chemtrail rotation
+      // Bearing 0° = North, 90° = East, 180° = South, 270° = West
+      // For chemtrail, we want it to point opposite to the direction of travel
+      let trailRotation = (plane.bearing + 180) % 360;
+      return `rotate(${trailRotation.toFixed(1)}deg)`;
+    }
+
+    // Secondary fallback: Use simple movement direction if available
+    if (plane.movementDirection) {
+      const rotationMap: { [key: string]: number } = {
+        left: 90, // Trail points right when plane moves left
+        right: 270, // Trail points left when plane moves right
+        up: 180, // Trail points down when plane moves up
+        down: 0, // Trail points up when plane moves down
+      };
+
+      const rotation = rotationMap[plane.movementDirection] || 180;
+      return `rotate(${rotation}deg)`;
+    }
+
+    // Final fallback: Trail points down (plane moving up)
+    return 'rotate(180deg)';
   } /** Get altitude-colored border style for window view tooltips */
   getAltitudeBorderStyle(plane: WindowViewPlane): { [key: string]: string } {
     // Quick return if altitude borders are disabled

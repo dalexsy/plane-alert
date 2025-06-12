@@ -280,8 +280,6 @@ export class WindowViewOverlayComponent
       this.computeSpans();
       this.setCompassBackground();
       this.assignGroundStackOrder();
-      // compute history segments for chemtrail lines
-      this.computeHistorySegmentsForPlanes();
       // Update animation timing to ensure smooth movement
       this.updateAnimationTiming();
     }
@@ -939,67 +937,10 @@ export class WindowViewOverlayComponent
     // If no significant movement, return last known direction or default to 'right'
     const fallbackDirection =
       this.lastKnownDirections.get(plane.icao) || 'right';
-
     return fallbackDirection;
   }
 
-  /** Calculate segments connecting historyTrail points */
-  private computeHistorySegmentsForPlanes(): void {
-    this.windowViewPlanes.forEach((plane) => {
-      if (plane.historyTrail && plane.historyTrail.length >= 2) {
-        plane.historySegments = this.computeSegments(plane.historyTrail);
-      } else {
-        plane.historySegments = [];
-      }
-    });
-  }
-
-  /** Compute line segments from trail points */
-  private computeSegments(
-    trail: Array<{ x: number; y: number; opacity: number }>
-  ): Array<{
-    x: number;
-    y: number;
-    length: number;
-    angle: number;
-    opacity: number;
-  }> {
-    const segments: Array<{
-      x: number;
-      y: number;
-      length: number;
-      angle: number;
-      opacity: number;
-    }> = [];
-    for (let i = 0; i < trail.length - 1; i++) {
-      const p1 = trail[i];
-      const p2 = trail[i + 1];
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const length = Math.sqrt(dx * dx + dy * dy);
-      // Skip segments with endpoints outside the visible map bounds
-      if (
-        p1.x < 0 ||
-        p1.x > 100 ||
-        p2.x < 0 ||
-        p2.x > 100 ||
-        p1.y < 0 ||
-        p1.y > 100 ||
-        p2.y < 0 ||
-        p2.y > 100
-      ) {
-        continue;
-      }
-      // Skip segments that are too long (likely discontinuous)
-      if (length > this.maxHistorySegmentLengthPercent) {
-        continue;
-      }
-      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-      const opacity = (p1.opacity + p2.opacity) / 2;
-      segments.push({ x: p1.x, y: p1.y, length, angle, opacity });
-    }
-    return segments;
-  } /** Simple check if it's daytime based on sun position */
+  /** Simple check if it's daytime based on sun position */
   public isDaytime(): boolean {
     const sun = this.windowViewPlanes.find(
       (p) => p.isCelestial === true && p.celestialBodyType === 'sun'

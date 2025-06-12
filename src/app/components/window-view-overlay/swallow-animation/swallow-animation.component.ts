@@ -100,25 +100,11 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
 
   constructor(private cdr: ChangeDetectorRef) {}
   ngOnInit(): void {
-    console.log(
-      'SwallowAnimationComponent ngOnInit - isStormApproaching:',
-      this.isStormApproaching,
-      'pressureIntensity:',
-      this.pressureIntensity
-    );
     // Force start animation for testing (remove conditions)
-    console.log('Force starting animation for testing...');
+
     this.startAnimation();
   }
   ngOnChanges(): void {
-    console.log(
-      'SwallowAnimationComponent ngOnChanges - isStormApproaching:',
-      this.isStormApproaching,
-      'pressureIntensity:',
-      this.pressureIntensity,
-      'isActive:',
-      this.isActive
-    );
     // React to changes in storm approaching state
     if (this.isStormApproaching && !this.isActive) {
       this.startAnimation();
@@ -149,10 +135,6 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
   /**
    * Start the swallow storm animation
    */ public startAnimation(): void {
-    console.log(
-      'SwallowAnimationComponent startAnimation called - isActive:',
-      this.isActive
-    );
     if (this.isActive) {
       return;
     }
@@ -162,7 +144,6 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
 
     // Configure animation intensity based on pressure
     const config = this.calculateConfigFromPressure();
-    console.log('Swallow animation config:', config);
 
     this.scheduleSwallowSpawning(config);
     this.startAnimationLoop();
@@ -198,7 +179,6 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
     config.spawnDelay = 1200; // Even longer delay between birds
     config.duration = 8000; // Fixed duration
 
-    console.log('Using fixed config for testing:', config);
     return config;
   }
 
@@ -338,15 +318,6 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
     // Set initial position
     swallow.x = swallow.startX;
     swallow.y = swallow.startY;
-
-    console.log(
-      'Reset swallow for new cycle:',
-      swallow.id,
-      'new path Y:',
-      Math.round(swallow.startY),
-      '->',
-      Math.round(swallow.endY)
-    );
   }
 
   /**

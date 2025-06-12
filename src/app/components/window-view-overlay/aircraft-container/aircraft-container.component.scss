@@ -47,20 +47,17 @@ $animation-optimization: optimizeSpeed;
   flex-direction: column-reverse;
   align-items: center;
   z-index: 1;
-  transform-style: preserve-3d; // Ensure 3D transforms are preserved
+  transform-style: preserve-3d;
   font-family: "JetBrains Mono", monospace;
   color: #fff;
-  // Smooth position and scale animations, but instant rotation changes
   transition: left var(--plane-animation-duration, #{$plane-animation-duration})
       $animation-timing-function,
     bottom var(--plane-animation-duration, #{$plane-animation-duration})
       $animation-timing-function,
     transform $scale-transition-duration ease-out;
   will-change: transform, left, bottom;
-
-  // Performance optimizations for smooth animations
   backface-visibility: hidden;
-  transform: translateZ(0); // Force hardware acceleration
+  transform: translateZ(0);
 
   // Close aircraft (within 10km) get higher z-index and enhanced visibility
   &.close-plane {
@@ -87,15 +84,13 @@ $animation-optimization: optimizeSpeed;
   &.dimmed {
     opacity: 0.5;
   }
-
   // Newly scoped grounded-plane styles
   &.grounded-plane {
-    flex-direction: column-reverse; // Reverse order so label appears on top
+    flex-direction: column-reverse;
     pointer-events: auto;
     perspective: none;
-    transform: none;
-
-    // Reset transforms inside icon wrappers
+    transform: none; // Hide chemtrail for grounded planes - no longer needed since we use *ngIf
+    // .plane-icon::after { display: none; }    // Reset transforms inside icon wrappers
     .icon-wrapper,
     .icon-scale-wrapper,
     .copter-plane-icon {
@@ -150,19 +145,12 @@ $animation-optimization: optimizeSpeed;
 .icon-wrapper {
   position: relative;
   display: inline-block;
-  transform-style: preserve-3d; // Ensure 3D transforms are preserved
+  transform-style: preserve-3d;
 }
 
-.chemtrail {
-  position: absolute;
-  height: 4px;
-  left: 50%;
-  bottom: calc(50% - 1px);
-  opacity: 0.8;
-  filter: blur(1px);
-  border-radius: 1px;
-  transform-origin: left center;
-}
+// =============================================================================
+// Simple Chemtrail System - One clean line behind each plane
+// =============================================================================
 
 .plane-icon {
   width: $plane-icon-size;
@@ -170,25 +158,47 @@ $animation-optimization: optimizeSpeed;
   margin-bottom: 2px;
   cursor: pointer;
   pointer-events: auto;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   color: currentColor;
   background: none;
   border: none;
-  padding: 0; // Smooth rotation and tilt animation synchronized with position changes
-  transition: transform
-    var(--plane-animation-duration, #{$plane-animation-duration}) linear;
+  padding: 0;
+  transition: transform $plane-animation-duration linear;
   will-change: transform;
-  transform-style: preserve-3d; // Enable 3D transformations for tilt effect
-
+  transform-style: preserve-3d;
+  position: relative; // Added for chemtrail positioning
   path {
     fill: currentColor;
     stroke: black;
     stroke-width: 2px;
   }
+}
+
+// Dedicated chemtrail element
+.chemtrail {
+  position: absolute;
+  width: 20rem;
+  height: 0.33rem;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0)
+  );
+  top: 50%;
+  left: 50%;
+  transform-origin: 7% 40%;
+  border-radius: 0.25rem;
+  pointer-events: none;
+  z-index: -1;
+}
+
+// Close planes get longer chemtrails
+.close-plane .chemtrail {
+  width: 30rem;
+  height: 0.7rem;
 }
 
 // =============================================================================
@@ -317,27 +327,6 @@ $animation-optimization: optimizeSpeed;
 
 .streetside-marker .line-label {
   color: $streetside-color;
-}
-
-// =============================================================================
-// History Trail Segments
-// =============================================================================
-
-.history-trail-segment {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.8);
-  filter: blur(1px);
-  border-radius: 1px;
-  transform-origin: left center;
-  pointer-events: none;
-  z-index: 0;
-  transform: translateX(2.5rem) translateY(-0.5rem); // Smooth trail animation with optimized easing
-  transition: left var(--trail-animation-duration, #{$trail-animation-duration})
-      $animation-timing-function,
-    bottom var(--trail-animation-duration, #{$trail-animation-duration})
-      $animation-timing-function,
-    opacity 0.4s ease-out;
-  will-change: left, bottom, opacity;
 }
 
 // =============================================================================
