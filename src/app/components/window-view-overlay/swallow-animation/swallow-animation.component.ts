@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, BehaviorSubject, Subscription, interval } from 'rxjs';
+import { AltitudeColorService } from '../../../services/altitude-color.service';
 
 /**
  * Individual swallow bird for storm pressure animation
@@ -48,6 +49,8 @@ export interface SwallowBird {
   direction: number;
   /** Opacity for fade in/out */
   opacity: number;
+  /** Altitude in meters for color calculation */
+  altitude: number;
 }
 
 /**
@@ -98,7 +101,10 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
   public isActive = false;
   private subscriptions: Subscription[] = [];
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private altitudeColorService: AltitudeColorService
+  ) {}
   ngOnInit(): void {
     // Force start animation for testing (remove conditions)
 
@@ -205,14 +211,20 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
 
     spawnNext();
   }
-
   /**
    * Spawn a single swallow bird
    */ private spawnSwallow(config: SwallowConfig): void {
+    // Random Y position between 10% and 90% of the strip height
+    const yPosition = 10 + Math.random() * 80;
+
+    // Calculate corresponding altitude based on Y position
+    // Y=0% corresponds to 20,000m (top), Y=100% corresponds to 0m (bottom)
+    const altitude = Math.floor(((100 - yPosition) / 100) * 20000);
+
     const swallow: SwallowBird = {
       id: `swallow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       startX: -5, // Start just off-screen left for seamless loop
-      startY: 10 + Math.random() * 80, // Random Y between 10% and 90% of the strip height
+      startY: yPosition,
       x: 0,
       y: 0,
       controlX1: 30,
@@ -229,6 +241,7 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
       flapDelay: Math.random() * 0.3, // Random delay in seconds for wing flap animation
       direction: 1, // Flying right
       opacity: 0,
+      altitude: altitude, // Altitude corresponds to Y position in window view
     };
 
     // Set initial position
@@ -292,7 +305,6 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
 
     this.swallows$.next(updatedSwallows);
   }
-
   /**
    * Reset a swallow to start a new flight cycle with variations
    */
@@ -313,7 +325,12 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
     swallow.controlY2 = 10 + Math.random() * 80;
 
     // Slightly vary speed to create natural separation
-    swallow.speed = swallow.speed * (0.9 + Math.random() * 0.2);
+    swallow.speed = swallow.speed * (0.9 + Math.random() * 0.2); // Calculate corresponding altitude based on new Y position
+    // Y=0% corresponds to 20,000m (top), Y=100% corresponds to 0m (bottom)
+    const averageY =
+      (swallow.startY + swallow.endY + swallow.controlY1 + swallow.controlY2) /
+      4;
+    swallow.altitude = Math.floor(((100 - averageY) / 100) * 20000);
 
     // Set initial position
     swallow.x = swallow.startX;
@@ -374,7 +391,6 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
     // Use absolute positioning instead of percentage translate
     return `scale(${swallow.scale})`;
   }
-
   /**
    * Get swallow position styles
    */
@@ -384,6 +400,15 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
       top: `${swallow.y}%`,
       opacity: swallow.opacity.toString(),
     };
+  }
+  /**
+   * Get altitude-based color for swallow
+   */
+  public getSwallowColor(swallow: SwallowBird): string {
+    // Calculate altitude based on current Y position (dynamic altitude)
+    // Y=0% corresponds to 20,000m (top), Y=100% corresponds to 0m (bottom)
+    const currentAltitude = Math.floor(((100 - swallow.y) / 100) * 20000);
+    return this.altitudeColorService.getFillColor(currentAltitude);
   }
   /**
    * Get wing flap animation style
