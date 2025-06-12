@@ -127,7 +127,7 @@
             class="plane-details"
           >
             <span class="operator-model">
-              {{ plane.operator || ""
+              {{ truncateOperator(plane.operator) || ""
               }}{{ plane.operator && plane.model ? " " : ""
               }}{{ plane.model || "" }}
             </span>

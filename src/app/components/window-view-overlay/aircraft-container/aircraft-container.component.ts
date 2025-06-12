@@ -12,6 +12,7 @@ import { AltitudeColorService } from '../../../services/altitude-color.service';
 import { PlaneStyleService } from '../../../services/plane-style.service';
 import { FlagCallsignComponent } from '../../flag-callsign/flag-callsign.component';
 import { calculateTiltAngle } from '../../../utils/vertical-rate.util';
+import { TextUtils } from '../../../utils/text-utils';
 
 @Component({
   selector: 'app-aircraft-container',
@@ -381,5 +382,11 @@ export class AircraftContainerComponent implements OnChanges {
     this.labelClassCache.set(cacheKey, result);
     this.manageCacheSize(this.labelClassCache);
     return result;
+  }
+  /**
+   * Truncate operator text to 30 characters with ellipsis if longer
+   */
+  truncateOperator(operator: string | undefined): string {
+    return TextUtils.truncateOperator(operator);
   }
 }
