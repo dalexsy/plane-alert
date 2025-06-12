@@ -30,6 +30,17 @@
         tooltipPosition="left"
         (click)="onToggleMilitaryMute()"
       ></app-button>
+      <!-- Altitude tooltip borders toggle button -->
+      <app-button
+        class="toggle-altitude-borders"
+        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="altitudeBordersTooltip"
+        [appTooltip]="altitudeBordersTooltip"
+        tooltipPosition="left"
+        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
+      ></app-button>
       <!-- Shuffle follow mode toggle -->
       <app-button
         class="shuffle-toggle"
@@ -54,18 +65,7 @@
         [ngClass]="{ active: nearestMode }"
         (click)="toggleNearest()"
       ></app-button>
-      <!-- Altitude tooltip borders toggle button -->
-      <app-button
-        class="toggle-altitude-borders"
-        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="altitudeBordersTooltip"
-        [appTooltip]="altitudeBordersTooltip"
-        tooltipPosition="left"
-        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
-      ></app-button
-      ><!-- Military priority toggle -->
+      <!-- Military priority toggle -->
       <div class="military-toggle-wrapper">
         <app-button
           class="military-priority-toggle"

@@ -7,7 +7,7 @@ $compass-label-color: #ffe066;
 
 :host {
   position: absolute;
-  bottom: calc(-1 * #{$overlay-bottom-spacing});
+  bottom: -0.5rem;
   left: 0;
   width: 100%;
   z-index: 3;

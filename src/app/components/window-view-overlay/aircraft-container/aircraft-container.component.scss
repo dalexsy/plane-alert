@@ -97,22 +97,6 @@ $animation-optimization: optimizeSpeed;
       display: none;
     }
 
-    // Ground shadow effect
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: 1.5rem;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1rem;
-      height: 0.25rem;
-      background: $ground-shadow-color;
-      border-radius: 50%;
-      filter: blur(2px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
     // Tilt icon on ground
     .icon-wrapper {
       transform: perspective(300px) skewX(-30deg) rotateX(50deg)
@@ -125,6 +109,7 @@ $animation-optimization: optimizeSpeed;
     .plane-label {
       position: static;
       font-size: 0.75rem;
+      margin-bottom: -0.75rem;
     }
   }
 }
