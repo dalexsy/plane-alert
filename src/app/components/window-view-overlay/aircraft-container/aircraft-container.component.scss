@@ -3,7 +3,7 @@
 // =============================================================================
 
 $overlay-height: 10rem;
-$plane-icon-size: 4rem;
+$plane-icon-size: 2.5rem;
 $grounded-plane-scale: 0.4;
 $plane-animation-duration: 1.2s;
 $trail-animation-duration: 1.2s;
@@ -28,6 +28,7 @@ $animation-optimization: optimizeSpeed;
   z-index: 2;
   pointer-events: none;
   transform-style: preserve-3d; // Ensure 3D transforms are preserved
+  perspective: 1000px; // Add perspective for better 3D depth perception
 }
 
 .planes-container {
@@ -35,6 +36,7 @@ $animation-optimization: optimizeSpeed;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d; // Ensure 3D transforms are preserved
+  perspective-origin: 50% 100%; // Set vanishing point at bottom center
 }
 
 // =============================================================================
@@ -46,7 +48,6 @@ $animation-optimization: optimizeSpeed;
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
-  z-index: 1;
   transform-style: preserve-3d;
   font-family: "JetBrains Mono", monospace;
   color: #fff;
@@ -57,12 +58,6 @@ $animation-optimization: optimizeSpeed;
     transform $scale-transition-duration ease-out;
   will-change: transform, left, bottom;
   backface-visibility: hidden;
-  transform: translateZ(0);
-
-  // Close aircraft (within 10km) get higher z-index and enhanced visibility
-  &.close-plane {
-    z-index: 10;
-  }
 
   &.skip-wrap {
     // Disable transitions for wrap-around jumps or use a very short one for scale
@@ -192,7 +187,8 @@ $animation-optimization: optimizeSpeed;
   transform-origin: 8% 40%;
   border-radius: 0.25rem;
   pointer-events: none;
-  z-index: -1;
+  // Use 3D positioning instead of z-index for proper depth layering
+  transform-style: preserve-3d;
 }
 
 // Close planes get longer chemtrails
@@ -229,36 +225,41 @@ $animation-optimization: optimizeSpeed;
 .plane-label {
   cursor: pointer;
   color: white;
-  margin-bottom: -1.25rem;
   padding: 0 5px;
   pointer-events: auto;
   white-space: nowrap;
+  transform-style: preserve-3d; // Enable 3D transforms for labels
+  position: relative; // Needed for 3D positioning
+  z-index: 10; // Ensure labels are always above icons
 
   &.followed {
-    z-index: 10;
     position: relative;
     color: $followed-plane-color;
     background: black;
     border: 1px solid cyan;
     border-radius: 0.25rem;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.49);
-  }
-  // Tooltip-style background for labels with operator/model info (close planes)
+    z-index: 15; // Followed planes get even higher priority
+  } // Tooltip-style background for labels with operator/model info (close planes)
   &.has-details {
     background: rgba(0, 0, 0, 0.9);
     border-radius: 3px;
     padding: 3px 5px;
     border: 3px solid #333;
     color: white;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
     box-shadow: 0 1px 3px rgb(0 0 0);
     outline: 1px solid rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(0.5rem);
-    position: relative; // Tooltip tail pointing downward (at the bottom)
+    position: relative;
+    transform-style: preserve-3d;
+    z-index: 12; // Higher than normal labels
+
+    // Tooltip tail pointing downward (at the bottom)
     &::after {
       content: "";
       position: absolute;
-      top: 106%;
+      top: 100%; // Align to bottom edge
       left: 50%;
       transform: translateX(-50%);
       width: 0;
@@ -278,9 +279,9 @@ $animation-optimization: optimizeSpeed;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 7px solid transparent;
-      border-right: 7px solid transparent;
-      border-top: 7px solid rgba(255, 255, 255, 0.8);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid rgba(255, 255, 255, 0.8);
       z-index: 0;
     }
 

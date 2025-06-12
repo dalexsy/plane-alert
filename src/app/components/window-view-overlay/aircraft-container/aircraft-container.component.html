@@ -21,12 +21,13 @@
           : 'calc(' + plane.y + '% - .5rem)'
       "
       [style.transform]="
-        plane.isGrounded || plane.isMarker || plane.isCelestial
-          ? null
-          : 'scale(' + (plane.scale || 1) + ')'
+        (plane.isGrounded || plane.isMarker || plane.isCelestial
+          ? ''
+          : 'scale(' + (plane.scale || 1) + ') ') + get3DDepthTransform(plane)
       "
       [style.--chemtrail-rotation]="getChemtrailRotation(plane)"
       [style.transformOrigin]="'bottom center'"
+      [style.opacity]="getAtmosphericPerspective(plane)"
       [title]="
         plane.isMarker
           ? ''
@@ -96,7 +97,7 @@
                 <svg
                   class="plane-icon {{ plane.iconType }}"
                   [style.color]="altitudeColor.getFillColor(plane.altitude)"
-                  viewBox="0 0 64 100"
+                  viewBox="0 0 64 64"
                   style="overflow: visible"
                   [attr.aria-label]="
                     plane.callsign + ' at ' + plane.altitude + 'm'
