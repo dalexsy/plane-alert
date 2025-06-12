@@ -12,7 +12,7 @@ import { filterPlaneByPrefix } from '../utils/plane-log';
 import { Plane } from '../types/plane';
 import { createOrUpdatePlaneMarker } from '../utils/plane-marker';
 import { planeTooltip } from '../utils/tooltip';
-import { PlaneModel } from '../models/plane-model';
+import { PlaneModel, PositionHistory } from '../models/plane-model';
 import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
@@ -431,6 +431,58 @@ export class PlaneFinderService {
     return plane.path;
   }
 
+  /** Calculate movement direction from position history for grounded planes */
+  private calculateMovementDirection(
+    positionHistory: PositionHistory[],
+    currentLat: number,
+    currentLon: number
+  ): number | null {
+    if (positionHistory.length < 2) {
+      return null;
+    } // Find the most recent valid position from history
+    let previousPosition: PositionHistory | null = null;
+    for (let i = positionHistory.length - 1; i >= 0; i--) {
+      const position = positionHistory[i];
+      // Check if position is valid and not too old (last 10 minutes for grounded planes)
+      const isValid = position.lat && position.lon;
+      const isRecent = Date.now() - position.timestamp <= 10 * 60 * 1000; // 10 minutes - increased for grounded planes
+
+      if (isValid && isRecent) {
+        previousPosition = position;
+        break;
+      }
+    }
+
+    if (!previousPosition) {
+      return null;
+    } // Calculate distance to ensure there's been meaningful movement
+    const latDiff = currentLat - previousPosition.lat;
+    const lonDiff = currentLon - previousPosition.lon;
+    const distance = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+
+    // Minimum movement threshold for grounded planes - more sensitive (about 1-2 meters in degrees)
+    const minMovementThreshold = 0.00001; // Reduced from 0.0001 for better sensitivity
+
+    if (distance < minMovementThreshold) {
+      return null; // No significant movement
+    }
+
+    // Calculate bearing from previous position to current position
+    const lat1Rad = (previousPosition.lat * Math.PI) / 180;
+    const lat2Rad = (currentLat * Math.PI) / 180;
+    const deltaLonRad = ((currentLon - previousPosition.lon) * Math.PI) / 180;
+
+    const y = Math.sin(deltaLonRad) * Math.cos(lat2Rad);
+    const x =
+      Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+      Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLonRad);
+
+    const bearingRad = Math.atan2(y, x);
+    const bearing = ((bearingRad * 180) / Math.PI + 360) % 360;
+
+    return bearing;
+  }
+
   // The following helper functions are no longer used for path visualization
   // but kept for future reference or other uses
   private generateCurvedPathControlPoints(
@@ -771,7 +823,6 @@ export class PlaneFinderService {
           (alt: number) => this.altitudeColor.getFillColor(alt)
         );
         const extraStyle = this.computeExtraStyle(altitude, onGround);
-
         let trackForMarker: number;
         if (onGround) {
           if (typeof ac.track === 'number') {
@@ -795,6 +846,24 @@ export class PlaneFinderService {
                 }
               }
             }
+
+            // If no track from history, try to calculate movement direction from position history
+            if (
+              lastKnownTrackFromHistory === undefined &&
+              planeModelInstance &&
+              planeModelInstance.positionHistory &&
+              planeModelInstance.positionHistory.length >= 2
+            ) {
+              const calculated = this.calculateMovementDirection(
+                planeModelInstance.positionHistory,
+                lat,
+                lon
+              );
+              if (calculated !== null) {
+                lastKnownTrackFromHistory = calculated;
+              }
+            }
+
             trackForMarker = lastKnownTrackFromHistory ?? 0;
           }
         } else {
