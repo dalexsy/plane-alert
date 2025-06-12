@@ -246,6 +246,13 @@ export class AircraftContainerComponent implements OnChanges {
       return '';
     }
 
+    // Only show chemtrails at altitudes where contrails can form
+    // Contrails typically form above 26,000 feet (8,000 meters)
+    const minContrailAltitude = 8000; // meters
+    if (!plane.altitude || plane.altitude < minContrailAltitude) {
+      return ''; // No rotation needed if no chemtrail is shown
+    }
+
     // ALWAYS recalculate - no caching to ensure fresh updates every scan interval
 
     // Use the EXACT same movement calculation as the plane icon, then rotate 180° opposite
@@ -376,5 +383,53 @@ export class AircraftContainerComponent implements OnChanges {
    */
   truncateOperator(operator: string | undefined): string {
     return TextUtils.truncateOperator(operator);
+  }
+  /** Calculate chemtrail scale based on plane velocity - faster planes get longer trails */
+  getChemtrailScale(plane: WindowViewPlane): number {
+    // Skip scaling for markers, helicopters, grounded planes, and celestial objects
+    if (
+      plane.isMarker ||
+      plane.isHelicopter ||
+      plane.isGrounded ||
+      plane.isCelestial
+    ) {
+      return 0; // No chemtrails for these types
+    }
+
+    // Only show chemtrails at altitudes where contrails can form
+    // Contrails typically form above 26,000 feet (8,000 meters)
+    const minContrailAltitude = 8000; // meters
+    if (!plane.altitude || plane.altitude < minContrailAltitude) {
+      return 0; // Hide chemtrails below contrail formation altitude
+    }
+
+    // If no velocity data, use default scale
+    if (!plane.velocity || plane.velocity <= 0) {
+      return 1;
+    }
+
+    // Scale based on velocity (ground speed in knots)
+    // Typical aircraft speeds:
+    // - Small aircraft: 100-200 knots
+    // - Commercial aircraft: 400-600 knots
+    // - Fast military jets: 600+ knots
+
+    const minVelocity = 50; // Minimum velocity for scaling (knots)
+    const maxVelocity = 600; // Maximum velocity for full scaling (knots)
+    const minScale = 0.1; // Minimum scale factor
+    const maxScale = 1; // Maximum scale factor
+
+    // Clamp velocity to range
+    const clampedVelocity = Math.max(
+      minVelocity,
+      Math.min(maxVelocity, plane.velocity)
+    );
+
+    // Calculate linear scale factor
+    const normalizedVelocity =
+      (clampedVelocity - minVelocity) / (maxVelocity - minVelocity);
+    const scale = minScale + normalizedVelocity * (maxScale - minScale);
+
+    return Math.round(scale * 100) / 100; // Round to 2 decimal places
   }
 }

@@ -86,7 +86,10 @@
                   "
                   class="chemtrail"
                   [style.transform]="
-                    'translate(-1.5rem, -50%) ' + getChemtrailRotation(plane)
+                    'translate(-1.5rem, -50%) scaleX(' +
+                    getChemtrailScale(plane) +
+                    ') ' +
+                    getChemtrailRotation(plane)
                   "
                 ></div>
 
