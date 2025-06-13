@@ -25,9 +25,9 @@ $compass-label-color: #ffe066;
   &::after {
     content: "";
     position: absolute;
-    bottom: 1.5rem;
+    bottom: 1rem;
     width: 0.75rem;
-    height: 0.8rem;
+    height: 1rem;
     background-color: var(--chimney-bg);
 
     mix-blend-mode: none;

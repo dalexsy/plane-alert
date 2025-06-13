@@ -138,12 +138,11 @@ export class WindowViewOverlayComponent
       event.preventDefault();
       event.stopPropagation();
     }
-  }
-  // unified altitude ticks use service default maxAltitude
+  }  // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */ public skyBackground: string =
     '';
   public compassBackground: string = '#ff9753';
-  public chimneyBackground: string = '#8b4513';
+  public chimneyBackground: string = '';
   /** Cloud tile URL for window view background */
   windowCloudUrl: string | null = null;
   /** Cloud filter styles for night-time darkening */
@@ -820,8 +819,8 @@ export class WindowViewOverlayComponent
         litBaseRgb.b * materialRetention + horizonRgb.b * atmosphericInfluence
       ),
     }; // Set the final blended roof color (solid, no transparency)
-    this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`; // Calculate chimney color with same lighting but different base
-    const chimneyBaseRgb = this.parseColor('#8b4513'); // Saddle brown base
+    this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`;    // Calculate chimney color with same lighting but different base
+    const chimneyBaseRgb = this.parseColor('#cabab0'); // Custom chimney base color
     const litChimneyRgb = {
       r: Math.round(
         chimneyBaseRgb.r * lightIntensity +
