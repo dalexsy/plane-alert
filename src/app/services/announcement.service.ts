@@ -172,11 +172,13 @@ export class AnnouncementService {
     const airport = plane.airportName || 'Airport';
 
     // Determine locale based on airport country if available
-    const lang = this.getAirportLocale(plane); // Preprocess text for better pronunciation
+    const lang = this.getAirportLocale(plane);
+    // Preprocess text for better pronunciation
     const speakableText = this.preprocessForSpeech(airport, lang === 'de-DE');
 
     const ttsKey = baseKey;
-    this.langSwitch.speakWithOverrides(ttsKey, speakableText);
+    // Use determined locale for TTS to ensure German announcements in Germany
+    this.langSwitch.speakWithOverrides(ttsKey, speakableText, lang);
   }
   /**
    * Announce special model aircraft (e.g., Hercules)
