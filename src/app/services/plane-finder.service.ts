@@ -64,7 +64,18 @@ export class PlaneFinderService {
   >();
   private readonly PATH_CACHE_DURATION = 100; // ms
   private mapInitialized = false;
-  private isInitialLoad = false;
+  private isInitialLoad = false; // Track logged unknown countries to prevent duplicates
+  private loggedUnknownCountries = new Set<string>(); // Collect unknown country aircraft for batch logging
+  private unknownCountryAircraft: Array<{
+    icao: string;
+    registration: string;
+    operator: string;
+    rawCountry: string;
+    callsign: string;
+    detectedCountry: string;
+    isMilitary: boolean;
+  }> = [];
+  private lastUnknownCountryLogTime = 0;
   constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
@@ -637,6 +648,15 @@ export class PlaneFinderService {
           rawCountry
         );
 
+        // Debug RAF aircraft specifically
+        if (id === '43C8DB' || id === '43C8C1') {
+          console.log(`🔍 DEBUG RAF Aircraft ${id}:`);
+          console.log(`  Registration: ${reg}`);
+          console.log(`  Raw Country: ${rawCountry}`);
+          console.log(`  Detected Origin: ${origin}`);
+          this.aircraftCountryService.debugIcaoAllocation(id);
+        }
+
         // Operator will be set later in model update
         const lat = ac.lat;
         const lon = ac.lon;
@@ -767,9 +787,41 @@ export class PlaneFinderService {
           this.operatorCallSignService.getOperatorWithLogging(callsign);
         const operator = prefixOperator ?? (dbAircraft?.ownop || '');
         const model = dbAircraft?.model || '';
-
         planeModelInstance.model = model;
-        planeModelInstance.operator = operator;
+        planeModelInstance.operator = operator; // Log unknown countries for mapping purposes (including potentially wrong military assignments)
+        if (
+          (origin === 'Unknown' || (isMilitary && origin !== 'Unknown')) &&
+          !this.loggedUnknownCountries.has(id)
+        ) {
+          this.unknownCountryAircraft.push({
+            icao: id,
+            registration: reg || 'N/A',
+            operator: operator || 'N/A',
+            rawCountry: rawCountry || 'N/A',
+            callsign: callsign || 'N/A',
+            detectedCountry: origin,
+            isMilitary: isMilitary,
+          });
+          this.loggedUnknownCountries.add(id);
+        } // Log batch of unknown countries every 30 seconds
+        const now = Date.now();
+        if (
+          now - this.lastUnknownCountryLogTime > 30000 &&
+          this.unknownCountryAircraft.length > 0
+        ) {
+          console.log(
+            `\n=== UNKNOWN COUNTRY AIRCRAFT (${this.unknownCountryAircraft.length}) ===`
+          );
+          this.unknownCountryAircraft.forEach((aircraft) => {
+            const milFlag = aircraft.isMilitary ? '[MIL]' : '';
+            console.log(
+              `${aircraft.icao} ${milFlag} ${aircraft.detectedCountry} | Raw:${aircraft.rawCountry} | ${aircraft.callsign} | ${aircraft.operator} | ${aircraft.registration}`
+            );
+          });
+          console.log('='.repeat(50));
+          this.unknownCountryAircraft = []; // Clear the array
+          this.lastUnknownCountryLogTime = now;
+        }
 
         // Calculate derived properties
         const bearing = computeBearing(centerLat, centerLon, lat, lon);

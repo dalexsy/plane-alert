@@ -34,8 +34,9 @@ export class FollowCoordinatorService {
    * Handle manual plane follow - disables automatic modes, or unfollows if already following the same plane
    */
   followPlaneManually(plane: PlaneLogEntry): void {
-    const currentlyFollowedIcao = this.planeFollowService.getFollowedPlaneIcao();
-    
+    const currentlyFollowedIcao =
+      this.planeFollowService.getFollowedPlaneIcao();
+
     // If clicking the already followed plane, unfollow it
     if (currentlyFollowedIcao === plane.icao && this.currentModes.manual) {
       this.clearAllModes();
