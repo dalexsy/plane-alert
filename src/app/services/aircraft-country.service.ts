@@ -486,10 +486,6 @@ export class AircraftCountryService {
    */
   debugIcaoAllocation(icaoHex: string): any {
     const icaoDec = parseInt(icaoHex, 16);
-    console.log(`Debugging ICAO: ${icaoHex} (decimal: ${icaoDec})`);
-    console.log(
-      `ICAO ranges loaded: ${this.icaoRangesLoaded}, Count: ${this.icaoCountryRanges.length}`
-    );
 
     // Check comprehensive ranges
     if (this.icaoRangesLoaded && this.icaoCountryRanges.length > 0) {
@@ -498,9 +494,6 @@ export class AircraftCountryService {
       );
       for (const range of this.icaoCountryRanges) {
         if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
-          console.log(
-            `✅ Found in comprehensive data: ${range.startHex}-${range.finishHex} -> ${range.countryISO2} (isMilitary: ${range.isMilitary})`
-          );
           return {
             found: true,
             source: 'comprehensive',
@@ -510,23 +503,12 @@ export class AircraftCountryService {
           };
         }
       }
-      console.log(`❌ No match found in comprehensive data for ${icaoHex}`);
     } else {
-      console.log(
-        `⚠️ Comprehensive ranges not loaded yet (loaded: ${this.icaoRangesLoaded}, count: ${this.icaoCountryRanges.length})`
-      );
     }
 
     // Check config fallback
     const allocationInfo = IcaoAllocationUtils.getAllocationInfo(icaoHex);
     if (allocationInfo) {
-      console.log(
-        `Found in config data: ${allocationInfo.start
-          .toString(16)
-          .toUpperCase()}-${allocationInfo.end.toString(16).toUpperCase()} -> ${
-          allocationInfo.countryCode
-        }`
-      );
       return {
         found: true,
         source: 'config',

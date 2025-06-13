@@ -10,11 +10,11 @@
   width: 25rem;
   display: flex;
   flex-direction: column;
+  /* restore original height behavior */
   max-height: calc(100vh - 11rem);
   height: fit-content;
   min-height: 18rem;
   overflow: visible;
-  gap: 0.5rem;
   border-radius: 0 0.5rem 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
@@ -131,6 +131,9 @@
   .middle-section {
     display: flex;
     flex-direction: column;
+    /* constrain middle section to reasonable size */
+    flex: 0 1 auto;
+
     min-height: 0;
     overflow: hidden;
   }
@@ -191,11 +194,12 @@
         gap: 0.25rem;
       }
     }
-  }
-  // Sky list fills remaining space
+  } // Sky list fills remaining space
   .plane-section:first-of-type {
     display: flex;
     flex-direction: column;
+    /* allow sky section to grow and take more space */
+    flex: 2 1 auto;
     min-height: 0;
     .plane-list-wrapper {
       display: flex;
@@ -221,14 +225,15 @@
   #seenResults {
     display: flex;
     flex-direction: column;
-    flex: 0 0 auto;
-    max-height: 20vh; // reduce max height further to prevent overflow
-    min-height: 0; // allow it to shrink below intrinsic size
-    overflow: hidden; // prevent any overflow from this container
+    /* let seen section grow to fill remaining space */
+    flex: 1 0 auto;
+    min-height: 0;
+    overflow: hidden;
     .plane-list-wrapper {
-      min-height: 0; // allow shrinking
-      max-height: 100%; // fill container height
-      overflow-y: auto; // scroll internally
+      /* fill available space and scroll internally */
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
     }
     h3 {
       flex: 0 0 auto;
@@ -237,9 +242,9 @@
 
     // When collapsed, don't take up any space
     &.collapsed {
-      flex: 0 0 auto;
-      max-height: 3rem; // just the header height
-      min-height: 3rem;
+      /* remain collapsed at header height */
+      flex: 0 0 3rem;
+      max-height: 3rem;
     }
   }
   // Ensure all plane-list-wrapper allow shrink

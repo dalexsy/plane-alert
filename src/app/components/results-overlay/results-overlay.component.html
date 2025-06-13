@@ -186,12 +186,7 @@
     </div>
     <!-- .middle-section -->
     <div id="seenResults" [class.collapsed]="seenCollapsed">
-      <h3
-        class="top"
-        (click)="toggleSeenCollapsed()"
-        [appTooltip]="seenSectionTooltip"
-        tooltipPosition="left"
-      >
+      <h3 class="top" (click)="toggleSeenCollapsed()">
         All Planes Peeped ({{ seenPlaneLog.length }})<span>
           <!-- Collapse toggle button -->
           <app-button
