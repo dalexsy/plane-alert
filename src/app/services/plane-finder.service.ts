@@ -62,7 +62,7 @@ export class PlaneFinderService {
     string,
     { timestamp: number; points: [number, number][] }
   >();
-  private readonly PATH_CACHE_DURATION = 100; // ms
+  private readonly PATH_CACHE_DURATION = 250; // ms - slightly longer for more complex calculations
   private mapInitialized = false;
   private isInitialLoad = false; // Track logged unknown countries to prevent duplicates
   private loggedUnknownCountries = new Set<string>(); // Collect unknown country aircraft for batch logging
@@ -152,93 +152,200 @@ export class PlaneFinderService {
     } else {
       // Altitude key for color caching
       const altKey = altitude ?? 0;
-      // Attempt to reuse cached path points
+      // Attempt to reuse cached path points - include velocity in cache key for more accuracy
       const now = Date.now();
-      const key = `${lat.toFixed(5)},${lon.toFixed(5)},${track},${velocity}`;
+      const key = `${lat.toFixed(4)},${lon.toFixed(4)},${track},${Math.round(
+        velocity ?? 0
+      )}`;
       let pathPoints: [number, number][];
       const cacheEntry = this.pathCache.get(key);
       if (cacheEntry && now - cacheEntry.timestamp < this.PATH_CACHE_DURATION) {
         pathPoints = cacheEntry.points;
       } else {
-        // Compute predicted path points
+        // Compute predicted path points with improved algorithm
         pathPoints = [[lat, lon]];
-        // Predict path using recent turn rate for smooth curvature
-        const minutesAhead = 2;
-        const pointsCount = 15;
-        const timeStep = minutesAhead / pointsCount;
+
         const hist = plane.positionHistory;
-        // Determine turn rate (deg per minute) from last two history entries
+        const minutesAhead = 1; // Slightly longer prediction
+
+        // Calculate more robust turn rate using multiple history points
         let turnRatePerMin = 0;
-        if (
-          hist.length >= 2 &&
-          hist[hist.length - 1].track != null &&
-          hist[hist.length - 2].track != null
-        ) {
-          const t1 = hist[hist.length - 1].track!;
-          const t0 = hist[hist.length - 2].track!;
-          const dtMin =
-            (hist[hist.length - 1].timestamp -
-              hist[hist.length - 2].timestamp) /
-            60000;
-          if (dtMin >= 0.1) {
-            const rawDelta = ((t1 - t0 + 540) % 360) - 180;
-            turnRatePerMin = rawDelta / dtMin;
+        let usesTurnRate = false;
+
+        if (hist.length >= 3) {
+          // Use more history points for better turn rate calculation
+          const recentTracks: { track: number; timestamp: number }[] = [];
+
+          // Collect recent tracks with timestamps
+          for (let i = Math.max(0, hist.length - 5); i < hist.length; i++) {
+            if (hist[i].track != null) {
+              recentTracks.push({
+                track: hist[i].track!,
+                timestamp: hist[i].timestamp,
+              });
+            }
+          }
+
+          // Add current track if available
+          if (track != null) {
+            recentTracks.push({
+              track: track,
+              timestamp: Date.now(),
+            });
+          }
+
+          if (recentTracks.length >= 3) {
+            // Calculate average turn rate from multiple points
+            let totalTurnRate = 0;
+            let validPairs = 0;
+
+            for (let i = 1; i < recentTracks.length; i++) {
+              const t1 = recentTracks[i].track;
+              const t0 = recentTracks[i - 1].track;
+              const dtMin =
+                (recentTracks[i].timestamp - recentTracks[i - 1].timestamp) /
+                60000;
+
+              if (dtMin >= 0.1 && dtMin <= 5) {
+                // Reasonable time range
+                let rawDelta = ((t1 - t0 + 540) % 360) - 180;
+
+                // Filter out unrealistic turn rates (more than 10 deg/min is very sharp)
+                const turnRate = rawDelta / dtMin;
+                if (Math.abs(turnRate) <= 10) {
+                  totalTurnRate += turnRate;
+                  validPairs++;
+                }
+              }
+            }
+
+            if (validPairs > 0) {
+              turnRatePerMin = totalTurnRate / validPairs;
+              usesTurnRate = Math.abs(turnRatePerMin) > 0.5; // Only use if significant
+            }
           }
         }
+
+        // Generate prediction points with adaptive strategy
         let curLat = lat;
         let curLon = lon;
         let curHeading = track ?? hist[hist.length - 1]?.track ?? 0;
-        for (let i = 1; i <= pointsCount; i++) {
-          // apply turn rate
-          curHeading =
-            (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
-          const brng = (curHeading * Math.PI) / 180;
-          // Convert speed from knots to km/h then compute distance for this time step (timeStep in minutes)
-          const speedKmPerHr = (velocity ?? 0) * 1.852;
-          const distanceKm = (speedKmPerHr * timeStep) / 60;
-          const R = 6371; // Earth radius in km
-          const lat1 = (curLat * Math.PI) / 180;
-          const lon1 = (curLon * Math.PI) / 180;
-          const angDist = distanceKm / R;
-          const lat2 = Math.asin(
-            Math.sin(lat1) * Math.cos(angDist) +
-              Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
-          );
-          const lon2 =
-            lon1 +
-            Math.atan2(
-              Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
-              Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+
+        if (usesTurnRate) {
+          // Use curved path with conservative turn rate
+          const pointsCount = 12;
+          const timeStep = minutesAhead / pointsCount;
+
+          // Apply a dampening factor to prevent excessive curves
+          const dampedTurnRate = turnRatePerMin * 0.7; // Reduce turn rate by 30%
+
+          for (let i = 1; i <= pointsCount; i++) {
+            // Apply dampened turn rate
+            curHeading =
+              (((curHeading + dampedTurnRate * timeStep) % 360) + 360) % 360;
+
+            const brng = (curHeading * Math.PI) / 180;
+            const speedKmPerHr = (velocity ?? 0) * 1.852;
+            const distanceKm = (speedKmPerHr * timeStep) / 60;
+            const R = 6371;
+
+            const lat1 = (curLat * Math.PI) / 180;
+            const lon1 = (curLon * Math.PI) / 180;
+            const angDist = distanceKm / R;
+
+            const lat2 = Math.asin(
+              Math.sin(lat1) * Math.cos(angDist) +
+                Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
             );
-          curLat = (lat2 * 180) / Math.PI;
-          curLon = (lon2 * 180) / Math.PI;
-          pathPoints.push([curLat, curLon]);
+            const lon2 =
+              lon1 +
+              Math.atan2(
+                Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
+                Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+              );
+
+            curLat = (lat2 * 180) / Math.PI;
+            curLon = (lon2 * 180) / Math.PI;
+            pathPoints.push([curLat, curLon]);
+          }
+        } else {
+          // Use straight line path for stable flight
+          const pointsCount = 6; // Fewer points for straight line
+          const timeStep = minutesAhead / pointsCount;
+
+          const brng = (curHeading * Math.PI) / 180;
+          const speedKmPerHr = (velocity ?? 0) * 1.852;
+          const R = 6371;
+
+          for (let i = 1; i <= pointsCount; i++) {
+            const distanceKm = (speedKmPerHr * timeStep * i) / 60;
+            const lat1 = (lat * Math.PI) / 180;
+            const lon1 = (lon * Math.PI) / 180;
+            const angDist = distanceKm / R;
+
+            const lat2 = Math.asin(
+              Math.sin(lat1) * Math.cos(angDist) +
+                Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
+            );
+            const lon2 =
+              lon1 +
+              Math.atan2(
+                Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
+                Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+              );
+
+            pathPoints.push([(lat2 * 180) / Math.PI, (lon2 * 180) / Math.PI]);
+          }
         }
 
-        // Apply smoothing if we have enough points
-        if (pathPoints.length >= 3) {
-          // Convert to GeoJSON LineString with [lon, lat]
-          const line = turf.lineString(
-            pathPoints.map(([lat, lon]) => [lon, lat])
-          );
-          // Higher resolution and sharpness improve curve smoothness
-          const spline = turf.bezierSpline(line, {
-            resolution: pointsCount * 4,
-            sharpness: 0.85,
-          });
-          // Convert back to [lat, lon]
-          pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
-            lat,
-            lon,
-          ]);
+        // Apply very light smoothing only for curved paths, skip for straight paths
+        if (usesTurnRate && pathPoints.length >= 4) {
+          try {
+            const line = turf.lineString(
+              pathPoints.map(([lat, lon]) => [lon, lat])
+            );
+            const spline = turf.bezierSpline(line, {
+              resolution: pathPoints.length * 2, // Less aggressive resolution
+              sharpness: 0.5, // Much less aggressive sharpness
+            });
+            pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
+              lat,
+              lon,
+            ]);
+          } catch (e) {
+            // Keep original points if smoothing fails
+            console.warn('Path smoothing failed, using original points');
+          }
         }
+        // Cap the path length to a reasonable distance and remove outliers
+        const maxDistanceKm = 25; // Reasonable distance for 3-minute prediction
+        pathPoints = pathPoints.filter((pt, index) => {
+          if (index === 0) return true; // Always keep the first point
 
-        // Cap the path length to a maximum distance (e.g., 50 km) from the current position
-        const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
-        pathPoints = pathPoints.filter((pt) => {
           const dist = haversineDistance(lat, lon, pt[0], pt[1]);
           return dist <= maxDistanceKm;
         });
+
+        // Remove points that are too close together (deduplication)
+        const minDistanceKm = 0.5; // Minimum distance between points
+        const filteredPoints: [number, number][] = [pathPoints[0]]; // Always keep first point
+
+        for (let i = 1; i < pathPoints.length; i++) {
+          const lastPoint = filteredPoints[filteredPoints.length - 1];
+          const currentPoint = pathPoints[i];
+          const dist = haversineDistance(
+            lastPoint[0],
+            lastPoint[1],
+            currentPoint[0],
+            currentPoint[1]
+          );
+
+          if (dist >= minDistanceKm) {
+            filteredPoints.push(currentPoint);
+          }
+        }
+
+        pathPoints = filteredPoints;
         // After computing, cache for short duration
         this.pathCache.set(key, { timestamp: now, points: pathPoints });
       }
@@ -809,16 +916,10 @@ export class PlaneFinderService {
           now - this.lastUnknownCountryLogTime > 30000 &&
           this.unknownCountryAircraft.length > 0
         ) {
-          console.log(
-            `\n=== UNKNOWN COUNTRY AIRCRAFT (${this.unknownCountryAircraft.length}) ===`
-          );
           this.unknownCountryAircraft.forEach((aircraft) => {
             const milFlag = aircraft.isMilitary ? '[MIL]' : '';
-            console.log(
-              `${aircraft.icao} ${milFlag} ${aircraft.detectedCountry} | Raw:${aircraft.rawCountry} | ${aircraft.callsign} | ${aircraft.operator} | ${aircraft.registration}`
-            );
           });
-          console.log('='.repeat(50));
+
           this.unknownCountryAircraft = []; // Clear the array
           this.lastUnknownCountryLogTime = now;
         }
