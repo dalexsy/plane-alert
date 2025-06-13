@@ -221,7 +221,7 @@
       max-height: 100%;
       overflow-y: auto;
     }
-  } // Ensure seen section is limited and scrolls internally
+  }  // Ensure seen section is limited and scrolls internally
   #seenResults {
     display: flex;
     flex-direction: column;
@@ -229,15 +229,54 @@
     flex: 1 0 auto;
     min-height: 0;
     overflow: hidden;
-    .plane-list-wrapper {
-      /* fill available space and scroll internally */
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-    }
+
     h3 {
       flex: 0 0 auto;
       min-height: 0;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .section-title {
+        flex: 1;
+        min-width: 0; // Allow text to shrink if needed
+      }
+
+      .header-buttons {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+        flex-shrink: 0; // Prevent buttons from shrinking
+        
+        app-button {
+          min-width: 2.5rem; // Fixed width to prevent icon shifts
+        }
+      }
+    }
+
+    // Collapse wrapper for smooth animations
+    .collapse-wrapper {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+                  opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      max-height: 1000px; // Large value for expanded state
+      opacity: 1;
+      
+      .plane-list-wrapper {
+        /* fill available space and scroll internally */
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        height: 100%;
+      }
     }
 
     // When collapsed, don't take up any space
@@ -245,6 +284,12 @@
       /* remain collapsed at header height */
       flex: 0 0 3rem;
       max-height: 3rem;
+
+      .collapse-wrapper {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+      }
     }
   }
   // Ensure all plane-list-wrapper allow shrink
