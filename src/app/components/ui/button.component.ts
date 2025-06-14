@@ -1,5 +1,13 @@
 // src/app/components/ui/button.component.ts
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 
@@ -20,6 +28,7 @@ export type ButtonType = 'primary' | 'secondary' | 'tertiary';
       "
       [attr.aria-label]="ariaLabel"
       [type]="nativeType"
+      [disabled]="disabled"
       (click)="onClick($event)"
     >
       <app-icon *ngIf="icon" [icon]="icon" [size]="size"></app-icon>
@@ -28,19 +37,30 @@ export type ButtonType = 'primary' | 'secondary' | 'tertiary';
   `,
   styleUrls: ['./button.component.scss'],
 })
-export class ButtonComponent {
+export class ButtonComponent implements OnChanges {
   @Input() text: string | null = null;
   @Input() icon: string | null = null;
   @Input() ariaLabel?: string;
   @Input() nativeType: 'button' | 'submit' | 'reset' = 'button';
   @Input() type: ButtonType = 'primary';
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
+  @Input() disabled: boolean = false;
   @Output() click = new EventEmitter<Event>();
 
-  onClick(event: Event) {
-    // Stop event propagation to prevent multiple triggers
+  constructor(private el: ElementRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['icon']) {
+    }
+  }
+
+  onClick(event: MouseEvent): void {
+    // Stop event propagation FIRST to prevent any parent handlers
     event.preventDefault();
     event.stopPropagation();
-    this.click.emit(event);
+    // Only emit if not disabled
+    if (!this.disabled) {
+      this.click.emit(event);
+    }
   }
 }

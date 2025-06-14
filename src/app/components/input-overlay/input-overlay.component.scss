@@ -1,19 +1,37 @@
-@use "../../../styles.scss" as *; // Re-add import for global variables
-
 .options-overlay {
   position: absolute;
   top: 0.25rem;
   left: 0.25rem;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.7);
-  padding: 1.5rem;
-  border: 1px solid rgb(255 255 255 / 40%);
-  max-height: calc(100% - 0.5rem);
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  max-height: calc(100vh - 10.5rem);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  max-width: 20rem;
+  border-radius: 0.5rem 0 0.5rem 0.5rem;
+  width: 20rem;
+  backdrop-filter: blur(0.5rem);
+  overflow: visible;
+
+  .top-buttons {
+    position: absolute;
+    top: -1px;
+    right: -2.5rem;
+    display: flex;
+    flex-direction: column;
+    z-index: 900;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 0 0.5rem 0.5rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-left: none;
+    overflow: visible;
+  }
+
+  h1 {
+    margin-bottom: 1rem;
+  }
 
   .form-group {
     margin-bottom: 15px;
@@ -32,9 +50,9 @@
     border: none;
     border-radius: 2rem;
     padding-left: 1rem;
-    background: #ffffff2e;
+    background: rgba(255, 255, 255, 0.18);
     color: white;
-    font-family: $font-mono;
+    font-family: "JetBrains Mono", monospace;
   }
 
   .checkbox-inline {
@@ -51,15 +69,34 @@
     margin-bottom: 20px;
   }
 
-  #lastChecked {
-    margin-top: 10px;
-    font-style: italic;
-    color: #555;
-  }
+  &.collapsed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    border: none;
 
-  #nextUpdate {
-    margin-top: 10px;
-    font-weight: bold;
+    .top-buttons {
+      position: static;
+      align-items: center;
+      margin: 0;
+      border-radius: 0.5rem;
+      border-color: transparent;
+    }
+
+    form,
+    .form-group,
+    .button-group {
+      display: none;
+    }
   }
 }
 
@@ -67,11 +104,44 @@
   .options-overlay {
     display: flex !important;
     flex-direction: column;
+
     > *:not(.form-group:nth-child(3)) {
       display: none !important;
     }
+
     .form-group:nth-child(3) {
       display: block !important;
     }
   }
+}
+
+// Tooltip via data-tooltip attribute on wrapper
+.brightness-button-wrapper[data-tooltip].auto {
+  position: relative;
+}
+.brightness-button-wrapper[data-tooltip].auto:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1001;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(0.25rem);
+}
+
+// Hide the old explicit tooltip if still present
+.brightness-button-wrapper .brightness-tooltip {
+  display: none;
+}
+
+// Override right-side tab container to show overflow
+.options-overlay .top-buttons .right {
+  overflow: visible !important;
 }

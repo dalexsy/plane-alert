@@ -2,7 +2,9 @@
 import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
-import { APP_BASE_HREF } from '@angular/common';
+
+// Import static helicopter ICAO list to ensure synchronous loading
+import helicopterIcaosData from '../../assets/helicopter-icaos.json';
 
 @Injectable({
   providedIn: 'root',
@@ -17,8 +19,14 @@ export class HelicopterListService {
   public readonly helicopterListUpdated$: Observable<void> =
     this.listUpdated.asObservable();
 
-  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {
+  constructor(private http: HttpClient) {
+    // Load asynchronously, but also apply static list immediately for window view
     this.loadHelicopterList();
+    this.helicopterIcaos = new Set(
+      helicopterIcaosData.map((icao: string) => icao.toLowerCase())
+    );
+    this.customListLoaded = true;
+    this.listUpdated.next();
   }
 
   /**
@@ -35,7 +43,6 @@ export class HelicopterListService {
       .toPromise()
       .then((text: string | undefined) => {
         if (!text) {
-          console.log('No helicopter-icaos.json file found, using empty list');
           return;
         }
 
@@ -49,14 +56,13 @@ export class HelicopterListService {
 
           this.listUpdated.next();
         } catch (e) {
-          console.error('Error parsing helicopter-icaos.json:', e);
+          // Error parsing helicopter-icaos.json
         }
       })
       .catch((error) => {
         if (error.status === 404) {
-          console.log('No helicopter-icaos.json file found, using empty list');
         } else {
-          console.error('Error loading helicopter list:', error);
+          // Error loading helicopter list
         }
       });
   }
@@ -79,11 +85,7 @@ export class HelicopterListService {
    * Check if an ICAO should be treated as a helicopter
    */
   isHelicopter(icao: string): boolean {
-    // Don't check until the list is loaded
-    if (!this.customListLoaded) {
-      return false;
-    }
-
+    // Directly check against loaded ICAO set
     return this.helicopterIcaos.has(icao.trim().toLowerCase());
   }
 

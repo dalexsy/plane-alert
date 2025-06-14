@@ -1,5 +1,10 @@
+@use "app/styles/plane-marker" as *;
+@use "app/styles/plane-tooltip" as *;
+@use "app/directives/tooltip" as *;
 @import url("https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/6.6.6/css/flag-icons.min.css");
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+@import "leaflet/dist/leaflet.css";
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
 
 *,
 *::before,
@@ -20,6 +25,10 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   font-family: "Instrument Sans", sans-serif;
+  overflow: hidden;
+  cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23FFF" stroke="%23000" stroke-width="0.625" d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.35Z"></path></svg>')
+      0 0,
+    auto;
 }
 
 img,
@@ -29,6 +38,9 @@ canvas,
 svg {
   display: block;
   max-width: 100%;
+  cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="%23FFF" stroke="%23000" stroke-width="0.625" d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.35Z"></path></svg>')
+      0 0,
+    auto;
 }
 
 input,
@@ -49,6 +61,11 @@ a:active {
   color: inherit;
 }
 
+a:hover {
+  opacity: 0.8;
+  transform: scale(1.04);
+}
+
 // Font family variables
 $font-body: "Instrument Sans", sans-serif;
 $font-header: "Instrument Sans", sans-serif;
@@ -60,7 +77,6 @@ $font-mono: "JetBrains Mono", monospace;
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
-  font-variation-settings: "wdth" 100;
 }
 
 @mixin instrument-sans-bold {
@@ -68,7 +84,6 @@ $font-mono: "JetBrains Mono", monospace;
   font-optical-sizing: auto;
   font-weight: 600;
   font-style: normal;
-  font-variation-settings: "wdth" 100;
 }
 
 @mixin jetbrains-mono-regular {
@@ -103,7 +118,6 @@ h3 {
   letter-spacing: 1px;
   font-size: 0.75rem;
   border-bottom: 1px solid white;
-  margin-bottom: 0.25rem;
   padding-bottom: 0.5rem;
 }
 
@@ -112,6 +126,8 @@ h3 {
     font-family: $font-body !important;
     font-weight: 600;
     letter-spacing: 2px;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+      1px 1px 0 #000;
   }
 }
 
@@ -139,4 +155,9 @@ input {
 
 ::-webkit-scrollbar-track {
   background-color: transparent;
+}
+
+/* Shift date and time overlay right when input overlay is collapsed */
+app-input-overlay.collapsed ~ app-clock .clock-container {
+  left: 3.5rem;
 }

@@ -1,0 +1,30 @@
+<div
+  *ngIf="plane"
+  class="location-overlay"
+  [class.selected]="isSelected"
+  [class.military-plane]="isSelected && plane.isMilitary"
+  [class.special-plane]="isSelected && plane.isSpecial"
+  (click)="onClick()"
+  title="Center plane"
+>
+  <app-icon
+    icon="location_on"
+    variant="sharp"
+    size="small"
+    ariaLabel="Plane location"
+  ></app-icon>
+  <!-- If at an airport and grounded or under 200m, show airportName -->
+  <ng-container
+    *ngIf="
+      plane.airportName &&
+      (plane.onGround === true ||
+        (plane.altitude != null && plane.altitude <= 200))
+    "
+  >
+    <span class="airport-name">{{ plane.airportName }}</span>
+  </ng-container>
+  <!-- Otherwise, show district only -->
+  <ng-container *ngIf="!plane.airportName">
+    <span class="district">{{ district || '' }}</span>
+  </ng-container>
+</div>

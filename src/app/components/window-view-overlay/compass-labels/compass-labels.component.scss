@@ -1,0 +1,68 @@
+// =============================================================================
+// Compass Labels Component - Navigation Labels with Roof Background
+// =============================================================================
+
+$overlay-bottom-spacing: 1.5rem;
+$compass-label-color: #ffe066;
+
+:host {
+  position: absolute;
+  bottom: calc(-1 * #{$overlay-bottom-spacing});
+  left: 0;
+  width: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.compass-labels {
+  display: flex;
+  justify-content: space-between;
+  color: $compass-label-color;
+  pointer-events: none;
+  position: relative;
+  // Chimney decorations
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 1.5rem;
+    width: 0.75rem;
+    height: 0.8rem;
+    background-color: var(--chimney-bg);
+
+    mix-blend-mode: none;
+
+    // Brick stripes over roof background
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 3px,
+        rgba(255, 255, 255, 0.2) 3px,
+        rgba(255, 255, 255, 0.2) 4px
+      ),
+      linear-gradient(
+        to right,
+        transparent 47%,
+        rgba(255, 255, 255, 0.2) 47%,
+        rgba(255, 255, 255, 0.2) 53%,
+        transparent 53%
+      );
+    background-size: 100% 4px, 100% 100%;
+  }
+
+  &::before {
+    left: 22%;
+  }
+  &::after {
+    left: 40%;
+  }
+
+  // Shingle roof pattern background
+  background-image: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.1) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 0.25rem 0.25rem;
+}

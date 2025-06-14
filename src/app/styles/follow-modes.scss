@@ -1,0 +1,159 @@
+// Follow-related SCSS variables and mixins
+$followed-plane-color: #00ffff;
+$manual-follow-color: #00ffff;
+$shuffle-follow-color: #ff6600;
+$nearest-follow-color: #00ff00;
+
+// Follow mode button states
+@mixin follow-mode-button($color) {
+  &.active {
+    background-color: rgba($color, 0.2);
+    border-color: $color;
+    color: $color;
+
+    &:hover {
+      background-color: rgba($color, 0.3);
+    }
+  }
+
+  &:not(.active):hover {
+    border-color: rgba($color, 0.5);
+  }
+}
+
+// Follow indicator styles
+@mixin follow-indicator($color) {
+  border: 2px solid $color;
+  box-shadow: 0 0 0 2px rgba($color, 0.3);
+
+  &.pulsing {
+    animation: follow-pulse 2s ease-in-out infinite;
+  }
+}
+
+// Keyframes for follow pulse animation
+@keyframes follow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba($followed-plane-color, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba($followed-plane-color, 0.1);
+  }
+}
+
+// Follow mode specific styles
+.follow-mode {
+  &.shuffle {
+    @include follow-mode-button($shuffle-follow-color);
+  }
+
+  &.nearest {
+    @include follow-mode-button($nearest-follow-color);
+  }
+
+  &.manual {
+    @include follow-mode-button($manual-follow-color);
+  }
+}
+
+// Plane marker follow states
+.plane-marker {
+  &.followed-manual {
+    @include follow-indicator($manual-follow-color);
+  }
+
+  &.followed-shuffle {
+    @include follow-indicator($shuffle-follow-color);
+  }
+
+  &.followed-nearest {
+    @include follow-indicator($nearest-follow-color);
+  }
+}
+
+// Plane list item follow states
+.plane-list-item {
+  &.followed-manual {
+    border-left: 3px solid $manual-follow-color;
+    background-color: rgba($manual-follow-color, 0.05);
+  }
+
+  &.followed-shuffle {
+    border-left: 3px solid $shuffle-follow-color;
+    background-color: rgba($shuffle-follow-color, 0.05);
+  }
+
+  &.followed-nearest {
+    border-left: 3px solid $nearest-follow-color;
+    background-color: rgba($nearest-follow-color, 0.05);
+  }
+}
+
+// Follow overlay styles
+.follow-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 1000;
+
+  .follow-status {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
+    &.active {
+      border-color: $followed-plane-color;
+      color: $followed-plane-color;
+    }
+  }
+
+  .follow-controls {
+    display: flex;
+    gap: 0.25rem;
+
+    .follow-button {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}
+
+// Responsive follow controls
+@media (max-width: 768px) {
+  .follow-overlay {
+    top: 0.5rem;
+    right: 0.5rem;
+
+    .follow-status,
+    .follow-button {
+      font-size: 0.625rem;
+      padding: 0.125rem 0.25rem;
+    }
+  }
+}
+
+// Dark mode adjustments
+@media (prefers-color-scheme: dark) {
+  .follow-overlay {
+    .follow-status,
+    .follow-button {
+      background: rgba(20, 20, 20, 0.9);
+    }
+  }
+}

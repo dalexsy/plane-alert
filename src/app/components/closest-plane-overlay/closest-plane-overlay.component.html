@@ -1,0 +1,28 @@
+<div
+  *ngIf="plane"
+  class="closest-plane-overlay"
+  [class.selected]="isSelected"
+  [class.military-plane]="isSelected && plane.isMilitary"
+  [class.special-plane]="isSelected && plane.isSpecial"
+  (click)="onClick()"
+  title="Center plane"
+>
+  <app-icon
+    icon="nearby"
+    variant="sharp"
+    size="small"
+    ariaLabel="Closest plane"
+  ></app-icon>
+  <span class="callsign">{{ plane.callsign || "Unknown" }}</span>
+  <span class="operator" *ngIf="operator"> {{ operator }}</span>
+  |
+  <span *ngIf="distanceKm != null" class="distance">
+    {{ distanceKm | number : "1.1-1" }} km
+  </span>
+  <span
+    class="eta"
+    *ngIf="secondsAway !== null && velocity !== null && velocity > 0"
+  >
+    {{ formattedEta }}
+  </span>
+</div>

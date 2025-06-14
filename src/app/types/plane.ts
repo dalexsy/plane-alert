@@ -20,4 +20,6 @@ export interface Plane {
   onGround?: boolean;
   track?: number | null;
   velocity?: number | null;
+  /** Indicates special plane category */
+  isSpecial?: boolean;
 }

@@ -7,7 +7,8 @@ export class NewPlaneService {
   private previousScanPlanes = new Set<string>();
 
   isNew(icao: string): boolean {
-    return !this.previousScanPlanes.has(icao);
+    const result = !this.previousScanPlanes.has(icao);
+    return result;
   }
 
   updatePlanes(newSet: Set<string>): void {

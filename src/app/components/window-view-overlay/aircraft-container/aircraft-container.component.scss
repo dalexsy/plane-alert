@@ -1,0 +1,369 @@
+// =============================================================================
+// Aircraft Container Component - Aircraft Display and 3D Transforms
+// =============================================================================
+
+$overlay-height: 10rem;
+$plane-icon-size: 3rem;
+$grounded-plane-scale: 0.4;
+$plane-animation-duration: 1.2s;
+$trail-animation-duration: 1.2s;
+$scale-transition-duration: 0.8s;
+$ground-shadow-color: rgba(0, 0, 0, 0.4);
+$balcony-color: #4caf50;
+$streetside-color: #2196f3;
+$followed-plane-color: #00ffff;
+
+// Animation optimization for seamless movement
+// These properties ensure smooth transitions without visible delays
+$animation-timing-function: linear;
+$animation-fill-mode: both;
+$animation-optimization: optimizeSpeed;
+
+:host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+  transform-style: preserve-3d; // Ensure 3D transforms are preserved
+}
+
+.planes-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d; // Ensure 3D transforms are preserved
+}
+
+// =============================================================================
+// Aircraft Base Styling
+// =============================================================================
+
+.plane-dot {
+  position: absolute;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  z-index: 1;
+  transform-style: preserve-3d; // Ensure 3D transforms are preserved
+  font-family: "JetBrains Mono", monospace;
+  color: #fff;
+  // Smooth position and scale animations, but instant rotation changes
+  transition: left var(--plane-animation-duration, #{$plane-animation-duration})
+      $animation-timing-function,
+    bottom var(--plane-animation-duration, #{$plane-animation-duration})
+      $animation-timing-function,
+    transform $scale-transition-duration ease-out;
+  will-change: transform, left, bottom;
+
+  // Performance optimizations for smooth animations
+  backface-visibility: hidden;
+  transform: translateZ(0); // Force hardware acceleration
+
+  // Close aircraft (within 10km) get higher z-index and enhanced visibility
+  &.close-plane {
+    z-index: 10;
+  }
+
+  &.skip-wrap {
+    // Disable transitions for wrap-around jumps or use a very short one for scale
+    transition: transform $scale-transition-duration ease-out !important; // Keep scale transition
+    // Or, to disable all transitions on wrap:
+    // transition: none !important;
+  }
+
+  // Marker-specific styling
+  &.balcony-marker,
+  &.streetside-marker {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: none; // Static markers don't animate
+    will-change: auto;
+  }
+
+  &.dimmed {
+    opacity: 0.5;
+  }
+
+  // Newly scoped grounded-plane styles
+  &.grounded-plane {
+    flex-direction: column-reverse; // Reverse order so label appears on top
+    pointer-events: auto;
+    perspective: none;
+    transform: none;
+
+    // Reset transforms inside icon wrappers
+    .icon-wrapper,
+    .icon-scale-wrapper,
+    .copter-plane-icon {
+      transform: none;
+    }
+
+    // Hide chemtrails
+    .chemtrail {
+      display: none;
+    }
+
+    // Ground shadow effect
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1rem;
+      height: 0.25rem;
+      background: $ground-shadow-color;
+      border-radius: 50%;
+      filter: blur(2px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    // Tilt icon on ground
+    .icon-wrapper {
+      transform: perspective(300px) skewX(-30deg) rotateX(50deg)
+        scale($grounded-plane-scale);
+      transform-origin: bottom center;
+      // remove absolute offset
+      bottom: auto;
+    }
+
+    .plane-label {
+      position: static;
+      font-size: 0.75rem;
+    }
+  }
+}
+
+// =============================================================================
+// Aircraft Icons and Components
+// =============================================================================
+.icon-scale-wrapper {
+  display: inline-block;
+  transform-style: preserve-3d; // Ensure 3D transforms are preserved through the scale layer
+}
+
+.icon-wrapper {
+  position: relative;
+  display: inline-block;
+  transform-style: preserve-3d; // Ensure 3D transforms are preserved
+}
+
+.chemtrail {
+  position: absolute;
+  height: 4px;
+  left: 50%;
+  bottom: calc(50% - 1px);
+  opacity: 0.8;
+  filter: blur(1px);
+  border-radius: 1px;
+  transform-origin: left center;
+}
+
+.plane-icon {
+  width: $plane-icon-size;
+  height: $plane-icon-size;
+  margin-bottom: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: currentColor;
+  background: none;
+  border: none;
+  padding: 0; // Smooth rotation and tilt animation synchronized with position changes
+  transition: transform
+    var(--plane-animation-duration, #{$plane-animation-duration}) linear;
+  will-change: transform;
+  transform-style: preserve-3d; // Enable 3D transformations for tilt effect
+
+  path {
+    fill: currentColor;
+    stroke: black;
+    stroke-width: 2px;
+  }
+}
+
+// =============================================================================
+// Helicopter Styling
+// =============================================================================
+
+.copter-wrapper {
+  display: inline-block;
+}
+
+.copter-plane-icon {
+  font-family: "Material Symbols Sharp", sans-serif;
+  font-variation-settings: "FILL" 1;
+  font-size: $plane-icon-size;
+  color: currentColor;
+  display: inline-block;
+  margin-bottom: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: spin 1.5s linear infinite;
+}
+
+// =============================================================================
+// Plane Labels
+// =============================================================================
+
+.plane-label {
+  cursor: pointer;
+  color: white;
+  margin-bottom: -1.25rem;
+  padding: 0 5px;
+  pointer-events: auto;
+  white-space: nowrap;
+
+  &.followed {
+    z-index: 10;
+    position: relative;
+    color: $followed-plane-color;
+    background: black;
+    border: 1px solid cyan;
+    border-radius: 0.25rem;
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.49);
+  }
+  // Tooltip-style background for labels with operator/model info (close planes)
+  &.has-details {
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 3px;
+    padding: 3px 5px;
+    border: 3px solid #333;
+    color: white;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgb(0 0 0);
+    outline: 1px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(0.5rem);
+    position: relative; // Tooltip tail pointing downward (at the bottom)
+    &::after {
+      content: "";
+      position: absolute;
+      top: 106%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid rgba(0, 0, 0, 0.7);
+      z-index: 1;
+    }
+
+    // Tooltip tail outline (white)
+    &::before {
+      content: "";
+      position: absolute;
+      top: 106%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 7px solid rgba(255, 255, 255, 0.8);
+      z-index: 0;
+    }
+
+    // When altitude borders are enabled, use altitude color for tooltip tail
+    &.altitude-bordered-tooltip {
+      &::after {
+        border-top-color: inherit;
+      }
+    }
+
+    .plane-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 2px;
+
+      .operator-model {
+        font-size: 0.65rem;
+        opacity: 0.85;
+        color: white;
+        text-align: center;
+        line-height: 1.1;
+      }
+    }
+  }
+}
+
+// =============================================================================
+// Marker Labels
+// =============================================================================
+
+.line-label {
+  position: absolute;
+  bottom: 3rem;
+  white-space: nowrap;
+  pointer-events: auto;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.balcony-marker .line-label {
+  color: $balcony-color;
+}
+
+.streetside-marker .line-label {
+  color: $streetside-color;
+}
+
+// =============================================================================
+// History Trail Segments
+// =============================================================================
+
+.history-trail-segment {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  filter: blur(1px);
+  border-radius: 1px;
+  transform-origin: left center;
+  pointer-events: none;
+  z-index: 0;
+  transform: translateX(2.5rem) translateY(-0.5rem); // Smooth trail animation with optimized easing
+  transition: left var(--trail-animation-duration, #{$trail-animation-duration})
+      $animation-timing-function,
+    bottom var(--trail-animation-duration, #{$trail-animation-duration})
+      $animation-timing-function,
+    opacity 0.4s ease-out;
+  will-change: left, bottom, opacity;
+}
+
+// =============================================================================
+// Animations
+// =============================================================================
+
+@keyframes spin {
+  from {
+    transform: perspective(300px) rotateX(60deg) rotateZ(0deg);
+  }
+  to {
+    transform: perspective(300px) rotateX(60deg) rotateZ(360deg);
+  }
+}
+
+// =============================================================================
+// Altitude Border Styling
+// =============================================================================
+
+.altitude-bordered-tooltip {
+  // Ensure the altitude border color takes precedence over hover states
+  // but allow special states to override if needed
+  &:not(.followed) {
+    &:hover {
+      // Keep the altitude border color even on hover
+      border-color: inherit !important;
+    }
+  }
+}

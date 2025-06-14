@@ -1,0 +1,7 @@
+<!-- dimmed regions outside marker spans -->
+<ng-container *ngFor="let seg of dimSegments">
+  <div
+    class="dim-overlay"
+    [ngStyle]="{ left: seg.left + '%', width: seg.width + '%' }"
+  ></div>
+</ng-container>

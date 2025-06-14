@@ -7,8 +7,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <span
-      class="material-symbols-sharp icon"
-      [ngClass]="size"
+      [class]="'material-symbols-' + variant + ' icon ' + size"
       [style.color]="color"
       [attr.aria-label]="ariaLabel"
       [attr.title]="ariaLabel"
@@ -21,6 +20,7 @@ import { CommonModule } from '@angular/common';
 })
 export class IconComponent {
   @Input() icon: string = '';
+  @Input() variant: 'outlined' | 'sharp' = 'outlined';
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
   @Input() color?: string;
   @Input() ariaLabel?: string;

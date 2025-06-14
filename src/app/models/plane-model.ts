@@ -8,6 +8,7 @@ export interface PositionHistory {
   timestamp: number;
   track?: number | null;
   velocity?: number | null;
+  altitude?: number | null;
 }
 
 export class PlaneModel implements Plane {
@@ -23,13 +24,24 @@ export class PlaneModel implements Plane {
   isNew!: boolean;
   lat!: number;
   lon!: number;
+  track?: number | null;
+  velocity?: number | null;
   marker?: L.Marker;
   path?: L.Polyline;
   predictedPathArrowhead?: L.Marker; // Add arrowhead marker property
   filteredOut!: boolean;
   onGround?: boolean;
+  isSpecial?: boolean;
   isMilitary?: boolean;
-
+  isUnknown?: boolean;
+  /** Distance from home in km, for closest-plane overlay */
+  distanceKm?: number;
+  airportName?: string; // Optional airport name assigned in MapComponent
+  airportCode?: string; // Optional short code (IATA) for airport
+  airportLat?: number; // Latitude of center of airport circle assigned when plane is at airport
+  airportLon?: number; // Longitude of center of airport circle assigned when plane is at airport
+  altitude?: number | null; // Current altitude in meters
+  verticalRate?: number | null; // Vertical rate in m/s (positive = ascending, negative = descending)
   // Store position history for path prediction (limited to last 5 positions)
   positionHistory: PositionHistory[] = [];
   // Change historyTrail to store segments
@@ -37,6 +49,10 @@ export class PlaneModel implements Plane {
 
   // Maximum number of historical positions to keep
   private readonly MAX_HISTORY_SIZE = 15;
+
+  // Throttling for position history capture (20 seconds minimum interval)
+  private readonly POSITION_HISTORY_THROTTLE_MS = 20000;
+  private lastPositionCaptureTime: number = 0;
 
   constructor(data: Plane) {
     Object.assign(this, data);
@@ -64,30 +80,42 @@ export class PlaneModel implements Plane {
 
     this.isNew = Date.now() - this.firstSeen < 60 * 1000;
   }
-
   // Make public so it can be called by PlaneFinderService
   public addPositionToHistory(
     lat: number,
     lon: number,
     track?: number | null,
-    velocity?: number | null
+    velocity?: number | null,
+    altitude?: number | null
   ): void {
-    // Log adding position
-    // console.log(`[PlaneModel ${this.icao}] Adding position: lat=${lat}, lon=${lon}, track=${track}, velocity=${velocity}`);
-    this.positionHistory.push({
-      lat,
-      lon,
-      timestamp: Date.now(),
-      track,
-      velocity,
-    });
+    const currentTime = Date.now();
 
-    // Limit the history size
-    if (this.positionHistory.length > this.MAX_HISTORY_SIZE) {
-      this.positionHistory.shift(); // Remove oldest entry
+    // Only capture position if enough time has passed since last capture
+    // or if this is the first position ever captured
+    if (
+      this.lastPositionCaptureTime === 0 ||
+      currentTime - this.lastPositionCaptureTime >=
+        this.POSITION_HISTORY_THROTTLE_MS
+    ) {
+      // Log adding position
+      this.positionHistory.push({
+        lat,
+        lon,
+        timestamp: currentTime,
+        track,
+        velocity,
+        altitude,
+      });
+
+      // Update the last capture time
+      this.lastPositionCaptureTime = currentTime;
+
+      // Limit the history size
+      if (this.positionHistory.length > this.MAX_HISTORY_SIZE) {
+        this.positionHistory.shift(); // Remove oldest entry
+      }
     }
-    // Log current history size
-    // console.log(`[PlaneModel ${this.icao}] History size: ${this.positionHistory.length}`);
+    // If throttled, the position update is simply ignored for history purposes
   }
 
   // Helper to remove trail segments from map
@@ -95,7 +123,6 @@ export class PlaneModel implements Plane {
     if (this.historyTrailSegments) {
       this.historyTrailSegments.forEach((segment) => map.removeLayer(segment));
       this.historyTrailSegments = []; // Clear the array
-      // console.log(`[PlaneModel ${this.icao}] Removed history trail segments.`);
     }
   }
 

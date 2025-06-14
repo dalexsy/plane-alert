@@ -8,9 +8,8 @@ describe('ResultsOverlayComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ResultsOverlayComponent]
-    })
-    .compileComponents();
+      imports: [ResultsOverlayComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ResultsOverlayComponent);
     component = fixture.componentInstance;

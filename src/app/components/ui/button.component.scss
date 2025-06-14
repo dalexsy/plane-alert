@@ -18,6 +18,19 @@ button {
   font-size: 0.875rem;
   font-weight: 500;
 
+  // Styles for disabled state
+  &[disabled] {
+    color: #888; // Grey color like .none-callsign
+    font-style: italic; // Italic style like .none-callsign
+    opacity: 0.4;
+    cursor: unset;
+    transform: none; // Prevent hover scale effect
+
+    &:hover {
+      color: #888;
+    }
+  }
+
   &.primary {
     background-color: white;
     color: black;
@@ -83,13 +96,12 @@ button {
   &.small .material-symbols-sharp {
     font-size: 1rem;
   }
+
   &.medium .material-symbols-sharp {
     font-size: 1.5rem;
-    font-variation-settings: "FILL" 0, "wght" 350, "GRAD" 0, "opsz" 20;
   }
 
   &.large .material-symbols-sharp {
     font-size: 2rem;
-    font-variation-settings: "FILL" 0, "wght" 250, "GRAD" 0, "opsz" 20;
   }
 }

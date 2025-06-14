@@ -1,0 +1,16 @@
+// Shared styling for overlay info text (e.g. sun-info, wind-info)
+%overlay-info {
+  position: absolute;
+  top: 50%;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+    1px 1px 0 #000;
+  right: 5rem;
+  text-align: right;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 0.875rem;
+  font-family: "JetBrains Mono", monospace;
+  background: transparent;
+  pointer-events: none;
+  white-space: nowrap;
+}

@@ -1,6 +1,7 @@
 // src/app/services/plane-finder.service.ts
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
+import * as turf from '@turf/turf';
 import {
   haversineDistance,
   computeBearing,
@@ -15,6 +16,13 @@ import { PlaneModel } from '../models/plane-model';
 import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
+import { SpecialListService } from './special-list.service';
+import { UnknownListService } from './unknown-list.service';
+import { OperatorCallSignService } from './operator-call-sign.service';
+import { MilitaryPrefixService } from './military-prefix.service';
+import { AltitudeColorService } from '../services/altitude-color.service';
+import { HelicopterIdentificationService } from './helicopter-identification.service';
+import { AircraftCountryService } from '../services/aircraft-country.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -48,17 +56,26 @@ function catmullRomPoint(
   providedIn: 'root',
 })
 export class PlaneFinderService {
+  // Cache for altitude-to-color lookup
+  private colorCache = new Map<number, string>();
+  private pathCache = new Map<
+    string,
+    { timestamp: number; points: [number, number][] }
+  >();
+  private readonly PATH_CACHE_DURATION = 100; // ms
   private mapInitialized = false;
   private isInitialLoad = false;
-
-  setInitialLoad(value: boolean): void {
-    this.isInitialLoad = value;
-  }
-
   constructor(
     private newPlaneService: NewPlaneService,
     private settings: SettingsService,
-    private helicopterListService: HelicopterListService
+    private helicopterListService: HelicopterListService,
+    private specialListService: SpecialListService,
+    private unknownListService: UnknownListService,
+    private operatorCallSignService: OperatorCallSignService,
+    private militaryPrefixService: MilitaryPrefixService,
+    private altitudeColor: AltitudeColorService,
+    private aircraftCountryService: AircraftCountryService,
+    private helicopterIdentificationService: HelicopterIdentificationService
   ) {}
 
   private randomizeBrightness(): string {
@@ -73,12 +90,12 @@ export class PlaneFinderService {
     if (isGrounded) {
       return this.randomizeBrightness();
     }
-    const maxAltitude = 12000;
     if (altitude == null) {
       return '';
     }
-    const hue = Math.min(altitude / maxAltitude, 1) * 300;
-    return `color: hsl(${hue}, 100%, 50%);`;
+    // Use AltitudeColorService for icon color
+    const color = this.altitudeColor.getFillColor(altitude);
+    return `color: ${color};`;
   }
 
   private removePlaneVisuals(plane: PlaneModel, map: L.Map): void {
@@ -90,18 +107,22 @@ export class PlaneFinderService {
 
   private updatePlanePath(
     map: L.Map,
-    plane: PlaneModel, // Pass the full PlaneModel instance
+    plane: PlaneModel,
     lat: number,
     lon: number,
     track: number | null,
     velocity: number | null,
+    altitude: number | null,
     isGrounded: boolean
   ): L.Polyline | undefined {
-    // Return type is only for the predicted path
-
     // --- PREDICTED PATH ---
-    // Remove the predicted path for grounded planes or those without track/velocity data
-    if (track == null || velocity == null || isGrounded) {
+    if (
+      track == null ||
+      velocity == null ||
+      isGrounded ||
+      (velocity !== null && velocity <= 0)
+    ) {
+      // Remove the predicted path for grounded planes or those without track/velocity data
       if (plane.path) {
         map.removeLayer(plane.path);
         plane.path = undefined; // Clear reference on the model
@@ -118,91 +139,125 @@ export class PlaneFinderService {
       // No predicted path to draw
       // Historical path handled below
     } else {
-      // Calculate predicted path points
-      let pathPoints: [number, number][] = [[lat, lon]];
-      // Compute turn rate (deg/min) from last two history entries, if available
-      let turnRate = 0;
-      const hist = plane.positionHistory;
-      if (
-        hist.length >= 2 &&
-        hist[hist.length - 1].track != null &&
-        hist[hist.length - 2].track != null
-      ) {
-        const t1 = hist[hist.length - 1].track!;
-        const t0 = hist[hist.length - 2].track!;
-        const dtMin =
-          (hist[hist.length - 1].timestamp - hist[hist.length - 2].timestamp) /
-          60000;
-        if (dtMin > 0) {
-          turnRate = (t1 - t0) / dtMin;
+      // Altitude key for color caching
+      const altKey = altitude ?? 0;
+      // Attempt to reuse cached path points
+      const now = Date.now();
+      const key = `${lat.toFixed(5)},${lon.toFixed(5)},${track},${velocity}`;
+      let pathPoints: [number, number][];
+      const cacheEntry = this.pathCache.get(key);
+      if (cacheEntry && now - cacheEntry.timestamp < this.PATH_CACHE_DURATION) {
+        pathPoints = cacheEntry.points;
+      } else {
+        // Compute predicted path points
+        pathPoints = [[lat, lon]];
+        // Predict path using recent turn rate for smooth curvature
+        const minutesAhead = 2;
+        const pointsCount = 15;
+        const timeStep = minutesAhead / pointsCount;
+        const hist = plane.positionHistory;
+        // Determine turn rate (deg per minute) from last two history entries
+        let turnRatePerMin = 0;
+        if (
+          hist.length >= 2 &&
+          hist[hist.length - 1].track != null &&
+          hist[hist.length - 2].track != null
+        ) {
+          const t1 = hist[hist.length - 1].track!;
+          const t0 = hist[hist.length - 2].track!;
+          const dtMin =
+            (hist[hist.length - 1].timestamp -
+              hist[hist.length - 2].timestamp) /
+            60000;
+          if (dtMin >= 0.1) {
+            const rawDelta = ((t1 - t0 + 540) % 360) - 180;
+            turnRatePerMin = rawDelta / dtMin;
+          }
         }
-      }
-      // Proceed with prediction, applying turnRate each step
-      let weightedTrack = track;
-      // Prediction window: 0.5 minutes (30 seconds) to keep paths shorter
-      const minutesAhead = 0.5;
-      const pointsCount = 15;
-      let curLat = lat;
-      let curLon = lon;
-      let curTrack = weightedTrack;
-      const timeStep = minutesAhead / pointsCount;
-      for (let i = 1; i <= pointsCount; i++) {
-        // Apply computed turn rate per minute
-        curTrack = curTrack + turnRate * timeStep;
-        curTrack = ((curTrack % 360) + 360) % 360; // Normalize track
-
-        const brng = (curTrack * Math.PI) / 180;
-        const distanceKm = (velocity * 60 * timeStep) / 1000; // Velocity in m/s, timeStep in minutes
-        const R = 6371; // Earth radius in km
-        const lat1 = (curLat * Math.PI) / 180;
-        const lon1 = (curLon * Math.PI) / 180;
-        const angDist = distanceKm / R;
-        const lat2 = Math.asin(
-          Math.sin(lat1) * Math.cos(angDist) +
-            Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
-        );
-        const lon2 =
-          lon1 +
-          Math.atan2(
-            Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
-            Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+        let curLat = lat;
+        let curLon = lon;
+        let curHeading = track ?? hist[hist.length - 1]?.track ?? 0;
+        for (let i = 1; i <= pointsCount; i++) {
+          // apply turn rate
+          curHeading =
+            (((curHeading + turnRatePerMin * timeStep) % 360) + 360) % 360;
+          const brng = (curHeading * Math.PI) / 180;
+          // Convert speed from knots to km/h then compute distance for this time step (timeStep in minutes)
+          const speedKmPerHr = (velocity ?? 0) * 1.852;
+          const distanceKm = (speedKmPerHr * timeStep) / 60;
+          const R = 6371; // Earth radius in km
+          const lat1 = (curLat * Math.PI) / 180;
+          const lon1 = (curLon * Math.PI) / 180;
+          const angDist = distanceKm / R;
+          const lat2 = Math.asin(
+            Math.sin(lat1) * Math.cos(angDist) +
+              Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng)
           );
-        curLat = (lat2 * 180) / Math.PI;
-        curLon = (lon2 * 180) / Math.PI;
-        pathPoints.push([curLat, curLon]);
-      }
-      // Smooth predicted path but always anchor the first point at the plane's current position
-      const ctrlPts = pathPoints;
-      const samples = 30;
-      const smoothed: [number, number][] = [];
-      if (ctrlPts.length > 0) {
-        // Always start at true current location
-        smoothed.push(ctrlPts[0]);
-      }
-      for (let i = 1; i <= samples; i++) {
-        const t = i / samples;
-        smoothed.push(this.calculateCurvePoint(t, ctrlPts));
-      }
-      pathPoints = smoothed;
+          const lon2 =
+            lon1 +
+            Math.atan2(
+              Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
+              Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2)
+            );
+          curLat = (lat2 * 180) / Math.PI;
+          curLon = (lon2 * 180) / Math.PI;
+          pathPoints.push([curLat, curLon]);
+        }
 
-      // Cap the path length to a maximum distance (e.g., 5 km) from the current position
-      const maxDistanceKm = 5;
-      pathPoints = pathPoints.filter((pt) => {
-        const dist = haversineDistance(lat, lon, pt[0], pt[1]);
-        return dist <= maxDistanceKm;
-      });
+        // Apply smoothing if we have enough points
+        if (pathPoints.length >= 3) {
+          // Convert to GeoJSON LineString with [lon, lat]
+          const line = turf.lineString(
+            pathPoints.map(([lat, lon]) => [lon, lat])
+          );
+          // Higher resolution and sharpness improve curve smoothness
+          const spline = turf.bezierSpline(line, {
+            resolution: pointsCount * 4,
+            sharpness: 0.85,
+          });
+          // Convert back to [lat, lon]
+          pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
+            lat,
+            lon,
+          ]);
+        }
+
+        // Cap the path length to a maximum distance (e.g., 50 km) from the current position
+        const maxDistanceKm = 20; // increased to 50 km for 10x longer cap
+        pathPoints = pathPoints.filter((pt) => {
+          const dist = haversineDistance(lat, lon, pt[0], pt[1]);
+          return dist <= maxDistanceKm;
+        });
+        // After computing, cache for short duration
+        this.pathCache.set(key, { timestamp: now, points: pathPoints });
+      }
+
       // Only draw non-degenerate predicted paths (at least two unique points after capping)
       const uniquePoints = Array.from(
         new Set(pathPoints.map((p) => p.join(',')))
       );
       if (uniquePoints.length >= 2) {
-        // Update existing or create new polyline
+        // Determine color based on predicted altitude, reuse cached color
+        const altKey = altitude ?? 0;
+        let predColor: string;
+        if (this.colorCache.has(altKey)) {
+          predColor = this.colorCache.get(altKey)!;
+        } else {
+          predColor = this.altitudeColor.getFillColor(altKey);
+          this.colorCache.set(altKey, predColor);
+        }
+
+        // Update existing or create new polyline with altitude-based color
         if (plane.path) {
           plane.path.setLatLngs(pathPoints);
-          plane.path.setStyle({ className: 'predicted-path-line' });
+          plane.path.setStyle({
+            className: 'predicted-path-line',
+            color: predColor,
+          });
         } else {
           plane.path = L.polyline(pathPoints, {
             className: 'predicted-path-line',
+            color: predColor,
             interactive: false,
             pane: 'overlayPane',
           }).addTo(map);
@@ -221,6 +276,14 @@ export class PlaneFinderService {
 
       // --- Add/Update Arrowhead ---
       if (pathPoints.length >= 2) {
+        // Compute arrow color based on predicted altitude, reuse cached color
+        let arrowColor: string;
+        if (this.colorCache.has(altKey)) {
+          arrowColor = this.colorCache.get(altKey)!;
+        } else {
+          arrowColor = this.altitudeColor.getFillColor(altKey);
+          this.colorCache.set(altKey, arrowColor);
+        }
         const endPoint = pathPoints[pathPoints.length - 1];
         const prevPoint = pathPoints[pathPoints.length - 2];
         const bearing = computeBearing(
@@ -232,20 +295,20 @@ export class PlaneFinderService {
         const rotation = bearing - 90; // Adjust rotation for '▶' default orientation
 
         const arrowheadIcon = L.divIcon({
-          html: `<div style="transform: rotate(${rotation}deg);">▶</div>`,
+          html: `<div style="transform: rotate(${rotation}deg); color: ${arrowColor};">▶</div>`,
           className: 'predicted-path-arrowhead',
           iconSize: [20, 20],
-          iconAnchor: [10, 10],
+          iconAnchor: [11, 11],
         });
 
         if (plane.predictedPathArrowhead) {
           plane.predictedPathArrowhead.setLatLng(endPoint);
           plane.predictedPathArrowhead.setIcon(arrowheadIcon);
         } else {
+          // Use default pane for marker so Leaflet places it correctly
           plane.predictedPathArrowhead = L.marker(endPoint, {
             icon: arrowheadIcon,
             interactive: false,
-            pane: 'pathArrowheadPane',
           }).addTo(map);
         }
       } else if (plane.predictedPathArrowhead) {
@@ -260,8 +323,18 @@ export class PlaneFinderService {
       plane.positionHistory.length > 1 &&
       !isGrounded
     ) {
-      const rawPoints = plane.positionHistory.map((p) => [p.lat, p.lon]);
-      rawPoints.push([lat, lon]);
+      const maxAltitude = 12000; // same scale as marker coloring
+      // Build history with altitude
+      const rawHistory = plane.positionHistory.map((p) => ({
+        lat: p.lat,
+        lon: p.lon,
+        alt: p.altitude ?? 0, // uses .alt property
+      }));
+      rawHistory.push({ lat, lon, alt: altitude ?? 0 });
+      const rawPoints: [number, number][] = rawHistory.map((p) => [
+        p.lat,
+        p.lon,
+      ]);
 
       const smoothPoints: [number, number][] = [];
       for (let i = 0; i < rawPoints.length; i++) {
@@ -315,15 +388,40 @@ export class PlaneFinderService {
             minOpacity +
             (maxOpacity - minOpacity) *
               (i / (numSegments > 1 ? numSegments - 1 : 1));
+          // Determine color by rawHistory altitude via service
+          const segAlt1 = rawHistory[i]?.alt ?? 0;
+          const segAlt2 = rawHistory[i + 1]?.alt ?? 0;
 
-          const segment = L.polyline(interpolatedPoints, {
-            color: 'white',
-            weight: 4,
-            opacity: opacity,
-            interactive: false,
-          }).addTo(map);
-
-          plane.historyTrailSegments!.push(segment);
+          // Color transition: interpolate between the altitudes of the segment endpoints
+          // Find raw indexes for interpolation
+          let rawIdx1 = 0,
+            rawIdx2 = 0;
+          if (rawPoints.length > 1) {
+            rawIdx1 = Math.floor(
+              (i * (rawPoints.length - 1)) / (smoothPoints.length - 1)
+            );
+            rawIdx2 = Math.ceil(
+              ((i + 1) * (rawPoints.length - 1)) / (smoothPoints.length - 1)
+            );
+          }
+          // Initialize previous point for segment drawing
+          let prevPt: L.LatLngExpression = interpolatedPoints[0];
+          // Draw each subsegment colored by service interpolation
+          for (let k = 1; k < interpolatedPoints.length; k++) {
+            const t = k / (interpolatedPoints.length - 1);
+            // Interpolate altitude
+            const altAtT = segAlt1 + (segAlt2 - segAlt1) * t;
+            const segColor = this.altitudeColor.getFillColor(altAtT);
+            const segment = L.polyline([prevPt, interpolatedPoints[k]], {
+              className: 'history-trail-segment',
+              color: segColor,
+              weight: 4,
+              opacity: opacity,
+              interactive: false,
+            }).addTo(map);
+            plane.historyTrailSegments!.push(segment);
+            prevPt = interpolatedPoints[k];
+          }
         }
       }
     } else {
@@ -418,15 +516,21 @@ export class PlaneFinderService {
     getAircraftInfo: (
       icao: string
     ) => { model?: string; ownop?: string; mil?: boolean } | null,
-    previousLog: Map<string, PlaneModel> // Use PlaneModel here
+    previousLog: Map<string, PlaneModel>, // Use PlaneModel here
+    followedIcao?: string | null, // <-- new param
+    followNearest?: boolean // <-- new param
   ): Promise<{
     anyNew: boolean;
     currentIDs: string[];
-    updatedLog: PlaneModel[]; // Use PlaneModel here
+    updatedLog: PlaneModel[];
   }> {
-    // Refresh the helicopter list before scanning
-    // Use the force parameter if this is a manual scan
+    // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
+    // Refresh asset-based lists
+    await this.unknownListService.refreshUnknownList(manualUpdate);
+    await this.specialListService.refreshSpecialList(manualUpdate);
+    // Load any configured military prefixes
+    await this.militaryPrefixService.loadPrefixes();
 
     if (!this.mapInitialized) {
       map.setView(
@@ -450,248 +554,310 @@ export class PlaneFinderService {
     const lamax = centerLat + latDelta;
     const lomin = centerLon - lonDelta;
     const lomax = centerLon + lonDelta;
-    const url = `https://opensky-network.org/api/states/all?lamin=${lamin}&lamax=${lamax}&lomin=${lomin}&lomax=${lomax}&extended=1`;
+    try {
+      const radiusNm = radiusKm / 1.852;
+      const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
+      const response = await fetch(url);
+      if (!response.ok)
+        throw new Error(`ADSB One API fetch error ${response.status}`);
+      const data = await response.json();
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch plane data');
-    const data = await response.json();
-    const currentUpdateSet = new Set<string>();
-    const updatedLogModels: PlaneModel[] = []; // Store models
-    let anyNew = false;
+      // Prepare update containers for this scan
+      const currentUpdateSet = new Set<string>();
+      const updatedLogModels: PlaneModel[] = [];
+      let anyNew = false; // Process ADSB One API response: derive country code
+      data.ac?.forEach((ac: any) => {
+        const id = ac.hex.toUpperCase();
 
-    data.states?.forEach((state: any[]) => {
-      const id = state[0];
-      const callsign = state[1]?.trim() || ''; // Define callsign early
-      const origin: string = state[2] || 'Unknown';
-      const lat = state[6];
-      const lon = state[5];
-      const track = state[10];
-      const velocity = state[9];
-      const altitude = state[13];
-      const onGround = Boolean(state[8]); // Use descriptive variable
+        // API changed: 'callsign' field is now 'flight'
+        const rawCallsign = ac.flight?.trim() || ac.callsign?.trim() || '';
+        const callsign = /^@+$/.test(rawCallsign) ? '' : rawCallsign;
 
-      // Define isFiltered early after getting necessary info
-      const aircraft = getAircraftInfo(id);
-      const isMilitary = aircraft?.mil || false;
-      const wouldBeFiltered = filterPlaneByPrefix(
-        callsign,
-        excludeDiscount,
-        blockedPrefixes
-      );
-      const isFiltered = this.isInitialLoad
-        ? false
-        : isMilitary
-        ? false
-        : wouldBeFiltered;
+        // Use ADSB One 'r' property for registration (registration code)
+        const reg: string = ac.r?.trim() || '';
 
-      currentUpdateSet.add(id);
-
-      const dist = haversineDistance(centerLat, centerLon, lat, lon);
-      if (dist > radiusKm) {
-        // Clean up plane if it moved out of range
-        const existingPlane = previousLog.get(id);
-        if (existingPlane) {
-          this.removePlaneVisuals(existingPlane, map); // Use helper
-          previousLog.delete(id);
-        }
-        return;
-      }
-
-      const isNew = this.newPlaneService.isNew(id);
-      if (isNew && !isFiltered) {
-        // Simplified new plane logic
-        anyNew = true;
-
-        onNewPlane();
-      }
-
-      // Get or create PlaneModel instance
-      let planeModelInstance = previousLog.get(id);
-      const isExistingPlane = !!planeModelInstance; // Check if it existed before this scan
-
-      if (!planeModelInstance) {
-        // Create new PlaneModel if it doesn't exist
-        const firstSeen = Date.now();
-        const initialPlaneData: Plane = {
-          // Create initial data structure (Type Plane, not PlaneModel)
-          icao: id,
-          callsign: callsign,
-          origin: origin,
-          firstSeen: firstSeen,
-          model: '', // Will be updated below
-          operator: '', // Will be updated below
-          bearing: 0, // Will be updated below
-          cardinal: '', // Will be updated below
-          arrow: '', // Will be updated below
-          isNew: isNew,
-          lat: lat,
-          lon: lon,
-          marker: undefined, // Will be created below
-          path: undefined, // Will be created below
-          filteredOut: isFiltered,
-          onGround: onGround,
-          // Add track and velocity if available during creation
-          track: track,
-          velocity: velocity,
-        };
-        planeModelInstance = new PlaneModel(initialPlaneData);
-        previousLog.set(id, planeModelInstance);
-      } else {
-        // If instance exists, update its core properties before visual updates
-        planeModelInstance.callsign = callsign;
-        planeModelInstance.origin = origin;
-        planeModelInstance.lat = lat;
-        planeModelInstance.lon = lon;
-        planeModelInstance.filteredOut = isFiltered;
-        planeModelInstance.onGround = onGround;
-        planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
-      }
-
-      // Update PlaneModel with potentially fetched aircraft data
-      // Note: aircraft was already fetched above for filtering logic
-      const model = aircraft?.model || '';
-      const operator = aircraft?.ownop || '';
-      // isMilitary already defined above
-
-      planeModelInstance.model = model;
-      planeModelInstance.operator = operator;
-
-      // Calculate derived properties
-      const bearing = computeBearing(centerLat, centerLon, lat, lon);
-      const cardinal = getCardinalDirection(bearing);
-      const arrow = getArrowForDirection(cardinal);
-      planeModelInstance.bearing = bearing;
-      planeModelInstance.cardinal = cardinal;
-      planeModelInstance.arrow = arrow;
-
-      // *** FIX: Explicitly add position to history for existing planes ***
-      // The constructor handles the very first point for new planes.
-      // This call handles all subsequent points for existing planes.
-      // We need to ensure lat/lon are valid before adding.
-      if (
-        isExistingPlane &&
-        typeof lat === 'number' &&
-        typeof lon === 'number'
-      ) {
-        planeModelInstance.addPositionToHistory(lat, lon, track, velocity);
-      } else if (
-        !isExistingPlane &&
-        (typeof lat !== 'number' || typeof lon !== 'number')
-      ) {
-        // Log if a new plane is created without valid initial coordinates
-        console.warn(
-          `[PlaneFinderService ${id}] New plane created without valid initial lat/lon:`,
-          lat,
-          lon
+        // Fetch DB record
+        const dbAircraft = getAircraftInfo(id); // Derive country using the new aircraft country service
+        const rawCountry = ac.ctry ?? ac.countryCode; // API provided country code
+        const origin = this.aircraftCountryService.getAircraftCountry(
+          reg,
+          id,
+          rawCountry
         );
-      } else if (
-        isExistingPlane &&
-        (typeof lat !== 'number' || typeof lon !== 'number')
-      ) {
-        // Log if an existing plane receives invalid coordinates
-        console.warn(
-          `[PlaneFinderService ${id}] Existing plane received invalid lat/lon:`,
-          lat,
-          lon
-        );
-      }
 
-      // Create/Update Marker
-      const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
-      const altText = altitude ? altitude.toFixed(0) + 'm' : '';
-      const verticalRate = state[11] ?? null;
-      const tooltip = planeTooltip(
-        id,
-        callsign,
-        origin,
-        model,
-        operator,
-        speedText,
-        altText,
-        getFlagHTML,
-        isNew,
-        onGround,
-        isMilitary,
-        verticalRate
-      );
-      const extraStyle = this.computeExtraStyle(altitude, onGround);
+        // Operator will be set later in model update
+        const lat = ac.lat;
+        const lon = ac.lon;
+        const track = ac.track; // Raw track from API
+        const velocity = ac.gs; // This is ground speed in knots
 
-      const { marker } = createOrUpdatePlaneMarker(
-        planeModelInstance.marker, // Pass existing marker from model
-        map,
-        lat,
-        lon,
-        (track ?? 0) - 90,
-        extraStyle,
-        isNew,
-        onGround,
-        tooltip,
-        '',
-        isMilitary,
-        model,
-        this.helicopterListService.isHelicopter(id)
-      );
-      planeModelInstance.marker = marker; // Update marker reference on model
+        // Use API altitude values; can be number or undefined
+        const altitudeApiValue = ac.alt_baro ?? ac.alt_geom;
+        // Default to 0 if undefined for general calculations (matches original altitudeFeet behavior)
+        const altitudeFeet = altitudeApiValue ?? 0;
+        const altitude = altitudeFeet * 0.3048; // Log raw data relevant to ground status and orientation for EVERY plane
 
-      // Update Predicted and Historical Paths (pass the model instance)
-      this.updatePlanePath(
-        map,
-        planeModelInstance, // Pass the model
-        lat,
-        lon,
-        track,
-        velocity,
-        onGround
-      );
-      // Note: updatePlanePath now modifies planeModelInstance.path and planeModelInstance.historyTrailSegments directly
+        let onGroundBasedOnLogic = false;
+        let altitudeForHeuristicCheck: number | undefined;
 
-      updatedLogModels.push(planeModelInstance); // Add the updated model to the list for this scan
-    });
-
-    // Remove planes that are no longer in the API response
-    for (const [id, plane] of previousLog.entries()) {
-      if (!currentUpdateSet.has(id)) {
-        // Check against the set of IDs found in this scan
-        this.removePlaneVisuals(plane, map); // Use helper
-        previousLog.delete(id);
-      }
-    }
-
-    // Update 'isNew' status and marker/tooltip classes for planes remaining
-    // This loop is now simpler as the main update happened above
-    updatedLogModels.forEach((plane) => {
-      const stillNew = this.newPlaneService.isNew(plane.icao); // Check final 'new' status
-      plane.isNew = stillNew; // Update the model's final 'new' status for the next cycle
-
-      const aircraft = getAircraftInfo(plane.icao); // Re-get info for military status if needed
-      const isMilitary = aircraft?.mil || false;
-
-      // Update marker/tooltip classes based on final state
-      if (plane.marker) {
-        const element = plane.marker.getElement();
-        const tooltipElement = plane.marker.getTooltip()?.getElement();
-
-        if (element) {
-          element.classList.toggle('grounded-plane', plane.onGround);
-          element.classList.toggle('new-plane', !plane.onGround && stillNew);
+        if (ac.alt_baro === 'ground') {
+          altitudeForHeuristicCheck = 0;
+        } else if (typeof ac.alt_baro === 'number') {
+          altitudeForHeuristicCheck = ac.alt_baro;
+        } else if (typeof ac.alt_geom === 'number') {
+          // Fallback to alt_geom if alt_baro is not 'ground' and not a number
+          altitudeForHeuristicCheck = ac.alt_geom;
         }
-        if (tooltipElement) {
-          tooltipElement.classList.toggle('new-plane-tooltip', stillNew);
-          tooltipElement.classList.toggle('military-plane-tooltip', isMilitary);
-          tooltipElement.classList.toggle(
-            'grounded-plane-tooltip',
-            plane.onGround
+        // If altitudeForHeuristicCheck is still undefined, the typeof check below will handle it
+
+        if (
+          typeof altitudeForHeuristicCheck === 'number' &&
+          altitudeForHeuristicCheck < 150 &&
+          typeof velocity === 'number' &&
+          velocity < 50
+        ) {
+          onGroundBasedOnLogic = true;
+        }
+        const onGround = ac.ground === true || onGroundBasedOnLogic;
+        if (onGround) {
+          // Enhanced logging for planes determined to be onGround
+        }
+
+        const isSpecial = this.specialListService.isSpecial(id);
+        const isUnknown = this.unknownListService.isUnknown(id);
+
+        // Define isFiltered early after getting necessary info
+        // Treat any callsign matching configured prefixes as military
+        const prefixIsMil =
+          this.militaryPrefixService.isMilitaryCallsign(callsign);
+        const isMilitary = prefixIsMil || dbAircraft?.mil || false;
+        const wouldBeFiltered = filterPlaneByPrefix(
+          callsign,
+          excludeDiscount,
+          blockedPrefixes
+        );
+        const isFiltered = this.isInitialLoad
+          ? false
+          : isMilitary
+          ? false
+          : wouldBeFiltered;
+
+        currentUpdateSet.add(id);
+
+        const dist = haversineDistance(centerLat, centerLon, lat, lon);
+        if (dist > radiusKm) {
+          // Clean up plane if it moved out of range
+          const existingPlane = previousLog.get(id);
+          if (existingPlane) {
+            this.removePlaneVisuals(existingPlane, map); // Use helper
+            previousLog.delete(id);
+          }
+          return;
+        }
+
+        const isNew = this.newPlaneService.isNew(id);
+        if (isNew && !isFiltered) {
+          // Simplified new plane logic
+          anyNew = true;
+
+          onNewPlane();
+        }
+
+        // Get or create PlaneModel instance
+        let planeModelInstance = previousLog.get(id);
+        const isExistingPlane = !!planeModelInstance; // Check if it existed before this scan
+
+        if (!planeModelInstance) {
+          // Create new PlaneModel if it doesn't exist
+          const firstSeen = Date.now();
+          const initialPlaneData: Plane = {
+            // Create initial data structure (Type Plane, not PlaneModel)
+            icao: id,
+            callsign: callsign,
+            origin: origin,
+            firstSeen: firstSeen,
+            model: '', // Will be updated below
+            operator: '', // Will be updated below
+            bearing: 0, // Will be updated below
+            cardinal: '', // Will be updated below
+            arrow: '', // Will be updated below
+            isNew: isNew,
+            lat: lat,
+            lon: lon,
+            marker: undefined, // Will be created below
+            path: undefined, // Will be created below
+            filteredOut: isFiltered,
+            onGround: onGround,
+            // Add track and velocity if available during creation
+            track: track,
+            velocity: velocity,
+            isSpecial: isSpecial,
+          };
+          planeModelInstance = new PlaneModel(initialPlaneData);
+          // Apply forced military flag on the model (not part of Plane interface)
+          planeModelInstance.isMilitary = isMilitary;
+          previousLog.set(id, planeModelInstance);
+        } else {
+          // If instance exists, update its core properties before visual updates
+          planeModelInstance.callsign = callsign;
+          planeModelInstance.origin = origin;
+          planeModelInstance.lat = lat;
+          planeModelInstance.lon = lon;
+          planeModelInstance.filteredOut = isFiltered;
+          planeModelInstance.onGround = onGround;
+          planeModelInstance.isNew = isNew; // Keep track if it's still considered new in this scan cycle
+          planeModelInstance.isSpecial = isSpecial;
+          planeModelInstance.isMilitary = isMilitary; // update forced military flag
+          planeModelInstance.isUnknown = isUnknown;
+        } // Update PlaneModel with potentially fetched aircraft data
+        // Determine operator via prefix mapping or fallback to ownop from aircraft DB
+        const prefixOperator =
+          this.operatorCallSignService.getOperatorWithLogging(callsign);
+        const operator = prefixOperator ?? (dbAircraft?.ownop || '');
+        const model = dbAircraft?.model || '';
+
+        planeModelInstance.model = model;
+        planeModelInstance.operator = operator;
+
+        // Calculate derived properties
+        const bearing = computeBearing(centerLat, centerLon, lat, lon);
+        const cardinal = getCardinalDirection(bearing);
+        const arrow = getArrowForDirection(cardinal);
+        planeModelInstance.bearing = bearing;
+        planeModelInstance.cardinal = cardinal;
+        planeModelInstance.arrow = arrow;
+        // Assign current altitude for overlay and shuffle mode
+        planeModelInstance.altitude = altitude;
+        // Store vertical rate from API for plane tilting functionality
+        planeModelInstance.verticalRate = ac.baro_rate ?? null;
+
+        // *** FIX: Explicitly add position to history for existing planes ***
+        // The constructor handles the very first point for new planes.
+        // This call handles all subsequent points for existing planes.
+        // We need to ensure lat/lon are valid before adding.
+        if (
+          isExistingPlane &&
+          typeof lat === 'number' &&
+          typeof lon === 'number'
+        ) {
+          planeModelInstance.addPositionToHistory(
+            lat,
+            lon,
+            track,
+            velocity,
+            altitude
           );
         }
-      }
-      // No need to set previousLog here, it was updated directly earlier
-    });
 
-    this.newPlaneService.updatePlanes(currentUpdateSet);
-    return {
-      anyNew,
-      currentIDs: Array.from(currentUpdateSet),
-      updatedLog: Array.from(previousLog.values()), // Return the updated models
-    };
+        // Create/Update Marker
+        const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
+        const altText = altitude ? altitude.toFixed(0) + 'm' : '';
+        const verticalRate = ac.baro_rate ?? null;
+        const tooltip = planeTooltip(
+          id,
+          callsign,
+          origin,
+          model,
+          operator,
+          speedText,
+          altText,
+          getFlagHTML,
+          isNew,
+          onGround,
+          isMilitary,
+          isSpecial,
+          verticalRate,
+          altitude,
+          (alt: number) => this.altitudeColor.getFillColor(alt)
+        );
+        const extraStyle = this.computeExtraStyle(altitude, onGround);
+
+        let trackForMarker: number;
+        if (onGround) {
+          if (typeof ac.track === 'number') {
+            trackForMarker = ac.track;
+          } else {
+            let lastKnownTrackFromHistory: number | undefined = undefined;
+            if (
+              planeModelInstance &&
+              planeModelInstance.positionHistory &&
+              planeModelInstance.positionHistory.length > 0
+            ) {
+              for (
+                let i = planeModelInstance.positionHistory.length - 1;
+                i >= 0;
+                i--
+              ) {
+                const historyPoint = planeModelInstance.positionHistory[i];
+                if (typeof historyPoint.track === 'number') {
+                  lastKnownTrackFromHistory = historyPoint.track;
+                  break;
+                }
+              }
+            }
+            trackForMarker = lastKnownTrackFromHistory ?? 0;
+          }
+        } else {
+          trackForMarker = track ?? 0;
+        }
+
+        // Custom icon mapping removed, always use default icon
+        const customPlaneIcon = '';
+        const followed = !!(
+          followNearest &&
+          followedIcao &&
+          id === followedIcao
+        );
+        const { marker } = createOrUpdatePlaneMarker(
+          planeModelInstance.marker,
+          map,
+          lat,
+          lon,
+          trackForMarker,
+          extraStyle,
+          isNew,
+          onGround,
+          tooltip,
+          customPlaneIcon,
+          isMilitary,
+          model,
+          this.helicopterIdentificationService.isHelicopter(id, model),
+          isSpecial,
+          isUnknown,
+          altitude,
+          followed,
+          this.settings.interval
+        );
+        planeModelInstance.marker = marker; // Update marker reference on model
+
+        // Update Predicted and Historical Paths (pass the model instance)
+        this.updatePlanePath(
+          map,
+          planeModelInstance, // Pass the model
+          lat,
+          lon,
+          track,
+          velocity,
+          altitude,
+          onGround
+        );
+        // Note: updatePlanePath now modifies planeModelInstance.path and planeModelInstance.historyTrailSegments directly
+
+        updatedLogModels.push(planeModelInstance);
+      });
+
+      this.newPlaneService.updatePlanes(currentUpdateSet);
+      return {
+        anyNew,
+        currentIDs: Array.from(currentUpdateSet),
+        updatedLog: updatedLogModels,
+      };
+    } catch (err) {
+      return {
+        anyNew: false,
+        currentIDs: Array.from(previousLog.keys()),
+        updatedLog: Array.from(previousLog.values()),
+      };
+    }
   }
 }

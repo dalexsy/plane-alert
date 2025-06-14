@@ -9,18 +9,37 @@ import {
   OnChanges,
   SimpleChanges,
   AfterViewInit,
-  AfterViewChecked,
   ViewChild,
   ElementRef,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
+import { SpecialListService } from '../../services/special-list.service';
 import { ButtonComponent } from '../ui/button.component';
+import { TabComponent } from '../ui/tab.component';
+import { PlaneListItemComponent } from '../plane-list-item/plane-list-item.component';
 import { interval, Subscription } from 'rxjs';
 import { AircraftDbService } from '../../services/aircraft-db.service';
 import { ScanService } from '../../services/scan.service';
+import { MilitaryPrefixService } from '../../services/military-prefix.service';
+import { PlaneFollowService } from '../../services/plane-follow.service';
+import { AutoFollowService } from '../../services/auto-follow.service';
+import { FollowCoordinatorService } from '../../services/follow-coordinator.service';
+import { haversineDistance } from '../../utils/geo-utils';
+import {
+  trigger,
+  transition,
+  style,
+  query,
+  animate,
+} from '@angular/animations';
+import { IconComponent } from '../ui/icon.component';
+import { TooltipDirective } from '../../directives/tooltip.directive';
+import * as L from 'leaflet';
 
 export interface PlaneLogEntry {
   callsign: string;
@@ -37,23 +56,88 @@ export interface PlaneLogEntry {
   filteredOut?: boolean;
   icao: string;
   isMilitary?: boolean; // Add this property to indicate if the plane is military
+  isSpecial?: boolean; // Add special plane flag
+  isUnknown?: boolean; // Add unknown plane flag
+  onGround?: boolean; // Indicates if plane is on the ground
+  airportName?: string; // Name of airport if plane is on ground near one
+  airportCode?: string; // IATA code for airport if available
+  airportLat?: number;
+  airportLon?: number;
+  altitude?: number | null; // plane altitude in meters, nullable to match PlaneModel
 }
 
 @Component({
   selector: 'app-results-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [
+    CommonModule,
+    ButtonComponent,
+    TabComponent,
+    PlaneListItemComponent,
+    TooltipDirective,
+  ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('listAnimation', [
+      transition('* <=> *', [
+        // animate new items entering
+        query(
+          ':enter',
+          [
+            style({ opacity: 0, transform: 'translateX(-10px)' }),
+            animate(
+              '200ms ease-out',
+              style({ opacity: 1, transform: 'translateX(0)' })
+            ),
+          ],
+          { optional: true }
+        ),
+        // animate items leaving
+        query(
+          ':leave',
+          [
+            animate(
+              '200ms ease-in',
+              style({ opacity: 0, transform: 'translateX(10px)' })
+            ),
+          ],
+          { optional: true }
+        ),
+      ]),
+    ]),
+  ],
 })
 export class ResultsOverlayComponent
-  implements OnInit, OnChanges, OnDestroy, AfterViewInit, AfterViewChecked
+  implements OnInit, OnChanges, OnDestroy, AfterViewInit
 {
+  constructor(
+    public settings: SettingsService,
+    public countryService: CountryService,
+    public planeFilter: PlaneFilterService,
+    private specialListService: SpecialListService,
+    private cdr: ChangeDetectorRef,
+    private aircraftDb: AircraftDbService,
+    private scanService: ScanService,
+    private militaryPrefixService: MilitaryPrefixService,
+    private planeFollowService: PlaneFollowService,
+    private autoFollowService: AutoFollowService,
+    private followCoordinatorService: FollowCoordinatorService
+  ) {
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.resultsUpdated = true;
+    });
+  }
+
+  // track hover state separately for each list to avoid cross-list hover
+  hoveredSkyPlaneIcao: string | null = null;
+  hoveredAirportPlaneIcao: string | null = null;
+  hoveredSeenPlaneIcao: string | null = null;
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
     return this.settings.seenCollapsed;
   }
-
   @Input() skyPlaneLog: PlaneLogEntry[] = [];
   // refs to scrollable lists for fade handling
   @ViewChild('skyList') skyListRef!: ElementRef<HTMLDivElement>;
@@ -61,6 +145,11 @@ export class ResultsOverlayComponent
   @ViewChild('seenList') seenListRef!: ElementRef<HTMLDivElement>;
   @Input() airportPlaneLog: PlaneLogEntry[] = [];
   @Input() seenPlaneLog: PlaneLogEntry[] = [];
+  @Input() loadingAirports: boolean = false;
+  @Input() highlightedPlaneIcao: string | null = null; // Add this input
+  @Input() activePlaneIcaos: Set<string> = new Set(); // Input for active ICAOs
+  @Input() clickedAirports: Set<number> = new Set(); // Track clicked airports for styling
+  @Input() airportCircles: Map<number, L.Circle> = new Map(); // Airport circles for coordinate matching
   // scroll state flags
   skyListScrollable = false;
   skyListAtBottom = false;
@@ -71,15 +160,34 @@ export class ResultsOverlayComponent
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
   @Output() exportFilterList = new EventEmitter<void>();
   @Output() clearHistoricalList = new EventEmitter<void>();
+  @Output() centerPlane = new EventEmitter<any>();
+  @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
+  @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
+  @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+  /** Whether altitude-colored borders are enabled */
+  @Input() showAltitudeBorders: boolean = false;
+  /** Emit when altitude borders toggle is clicked */
+  @Output() altitudeBordersChange = new EventEmitter<boolean>();
+  /** Get altitude borders toggle tooltip text */
+  get altitudeBordersTooltip(): string {
+    return this.showAltitudeBorders
+      ? 'Hide altitude-colored borders'
+      : 'Show altitude-colored borders';
+  }
+  // Shuffle mode: pick random plane to follow every interval
+  shuffleMode = false;
+  // Nearest follow mode: pick nearest plane to follow every interval
+  nearestMode = false; // Military priority toggle: whether to prioritize military planes in sorting
+  militaryPriority = true;
 
   // Filtered versions of the plane logs
   filteredSkyPlaneLog: PlaneLogEntry[] = [];
-  filteredAirportPlaneLog: PlaneLogEntry[] = [];
+  filteredAirportPlaneLog: PlaneLogEntry[] = []; // Will be kept empty
   filteredSeenPlaneLog: PlaneLogEntry[] = [];
-
   now = Date.now();
   refreshSub!: Subscription;
   private scanSub!: Subscription;
+  private followStateSub?: Subscription;
   private baseTitle: string = 'Plane Alert';
   private emptyTitle: string = 'Nothing peepworthy. - Plane Alert';
   private lastTitleUpdateHash: string = '';
@@ -93,24 +201,53 @@ export class ResultsOverlayComponent
   // Debouncing for button clicks
   private lastToggleTime = 0;
   private readonly DEBOUNCE_TIME = 500; // ms
-
-  // commercialMute now backed by SettingsService
-  get commercialMute(): boolean {
-    return this.settings.commercialMute;
+  // militaryMute now backed by SettingsService
+  get militaryMute(): boolean {
+    return this.settings.militaryMute;
   }
 
   private NEW_PLANE_MINUTES = 1; // Plane is 'new' for 1 minute
 
-  constructor(
-    public countryService: CountryService,
-    public planeFilter: PlaneFilterService,
-    public settings: SettingsService,
-    private aircraftDb: AircraftDbService,
-    private scanService: ScanService
-  ) {}
+  // Expose services needed by the child component template bindings
+
+  // Handle center button click from template
+  public onCenterPlane(plane: PlaneLogEntry, event: Event): void {
+    event.stopPropagation();
+    this.centerPlane.emit(plane);
+  }
+
+  // Handle filter button click from template
+  public onFilter(plane: PlaneLogEntry): void {
+    this.filterPrefix.emit(plane);
+  }
+
+  // Handle clear seen list click
+  public onClearHistoricalList(): void {
+    this.clearHistoricalList.emit();
+  }
+
+  // Handle airport center click from child
+  public handleCenterAirport(coords: { lat: number; lon: number }): void {
+    this.centerAirport.emit(coords);
+  }
+
+  // Provide getTimeAgo to template
+  public getTimeAgo(timestamp: number): string {
+    const diff = Math.floor((Date.now() - timestamp) / 1000);
+    const minutes = Math.floor(diff / 60);
+    if (diff < 60) return '<1m ago';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m ago`;
+  }
 
   ngOnInit(): void {
-    // commercialMute is loaded by SettingsService.load()
+    // initial collapse state is set via property initializer
+    // Load military prefixes if needed
+    this.militaryPrefixService.loadPrefixes().then(() => {
+      this.resultsUpdated = true;
+    });
+    // militaryMute is loaded by SettingsService.load()
     // Collapse state already loaded by SettingsService.load()
     // Just update the time every second
     this.refreshSub = interval(1000).subscribe(() => {
@@ -122,19 +259,11 @@ export class ResultsOverlayComponent
       this.checkForResultsUpdates();
     });
 
-    // Listen for scan countdown to detect when scans happen
+    // Listen for scan countdown (no debug logs)
     let previousCount = 0;
-    this.scanSub = this.scanService.countdown$.subscribe((count) => {
-      // If count just reset to max, a scan just happened
+    this.scanSub = this.scanService.countdown$.subscribe((count: number) => {
       if (count > previousCount && previousCount !== 0) {
         this.resultsUpdated = true;
-        // Log mute button state and onlyCommercial when a scan starts
-        console.log(
-          '[ResultsOverlay] Scan started. Mute:',
-          this.commercialMute,
-          'onlyCommercial:',
-          this.onlyCommercial
-        );
       }
       previousCount = count;
     });
@@ -153,64 +282,87 @@ export class ResultsOverlayComponent
     // Handle initial page load
     this.resultsUpdated = true;
   }
-
   ngAfterViewInit(): void {
-    // Update logs and title immediately on initial page load
+    // collapse state already applied via property initializer
+    // Existing initialization
     this.updateFilteredLogs();
     this.updatePageTitle();
-    // ensure fade states set after view init
     setTimeout(() => this.updateScrollFadeStates(), 0);
-  }
-  
-  ngAfterViewChecked(): void {
-    this.updateScrollFadeStates();
+    // Subscribe to coordinator service state changes to keep UI in sync
+    this.followCoordinatorService.getCurrentModes();
+
+    // Subscribe to follow coordinator mode changes to sync UI state
+    this.followStateSub = this.planeFollowService.followState$.subscribe(
+      (followState) => {
+        const modes = this.followCoordinatorService.getCurrentModes();
+
+        // Update local UI state to match services
+        this.shuffleMode = modes.shuffle;
+        this.nearestMode = modes.nearest;
+
+        this.cdr.detectChanges();
+      }
+    );
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // When input plane lists change
-    if (changes['skyPlaneLog'] || changes['airportPlaneLog']) {
+    // When input plane lists or highlighted plane change
+    if (
+      changes['skyPlaneLog'] ||
+      changes['airportPlaneLog'] ||
+      changes['highlightedPlaneIcao']
+    ) {
       this.resultsUpdated = true;
+      this.sortLogs();
       this.updateFilteredLogs();
     }
   }
-
   ngOnDestroy(): void {
     this.refreshSub?.unsubscribe();
     this.scanSub?.unsubscribe();
+    this.followStateSub?.unsubscribe();
     document.title = this.baseTitle;
   }
 
-  getTimeAgo(timestamp: number): string {
-    const diff = Math.floor((this.now - timestamp) / 1000);
-    const minutes = Math.floor(diff / 60);
-    const hours = Math.floor(minutes / 60);
-    if (diff < 60) return '<1m ago';
-    if (minutes < 60) return `${minutes}m ago`;
-    return `${hours}h ${minutes % 60}m ago`;
+  // --- Keep hover handlers in parent for now ---
+  onHoverPlane(
+    plane: PlaneLogEntry,
+    listType: 'sky' | 'airport' | 'seen'
+  ): void {
+    if (listType === 'sky') this.hoveredSkyPlaneIcao = plane.icao;
+    else if (listType === 'airport') this.hoveredAirportPlaneIcao = plane.icao;
+    else if (listType === 'seen') this.hoveredSeenPlaneIcao = plane.icao;
+    this.cdr.markForCheck();
+    this.hoverPlane.emit(plane); // Still emit original event if needed by map
   }
 
-  onFilter(plane: PlaneLogEntry): void {
-    console.log(
-      '[ResultsOverlay] onFilter called for:',
-      plane.icao,
-      'Current filteredOut:',
-      plane.filteredOut
-    );
-    this.filterPrefix.emit(plane);
-    // Update title after filter changes
-    // No longer immediately updating filtered logs here, relying on parent component update
-    // setTimeout(() => {
-    //   this.updateFilteredLogs();
-    //   this.updatePageTitle();
-    // }, 100); // Small delay to let filter apply
+  onUnhoverPlane(
+    plane: PlaneLogEntry,
+    listType: 'sky' | 'airport' | 'seen'
+  ): void {
+    if (listType === 'sky') this.hoveredSkyPlaneIcao = null;
+    else if (listType === 'airport') this.hoveredAirportPlaneIcao = null;
+    else if (listType === 'seen') this.hoveredSeenPlaneIcao = null;
+    this.cdr.markForCheck();
+    this.unhoverPlane.emit(plane); // Still emit original event
   }
 
-  onExportList(): void {
-    this.exportFilterList.emit();
+  // --- Pass events from child up ---
+  // Accept any event payload from child to avoid template type mismatch
+  public handleCenterPlane(plane: any): void {
+    this.centerPlane.emit(plane as PlaneLogEntry);
   }
 
-  onClearHistoricalList(): void {
-    this.clearHistoricalList.emit();
+  public handleFilterPrefix(plane: any): void {
+    this.filterPrefix.emit(plane as PlaneLogEntry);
+  }
+
+  public handleToggleSpecial(plane: any): void {
+    const p = plane as PlaneLogEntry;
+    p.isSpecial = !p.isSpecial;
+    this.specialListService.toggleSpecial(p.icao);
+
+    this.cdr.markForCheck();
   }
 
   /**
@@ -245,13 +397,24 @@ export class ResultsOverlayComponent
     this.settings.setExcludeDiscount(checked);
     this.resultsUpdated = true;
   }
-
   /**
-   * Toggle muting alert sound for commercial-only results
+   * Toggle muting alert sound for military-only results
    */
-  onToggleCommercialMute(): void {
-    // Toggle and persist commercial mute through settings service
-    this.settings.setCommercialMute(!this.settings.commercialMute);
+  onToggleMilitaryMute(): void {
+    // Toggle and persist military mute through settings service
+    this.settings.setMilitaryMute(!this.settings.militaryMute);
+  }
+  /**
+   * Returns true if only military planes are found (no commercial in sky or airport)
+   */
+  get onlyMilitary(): boolean {
+    return (
+      this.filteredSkyPlaneLog.concat(this.filteredAirportPlaneLog).length >
+        0 &&
+      this.filteredSkyPlaneLog
+        .concat(this.filteredAirportPlaneLog)
+        .every((p) => p.isMilitary)
+    );
   }
 
   /**
@@ -273,18 +436,65 @@ export class ResultsOverlayComponent
     // recalc fade overlay once seen list panel toggles
     setTimeout(() => this.updateScrollFadeStates(), 0);
   }
-
   // Updates the filtered versions of the plane logs
-  private updateFilteredLogs(): void {
-    this.filteredSkyPlaneLog = this.skyPlaneLog.filter(
-      (plane) => !plane.filteredOut
-    );
-    this.filteredAirportPlaneLog = this.airportPlaneLog.filter(
-      (plane) => !plane.filteredOut
-    );
-    this.filteredSeenPlaneLog = this.seenPlaneLog.filter(
-      (plane) => !plane.filteredOut
-    );
+  public updateFilteredLogs(): void {
+    // Filter sky planes and sort: military/special first, then airport-clicked, then by ascending distance
+    const centerLat = this.settings.lat ?? 0;
+    const centerLon = this.settings.lon ?? 0; // Updated comparator: prioritize military and special planes, then airport-clicked planes
+    const comparator = this.militaryPriority
+      ? (a: PlaneLogEntry, b: PlaneLogEntry) => {
+          // Prioritize military and special planes equally at the top
+          const aPriority = (a.isMilitary ? 4 : 0) + (a.isSpecial ? 4 : 0);
+          const bPriority = (b.isMilitary ? 4 : 0) + (b.isSpecial ? 4 : 0);
+          if (aPriority !== bPriority) return bPriority - aPriority;
+
+          // If both have same military/special priority, check airport-clicked status
+          const aAtClickedAirport = this.isPlaneAtClickedAirport(a);
+          const bAtClickedAirport = this.isPlaneAtClickedAirport(b);
+          if (aAtClickedAirport !== bAtClickedAirport) {
+            return aAtClickedAirport ? -1 : 1; // Clicked airport planes come first
+          }
+
+          return (
+            haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+            haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
+          );
+        }
+      : (a: PlaneLogEntry, b: PlaneLogEntry) => {
+          // Even without military priority, still prioritize airport-clicked planes
+          const aAtClickedAirport = this.isPlaneAtClickedAirport(a);
+          const bAtClickedAirport = this.isPlaneAtClickedAirport(b);
+          if (aAtClickedAirport !== bAtClickedAirport) {
+            return aAtClickedAirport ? -1 : 1; // Clicked airport planes come first
+          }
+
+          return (
+            haversineDistance(centerLat, centerLon, a.lat!, a.lon!) -
+            haversineDistance(centerLat, centerLon, b.lat!, b.lon!)
+          );
+        };
+    this.filteredSkyPlaneLog = this.skyPlaneLog
+      .filter((plane) => !plane.filteredOut)
+      .sort(comparator);
+
+    // Bring manually followed plane to top
+    if (this.highlightedPlaneIcao) {
+      const idx = this.filteredSkyPlaneLog.findIndex(
+        (p) => p.icao === this.highlightedPlaneIcao
+      );
+      if (idx > 0) {
+        const [followed] = this.filteredSkyPlaneLog.splice(idx, 1);
+        this.filteredSkyPlaneLog.unshift(followed);
+      }
+    }
+
+    // Remove airport planes from overlay: set filteredAirportPlaneLog to empty
+    this.filteredAirportPlaneLog = [];
+
+    // Sort seen planes: military/special first, then by distance
+    this.filteredSeenPlaneLog = this.seenPlaneLog
+      .filter((plane) => !plane.filteredOut)
+      .sort(comparator);
 
     // Clear isNew if plane is older than NEW_PLANE_MINUTES
     const now = Date.now();
@@ -306,8 +516,7 @@ export class ResultsOverlayComponent
 
   private setMilitaryFlag(planes: PlaneLogEntry[]): void {
     planes.forEach((plane) => {
-      const record = this.aircraftDb.lookup(plane.icao);
-      plane.isMilitary = record?.mil || false; // Set isMilitary based on the database flag
+      // set remains handled elsewhere
     });
   }
 
@@ -322,63 +531,8 @@ export class ResultsOverlayComponent
     });
   }
 
-  private sortLogs(): void {
-    this.setMilitaryFlag(this.skyPlaneLog);
-    this.setMilitaryFlag(this.airportPlaneLog);
-    this.setMilitaryFlag(this.seenPlaneLog);
-
-    // More comprehensive sorting function that:
-    // 1. Military planes always at the top
-    // 2. Then sort by time seen (most recent first)
-    // 3. Within the same time frame (e.g., minutes), new planes first
-    // 4. Finally sort alphabetically by callsign or ICAO for stable order
-    const sortPlanes = (a: PlaneLogEntry, b: PlaneLogEntry) => {
-      // Military planes always first (ONLY military planes, not helicopters)
-      if (a.isMilitary !== b.isMilitary) {
-        return a.isMilitary ? -1 : 1;
-      }
-
-      // Calculate time buckets (in minutes) for better comparison
-      const aMinutes = Math.floor((this.now - a.firstSeen) / (60 * 1000));
-      const bMinutes = Math.floor((this.now - b.firstSeen) / (60 * 1000));
-
-      // Sort by time bucket first (most recent first)
-      if (aMinutes !== bMinutes) {
-        return aMinutes - bMinutes;
-      }
-
-      // Within the same time bucket, prioritize new planes
-      if (a.isNew !== b.isNew) {
-        return a.isNew ? -1 : 1;
-      }
-
-      // For planes with identical time buckets and newness, sort by exact timestamp
-      if (a.firstSeen !== b.firstSeen) {
-        return b.firstSeen - a.firstSeen;
-      }
-
-      // Prefer planes with a callsign (non-empty) over empty
-      const aHasCallsign = !!(a.callsign && a.callsign.trim().length > 0);
-      const bHasCallsign = !!(b.callsign && b.callsign.trim().length > 0);
-      if (aHasCallsign !== bHasCallsign) {
-        return aHasCallsign ? -1 : 1;
-      }
-
-      // Alphabetically by callsign (empty callsigns sort last)
-      if ((a.callsign || '') !== (b.callsign || '')) {
-        return (a.callsign || '').localeCompare(b.callsign || '');
-      }
-
-      // Use ICAO as a final tie-breaker
-      return a.icao.localeCompare(b.icao);
-    };
-
-    this.skyPlaneLog.sort(sortPlanes);
-    this.airportPlaneLog.sort(sortPlanes);
-    this.seenPlaneLog.sort(sortPlanes);
-
-    // Ensure isNew stays consistent with the sky-plane list
-    this.unifyNewFlags();
+  public sortLogs(): void {
+    // No-op: preserve order provided by parent component (already sorted by distance)
   }
 
   /**
@@ -432,51 +586,63 @@ export class ResultsOverlayComponent
    * 4. Commercial filter is toggled
    */
   private updatePageTitle(): void {
-    // Make sure filtered logs are updated
     this.updateFilteredLogs();
-
-    // Find the top plane - prioritize military planes which should be at the top after sorting
     const topPlane = this.getTopPriorityPlane();
 
     if (topPlane) {
-      // Get the most meaningful display text for the plane
-      let displayText = topPlane.model || topPlane.callsign;
-
-      // If it's a military plane without a model, try to make it more informative
-      if (topPlane.isMilitary && !topPlane.model) {
-        displayText = `Military ${topPlane.callsign}`;
-      }
-
-      // Add country code before the callsign/model if available
-      if (topPlane.origin) {
-        const code = this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() || topPlane.origin;
-        displayText = `[${code}] ${displayText}`;
-      }
-
-      // Create a hash for comparison to detect changes
-      const militaryPrefix = topPlane.isMilitary ? 'MIL ' : '';
-      const newTitleContent = `${militaryPrefix}${displayText}`;
-
-      // Only update if the content changed
-      if (newTitleContent !== this.lastTitleUpdateHash) {
-        this.lastTitleUpdateHash = newTitleContent;
-        // Remove square brackets, just use "Model peeped! | Plane Alert"
-        document.title = `${newTitleContent} peeped! | ${this.baseTitle}`;
+      if (topPlane.isMilitary) {
+        // For military planes, show [MIL] [...]
+        const code =
+          this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
+          topPlane.origin;
+        const callsignPrefix = topPlane.callsign
+          ? topPlane.callsign.substring(0, 3).toUpperCase()
+          : 'N/A';
+        const display =
+          topPlane.model?.trim() || '' ? topPlane.model : topPlane.callsign;
+        const titleContent = `[MIL] [${code}/${callsignPrefix}] ${display}`;
+        if (titleContent !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = titleContent;
+          document.title = `${titleContent} peeped! | ${this.baseTitle}`;
+        }
+      } else if (topPlane.isSpecial) {
+        // Special planes: same as military but without [MIL]
+        const code =
+          this.countryService.getCountryCode(topPlane.origin)?.toUpperCase() ||
+          topPlane.origin;
+        const callsignPrefix = topPlane.callsign
+          ? topPlane.callsign.substring(0, 3).toUpperCase()
+          : 'N/A';
+        const displayModel = topPlane.model?.trim() || topPlane.callsign;
+        const specialTitle = `[${code}/${callsignPrefix}] ${displayModel} peeped!`;
+        if (specialTitle !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = specialTitle;
+          document.title = `${specialTitle} | ${this.baseTitle}`;
+        }
+      } else {
+        // Non-military, non-special: stinky title variant
+        let display = '';
+        if (topPlane.operator) display = topPlane.operator;
+        else if (topPlane.callsign && topPlane.callsign.trim().length >= 3)
+          display = topPlane.callsign;
+        else if (topPlane.model) display = topPlane.model;
+        if (display && display !== this.lastTitleUpdateHash) {
+          this.lastTitleUpdateHash = display;
+          document.title = `Just stinky ${display}. | ${this.baseTitle}`;
+        }
       }
     } else if (this.lastTitleUpdateHash !== '') {
-      // Reset to custom empty state title when no planes are found
       this.lastTitleUpdateHash = '';
       document.title = this.emptyTitle;
     }
 
-    // Update the hashes for future comparison
     this.lastSkyPlaneHash = this.getPlaneListHash(this.skyPlaneLog);
     this.lastAirportPlaneHash = this.getPlaneListHash(this.airportPlaneLog);
   }
 
   /**
    * Gets the highest priority plane for display in the title
-   * Always prioritize any military plane, even if it has no model
+   * Always prioritize any military or special plane, even if it has no model
    */
   private getTopPriorityPlane(): PlaneLogEntry | undefined {
     // Use the filtered lists
@@ -489,10 +655,14 @@ export class ResultsOverlayComponent
       return undefined;
     }
 
-    // Always prioritize any military plane, regardless of model
+    // Prioritize military planes first, then special planes
     const anyMilitary = allPlanes.find((plane) => plane.isMilitary);
     if (anyMilitary) {
       return anyMilitary;
+    }
+    const anySpecial = allPlanes.find((plane) => plane.isSpecial);
+    if (anySpecial) {
+      return anySpecial;
     }
 
     // Otherwise, prefer a plane with a model
@@ -509,19 +679,22 @@ export class ResultsOverlayComponent
   onSkyScroll(event: Event): void {
     const el = event.target as HTMLElement;
     // treat near-bottom (within 2px) as bottom to hide fade reliably
-    this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.skyListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
   onAirportScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.airportListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
   onSeenScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    this.seenListAtBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     this.updateScrollFadeStates();
   }
 
@@ -530,17 +703,216 @@ export class ResultsOverlayComponent
     if (this.skyListRef) {
       const el = this.skyListRef.nativeElement;
       this.skyListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.skyListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.skyListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
     if (this.airportListRef) {
       const el = this.airportListRef.nativeElement;
       this.airportListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.airportListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.airportListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
     if (this.seenListRef) {
       const el = this.seenListRef.nativeElement;
       this.seenListScrollable = el.scrollHeight > el.clientHeight + 2;
-      this.seenListAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      this.seenListAtBottom =
+        el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
     }
+  }
+
+  /** Toggle special flag on click */
+  onToggleSpecial(plane: PlaneLogEntry, event: Event): void {
+    event.stopPropagation();
+    plane.isSpecial = !plane.isSpecial;
+    this.specialListService.toggleSpecial(plane.icao);
+    // Log updated list to confirm persistence
+  }
+  /** Assign special flags from service */
+  private setSpecialFlag(planes: PlaneLogEntry[]): void {
+    planes.forEach((plane) => {
+      plane.isSpecial = this.specialListService.isSpecial(plane.icao);
+    });
+  }
+
+  public collapsed = localStorage.getItem('resultsOverlayCollapsed') === 'true';
+
+  public toggleCollapsed(): void {
+    this.collapsed = !this.collapsed;
+    localStorage.setItem('resultsOverlayCollapsed', this.collapsed.toString());
+    this.cdr.detectChanges();
+  } /** Toggle shuffle mode on/off */
+  public toggleShuffle(): void {
+    const now = Date.now();
+    if (now - this.lastToggleTime < this.DEBOUNCE_TIME) return;
+    this.lastToggleTime = now;
+    // Toggle shuffle mode through coordinator service
+    const newShuffleState = this.followCoordinatorService.toggleShuffleMode(
+      this.filteredSkyPlaneLog
+    );
+
+    // Update local state to match coordinator decision
+    if (newShuffleState !== this.shuffleMode) {
+      this.shuffleMode = newShuffleState;
+
+      // Update local subscriptions to match
+      if (this.shuffleMode) {
+        // Coordinator handles the actual shuffling, but we track state locally
+        this.nearestMode = false; // Ensure nearest is disabled
+        // Note: No need to call stopNearest() as coordinator handles cleanup
+      } else {
+        // Note: No need to call stopShuffle() as coordinator handles cleanup
+      }
+    }
+
+    this.cdr.detectChanges();
+  }
+  /** Toggle nearest follow mode on/off */
+  public toggleNearest(): void {
+    const now = Date.now();
+    if (now - this.lastToggleTime < this.DEBOUNCE_TIME) return;
+    this.lastToggleTime = now;
+    // Toggle nearest mode through coordinator service
+    const newNearestState = this.followCoordinatorService.toggleNearestMode(
+      this.filteredSkyPlaneLog
+    );
+
+    // Update local state to match coordinator decision
+    if (newNearestState !== this.nearestMode) {
+      this.nearestMode = newNearestState;
+
+      // Update local subscriptions to match
+      if (this.nearestMode) {
+        // Coordinator handles the actual nearest following, but we track state locally
+        this.shuffleMode = false; // Ensure shuffle is disabled
+        // Note: No need to call stopShuffle() as coordinator handles cleanup
+      } else {
+        // Note: No need to call stopNearest() as coordinator handles cleanup
+      }
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle military priority sorting on/off */
+  public toggleMilitaryPriority(): void {
+    this.militaryPriority = !this.militaryPriority;
+    this.resultsUpdated = true; // Only re-sort and reshuffle if there are military planes visible
+    const hasMilitary = this.filteredSkyPlaneLog.some((p) => p.isMilitary);
+    if (hasMilitary) {
+      this.updateFilteredLogs();
+      if (this.shuffleMode) {
+        // Let coordinator handle re-shuffle with new military priority
+        this.followCoordinatorService.updateAutomaticModes(
+          this.filteredSkyPlaneLog
+        );
+      }
+    }
+    this.cdr.detectChanges();
+  }
+  /** Number of military planes currently visible in the sky list */
+  get militaryCount(): number {
+    return this.filteredSkyPlaneLog.filter((p) => p.isMilitary).length;
+  }
+  /**
+   * Trigger a new shuffle selection, called when a shuffled plane disappears
+   * Public method to be called from the map component
+   */
+  public triggerNewShuffle(): void {
+    // Use coordinator service to handle plane disappearance intelligently
+    // The coordinator will check which mode is active and trigger appropriate action
+    if (this.highlightedPlaneIcao) {
+      this.followCoordinatorService.handlePlaneDisappearance(
+        this.highlightedPlaneIcao,
+        this.filteredSkyPlaneLog
+      );
+    } else if (this.shuffleMode) {
+      // Fallback: if no specific plane but shuffle mode is active, trigger new shuffle
+      this.followCoordinatorService.toggleShuffleMode(this.filteredSkyPlaneLog);
+      this.followCoordinatorService.toggleShuffleMode(this.filteredSkyPlaneLog);
+    }
+  } /** Check if a plane is located at a clicked airport using airport badge logic */
+  private isPlaneAtClickedAirport(plane: PlaneLogEntry): boolean {
+    // Must have an airport name to be considered at an airport
+    if (!plane.airportName) {
+      return false;
+    }
+
+    // Must meet airport badge criteria: onGround OR altitude <= 200m
+    const meetsAirportCriteria =
+      plane.onGround === true ||
+      (plane.altitude != null && plane.altitude <= 200);
+
+    if (!meetsAirportCriteria) {
+      return false;
+    }
+
+    // Must have coordinates and clicked airports to check
+    const hasCoordinates = plane.lat != null && plane.lon != null;
+    const hasClickedAirports = this.clickedAirports.size > 0;
+    const hasAirportCircles =
+      this.airportCircles && this.airportCircles.size > 0;
+
+    if (!hasCoordinates || !hasClickedAirports || !hasAirportCircles) {
+      return false;
+    }
+
+    // Check if plane coordinates are within any clicked airport circle
+    for (const [airportId, circle] of this.airportCircles.entries()) {
+      if (this.clickedAirports.has(airportId)) {
+        const airportCenter = circle.getLatLng();
+        const radiusKm = circle.getRadius() / 1000; // Convert from meters to km
+        const distance = haversineDistance(
+          plane.lat!,
+          plane.lon!,
+          airportCenter.lat,
+          airportCenter.lng
+        );
+
+        if (distance <= radiusKm) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** Get collapse/expand tooltip text */
+  get collapseTooltip(): string {
+    return this.collapsed ? 'Expand results' : 'Collapse results';
+  }
+
+  /** Get commercial filter toggle tooltip text */
+  get commercialFilterTooltip(): string {
+    return this.settings.excludeDiscount
+      ? 'Show commercial'
+      : 'Hide commercial';
+  }
+  /** Get military mute toggle tooltip text */ get militaryMuteTooltip(): string {
+    return this.militaryMute
+      ? 'Unmute military alerts'
+      : 'Mute military alerts';
+  }
+
+  /** Get shuffle mode toggle tooltip text */
+  get shuffleTooltip(): string {
+    return this.shuffleMode ? 'Disable shuffle mode' : 'Enable shuffle mode';
+  }
+
+  /** Get nearest follow toggle tooltip text */
+  get nearestTooltip(): string {
+    return this.nearestMode
+      ? 'Disable nearest follow'
+      : 'Enable nearest follow';
+  }
+  /** Get military priority toggle tooltip text */
+  get militaryPriorityTooltip(): string {
+    return this.militaryPriority
+      ? 'Disable military priority'
+      : 'Enable military priority';
+  }
+
+  /** Get seen planes section toggle tooltip text */
+  get seenSectionTooltip(): string {
+    return `Click to ${this.seenCollapsed ? 'expand' : 'collapse'}`;
   }
 }

@@ -1,0 +1,61 @@
+<div
+  class="window-view-overlay"
+  [ngClass]="{ daytime: isDaytime() }"
+  (contextmenu)="$event.stopPropagation()"
+  [style.background]="skyBackground"
+>
+  <!-- Sky background with clouds -->
+  <app-sky-background
+    [windowCloudUrl]="windowCloudUrl"
+    [cloudFilter]="cloudFilter"
+    [cloudBacklightClass]="cloudBacklightClass"
+  ></app-sky-background>
+  <!-- Sun sky gradient positioned to follow the sun -->
+  <div
+    *ngIf="getSunObject()"
+    class="sun-sky-gradient"
+    [ngClass]="{
+      'below-horizon': getSunObject()?.belowHorizon,
+      daytime: isDaytime() && !getSunObject()?.belowHorizon,
+      twilight: !isDaytime() && !getSunObject()?.belowHorizon,
+      night: getSunObject()?.belowHorizon,
+      'low-sun': getSunElevationAngle() < 15 && getSunElevationAngle() > -6
+    }"
+    [style.left]="getSunObject()?.x + '%'"
+    [style.bottom]="getSunGradientBottomPosition()"
+  ></div>
+  <!-- Rain overlay -->
+  <app-rain-overlay></app-rain-overlay>
+  <!-- Swallow storm animation -->
+  <app-swallow-animation
+    [pressureIntensity]="0.8"
+    [isStormApproaching]="true"
+  ></app-swallow-animation>
+  <!-- Compass labels with roof background -->
+  <app-compass-labels
+    [compassBackground]="compassBackground"
+    [chimneyBackground]="chimneyBackground"
+  ></app-compass-labels>
+
+  <!-- Marker lines for balcony/streetside boundaries -->
+  <app-marker-lines [markerPlanes]="getMarkerPlanes()"></app-marker-lines>
+
+  <!-- Altitude bands for visual reference -->
+  <app-altitude-bands [altitudeTicks]="altitudeTicks"></app-altitude-bands>
+
+  <!-- Dimmed regions outside marker spans -->
+  <app-dim-overlay [dimSegments]="dimSegments"></app-dim-overlay>
+
+  <!-- Celestial objects (sun/moon) -->
+  <app-celestial-objects
+    [celestialObjects]="getCelestialObjects()"
+    [isDaytime]="isDaytime()"
+  ></app-celestial-objects>
+  <!-- Aircraft container with planes and trails -->
+  <app-aircraft-container
+    [aircraftPlanes]="getAircraftPlanes()"
+    [highlightedPlaneIcao]="highlightedPlaneIcao"
+    [showAltitudeBorders]="showAltitudeBorders"
+    (selectPlane)="handlePlaneSelection($event)"
+  ></app-aircraft-container>
+</div>

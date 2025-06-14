@@ -1,0 +1,19 @@
+/* Sky overlay styling for SVG elements in overlayPane */
+#sky-background-group {
+  // Ensure sky overlay group is rendered behind other SVG elements
+  z-index: -1;
+}
+
+/* Sky gradient colors are dynamically set by SkyOverlayService */
+
+.sky-overlay {
+  // Visual styling - all controlled by CSS
+  fill: url(#skyGradient);
+  opacity: 0.3;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+
+  // Smooth transitions for all changes
+  transition: fill-opacity 0.3s ease-in-out, fill 0.5s ease-in-out,
+    opacity 0.3s ease-in-out;
+}

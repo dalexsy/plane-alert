@@ -22,7 +22,6 @@ export class TitleService {
       // Format: "[MIL] Boeing C-17 peeped! | Plane Alert" or "Airbus A320 peeped! | Plane Alert"
       const militaryPrefix = isMilitary ? '[MIL] ' : '';
       const newTitle = `${militaryPrefix}${model} peeped! | ${this.baseTitle}`;
-      console.log('Setting new title:', newTitle); // Debug log
 
       // Use both methods to set the title to ensure it works
       this.titleService.setTitle(newTitle);
@@ -37,7 +36,6 @@ export class TitleService {
    * Reset the page title to the default
    */
   resetTitle(): void {
-    console.log('Resetting title to:', this.baseTitle); // Debug log
     this.titleService.setTitle(this.baseTitle);
     document.title = this.baseTitle; // Direct DOM manipulation as a fallback
   }
