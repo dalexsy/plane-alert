@@ -53,7 +53,7 @@ export class SpecialListService {
     const cacheBuster = new Date().getTime();
     return this.http
       .get(`${this.baseHref}assets/special-icaos.json?_=${cacheBuster}`, {
-        responseType: 'text',
+        responseType: 'text', 
       })
       .toPromise()
       .then((text: string | undefined) => {
