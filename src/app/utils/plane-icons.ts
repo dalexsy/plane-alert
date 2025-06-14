@@ -100,7 +100,21 @@ const TYPE_ICON_MAP: Record<string, PlaneIconData> = {
   'CT LS': { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
 };
 
-export function getIconPathForModel(model: string): PlaneIconData {
+export function getIconPathForModel(
+  model: string,
+  callsign?: string,
+  altitude?: number
+): PlaneIconData {
+  // Check for 5-character callsign under 2000m - use single engine (glider) icon
+  if (
+    callsign &&
+    altitude !== undefined &&
+    callsign.length === 5 &&
+    altitude < 2000
+  ) {
+    return { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
+  }
+
   let result: PlaneIconData | undefined;
   const typeCode = model.trim().toUpperCase();
   if (TYPE_ICON_MAP[typeCode]) {

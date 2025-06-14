@@ -63,15 +63,15 @@ export function createOrUpdatePlaneMarker(
   altitude: number | null = null,
   followed: boolean = false,
   scanInterval: number = 10, // Scan interval in seconds for smooth transition timing
-  icao: string = '' // ICAO identifier for debugging
+  icao: string = '', // ICAO identifier for debugging
+  callsign: string = '' // Callsign for glider icon logic
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Use centralized helicopter identification via isCustomHelicopter parameter
   const isCopter = isCustomHelicopter;
-
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter
     ? { path: '', iconType: 'copter' as const }
-    : getIconPathForModel(model);
+    : getIconPathForModel(model, callsign, altitude || undefined);
   // Only render inline SVG for non-helicopters that are not unknown devices
   const iconInner =
     !isCopter && !isUnknown

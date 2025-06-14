@@ -1048,7 +1048,9 @@ export class PlaneFinderService {
           isUnknown,
           altitude,
           followed,
-          this.settings.interval
+          this.settings.interval,
+          id, // icao
+          callsign // callsign for glider logic
         );
         planeModelInstance.marker = marker; // Update marker reference on model
 

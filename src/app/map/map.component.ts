@@ -1673,7 +1673,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // For grounded planes, use 0 altitude for consistency
         const alt = isGrounded ? 0 : plane.altitude ?? 0;
         const y = (Math.min(alt, 20000) / 20000) * 100;
-        const iconData = getIconPathForModel(plane.model);
+        const iconData = getIconPathForModel(plane.model, plane.callsign, alt);
         // Calculate scale, distance
         const distKm = haversineDistance(
           centerLat,
