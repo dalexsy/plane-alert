@@ -12,6 +12,7 @@ import { AltitudeColorService } from '../../../services/altitude-color.service';
 import { PlaneStyleService } from '../../../services/plane-style.service';
 import { FlagCallsignComponent } from '../../flag-callsign/flag-callsign.component';
 import { calculateTiltAngle } from '../../../utils/vertical-rate.util';
+import { TextUtils } from '../../../utils/text-utils';
 
 @Component({
   selector: 'app-aircraft-container',
@@ -24,8 +25,9 @@ export class AircraftContainerComponent implements OnChanges {
   @Input() aircraftPlanes: WindowViewPlane[] = [];
   @Input() highlightedPlaneIcao: string | null = null;
   @Input() showAltitudeBorders: boolean = false;
-  @Output() selectPlane = new EventEmitter<WindowViewPlane>();
-  // Cache for altitude border styles to avoid recalculation
+  @Input() skyBottomColor: string = 'rgb(135, 206, 235)'; // Default horizon color
+  @Input() skyTopColor: string = 'rgb(25, 25, 112)'; // Default zenith color
+  @Output() selectPlane = new EventEmitter<WindowViewPlane>(); // Cache for altitude border styles to avoid recalculation
   private altitudeBorderCache = new Map<string, { [key: string]: string }>();
   private labelClassCache = new Map<string, string>();
   private readonly MAX_CACHE_SIZE = 1000; // Prevent memory leaks
@@ -38,8 +40,7 @@ export class AircraftContainerComponent implements OnChanges {
     if (changes['showAltitudeBorders'] || changes['aircraftPlanes']) {
       this.clearCaches();
     }
-  }
-  /** Clear all caches - useful when settings change */
+  } /** Clear all caches - useful when settings change */
   private clearCaches(): void {
     this.altitudeBorderCache.clear();
     this.labelClassCache.clear();
@@ -233,10 +234,91 @@ export class AircraftContainerComponent implements OnChanges {
 
       const rotation = rotationMap[plane.movementDirection] || 0;
       return `rotateZ(${rotation}deg)`;
+    } // Final fallback: No rotation (nose pointing up)
+    return 'rotateZ(0deg)';
+  } /** Get chemtrail rotation based on plane movement direction - trails behind the plane */
+  getChemtrailRotation(plane: WindowViewPlane): string {
+    // Skip chemtrails for markers, helicopters, grounded planes, and celestial objects
+    if (
+      plane.isMarker ||
+      plane.isHelicopter ||
+      plane.isGrounded ||
+      plane.isCelestial
+    ) {
+      return '';
     }
 
-    // Final fallback: No rotation (nose pointing up)
-    return 'rotateZ(0deg)';
+    // Only show chemtrails at altitudes where contrails can form
+    // Contrails typically form above 26,000 feet (8,000 meters)
+    const minContrailAltitude = 8000; // meters
+    if (!plane.altitude || plane.altitude < minContrailAltitude) {
+      return ''; // No rotation needed if no chemtrail is shown
+    }
+
+    // ALWAYS recalculate - no caching to ensure fresh updates every scan interval
+
+    // Use the EXACT same movement calculation as the plane icon, then rotate 180° opposite
+    const iconRotation = this.getIconRotation(plane);
+    // Extract the angle from the icon rotation string (e.g., "rotateZ(45.0deg)" -> 45.0)
+    const match = iconRotation.match(/rotateZ\((-?\d+(?:\.\d+)?)deg\)/);
+    if (match) {
+      const iconAngle = parseFloat(match[1]);
+      // Rotate chemtrail 90° from the plane icon direction
+      const chemtrailAngle = (iconAngle + 90) % 360;
+      return `rotate(${chemtrailAngle.toFixed(1)}deg)`;
+    }
+
+    // Improved fallback: Use bearing data if available (most planes have this even when new)
+    if (plane.bearing !== undefined && plane.bearing !== null) {
+      // Convert compass bearing to chemtrail rotation
+      // Bearing 0° = North, 90° = East, 180° = South, 270° = West
+      // For chemtrail, we want it to point opposite to the direction of travel
+      let trailRotation = (plane.bearing + 180) % 360;
+      return `rotate(${trailRotation.toFixed(1)}deg)`;
+    }
+
+    // Secondary fallback: Use simple movement direction if available
+    if (plane.movementDirection) {
+      const rotationMap: { [key: string]: number } = {
+        left: 90, // Trail points right when plane moves left
+        right: 270, // Trail points left when plane moves right
+        up: 180, // Trail points down when plane moves up
+        down: 0, // Trail points up when plane moves down
+      };
+      const rotation = rotationMap[plane.movementDirection] || 180;
+      return `rotate(${rotation}deg)`;
+    }
+
+    // Final fallback: Trail points down (assuming plane moving up)
+    return 'rotate(180deg)';
+  }
+
+  /** Fallback method for chemtrail rotation when trail data is unavailable */
+  private getChemtrailFallback(plane: WindowViewPlane): string {
+    // Fallback method: Use compass bearing for immediate directional chemtrails
+    // This provides correct rotation for new planes before history trail data accumulates
+    if (plane.bearing !== undefined && plane.bearing !== null) {
+      // Convert compass bearing to chemtrail rotation
+      // Bearing 0° = North, 90° = East, 180° = South, 270° = West
+      // For chemtrail, we want it to point opposite to the direction of travel
+      let trailRotation = (plane.bearing + 180) % 360;
+      return `rotate(${trailRotation.toFixed(1)}deg)`;
+    }
+
+    // Secondary fallback: Use simple movement direction if available
+    if (plane.movementDirection) {
+      const rotationMap: { [key: string]: number } = {
+        left: 90, // Trail points right when plane moves left
+        right: 270, // Trail points left when plane moves right
+        up: 180, // Trail points down when plane moves up
+        down: 0, // Trail points up when plane moves down
+      };
+      const rotation = rotationMap[plane.movementDirection] || 180;
+      return `rotate(${rotation}deg)`;
+    }
+
+    // Final fallback: Trail points down (plane moving up)
+    return 'rotate(180deg)';
   } /** Get altitude-colored border style for window view tooltips */
   getAltitudeBorderStyle(plane: WindowViewPlane): { [key: string]: string } {
     // Quick return if altitude borders are disabled
@@ -270,7 +352,6 @@ export class AircraftContainerComponent implements OnChanges {
     const isFollowed = plane.icao === this.highlightedPlaneIcao;
     const hasAltitudeBorder =
       hasDetails && this.showAltitudeBorders && plane.altitude;
-
     const cacheKey = `${plane.icao}-${isFollowed}-${hasDetails}-${hasAltitudeBorder}`;
 
     // Return cached result if available
@@ -297,5 +378,123 @@ export class AircraftContainerComponent implements OnChanges {
     this.labelClassCache.set(cacheKey, result);
     this.manageCacheSize(this.labelClassCache);
     return result;
+  }
+  /**
+   * Truncate operator text to 30 characters with ellipsis if longer
+   */
+  truncateOperator(operator: string | undefined): string {
+    return TextUtils.truncateOperator(operator);
+  }
+  /** Calculate chemtrail scale based on plane velocity - faster planes get longer trails */
+  getChemtrailScale(plane: WindowViewPlane): number {
+    // Skip scaling for markers, helicopters, grounded planes, and celestial objects
+    if (
+      plane.isMarker ||
+      plane.isHelicopter ||
+      plane.isGrounded ||
+      plane.isCelestial
+    ) {
+      return 0; // No chemtrails for these types
+    }
+
+    // Only show chemtrails at altitudes where contrails can form
+    // Contrails typically form above 26,000 feet (8,000 meters)
+    const minContrailAltitude = 8000; // meters
+    if (!plane.altitude || plane.altitude < minContrailAltitude) {
+      return 0; // Hide chemtrails below contrail formation altitude
+    }
+
+    // If no velocity data, use default scale
+    if (!plane.velocity || plane.velocity <= 0) {
+      return 1;
+    }
+
+    // Scale based on velocity (ground speed in knots)
+    // Typical aircraft speeds:
+    // - Small aircraft: 100-200 knots
+    // - Commercial aircraft: 400-600 knots
+    // - Fast military jets: 600+ knots
+
+    const minVelocity = 50; // Minimum velocity for scaling (knots)
+    const maxVelocity = 600; // Maximum velocity for full scaling (knots)
+    const minScale = 0.1; // Minimum scale factor
+    const maxScale = 1; // Maximum scale factor
+
+    // Clamp velocity to range
+    const clampedVelocity = Math.max(
+      minVelocity,
+      Math.min(maxVelocity, plane.velocity)
+    );
+
+    // Calculate linear scale factor
+    const normalizedVelocity =
+      (clampedVelocity - minVelocity) / (maxVelocity - minVelocity);
+    const scale = minScale + normalizedVelocity * (maxScale - minScale);
+
+    return Math.round(scale * 100) / 100; // Round to 2 decimal places
+  }
+
+  /** Calculate 3D depth positioning to ensure proper layering without z-index conflicts */
+  get3DDepthTransform(plane: WindowViewPlane): string {
+    // For markers and celestial objects, use minimal depth
+    if (plane.isMarker || plane.isCelestial) {
+      return 'translateZ(0px)';
+    }
+
+    // Use both altitude and distance to calculate depth
+    // Higher altitude = further back in 3D space
+    // Greater distance = further back in 3D space
+
+    const maxAltitude = 20000; // meters
+    const maxDistance = 100; // km
+
+    // Calculate altitude component (0-1 scale)
+    const altitudeNormalized = Math.min((plane.altitude || 0) / maxAltitude, 1);
+
+    // Calculate distance component (0-1 scale)
+    const distanceNormalized = Math.min(
+      (plane.distanceKm || 0) / maxDistance,
+      1
+    );
+
+    // Combine altitude and distance for depth calculation
+    // Weight altitude more heavily as it's more visually important
+    const combinedDepth = altitudeNormalized * 0.7 + distanceNormalized * 0.3;
+
+    // Map to translateZ range: 0px (front) to -500px (back)
+    // Negative values move objects away from viewer
+    const depthPx = -combinedDepth * 500;
+
+    // Special cases for grounded planes and close aircraft
+    if (plane.isGrounded) {
+      return 'translateZ(-10px)'; // Just slightly behind to avoid overlap
+    }
+
+    if (plane.distanceKm != null && plane.distanceKm <= 10) {
+      // Close planes get priority positioning (closer to viewer)
+      return `translateZ(${Math.max(depthPx * 0.3, -100)}px)`;
+    }
+    return `translateZ(${depthPx}px)`;
+  } /** Calculate atmospheric perspective effects for distant planes */
+  getAtmosphericPerspective(plane: WindowViewPlane): number {
+    // Skip atmospheric effects for markers and celestial objects
+    if (plane.isMarker || plane.isCelestial) {
+      return 1;
+    }
+
+    // Calculate distance factor (0 = close, 1 = very distant)
+    const maxDistance = 70; // km - beyond this distance, maximum atmospheric effect
+    const distanceFactor = Math.min((plane.distanceKm || 0) / maxDistance, 1);
+
+    // Calculate altitude factor (higher altitude = more atmospheric scattering)
+    const maxAltitude = 20000; // meters
+    const altitudeFactor = Math.min((plane.altitude || 0) / maxAltitude, 1);
+
+    // Combine distance and altitude for atmospheric intensity
+    // Distance has more impact than altitude for atmospheric perspective
+    const atmosphericIntensity = distanceFactor * 0.8 + altitudeFactor * 0.2;
+
+    // Return opacity: close planes = 1.0, distant planes fade to 0.3
+    return Math.max(0.1, 1 - atmosphericIntensity * 0.7);
   }
 }

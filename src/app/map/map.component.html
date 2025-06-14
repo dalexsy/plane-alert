@@ -178,14 +178,7 @@
   <!-- Wind direction indicator overlay -->
   <div
     class="wind-angle-overlay"
-    [title]="
-      'Wind: ' +
-      getCurrentWindSpeed().toFixed(1) +
-      ' ' +
-      getCurrentWindUnit() +
-      ' from ' +
-      getWindFromDirection(windAngle)
-    "
+    title="Click to change units"
     (click)="cycleWindUnit()"
     style="cursor: pointer"
   >

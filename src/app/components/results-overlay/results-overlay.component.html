@@ -30,6 +30,17 @@
         tooltipPosition="left"
         (click)="onToggleMilitaryMute()"
       ></app-button>
+      <!-- Altitude tooltip borders toggle button -->
+      <app-button
+        class="toggle-altitude-borders"
+        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="altitudeBordersTooltip"
+        [appTooltip]="altitudeBordersTooltip"
+        tooltipPosition="left"
+        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
+      ></app-button>
       <!-- Shuffle follow mode toggle -->
       <app-button
         class="shuffle-toggle"
@@ -54,18 +65,7 @@
         [ngClass]="{ active: nearestMode }"
         (click)="toggleNearest()"
       ></app-button>
-      <!-- Altitude tooltip borders toggle button -->
-      <app-button
-        class="toggle-altitude-borders"
-        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="altitudeBordersTooltip"
-        [appTooltip]="altitudeBordersTooltip"
-        tooltipPosition="left"
-        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
-      ></app-button
-      ><!-- Military priority toggle -->
+      <!-- Military priority toggle -->
       <div class="military-toggle-wrapper">
         <app-button
           class="military-priority-toggle"
@@ -185,14 +185,9 @@
       </div>
     </div>
     <!-- .middle-section -->
-    <div id="seenResults" [class.collapsed]="seenCollapsed">
-      <h3
-        class="top"
-        (click)="toggleSeenCollapsed()"
-        [appTooltip]="seenSectionTooltip"
-        tooltipPosition="left"
-      >
-        All Planes Peeped ({{ seenPlaneLog.length }})<span>
+    <div id="seenResults" [class.collapsed]="seenCollapsed">      <h3 class="top" (click)="toggleSeenCollapsed()">
+        <span class="section-title">All Planes Peeped ({{ seenPlaneLog.length }})</span>
+        <span class="header-buttons">
           <!-- Collapse toggle button -->
           <app-button
             id="collapseSeenButton"
@@ -211,11 +206,10 @@
             [size]="'medium'"
             (click)="onClearHistoricalList()"
             class="clear-seen"
-          ></app-button
-        ></span>
-      </h3>
-      <!-- Wrap seen list in collapse container -->
-      <ng-container *ngIf="!seenCollapsed">
+          ></app-button>
+        </span>
+      </h3><!-- Wrap seen list in collapse container -->
+      <div class="collapse-wrapper">
         <div
           class="plane-list-wrapper"
           [class.fade-enabled]="seenListScrollable"
@@ -246,11 +240,10 @@
               (unhoverPlane)="onUnhoverPlane($event, 'seen')"
             ></app-plane-list-item>
           </div>
-        </div>
-        <ng-template #noSeen>
+        </div>        <ng-template #noSeen>
           <p>No planes peeped.</p>
         </ng-template>
-      </ng-container>
+      </div>
     </div>
   </ng-container>
 </div>

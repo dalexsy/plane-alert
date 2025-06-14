@@ -1,0 +1,15 @@
+<div #mapContainer id="map" class="map-container"></div>
+
+<!-- Temporary simplified template without custom components -->
+<div class="map-overlays">
+  <!-- Overlays will be managed by services -->
+</div>
+
+<div class="map-controls">
+  <!-- Controls will be managed by services -->
+</div>
+
+<!-- Loading indicators -->
+<div *ngIf="isLoading$ | async" class="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>

@@ -12,6 +12,7 @@ import { PlaneModel } from '../../models/plane-model';
 import { haversineDistance } from '../../utils/geo-utils';
 import { SettingsService } from '../../services/settings.service';
 import { DebouncedClickService } from '../../services/debounced-click.service';
+import { TextUtils } from '../../utils/text-utils';
 
 @Component({
   selector: 'app-closest-plane-overlay',
@@ -73,5 +74,10 @@ export class ClosestPlaneOverlayComponent {
     this.debounced.preventDuplicateClick(key, () => {
       this.selectPlane.emit(this.plane!);
     });
+  }
+
+  /** Truncate operator text to 30 characters with ellipsis if longer */
+  truncateOperator(operator: string | undefined | null): string {
+    return TextUtils.truncateOperator(operator);
   }
 }

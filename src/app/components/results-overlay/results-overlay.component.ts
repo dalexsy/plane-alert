@@ -903,16 +903,10 @@ export class ResultsOverlayComponent
     return this.nearestMode
       ? 'Disable nearest follow'
       : 'Enable nearest follow';
-  }
-  /** Get military priority toggle tooltip text */
+  }  /** Get military priority toggle tooltip text */
   get militaryPriorityTooltip(): string {
     return this.militaryPriority
       ? 'Disable military priority'
       : 'Enable military priority';
-  }
-
-  /** Get seen planes section toggle tooltip text */
-  get seenSectionTooltip(): string {
-    return `Click to ${this.seenCollapsed ? 'expand' : 'collapse'}`;
   }
 }

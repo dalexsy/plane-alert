@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import registrationCountryPrefix from '../../assets/data/registration-country-prefix.json';
 import {
   IcaoAllocationUtils,
@@ -27,17 +28,68 @@ export interface CountryDetectionResult {
   };
 }
 
+/**
+ * Interface for comprehensive ICAO country ranges from JSON file
+ */
+export interface IcaoCountryRange {
+  startHex: string;
+  finishHex: string;
+  startDec: number;
+  finishDec: number;
+  isMilitary: boolean;
+  countryISO2: string;
+  significantBitmask: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AircraftCountryService {
   private readonly REGISTRATION_COUNTRY_PREFIX: Record<string, string> =
     registrationCountryPrefix as Record<string, string>;
-
   private readonly lookupCache = new Map<
     string,
     { result: string; timestamp: number }
   >();
+  // Comprehensive ICAO country ranges loaded from JSON
+  private icaoCountryRanges: IcaoCountryRange[] = [];
+  private icaoRangesLoaded = false;
+  private icaoRangesPromise: Promise<void>;
+
+  constructor(private http: HttpClient) {
+    // Load comprehensive ICAO ranges on service initialization
+    this.icaoRangesPromise = this.loadIcaoCountryRanges();
+  }
+
+  /**
+   * Load comprehensive ICAO country ranges from JSON file
+   */ private async loadIcaoCountryRanges(): Promise<void> {
+    try {
+      const ranges = await this.http
+        .get<IcaoCountryRange[]>('/assets/data/icao-country-ranges.json')
+        .toPromise();
+      this.icaoCountryRanges = ranges || [];
+      this.icaoRangesLoaded = true;
+      console.log(
+        `Loaded ${this.icaoCountryRanges.length} comprehensive ICAO country ranges`
+      );
+    } catch (error) {
+      console.warn(
+        'Failed to load comprehensive ICAO country ranges, falling back to config-based allocations:',
+        error
+      );
+      this.icaoRangesLoaded = true; // Mark as loaded to prevent retries
+    }
+  }
+
+  /**
+   * Ensures ICAO ranges are loaded before proceeding
+   */
+  private async ensureRangesLoaded(): Promise<void> {
+    if (!this.icaoRangesLoaded) {
+      await this.icaoRangesPromise;
+    }
+  }
   /**
    * Determines the country of origin for an aircraft with detailed result information
    * @param registration Aircraft registration (tail number)
@@ -50,6 +102,9 @@ export class AircraftCountryService {
     icaoHex?: string,
     apiCountry?: string
   ): CountryDetectionResult {
+    // If ICAO ranges are not loaded yet, we'll use fallback for now
+    // The async loading will complete eventually and cached results will be cleared
+
     // Second priority: Military registration patterns (specialized handling)
     if (registration) {
       const militaryResult =
@@ -65,13 +120,16 @@ export class AircraftCountryService {
       if (regResult.countryCode !== 'Unknown') {
         return regResult;
       }
-    } // Fourth priority: ICAO hex lookup (enhanced with configuration)
+    }
+
+    // Fourth priority: ICAO hex lookup (enhanced with configuration)
     if (icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup) {
       const icaoResult = this.getCountryFromIcaoHexDetailed(icaoHex);
       if (icaoResult.countryCode !== 'Unknown') {
         return icaoResult;
       }
     }
+
     // Next priority: Use API-provided country if valid
     if (apiCountry && /^[A-Za-z]{2}$/.test(apiCountry)) {
       return {
@@ -79,8 +137,11 @@ export class AircraftCountryService {
         confidence: 'high',
         source: 'api',
       };
-    } // Log when country lookup fails to return a result
-    const decimalValue = icaoHex ? parseInt(icaoHex, 16) : null; // console.log(
+    }
+
+    // Log when country lookup fails to return a result
+    const decimalValue = icaoHex ? parseInt(icaoHex, 16) : null;
+    // console.log(
     //   `Aircraft country lookup failed - ICAO: ${icaoHex} (${decimalValue}), Registration: ${
     //     registration || 'none'
     //   }, API: ${apiCountry || 'none'}`
@@ -92,7 +153,6 @@ export class AircraftCountryService {
       source: 'unknown',
     };
   }
-
   /**
    * Legacy method for backward compatibility
    * @deprecated Use getAircraftCountryDetailed for better insights
@@ -102,8 +162,12 @@ export class AircraftCountryService {
     icaoHex?: string,
     apiCountry?: string
   ): string {
-    return this.getAircraftCountryDetailed(registration, icaoHex, apiCountry)
-      .countryCode;
+    const result = this.getAircraftCountryDetailed(
+      registration,
+      icaoHex,
+      apiCountry
+    );
+    return result.countryCode;
   }
 
   /**
@@ -164,15 +228,19 @@ export class AircraftCountryService {
       source: 'unknown',
     };
   }
-
   /**
-   * Gets country from ICAO 24-bit address using enterprise configuration
-   */
-  private getCountryFromIcaoHexDetailed(
+   * Gets country from ICAO 24-bit address using comprehensive JSON data
+   */ private getCountryFromIcaoHexDetailed(
     icaoHex: string
   ): CountryDetectionResult {
+    // Clean up ICAO hex - remove common prefixes like ~
+    let cleanIcaoHex = icaoHex;
+    if (icaoHex && icaoHex.startsWith('~')) {
+      cleanIcaoHex = icaoHex.substring(1);
+    }
+
     // Check cache first
-    const cacheKey = `icao:${icaoHex.toLowerCase()}`;
+    const cacheKey = `icao:${cleanIcaoHex.toLowerCase()}`;
     const cached = this.lookupCache.get(cacheKey);
 
     if (
@@ -186,45 +254,81 @@ export class AircraftCountryService {
       };
     }
 
-    // Use the enterprise configuration utility
-    const allocationInfo = IcaoAllocationUtils.getAllocationInfo(icaoHex);
-
-    if (allocationInfo) {
-      // Cache the result
-      this.lookupCache.set(cacheKey, {
-        result: allocationInfo.countryCode,
-        timestamp: Date.now(),
-      });
-
+    // Validate hex format
+    if (!cleanIcaoHex || !/^[0-9A-Fa-f]+$/.test(cleanIcaoHex)) {
       return {
-        countryCode: allocationInfo.countryCode,
-        confidence: 'medium',
-        source: 'icao-hex',
-        metadata: {
-          icaoAllocation: {
-            range: `${allocationInfo.start
-              .toString(16)
-              .toUpperCase()}-${allocationInfo.end.toString(16).toUpperCase()}`,
-            countryName: allocationInfo.countryName,
-            type: allocationInfo.type,
-            notes: allocationInfo.notes,
-          },
-        },
+        countryCode: 'Unknown',
+        confidence: 'low',
+        source: 'unknown',
       };
-    } // Log unknown hex codes if configured
-    if (ICAO_LOOKUP_CONFIG.logUnknownHexCodes) {
-      // Only attempt to parse if it's a valid hex format
-      const isValidHex = /^[0-9A-Fa-f]+$/.test(icaoHex);
-      const decimalValue = isValidHex
-        ? parseInt(icaoHex, 16)
-        : 'Invalid format';
-      // Unknown ICAO hex code info logged
-    } // Log when ICAO hex lookup fails
-    const decimalValue = /^[0-9A-Fa-f]+$/.test(icaoHex)
-      ? parseInt(icaoHex, 16)
-      : 'Invalid hex format'; // console.log(
-    //   `ICAO hex lookup failed - ${icaoHex} (${decimalValue}) - no allocation found`
-    // );
+    }
+
+    try {
+      const icaoDec = parseInt(cleanIcaoHex, 16); // First try comprehensive JSON data if loaded (priority - more accurate)
+      if (this.icaoRangesLoaded && this.icaoCountryRanges.length > 0) {
+        for (const range of this.icaoCountryRanges) {
+          if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
+            // Cache the result
+            this.lookupCache.set(cacheKey, {
+              result: range.countryISO2,
+              timestamp: Date.now(),
+            });
+
+            return {
+              countryCode: range.countryISO2,
+              confidence: 'high', // Higher confidence from comprehensive data
+              source: 'icao-hex',
+              metadata: {
+                icaoAllocation: {
+                  range: `${range.startHex}-${range.finishHex}`,
+                  countryCode: range.countryISO2,
+                  isMilitary: range.isMilitary,
+                  source: 'comprehensive-json',
+                },
+              },
+            };
+          }
+        }
+
+        // Log when no match found in comprehensive data for unknown aircraft
+        if (icaoHex.startsWith('2F4') || icaoHex.startsWith('~2F4')) {
+          console.log(
+            `No match for ICAO ${icaoHex} (${icaoDec}) in comprehensive ranges`
+          );
+        }
+      } // Fallback to enterprise configuration utility (limited ranges)
+      const allocationInfo =
+        IcaoAllocationUtils.getAllocationInfo(cleanIcaoHex);
+
+      if (allocationInfo) {
+        // Cache the result
+        this.lookupCache.set(cacheKey, {
+          result: allocationInfo.countryCode,
+          timestamp: Date.now(),
+        });
+
+        return {
+          countryCode: allocationInfo.countryCode,
+          confidence: 'medium',
+          source: 'icao-hex',
+          metadata: {
+            icaoAllocation: {
+              range: `${allocationInfo.start
+                .toString(16)
+                .toUpperCase()}-${allocationInfo.end
+                .toString(16)
+                .toUpperCase()}`,
+              countryName: allocationInfo.countryName,
+              type: allocationInfo.type,
+              notes: allocationInfo.notes,
+              source: 'config-fallback',
+            },
+          },
+        };
+      }
+    } catch (error) {
+      console.warn('Error parsing ICAO hex:', icaoHex, error);
+    }
 
     return {
       countryCode: 'Unknown',
@@ -324,7 +428,6 @@ export class AircraftCountryService {
       countryCode.toUpperCase()
     );
   }
-
   /**
    * Gets comprehensive information about an aircraft's country determination
    */
@@ -377,5 +480,46 @@ export class AircraftCountryService {
         age: Date.now() - value.timestamp,
       })),
     };
+  }
+  /**
+   * Debug method to check ICAO allocation for specific aircraft
+   */
+  debugIcaoAllocation(icaoHex: string): any {
+    const icaoDec = parseInt(icaoHex, 16);
+
+    // Check comprehensive ranges
+    if (this.icaoRangesLoaded && this.icaoCountryRanges.length > 0) {
+      console.log(
+        `Checking ${this.icaoCountryRanges.length} comprehensive ranges...`
+      );
+      for (const range of this.icaoCountryRanges) {
+        if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
+          return {
+            found: true,
+            source: 'comprehensive',
+            country: range.countryISO2,
+            range: `${range.startHex}-${range.finishHex}`,
+            isMilitary: range.isMilitary,
+          };
+        }
+      }
+    } else {
+    }
+
+    // Check config fallback
+    const allocationInfo = IcaoAllocationUtils.getAllocationInfo(icaoHex);
+    if (allocationInfo) {
+      return {
+        found: true,
+        source: 'config',
+        country: allocationInfo.countryCode,
+        range: `${allocationInfo.start
+          .toString(16)
+          .toUpperCase()}-${allocationInfo.end.toString(16).toUpperCase()}`,
+      };
+    }
+
+    console.log('❌ No allocation found for this ICAO');
+    return { found: false };
   }
 }

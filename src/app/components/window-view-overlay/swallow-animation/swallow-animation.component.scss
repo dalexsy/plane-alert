@@ -22,12 +22,11 @@ $wing-ease: ease-in-out;
   pointer-events: none;
   z-index: 400;
   overflow: hidden;
-  mix-blend-mode: darken;
 }
 
 .swallow {
   position: absolute;
-  color: #006eff; // Dark gray-blue silhouette
+  color: #006eff;
   will-change: transform, opacity;
   .bird-v {
     position: relative;

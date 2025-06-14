@@ -1,0 +1,38 @@
+<div class="map-controls">
+  <div class="control-panel">
+    <!-- Example controls - these would be styled and positioned appropriately -->
+    <div class="toggle-group" *ngIf="uiToggles">
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="uiToggles.showTrails"
+          (change)="onToggleChange('showTrails', $event)"
+        />
+        <span>Show Trails</span>
+      </label>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="uiToggles.showPredictedPaths"
+          (change)="onToggleChange('showPredictedPaths', $event)"
+        />
+        <span>Predicted Paths</span>
+      </label>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="uiToggles.showAltitudeColors"
+          (change)="onToggleChange('showAltitudeColors', $event)"
+        />
+        <span>Altitude Colors</span>
+      </label>
+    </div>
+
+    <div class="action-group">
+      <button (click)="onActionTrigger('resetView')">Reset View</button>
+      <button (click)="onActionTrigger('refreshData')">Refresh</button>
+    </div>
+  </div>
+</div>

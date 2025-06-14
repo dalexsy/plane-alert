@@ -259,7 +259,22 @@ export const MILITARY_REGISTRATION_PATTERNS: MilitaryRegistrationPattern[] = [
   {
     pattern: '^ZK-',
     countryCode: 'NZ',
-    description: 'New Zealand military aircraft',
+    description: 'New Zealand military aircraft (ZK- prefix)',
+  },
+  {
+    pattern: '^ZM\\d+$',
+    countryCode: 'GB',
+    description: 'UK RAF aircraft (ZM prefix)',
+  },
+  {
+    pattern: '^ZZ\\d+$',
+    countryCode: 'GB',
+    description: 'UK RAF aircraft (ZZ prefix)',
+  },
+  {
+    pattern: '^ZK\\d+$',
+    countryCode: 'GB',
+    description: 'UK RAF aircraft (ZK prefix)',
   },
   {
     pattern: '^MM\\d+',

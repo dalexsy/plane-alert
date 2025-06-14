@@ -10,5 +10,5 @@ import { CommonModule } from '@angular/common';
 })
 export class CompassLabelsComponent {
   @Input() compassBackground: string = '#ff9753';
-  @Input() chimneyBackground: string = '#8b4513'; // This will be overridden by parent
+  @Input() chimneyBackground: string = '#cabab0'; // Default chimney color
 }
