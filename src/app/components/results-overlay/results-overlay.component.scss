@@ -223,13 +223,14 @@
     }
   }  // Ensure seen section is limited and scrolls internally
   #seenResults {
+    // allow seen section to grow and layout as column for scrolling
     display: flex;
     flex-direction: column;
+
     /* let seen section grow to fill remaining space */
     flex: 1 0 auto;
     min-height: 0;
     overflow: hidden;
-
     h3 {
       flex: 0 0 auto;
       min-height: 0;
