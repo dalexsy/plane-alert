@@ -28,10 +28,10 @@ export class AircraftDbService {
     // Load split database files and merge
     return Promise.all([
       this.http
-        .get('/assets/basic-ac-db1.json', { responseType: 'text' })
+        .get(`${this.baseHref}/assets/basic-ac-db1.json`, { responseType: 'text' })
         .toPromise(),
       this.http
-        .get('/assets/basic-ac-db2.json', { responseType: 'text' })
+        .get(`${this.baseHref}/assets/basic-ac-db2.json`, { responseType: 'text' })
         .toPromise(),
     ])
       .then((texts) => {
