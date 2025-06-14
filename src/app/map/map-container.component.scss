@@ -1,0 +1,63 @@
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: #1a1a1a;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ensure proper stacking order */
+app-map-overlays {
+  position: relative;
+  z-index: 100;
+  pointer-events: none;
+}
+
+app-map-controls {
+  position: relative;
+  z-index: 200;
+  pointer-events: none;
+}
+
+/* Allow pointer events on interactive elements */
+app-map-overlays ::ng-deep .interactive,
+app-map-controls ::ng-deep .interactive {
+  pointer-events: auto;
+}

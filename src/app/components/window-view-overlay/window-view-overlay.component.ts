@@ -138,12 +138,11 @@ export class WindowViewOverlayComponent
       event.preventDefault();
       event.stopPropagation();
     }
-  }
-  // unified altitude ticks use service default maxAltitude
+  } // unified altitude ticks use service default maxAltitude
   /** CSS background gradient reflecting current sky color */ public skyBackground: string =
     '';
   public compassBackground: string = '#ff9753';
-  public chimneyBackground: string = '#8b4513';
+  public chimneyBackground: string = '';
   /** Cloud tile URL for window view background */
   windowCloudUrl: string | null = null;
   /** Cloud filter styles for night-time darkening */
@@ -262,7 +261,10 @@ export class WindowViewOverlayComponent
       changes['observerLon']
     ) {
       // First inject celestial markers to get the complete plane list
-      this.injectCelestialMarkers(); // Detect movement direction BEFORE updating previous positions
+      this.injectCelestialMarkers();
+
+      // Detect movement direction BEFORE updating previous positions
+      // This ensures chemtrail angles are recalculated each scan interval
       this.windowViewPlanes.forEach((plane) => {
         const direction = this.getMovementDirection(plane); // This will update lastKnownDirections
         plane.movementDirection = direction; // Assign direction to the plane object
@@ -280,8 +282,6 @@ export class WindowViewOverlayComponent
       this.computeSpans();
       this.setCompassBackground();
       this.assignGroundStackOrder();
-      // compute history segments for chemtrail lines
-      this.computeHistorySegmentsForPlanes();
       // Update animation timing to ensure smooth movement
       this.updateAnimationTiming();
     }
@@ -820,7 +820,7 @@ export class WindowViewOverlayComponent
       ),
     }; // Set the final blended roof color (solid, no transparency)
     this.compassBackground = `rgb(${blendedRgb.r}, ${blendedRgb.g}, ${blendedRgb.b})`; // Calculate chimney color with same lighting but different base
-    const chimneyBaseRgb = this.parseColor('#8b4513'); // Saddle brown base
+    const chimneyBaseRgb = this.parseColor('#cabab0'); // Custom chimney base color
     const litChimneyRgb = {
       r: Math.round(
         chimneyBaseRgb.r * lightIntensity +
@@ -939,67 +939,10 @@ export class WindowViewOverlayComponent
     // If no significant movement, return last known direction or default to 'right'
     const fallbackDirection =
       this.lastKnownDirections.get(plane.icao) || 'right';
-
     return fallbackDirection;
   }
 
-  /** Calculate segments connecting historyTrail points */
-  private computeHistorySegmentsForPlanes(): void {
-    this.windowViewPlanes.forEach((plane) => {
-      if (plane.historyTrail && plane.historyTrail.length >= 2) {
-        plane.historySegments = this.computeSegments(plane.historyTrail);
-      } else {
-        plane.historySegments = [];
-      }
-    });
-  }
-
-  /** Compute line segments from trail points */
-  private computeSegments(
-    trail: Array<{ x: number; y: number; opacity: number }>
-  ): Array<{
-    x: number;
-    y: number;
-    length: number;
-    angle: number;
-    opacity: number;
-  }> {
-    const segments: Array<{
-      x: number;
-      y: number;
-      length: number;
-      angle: number;
-      opacity: number;
-    }> = [];
-    for (let i = 0; i < trail.length - 1; i++) {
-      const p1 = trail[i];
-      const p2 = trail[i + 1];
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const length = Math.sqrt(dx * dx + dy * dy);
-      // Skip segments with endpoints outside the visible map bounds
-      if (
-        p1.x < 0 ||
-        p1.x > 100 ||
-        p2.x < 0 ||
-        p2.x > 100 ||
-        p1.y < 0 ||
-        p1.y > 100 ||
-        p2.y < 0 ||
-        p2.y > 100
-      ) {
-        continue;
-      }
-      // Skip segments that are too long (likely discontinuous)
-      if (length > this.maxHistorySegmentLengthPercent) {
-        continue;
-      }
-      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-      const opacity = (p1.opacity + p2.opacity) / 2;
-      segments.push({ x: p1.x, y: p1.y, length, angle, opacity });
-    }
-    return segments;
-  } /** Simple check if it's daytime based on sun position */
+  /** Simple check if it's daytime based on sun position */
   public isDaytime(): boolean {
     const sun = this.windowViewPlanes.find(
       (p) => p.isCelestial === true && p.celestialBodyType === 'sun'

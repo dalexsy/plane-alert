@@ -1,4 +1,6 @@
 // Helper function to mix a color with white for better contrast
+import { TextUtils } from './text-utils';
+
 function mixColorWithWhite(color: string, whiteAmount: number): string {
   // Parse RGB values from the color string
   const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
@@ -118,6 +120,9 @@ export function planeTooltip(
   // Single place to control white mixing amount for both altitude text and arrow
   const WHITE_MIX_AMOUNT = 0.3;
 
+  // Truncate operator text to 30 characters with ellipsis if longer
+  const truncatedOperator = TextUtils.truncateOperator(operator);
+
   // Pre-calculate mixed altitude color if available
   let mixedAltitudeColor: string | undefined;
   if (altitude != null && getAltitudeColor) {
@@ -164,16 +169,14 @@ export function planeTooltip(
     isSpecial
       ? '<span class="material-symbols-sharp icon small special-star-tooltip">favorite</span>'
       : ''
+  }    ${
+    truncatedOperator
+      ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>`
+      : /* ...existing speed/alt logic... */ ''
   }
-    ${
-      operator
-        ? `<span class="divider">•</span> <span class="aircraft-operator">${operator}</span>`
-        : /* ...existing speed/alt logic... */ ''
-    }
-  </span>`;
-  // Info row: include speed/alt/model when operator present, else only model
+  </span>`; // Info row: include speed/alt/model when operator present, else only model
   const infoItems: string[] = [];
-  if (operator) {
+  if (truncatedOperator) {
     // Show model first, then speed, then altitude+arrow
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
     if (speedText) infoItems.push(`<span class="velocity">${speedText}</span>`);

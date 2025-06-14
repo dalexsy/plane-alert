@@ -300,7 +300,7 @@ export class InputOverlayComponent implements OnDestroy {
   }
   /** Get go home tooltip text */
   get goHomeTooltip(): string {
-    return 'Go to home position';
+    return 'Go to home';
   }
 
   /** Get brightness status text for custom tooltip */

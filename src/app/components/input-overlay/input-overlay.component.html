@@ -71,7 +71,16 @@
         [appTooltip]="viewAxesTooltip"
         (click)="coneVisibilityChange.emit(!showViewAxes)"
       ></app-button>
-      <!-- Altitude tooltip borders toggle button moved to results overlay -->
+      <app-button
+        class="go-home"
+        icon="home"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="goHomeTooltip"
+        [appTooltip]="goHomeTooltip"
+        tooltipPosition="left"
+        (click)="onGoToHome()"
+      ></app-button>
       <!-- Force scan button -->
       <app-button
         class="force-scan"
@@ -100,16 +109,6 @@
         [ariaLabel]="zoomOutTooltip"
         [appTooltip]="zoomOutTooltip"
         (click)="onZoomOut()"
-      ></app-button>
-      <app-button
-        class="go-home"
-        icon="home"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="goHomeTooltip"
-        [appTooltip]="goHomeTooltip"
-        tooltipPosition="left"
-        (click)="onGoToHome()"
       ></app-button>
     </app-tab>
   </div>

@@ -76,12 +76,18 @@
 
   <!-- Right side: Direction (Sky/Airport) OR Time Ago (Seen) -->
   <ng-container *ngIf="listType === 'sky' || listType === 'airport'">
-    <span class="direction-info">      <!-- Display IATA code (Airport only) - only show if plane has airport badge criteria -->
+    <span class="direction-info">
+      <!-- Display IATA code (Airport only) - only show if plane has airport badge criteria -->
       <span
         ><span
           class="airport-code clickable"
-          *ngIf="listType === 'airport' && plane.airportCode && plane.airportName && 
-                 (plane.onGround === true || (plane.altitude != null && plane.altitude <= 200))"
+          *ngIf="
+            listType === 'airport' &&
+            plane.airportCode &&
+            plane.airportName &&
+            (plane.onGround === true ||
+              (plane.altitude != null && plane.altitude <= 200))
+          "
           [title]="plane.airportName"
           (click)="onCenterAirport($event)"
         >
@@ -90,16 +96,24 @@
         <span
           class="airport-name clickable"
           *ngIf="
-            listType === 'airport' && !plane.airportCode && plane.airportName &&
-            (plane.onGround === true || (plane.altitude != null && plane.altitude <= 200))
+            listType === 'airport' &&
+            !plane.airportCode &&
+            plane.airportName &&
+            (plane.onGround === true ||
+              (plane.altitude != null && plane.altitude <= 200))
           "
           (click)="onCenterAirport($event)"
         >
-          {{ plane.airportName }}
-        </span><!-- Clickable airport code for sky list - only show if plane has airport badge criteria -->
+          {{ plane.airportName }} </span
+        ><!-- Clickable airport code for sky list - only show if plane has airport badge criteria -->
         <span
-          *ngIf="listType === 'sky' && plane.airportCode && plane.airportName && 
-                 (plane.onGround === true || (plane.altitude != null && plane.altitude <= 200))"
+          *ngIf="
+            listType === 'sky' &&
+            plane.airportCode &&
+            plane.airportName &&
+            (plane.onGround === true ||
+              (plane.altitude != null && plane.altitude <= 200))
+          "
           class="airport-code clickable"
           [title]="plane.airportName"
           (click)="onCenterAirport($event)"

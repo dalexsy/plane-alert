@@ -4,6 +4,7 @@
     class="swallow"
     [ngStyle]="getSwallowPosition(swallow)"
     [style.--flap-delay]="swallow.flapDelay + 's'"
+    [style.color]="getSwallowColor(swallow)"
   >
     <!-- Simple V-shaped bird silhouette -->
     <div class="bird-v">
