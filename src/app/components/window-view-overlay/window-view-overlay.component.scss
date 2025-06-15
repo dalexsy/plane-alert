@@ -48,6 +48,9 @@ $text-shadow-color: #000;
   perspective: $overlay-perspective;
   transform-style: preserve-3d;
   pointer-events: none;
+
+  // Smooth brightness transitions
+  transition: filter 0.8s ease-in-out;
 }
 
 // =============================================================================
@@ -148,4 +151,14 @@ $text-shadow-color: #000;
     opacity: 0.8;
     mix-blend-mode: screen;
   }
+}
+
+// =============================================================================
+// Brightness Dimming Support
+// =============================================================================
+
+.brightness-dark-overlay {
+  mix-blend-mode: multiply;
+  backdrop-filter: blur(0.5px);
+  -webkit-backdrop-filter: blur(0.5px);
 }

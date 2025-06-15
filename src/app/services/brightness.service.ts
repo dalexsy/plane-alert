@@ -19,6 +19,32 @@ export interface BrightnessState {
   providedIn: 'root',
 })
 export class BrightnessService implements OnDestroy {
+  // Brightness level configuration - easier to adjust dimming behavior
+  private readonly BRIGHTNESS_LEVELS = {
+    // Daytime brightness (sun > 0°)
+    DAYTIME_MIN: 0.7, // Minimum brightness during daytime (70%)
+    DAYTIME_DIM_FACTOR: 0.3, // How much to dim for low sun angles
+
+    // Civil twilight (sun 0° to -6°)
+    CIVIL_MIN: 0.25, // Minimum civil twilight brightness (25%)
+    CIVIL_MAX: 0.7, // Maximum civil twilight brightness (70%)
+
+    // Nautical twilight (sun -6° to -12°)
+    NAUTICAL_MIN: 0.1, // Minimum nautical twilight brightness (10%)
+    NAUTICAL_MAX: 0.25, // Maximum nautical twilight brightness (25%)
+
+    // Astronomical twilight (sun -12° to -18°)
+    ASTRO_MIN: 0.05, // Minimum astronomical twilight brightness (5%)
+    ASTRO_MAX: 0.1, // Maximum astronomical twilight brightness (10%)
+
+    // Night (sun < -18°)
+    NIGHT: 0.3, // Night brightness (0% - completely dark)
+
+    // Global constraints
+    ABSOLUTE_MIN: 0.0, // Absolute minimum brightness allowed (0%)
+    ABSOLUTE_MAX: 1.0, // Absolute maximum brightness allowed (100%)
+  };
+
   private brightnessSubject = new BehaviorSubject<BrightnessState>({
     brightness: 1,
     isDimming: false,
@@ -37,7 +63,7 @@ export class BrightnessService implements OnDestroy {
     // Load auto-dimming preference from settings
     this.updateBrightness();
     this.emitState();
-    
+
     // Start the update interval when auto dimming is enabled
     this.startUpdateInterval();
   }
@@ -91,12 +117,14 @@ export class BrightnessService implements OnDestroy {
       this.enableAutoDimming();
     }
   }
-
   /**
    * Set manual brightness (when auto dimming is disabled)
    */
   setManualBrightness(brightness: number): void {
-    this.manualBrightness = Math.max(0.1, Math.min(1, brightness));
+    this.manualBrightness = Math.max(
+      this.BRIGHTNESS_LEVELS.ABSOLUTE_MIN,
+      Math.min(this.BRIGHTNESS_LEVELS.ABSOLUTE_MAX, brightness)
+    );
 
     if (!this.isAutoDimmingEnabled) {
       this.updateBrightness();
@@ -109,7 +137,6 @@ export class BrightnessService implements OnDestroy {
   getCurrentState(): BrightnessState {
     return this.brightnessSubject.value;
   }
-
   /**
    * Calculate brightness based on sun elevation
    */
@@ -122,31 +149,47 @@ export class BrightnessService implements OnDestroy {
     const sunPos = SunCalc.getPosition(now, this.currentLat, this.currentLon);
     const sunElevationDegrees = (sunPos.altitude * 180) / Math.PI;
 
-    // Calculate brightness based on sun elevation
-    // Full brightness during day (sun > 0°)
-    // Gradual dimming during twilight phases
-    // Minimum brightness during night
-
     let brightness: number;
 
     if (sunElevationDegrees > 0) {
       // Daytime - full brightness with slight dimming for low sun
-      brightness = Math.max(0.8, 1 - (1 - sunElevationDegrees / 30) * 0.2);
+      brightness = Math.max(
+        this.BRIGHTNESS_LEVELS.DAYTIME_MIN,
+        1 -
+          (1 - sunElevationDegrees / 30) *
+            this.BRIGHTNESS_LEVELS.DAYTIME_DIM_FACTOR
+      );
     } else if (sunElevationDegrees > -6) {
       // Civil twilight - moderate dimming
-      brightness = 0.4 + ((sunElevationDegrees + 6) / 6) * 0.4; // 0.4 to 0.8
+      const range =
+        this.BRIGHTNESS_LEVELS.CIVIL_MAX - this.BRIGHTNESS_LEVELS.CIVIL_MIN;
+      brightness =
+        this.BRIGHTNESS_LEVELS.CIVIL_MIN +
+        ((sunElevationDegrees + 6) / 6) * range;
     } else if (sunElevationDegrees > -12) {
       // Nautical twilight - stronger dimming
-      brightness = 0.2 + ((sunElevationDegrees + 12) / 6) * 0.2; // 0.2 to 0.4
+      const range =
+        this.BRIGHTNESS_LEVELS.NAUTICAL_MAX -
+        this.BRIGHTNESS_LEVELS.NAUTICAL_MIN;
+      brightness =
+        this.BRIGHTNESS_LEVELS.NAUTICAL_MIN +
+        ((sunElevationDegrees + 12) / 6) * range;
     } else if (sunElevationDegrees > -18) {
       // Astronomical twilight - heavy dimming
-      brightness = 0.1 + ((sunElevationDegrees + 18) / 6) * 0.1; // 0.1 to 0.2
+      const range =
+        this.BRIGHTNESS_LEVELS.ASTRO_MAX - this.BRIGHTNESS_LEVELS.ASTRO_MIN;
+      brightness =
+        this.BRIGHTNESS_LEVELS.ASTRO_MIN +
+        ((sunElevationDegrees + 18) / 6) * range;
     } else {
       // Night - minimum brightness
-      brightness = 0.2;
+      brightness = this.BRIGHTNESS_LEVELS.NIGHT;
     }
 
-    return Math.max(0.1, Math.min(1, brightness));
+    return Math.max(
+      this.BRIGHTNESS_LEVELS.ABSOLUTE_MIN,
+      Math.min(this.BRIGHTNESS_LEVELS.ABSOLUTE_MAX, brightness)
+    );
   }
 
   /**
@@ -228,5 +271,12 @@ export class BrightnessService implements OnDestroy {
     } else {
       return `Auto: Night (${Math.round(state.brightness * 100)}%)`;
     }
+  }
+
+  /**
+   * Get current brightness level configuration (useful for debugging)
+   */
+  getBrightnessLevels() {
+    return { ...this.BRIGHTNESS_LEVELS };
   }
 }

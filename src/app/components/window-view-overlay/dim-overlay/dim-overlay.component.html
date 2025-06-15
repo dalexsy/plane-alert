@@ -2,6 +2,10 @@
 <ng-container *ngFor="let seg of dimSegments">
   <div
     class="dim-overlay"
-    [ngStyle]="{ left: seg.left + '%', width: seg.width + '%' }"
+    [ngStyle]="{
+      left: seg.left + '%',
+      width: seg.width + '%',
+      'background-color': 'rgba(0, 0, 0, ' + getDimOpacity() + ')'
+    }"
   ></div>
 </ng-container>

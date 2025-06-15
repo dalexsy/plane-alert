@@ -42,9 +42,11 @@
 
   <!-- Altitude bands for visual reference -->
   <app-altitude-bands [altitudeTicks]="altitudeTicks"></app-altitude-bands>
-
   <!-- Dimmed regions outside marker spans -->
-  <app-dim-overlay [dimSegments]="dimSegments"></app-dim-overlay>
+  <app-dim-overlay
+    [dimSegments]="dimSegments"
+    [brightnessState]="brightnessState"
+  ></app-dim-overlay>
 
   <!-- Celestial objects (sun/moon) -->
   <app-celestial-objects
