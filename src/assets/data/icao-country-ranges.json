@@ -1837,12 +1837,30 @@
   },
   {
     "startHex": "480000",
-    "finishHex": "4BFFFF",
+    "finishHex": "48FFFF",
     "startDec": 4718592,
+    "finishDec": 4784127,
+    "isMilitary": false,
+    "countryISO2": "PL",
+    "significantBitmask": "FFF000"
+  },
+  {
+    "startHex": "490000",
+    "finishHex": "49FFFF",
+    "startDec": 4784128,
+    "finishDec": 4849663,
+    "isMilitary": false,
+    "countryISO2": "CZ",
+    "significantBitmask": "FFF000"
+  },
+  {
+    "startHex": "4A0000",
+    "finishHex": "4BFFFF",
+    "startDec": 4849664,
     "finishDec": 4980735,
     "isMilitary": false,
     "countryISO2": "SE",
-    "significantBitmask": "FC0000"
+    "significantBitmask": "FFE000"
   },
   {
     "startHex": "4C0000",

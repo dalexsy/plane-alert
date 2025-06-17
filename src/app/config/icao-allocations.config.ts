@@ -116,10 +116,10 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   {
     start: 0x490000,
     end: 0x49ffff,
-    countryCode: 'PT',
-    countryName: 'Portugal',
-    type: 'civil',
-    notes: 'Portuguese civil aviation',
+    countryCode: 'CZ',
+    countryName: 'Czech Republic',
+    type: 'mixed',
+    notes: 'Czech civil and military aviation',
   },
   {
     start: 0x4a0000,
@@ -140,10 +140,10 @@ export const ICAO_ALLOCATIONS: IcaoAllocation[] = [
   {
     start: 0x480000,
     end: 0x48ffff,
-    countryCode: 'NL',
-    countryName: 'Netherlands',
-    type: 'military',
-    notes: 'Dutch military aviation (Royal Netherlands Air Force)',
+    countryCode: 'PL',
+    countryName: 'Poland',
+    type: 'mixed',
+    notes: 'Polish civil and military aviation',
   },
   {
     start: 0x340000,
