@@ -343,3 +343,70 @@ $animation-optimization: optimizeSpeed;
     }
   }
 }
+
+// =============================================================================
+// Operator Logo Tooltip
+// =============================================================================
+
+.operator-logo-tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem); // Position above the main tooltip
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 50%;
+  padding: 0.5rem;
+  border: 3px solid #989898;
+  color: white;
+  box-shadow: 0 1px 3px rgb(0 0 0);
+  outline: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(0.5rem);
+  pointer-events: none;
+  z-index: 11; // Above normal labels but below followed planes
+
+  // Tooltip tail pointing downward (towards the main tooltip)
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid rgb(148 150 148);
+    z-index: 1;
+  }
+
+  // Tooltip tail outline (white)
+  &::before {
+    content: "";
+    position: absolute;
+    top: 106%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid rgba(255, 255, 255, 0.8);
+    z-index: 0;
+  }
+
+  // Operator symbol styling (same as map tooltips)
+  .operator-symbol {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: brightness(1.7) saturate(0.8);
+    }
+  }
+}

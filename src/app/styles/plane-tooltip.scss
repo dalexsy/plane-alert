@@ -214,10 +214,26 @@ $new-plane-color: #ff6161;
     content: "";
     position: absolute;
     top: 36px;
-    right: 9px;
+    right: 8px;
     width: 0;
-    transform: rotate(-180deg);
+    filter: drop-shadow(-1px -1px 0px black);
+    transform: rotate(180deg);
     height: 0;
+    border: 11px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.5);
+  }
+
+  &.leaflet-tooltip-left:after {
+    content: "";
+    position: absolute;
+    top: 30px;
+    right: -3px;
+    transform: rotate(-180deg);
+    width: 0;
+    /* transform: rotate(-157deg); */
+    height: 0;
+    /* z-index: 10; */
     border: 10px solid transparent;
     border-top-color: inherit;
     border-left-color: inherit;

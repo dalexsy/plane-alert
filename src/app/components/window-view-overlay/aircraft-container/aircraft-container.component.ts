@@ -13,6 +13,7 @@ import { PlaneStyleService } from '../../../services/plane-style.service';
 import { FlagCallsignComponent } from '../../flag-callsign/flag-callsign.component';
 import { calculateTiltAngle } from '../../../utils/vertical-rate.util';
 import { TextUtils } from '../../../utils/text-utils';
+import { OperatorTooltipService } from '../../../services/operator-tooltip.service';
 
 @Component({
   selector: 'app-aircraft-container',
@@ -27,13 +28,16 @@ export class AircraftContainerComponent implements OnChanges {
   @Input() showAltitudeBorders: boolean = false;
   @Input() skyBottomColor: string = 'rgb(135, 206, 235)'; // Default horizon color
   @Input() skyTopColor: string = 'rgb(25, 25, 112)'; // Default zenith color
-  @Output() selectPlane = new EventEmitter<WindowViewPlane>(); // Cache for altitude border styles to avoid recalculation
+  @Output() selectPlane = new EventEmitter<WindowViewPlane>(); 
+  // Cache for altitude border styles to avoid recalculation
   private altitudeBorderCache = new Map<string, { [key: string]: string }>();
   private labelClassCache = new Map<string, string>();
   private readonly MAX_CACHE_SIZE = 1000; // Prevent memory leaks
+  
   constructor(
     public altitudeColor: AltitudeColorService,
-    public planeStyle: PlaneStyleService
+    public planeStyle: PlaneStyleService,
+    public operatorTooltipService: OperatorTooltipService
   ) {}
   ngOnChanges(changes: SimpleChanges): void {
     // Clear caches when showAltitudeBorders changes or when planes data changes
@@ -496,5 +500,25 @@ export class AircraftContainerComponent implements OnChanges {
 
     // Return opacity: close planes = 1.0, distant planes fade to 0.3
     return Math.max(0.1, 1 - atmosphericIntensity * 0.7);
+  }
+
+  /**
+   * Get operator logo content for window view tooltip
+   */
+  getOperatorLogoContent(plane: WindowViewPlane): string {
+    // Convert plane to the format expected by OperatorTooltipService
+    const planeData = {
+      isMilitary: plane.isMilitary,
+      country: plane.origin?.toLowerCase() // origin is used as country in window view
+    };
+    
+    return this.operatorTooltipService.getLeftTooltipContent(planeData);
+  }
+
+  /**
+   * Check if plane should show operator logo tooltip
+   */
+  shouldShowOperatorLogo(plane: WindowViewPlane): boolean {
+    return !!(plane.isMilitary && plane.origin && this.getOperatorLogoContent(plane));
   }
 }
