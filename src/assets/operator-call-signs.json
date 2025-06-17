@@ -811,7 +811,6 @@
   "JOK": "Luftwaffe",
   "CAO": "Air China Cargo",
   "LYB": "Private",
-  "AFP": "Força Aérea Portuguesa",
   "PTN": "Platoon Aviation",
   "DFP": "Private",
   "GAM": "German Army",
@@ -948,5 +947,10 @@
   "AFP": "Força Aérea Portuguesa",
   "JEF": "Jetflite",
   "LIFTER": "Luftwaffe",
-  "RUBIK": "United States Air Force"
+  "RUBIK": "United States Air Force",
+  "BRK": "Hungarian Air Force",
+  "HUF": "Hungarian Air Force",
+  "NAF": "Royal Netherlands Air Force",
+  "FAF": "Armée de l'Air",
+  "OMA": "Oman Air"
 }

@@ -49,6 +49,7 @@ export class TooltipDirective implements OnDestroy, OnChanges {
   @Input('appTooltip') text: string = '';
   @Input('tooltipPosition') position: 'top' | 'bottom' | 'left' | 'right' =
     'right';
+  @Input('tooltipVariant') variant: 'default' | 'left-side' = 'default';
   @Input('tooltipClass') customClass: string = '';
   private tooltipEl: HTMLElement | null = null;
   private hideTimeout: any = null;
@@ -92,6 +93,12 @@ export class TooltipDirective implements OnDestroy, OnChanges {
       const side = tabEl.getAttribute('side') as 'left' | 'right';
       this.position = side;
     }
+
+    // Override position for left-side variant
+    if (this.variant === 'left-side') {
+      this.position = 'left';
+    }
+
     // Let the tooltip manager handle hiding any existing tooltips
     this.tooltipManager.hideCurrentTooltip(true);
 
@@ -102,6 +109,9 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     this.tooltipEl.className = `app-tooltip tooltip-${this.position}`;
     if (this.customClass) {
       this.tooltipEl.classList.add(this.customClass);
+    }
+    if (this.variant === 'left-side') {
+      this.tooltipEl.classList.add('tooltip-left-variant');
     }
 
     document.body.appendChild(this.tooltipEl);

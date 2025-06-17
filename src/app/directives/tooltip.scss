@@ -36,9 +36,19 @@ $tooltip-z-index: 10000;
   &.tooltip-bottom {
     transform: translateX(-50%);
   }
-
   &.tooltip-left {
     transform: translateY(-50%);
+  }
+
+  // Left-side variant with different styling
+  &.tooltip-left-variant {
+    background: rgba(0, 0, 20, 0.8);
+    border-color: rgba(100, 150, 255, 0.5);
+    backdrop-filter: blur(0.3rem);
+
+    &.tooltip-left {
+      transform: translateY(-50%);
+    }
   }
 
   // Animation

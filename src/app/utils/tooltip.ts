@@ -207,3 +207,43 @@ export function planeTooltip(
   // Combine rows
   return `<span class="plane-tooltip-link tooltip-follow-wrapper" data-icao="${id}" onclick="(function(e){window.dispatchEvent(new CustomEvent('plane-tooltip-follow',{detail:{icao:'${id}'}}));e.stopPropagation();e.preventDefault();})(event)">${mainRow}${infoRow}</span>`;
 }
+
+export function planeTooltipLeft(
+  id: string,
+  callsign: string,
+  origin: string,
+  model: string,
+  operator: string,
+  speedText: string,
+  altText: string,
+  getFlagHTML: (origin: string) => string,
+  isNew: boolean,
+  isGrounded: boolean,
+  isMilitary: boolean,
+  isSpecial: boolean,
+  verticalRate: number | null,
+  altitude?: number | null,
+  getAltitudeColor?: (alt: number) => string
+): string {
+  // Use the same logic as the regular tooltip but with different styling
+  const tooltip = planeTooltip(
+    id,
+    callsign,
+    origin,
+    model,
+    operator,
+    speedText,
+    altText,
+    getFlagHTML,
+    isNew,
+    isGrounded,
+    isMilitary,
+    isSpecial,
+    verticalRate,
+    altitude,
+    getAltitudeColor
+  );
+
+  // Wrap with left-side variant class
+  return `<span class="plane-tooltip-left-variant">${tooltip}</span>`;
+}

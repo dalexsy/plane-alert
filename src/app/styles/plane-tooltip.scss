@@ -200,3 +200,63 @@ $new-plane-color: #ff6161;
   font-family: "Instrument Sans", sans-serif;
   backdrop-filter: blur(0.5rem);
 }
+
+// Left-side variant of plane tooltips - use normal plane-tooltip styles
+.leaflet-tooltip.plane-tooltip.leaflet-tooltip-left {
+  margin-left: 0.75rem;
+  margin-right: 0;
+  top: -3rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  border-color: #989898;
+
+  &.leaflet-tooltip-left:before {
+    content: "";
+    position: absolute;
+    top: 2.5rem;
+    right: 0.125rem;
+    width: 0;
+    transform: rotate(-45deg);
+    height: 0;
+    border: 7px solid transparent;
+    border-top-color: inherit;
+    border-left-color: inherit;
+  }
+
+  // Grounded planes need even more left positioning since right side is closer
+  &.grounded-plane-tooltip {
+    margin-left: -0.5rem;
+    top: -2.75rem;
+
+    .operator-symbol {
+      height: 1.5rem;
+      width: 1.5rem;
+    }
+  }
+}
+
+// Invisible marker for left tooltips
+.invisible-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+// Operator symbols in tooltips
+.operator-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(1.2);
+  }
+}

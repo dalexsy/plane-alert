@@ -10,7 +10,10 @@ import {
 } from '../utils/geo-utils';
 import { filterPlaneByPrefix } from '../utils/plane-log';
 import { Plane } from '../types/plane';
-import { createOrUpdatePlaneMarker } from '../utils/plane-marker';
+import {
+  createOrUpdatePlaneMarker,
+  removeLeftMarkerFromPlane,
+} from '../utils/plane-marker';
 import { planeTooltip } from '../utils/tooltip';
 import { PlaneModel, PositionHistory } from '../models/plane-model';
 import { NewPlaneService } from '../services/new-plane.service';
@@ -18,6 +21,7 @@ import { SettingsService } from './settings.service';
 import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
 import { UnknownListService } from './unknown-list.service';
+import { OperatorTooltipService } from './operator-tooltip.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
@@ -86,7 +90,8 @@ export class PlaneFinderService {
     private militaryPrefixService: MilitaryPrefixService,
     private altitudeColor: AltitudeColorService,
     private aircraftCountryService: AircraftCountryService,
-    private helicopterIdentificationService: HelicopterIdentificationService
+    private helicopterIdentificationService: HelicopterIdentificationService,
+    private operatorTooltipService: OperatorTooltipService
   ) {}
 
   private randomizeBrightness(): string {
@@ -108,8 +113,12 @@ export class PlaneFinderService {
     const color = this.altitudeColor.getFillColor(altitude);
     return `color: ${color};`;
   }
-
   private removePlaneVisuals(plane: PlaneModel, map: L.Map): void {
+    // Remove left marker if it exists
+    if (plane.marker) {
+      removeLeftMarkerFromPlane(plane.marker, map);
+    }
+
     plane.marker?.remove();
     plane.path?.remove();
     plane.predictedPathArrowhead?.remove(); // Remove arrowhead
@@ -1029,7 +1038,21 @@ export class PlaneFinderService {
           followNearest &&
           followedIcao &&
           id === followedIcao
-        );
+        ); // Prepare plane data for operator tooltip service
+        const planeData = {
+          icao: id,
+          callsign,
+          operator,
+          registration: reg,
+          model,
+          isMilitary,
+          country: origin,
+          altitude,
+          onGround,
+          isSpecial,
+          isUnknown,
+        };
+
         const { marker } = createOrUpdatePlaneMarker(
           planeModelInstance.marker,
           map,
@@ -1050,7 +1073,9 @@ export class PlaneFinderService {
           followed,
           this.settings.interval,
           id, // icao
-          callsign // callsign for glider logic
+          callsign, // callsign for glider logic
+          this.operatorTooltipService, // operator tooltip service
+          planeData // complete plane data
         );
         planeModelInstance.marker = marker; // Update marker reference on model
 
