@@ -2430,6 +2430,15 @@
     "significantBitmask": "FFFF00"
   },
   {
+    "startHex": "C28000",
+    "finishHex": "C2FFFF",
+    "startDec": 12746752,
+    "finishDec": 12779519,
+    "isMilitary": true,
+    "countryISO2": "CA",
+    "significantBitmask": "FF8000"
+  },
+  {
     "startHex": "C40000",
     "finishHex": "C403FF",
     "startDec": 12845056,
