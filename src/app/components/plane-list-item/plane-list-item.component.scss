@@ -1,3 +1,5 @@
+@use "sass:math";
+
 // ============================================================================
 // PLANE LIST ITEM COMPONENT STYLES
 // ============================================================================
@@ -83,7 +85,7 @@ $grayscale-faded: 0.7;
   @supports not (
     background-color: color-mix(in srgb, $color $percentage, transparent)
   ) {
-    background-color: rgba($color, $percentage / 100%);
+    background-color: rgba($color, math.div($percentage, 100%));
   }
 }
 
@@ -96,7 +98,7 @@ $grayscale-faded: 0.7;
       background-color: color-mix(in srgb, currentColor $opacity, transparent)
     ) {
       background-color: currentColor;
-      opacity: $opacity / 100%;
+      opacity: math.div($opacity, 100%);
     }
   }
 }
@@ -162,7 +164,7 @@ $grayscale-faded: 0.7;
 
           img {
             vertical-align: middle;
-            margin-right: $space-xs / 2;
+            margin-right: math.div($space-xs, 2);
           }
         }
       }
@@ -446,7 +448,7 @@ $grayscale-faded: 0.7;
 
   .flag-callsign,
   .operator-visibility {
-    gap: $space-xs / 2;
+    gap: math.div($space-xs, 2);
   }
 
   .direction-info {
