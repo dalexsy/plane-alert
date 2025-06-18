@@ -155,6 +155,21 @@
     ></app-button>
     <!-- Operator: show 'Unknown' when operator is missing -->
     <span class="operator" [ngClass]="{ 'unknown-operator': !plane.operator }">
+      <!-- Logo placeholder for layout consistency -->
+      <span class="operator-logo">
+        <ng-container *ngIf="operatorSymbolConfig">
+          <span class="operator-symbol {{ operatorSymbolConfig.key }}">
+            <img
+              [src]="
+                'assets/operator-logos/' + operatorSymbolConfig.svgFileName
+              "
+              [alt]="operatorSymbolConfig.key"
+              width="16"
+              height="16"
+            />
+          </span>
+        </ng-container>
+      </span>
       {{ plane.operator || "Unknown" }}
     </span>
   </span>

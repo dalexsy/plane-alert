@@ -141,6 +141,35 @@ $grayscale-faded: 0.7;
   @include hover-tint(20%);
 }
 
+// Bottom section: operator and model
+:host {
+  .bottom {
+    .operator-visibility {
+      // Operator Logo
+      .operator-logo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem; // reserve space even when empty
+        margin-right: $space-xs;
+
+        .operator-symbol {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 1rem;
+          height: 1rem;
+
+          img {
+            vertical-align: middle;
+            margin-right: $space-xs / 2;
+          }
+        }
+      }
+    }
+  }
+}
+
 // ============================================================================
 // STATE MODIFIERS
 // ============================================================================
@@ -321,6 +350,12 @@ $grayscale-faded: 0.7;
 .unknown-operator {
   opacity: $hover-opacity;
   font-style: italic;
+}
+.operator {
+  display: grid;
+  grid-template-columns: 1.75rem auto;
+  gap: 4px;
+  justify-items: start;
 }
 
 // Time Display

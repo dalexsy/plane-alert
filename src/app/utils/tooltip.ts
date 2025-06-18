@@ -115,7 +115,12 @@ export function planeTooltip(
   isSpecial: boolean,
   verticalRate: number | null,
   altitude?: number | null,
-  getAltitudeColor?: (alt: number) => string
+  getAltitudeColor?: (alt: number) => string,
+  getOperatorLogo?: (plane: {
+    operator: string;
+    country: string;
+    isMilitary: boolean;
+  }) => string
 ): string {
   // Single place to control white mixing amount for both altitude text and arrow
   const WHITE_MIX_AMOUNT = 0.3;
@@ -151,11 +156,15 @@ export function planeTooltip(
       arrowStyle += `color: ${mixedAltitudeColor};`;
     }
     verticalRateSpan = `<span class="material-symbols-sharp vertical-rate" style="${arrowStyle}">${iconName}</span>`;
-  }
+  } // Get operator logo if available
+  const operatorLogo = getOperatorLogo
+    ? getOperatorLogo({ operator, country: origin, isMilitary })
+    : '';
+
   // Main row: callsign with flag and either operator or speed/alt
   const mainRow = `
   <span class="tooltip-row">
-    ${getFlagHTML(origin)}
+    ${operatorLogo}${getFlagHTML(origin)}
       <a class="callsign-text" href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" title="Open in ADS-B Exchange" onclick="event.stopPropagation()">${
     callsign && callsign.trim().length >= 3
       ? callsign
@@ -223,7 +232,12 @@ export function planeTooltipLeft(
   isSpecial: boolean,
   verticalRate: number | null,
   altitude?: number | null,
-  getAltitudeColor?: (alt: number) => string
+  getAltitudeColor?: (alt: number) => string,
+  getOperatorLogo?: (plane: {
+    operator: string;
+    country: string;
+    isMilitary: boolean;
+  }) => string
 ): string {
   // Use the same logic as the regular tooltip but with different styling
   const tooltip = planeTooltip(
@@ -241,7 +255,8 @@ export function planeTooltipLeft(
     isSpecial,
     verticalRate,
     altitude,
-    getAltitudeColor
+    getAltitudeColor,
+    getOperatorLogo
   );
 
   // Wrap with left-side variant class

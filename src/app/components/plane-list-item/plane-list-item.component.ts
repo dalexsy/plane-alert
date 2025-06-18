@@ -20,6 +20,8 @@ import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComp
 import { haversineDistance } from '../../utils/geo-utils';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
+import { OperatorTooltipService } from '../../services/operator-tooltip.service';
+import { OperatorSymbolConfig } from '../../config/operator-symbols.config';
 import * as L from 'leaflet';
 
 @Component({
@@ -31,13 +33,6 @@ import * as L from 'leaflet';
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
 })
 export class PlaneListItemComponent implements OnChanges {
-  constructor(
-    public countryService: CountryService,
-    public planeFilter: PlaneFilterService,
-    private settings: SettingsService,
-    public planeStyle: PlaneStyleService, // Inject style service
-    private announcementService: AnnouncementService
-  ) {}
   /** Distance from center, in km rounded to nearest tenth */
   get distanceKm(): number {
     const lat = this.settings.lat ?? 0;
@@ -149,6 +144,15 @@ export class PlaneListItemComponent implements OnChanges {
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
 
+  constructor(
+    private settings: SettingsService,
+    public countryService: CountryService,
+    public planeFilter: PlaneFilterService,
+    public planeStyle: PlaneStyleService,
+    private announcementService: AnnouncementService,
+    private operatorTooltipService: OperatorTooltipService
+  ) {}
+
   // Make the whole item clickable: clicking the host emits centerPlane
   @HostListener('click')
   onHostClick(): void {
@@ -165,6 +169,17 @@ export class PlaneListItemComponent implements OnChanges {
     if (diff < 60) return '<1m ago';
     if (minutes < 60) return `${minutes}m ago`;
     return `${hours}h ${minutes % 60}m ago`;
+  }
+
+  /** Get matched operator symbol config */
+  public get operatorSymbolConfig(): OperatorSymbolConfig | null {
+    return (
+      this.operatorTooltipService.getSymbolConfig({
+        operator: this.plane.operator || '',
+        country: this.plane.origin || '',
+        isMilitary: !!this.plane.isMilitary,
+      }) ?? null
+    );
   }
 
   // --- Event Handlers ---
@@ -200,12 +215,20 @@ export class PlaneListItemComponent implements OnChanges {
       });
     }
   }
+
+  /** Get operator logo HTML for display in tooltips */
+  getOperatorLogoHtml(): string {
+    return this.operatorTooltipService.getLeftTooltipContent({
+      operator: this.plane.operator || '',
+      country: this.plane.origin || '',
+      isMilitary: this.plane.isMilitary || false,
+    });
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
-    // Use the announcement service to handle new aircraft announcements
+    // Announce new plane
     if (this.plane.isNew) {
-      const context = {
-        isAirportClicked: this.hostAirportClicked,
-      };
+      const context = { isAirportClicked: this.hostAirportClicked };
       this.announcementService.announceNewAircraft(this.plane, context);
     }
   }

@@ -275,3 +275,15 @@ $new-plane-color: #ff6161;
     filter: brightness(1.5) saturate(0.8);
   }
 }
+
+// Override for map tooltip operator-symbols to ensure correct size
+.plane-tooltip-link .operator-symbol,
+.plane-tooltip-left-variant .operator-symbol {
+  width: 2rem;
+  height: 2rem;
+}
+.plane-tooltip-link .operator-symbol img,
+.plane-tooltip-left-variant .operator-symbol img {
+  width: 100%;
+  height: 100%;
+}
