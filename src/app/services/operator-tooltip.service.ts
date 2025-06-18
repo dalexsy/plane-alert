@@ -46,7 +46,7 @@ export class OperatorTooltipService {
   getLeftTooltipContent(plane: any): string {
     const cfg = this.getSymbolConfig(plane);
     return cfg
-      ? `<span class="operator-symbol ${cfg.key}"><img src="assets/operator-logos/${cfg.svgFileName}" alt="${cfg.key}" title="${cfg.key}"/></span>`
+      ? `<span class="operator-symbol ${cfg.key}"><img src="assets/operator-logos/${cfg.key}.svg" alt="${cfg.key}" title="${cfg.key}"/></span>`
       : '';
   }
 
