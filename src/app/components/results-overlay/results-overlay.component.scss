@@ -172,13 +172,14 @@
     &.no-fade::after {
       opacity: 0;
     }
-
     .plane-list {
       display: flex;
       flex-direction: column;
       position: relative;
       padding-bottom: 0;
       overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
 
       .model {
         text-align: right;
@@ -221,7 +222,7 @@
       max-height: 100%;
       overflow-y: auto;
     }
-  }  // Ensure seen section is limited and scrolls internally
+  } // Ensure seen section is limited and scrolls internally
   #seenResults {
     // allow seen section to grow and layout as column for scrolling
     display: flex;
@@ -239,7 +240,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      
+
       &:hover {
         background-color: rgba(255, 255, 255, 0.05);
       }
@@ -254,29 +255,31 @@
         gap: 0.25rem;
         align-items: center;
         flex-shrink: 0; // Prevent buttons from shrinking
-        
+
         app-button {
           min-width: 2.5rem; // Fixed width to prevent icon shifts
         }
       }
-    }
-
-    // Collapse wrapper for smooth animations
+    } // Collapse wrapper for smooth animations
     .collapse-wrapper {
       flex: 1 1 auto;
       min-height: 0;
       overflow: hidden;
-      transition: max-height 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
-                  opacity 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       max-height: 1000px; // Large value for expanded state
       opacity: 1;
-      
+      display: flex;
+      flex-direction: column;
+
       .plane-list-wrapper {
         /* fill available space and scroll internally */
         flex: 1 1 auto;
         min-height: 0;
         overflow-y: auto;
         height: 100%;
+        display: flex;
+        flex-direction: column;
       }
     }
 

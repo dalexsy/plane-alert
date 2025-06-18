@@ -4,6 +4,27 @@ import registrationCountryPrefix from '../../assets/data/registration-country-pr
 import { ICAO_LOOKUP_CONFIG } from '../config/icao-allocations.config';
 
 /**
+ * IMPORTANT: ICAO Country Detection Best Practices
+ *
+ * When aircraft show wrong flags/countries, DO NOT add individual ICAO code overrides!
+ * This is not scalable and creates technical debt.
+ *
+ * Instead, follow this debugging process:
+ * 1. Convert ICAO hex to decimal to find which range it falls into
+ * 2. Check the ICAO allocation ranges in /assets/data/icao-country-ranges.json
+ * 3. Verify if the range allocation is correct according to official ICAO documents
+ * 4. If the range is wrong, update the range data (proper solution)
+ * 5. If it's a special case (military using non-standard ranges), add a new range entry
+ *
+ * Example: ICAO 4B7FAC was showing as Swedish but is Swiss military
+ * - Convert: 4B7FAC = 4,947,884 decimal
+ * - Found: Falls in range 4A0000-4BFFFF allocated to Sweden
+ * - Solution: Split the range to allocate 4B7F00-4B7FFF to Swiss military
+ *
+ * This range-based approach scales properly and maintains data integrity.
+ */
+
+/**
  * Result interface for country detection with confidence levels
  */
 export interface CountryDetectionResult {
