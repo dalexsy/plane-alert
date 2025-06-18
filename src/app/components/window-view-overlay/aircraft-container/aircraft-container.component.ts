@@ -28,12 +28,12 @@ export class AircraftContainerComponent implements OnChanges {
   @Input() showAltitudeBorders: boolean = false;
   @Input() skyBottomColor: string = 'rgb(135, 206, 235)'; // Default horizon color
   @Input() skyTopColor: string = 'rgb(25, 25, 112)'; // Default zenith color
-  @Output() selectPlane = new EventEmitter<WindowViewPlane>(); 
+  @Output() selectPlane = new EventEmitter<WindowViewPlane>();
   // Cache for altitude border styles to avoid recalculation
   private altitudeBorderCache = new Map<string, { [key: string]: string }>();
   private labelClassCache = new Map<string, string>();
   private readonly MAX_CACHE_SIZE = 1000; // Prevent memory leaks
-  
+
   constructor(
     public altitudeColor: AltitudeColorService,
     public planeStyle: PlaneStyleService,
@@ -509,9 +509,9 @@ export class AircraftContainerComponent implements OnChanges {
     // Convert plane to the format expected by OperatorTooltipService
     const planeData = {
       isMilitary: plane.isMilitary,
-      country: plane.origin?.toLowerCase() // origin is used as country in window view
+      country: plane.origin?.toLowerCase(), // origin is used as country in window view
     };
-    
+
     return this.operatorTooltipService.getLeftTooltipContent(planeData);
   }
 
@@ -519,6 +519,10 @@ export class AircraftContainerComponent implements OnChanges {
    * Check if plane should show operator logo tooltip
    */
   shouldShowOperatorLogo(plane: WindowViewPlane): boolean {
-    return !!(plane.isMilitary && plane.origin && this.getOperatorLogoContent(plane));
+    return !!(
+      plane.isMilitary &&
+      plane.origin &&
+      this.getOperatorLogoContent(plane)
+    );
   }
 }

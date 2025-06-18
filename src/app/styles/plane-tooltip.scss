@@ -203,10 +203,9 @@ $new-plane-color: #ff6161;
 
 // Left-side variant of plane tooltips - use normal plane-tooltip styles
 .leaflet-tooltip.plane-tooltip.leaflet-tooltip-left {
-  margin-left: 0.75rem;
-  margin-right: 0;
   top: -3rem;
   padding: 0.5rem;
+  left: -2rem;
   border-radius: 50%;
   border-color: #989898;
 
@@ -273,6 +272,6 @@ $new-plane-color: #ff6161;
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: brightness(1.7) saturate(0.8);
+    filter: brightness(1.5) saturate(0.8);
   }
 }

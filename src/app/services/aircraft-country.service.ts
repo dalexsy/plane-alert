@@ -1,12 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import registrationCountryPrefix from '../../assets/data/registration-country-prefix.json';
-import {
-  IcaoAllocationUtils,
-  ICAO_LOOKUP_CONFIG,
-  MILITARY_REGISTRATION_PATTERNS,
-  type MilitaryRegistrationPattern,
-} from '../config/icao-allocations.config';
+import { ICAO_LOOKUP_CONFIG } from '../config/icao-allocations.config';
 
 /**
  * Result interface for country detection with confidence levels
@@ -105,16 +100,7 @@ export class AircraftCountryService {
     // If ICAO ranges are not loaded yet, we'll use fallback for now
     // The async loading will complete eventually and cached results will be cleared
 
-    // Second priority: Military registration patterns (specialized handling)
-    if (registration) {
-      const militaryResult =
-        this.checkMilitaryRegistrationPattern(registration);
-      if (militaryResult) {
-        return militaryResult;
-      }
-    }
-
-    // Third priority: Standard registration prefix lookup (most reliable for civilian)
+    // Second priority: Standard registration prefix lookup (most reliable for civilian)
     if (registration) {
       const regResult = this.getCountryFromRegistrationDetailed(registration);
       if (regResult.countryCode !== 'Unknown') {
@@ -169,31 +155,8 @@ export class AircraftCountryService {
     );
     return result.countryCode;
   }
+  // Military registration patterns removed - military aircraft are identified via API data
 
-  /**
-   * Checks for military registration patterns that follow special rules
-   */
-  private checkMilitaryRegistrationPattern(
-    registration: string
-  ): CountryDetectionResult | null {
-    const reg = registration.trim().toUpperCase();
-
-    for (const pattern of MILITARY_REGISTRATION_PATTERNS) {
-      const regex = new RegExp(pattern.pattern);
-      if (regex.test(reg)) {
-        return {
-          countryCode: pattern.countryCode,
-          confidence: 'high',
-          source: 'military-pattern',
-          metadata: {
-            militaryPattern: pattern.description,
-          },
-        };
-      }
-    }
-
-    return null;
-  }
   /**
    * Gets country from aircraft registration prefix with detailed information
    */
@@ -296,35 +259,6 @@ export class AircraftCountryService {
             `No match for ICAO ${icaoHex} (${icaoDec}) in comprehensive ranges`
           );
         }
-      } // Fallback to enterprise configuration utility (limited ranges)
-      const allocationInfo =
-        IcaoAllocationUtils.getAllocationInfo(cleanIcaoHex);
-
-      if (allocationInfo) {
-        // Cache the result
-        this.lookupCache.set(cacheKey, {
-          result: allocationInfo.countryCode,
-          timestamp: Date.now(),
-        });
-
-        return {
-          countryCode: allocationInfo.countryCode,
-          confidence: 'medium',
-          source: 'icao-hex',
-          metadata: {
-            icaoAllocation: {
-              range: `${allocationInfo.start
-                .toString(16)
-                .toUpperCase()}-${allocationInfo.end
-                .toString(16)
-                .toUpperCase()}`,
-              countryName: allocationInfo.countryName,
-              type: allocationInfo.type,
-              notes: allocationInfo.notes,
-              source: 'config-fallback',
-            },
-          },
-        };
       }
     } catch (error) {
       console.warn('Error parsing ICAO hex:', icaoHex, error);
@@ -452,10 +386,7 @@ export class AircraftCountryService {
           result.countryCode !== 'Unknown'
             ? this.getRegistrationPrefixesForCountry(result.countryCode)
             : [],
-        icaoAllocations:
-          result.countryCode !== 'Unknown'
-            ? IcaoAllocationUtils.getAllocationsForCountry(result.countryCode)
-            : [],
+        icaoAllocations: [], // ICAO allocations now managed in JSON data file
       },
     };
   }
@@ -504,21 +435,7 @@ export class AircraftCountryService {
         }
       }
     } else {
-    }
-
-    // Check config fallback
-    const allocationInfo = IcaoAllocationUtils.getAllocationInfo(icaoHex);
-    if (allocationInfo) {
-      return {
-        found: true,
-        source: 'config',
-        country: allocationInfo.countryCode,
-        range: `${allocationInfo.start
-          .toString(16)
-          .toUpperCase()}-${allocationInfo.end.toString(16).toUpperCase()}`,
-      };
-    }
-
+    } // No allocation found in JSON data
     console.log('❌ No allocation found for this ICAO');
     return { found: false };
   }
