@@ -38,7 +38,12 @@ export class AircraftContainerComponent implements OnChanges {
     public altitudeColor: AltitudeColorService,
     public planeStyle: PlaneStyleService,
     public operatorTooltipService: OperatorTooltipService
-  ) {}
+  ) {
+    // Expose debug function to window for console debugging
+    if (typeof window !== 'undefined') {
+      (window as any).debugClosePlanes = () => this.debugClosePlanes();
+    }
+  }
   ngOnChanges(changes: SimpleChanges): void {
     // Clear caches when showAltitudeBorders changes or when planes data changes
     if (changes['showAltitudeBorders'] || changes['aircraftPlanes']) {
@@ -74,6 +79,23 @@ export class AircraftContainerComponent implements OnChanges {
   } /** Debug function to log plane data when clicking on plane icon */
   handlePlaneIconClick(plane: WindowViewPlane, event: MouseEvent): void {
     event.stopPropagation();
+
+    // Debug the has-details logic for planes within 10km
+    if (plane.distanceKm != null && plane.distanceKm <= 10) {
+      console.log(`🛩️ Plane ${plane.callsign} (${plane.icao}) details:`, {
+        distanceKm: plane.distanceKm,
+        operator: plane.operator,
+        model: plane.model,
+        isGrounded: plane.isGrounded,
+        hasOperatorOrModel: !!(plane.operator || plane.model),
+        shouldHaveDetails:
+          plane.distanceKm != null &&
+          plane.distanceKm <= 10 &&
+          (plane.operator || plane.model) &&
+          !plane.isGrounded,
+        labelClasses: this.getLabelClasses(plane),
+      });
+    }
 
     // Show trail positions to see actual movement
     if (plane.historyTrail && plane.historyTrail.length > 1) {
@@ -345,14 +367,16 @@ export class AircraftContainerComponent implements OnChanges {
     return result;
   }
 
-  /** Get CSS classes for plane labels including altitude border class */
-  getLabelClasses(plane: WindowViewPlane): string {
+  /** Get CSS classes for plane labels including altitude border class */ getLabelClasses(
+    plane: WindowViewPlane
+  ): string {
     // Create a more efficient cache key using only the essential properties
     const hasDetails =
       plane.distanceKm != null &&
       plane.distanceKm <= 10 &&
-      (plane.operator || plane.model) &&
-      !plane.isGrounded;
+      !plane.isGrounded &&
+      // Show tooltip style if: has operator/model data OR is very close (within 3km)
+      (plane.operator || plane.model || plane.distanceKm <= 3);
     const isFollowed = plane.icao === this.highlightedPlaneIcao;
     const hasAltitudeBorder =
       hasDetails && this.showAltitudeBorders && plane.altitude;
@@ -524,5 +548,34 @@ export class AircraftContainerComponent implements OnChanges {
       plane.origin &&
       this.getOperatorLogoContent(plane)
     );
+  }
+
+  /** Debug function to analyze planes within 10km */
+  debugClosePlanes(): void {
+    const closePlanes = this.aircraftPlanes.filter(
+      (plane) =>
+        plane.distanceKm != null &&
+        plane.distanceKm <= 10 &&
+        !plane.isMarker &&
+        !plane.isCelestial
+    );
+
+    console.log(`🛩️ Found ${closePlanes.length} planes within 10km:`);
+    closePlanes.forEach((plane) => {
+      const hasDetails =
+        plane.distanceKm != null &&
+        plane.distanceKm <= 10 &&
+        !plane.isGrounded &&
+        (plane.operator || plane.model || plane.distanceKm <= 3);
+
+      console.log(`  ${plane.callsign} (${plane.icao}):`, {
+        distance: `${plane.distanceKm?.toFixed(1)}km`,
+        operator: plane.operator || 'none',
+        model: plane.model || 'none',
+        grounded: plane.isGrounded,
+        hasDetails: hasDetails,
+        classes: this.getLabelClasses(plane),
+      });
+    });
   }
 }

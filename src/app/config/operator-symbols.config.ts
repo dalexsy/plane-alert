@@ -40,4 +40,8 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
     key: 'Coat_of_Arms_of_Ukraine',
     countries: ['ua', 'ukraine'],
   },
+  {
+    key: 'Armee_de_lAir',
+    countries: ['fr', 'france'],
+  },
 ];

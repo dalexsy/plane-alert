@@ -131,8 +131,8 @@
             *ngIf="
               plane.distanceKm != null &&
               plane.distanceKm <= 10 &&
-              (plane.operator || plane.model) &&
-              !plane.isGrounded
+              !plane.isGrounded &&
+              (plane.operator || plane.model)
             "
             class="plane-details"
           >
