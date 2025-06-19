@@ -50,11 +50,10 @@ export interface CountryDetectionResult {
 export interface IcaoCountryRange {
   startHex: string;
   finishHex: string;
-  startDec: number;
-  finishDec: number;
   isMilitary: boolean;
   countryISO2: string;
-  significantBitmask: string;
+  startDec?: number; // computed at load time
+  finishDec?: number; // computed at load time
 }
 
 @Injectable({
@@ -81,10 +80,17 @@ export class AircraftCountryService {
    * Load comprehensive ICAO country ranges from JSON file
    */ private async loadIcaoCountryRanges(): Promise<void> {
     try {
-      const ranges = await this.http
-        .get<IcaoCountryRange[]>('/assets/data/icao-country-ranges.json')
+      const rawRanges = await this.http
+        .get<Omit<IcaoCountryRange, 'startDec' | 'finishDec'>[]>(
+          '/assets/data/icao-country-ranges.json'
+        )
         .toPromise();
-      this.icaoCountryRanges = ranges || [];
+      // Compute decimal values from hex
+      this.icaoCountryRanges = (rawRanges || []).map((r) => ({
+        ...r,
+        startDec: parseInt(r.startHex, 16),
+        finishDec: parseInt(r.finishHex, 16),
+      }));
       this.icaoRangesLoaded = true;
       console.log(
         `Loaded ${this.icaoCountryRanges.length} comprehensive ICAO country ranges`
@@ -251,7 +257,7 @@ export class AircraftCountryService {
       const icaoDec = parseInt(cleanIcaoHex, 16); // First try comprehensive JSON data if loaded (priority - more accurate)
       if (this.icaoRangesLoaded && this.icaoCountryRanges.length > 0) {
         for (const range of this.icaoCountryRanges) {
-          if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
+          if (icaoDec >= range.startDec! && icaoDec <= range.finishDec!) {
             // Cache the result
             this.lookupCache.set(cacheKey, {
               result: range.countryISO2,
@@ -445,7 +451,7 @@ export class AircraftCountryService {
         `Checking ${this.icaoCountryRanges.length} comprehensive ranges...`
       );
       for (const range of this.icaoCountryRanges) {
-        if (icaoDec >= range.startDec && icaoDec <= range.finishDec) {
+        if (icaoDec >= range.startDec! && icaoDec <= range.finishDec!) {
           return {
             found: true,
             source: 'comprehensive',
