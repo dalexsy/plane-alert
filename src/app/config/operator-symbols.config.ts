@@ -7,16 +7,16 @@ export interface OperatorSymbolConfig {
 // Centralized operator symbol configuration
 export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
   {
-    key: 'bundeswehr_kreuz',
-    countries: ['de', 'germany'],
+    key: 'de_air_force',
+    countries: ['de'],
   },
   {
-    key: 'US_Air_Force',
-    countries: ['us', 'united states'],
+    key: 'us_air_force',
+    countries: ['us'],
     operators: ['united states air force', 'us air force', 'usaf'],
   },
   {
-    key: 'US_Navy',
+    key: 'us_navy',
     countries: [],
     operators: [
       'united states navy',
@@ -29,19 +29,33 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
     ],
   },
   {
-    key: 'schweizer_armee',
-    countries: ['ch', 'switzerland'],
+    key: 'ch_air_force',
+    countries: ['ch'],
   },
   {
-    key: 'Roundel_of_the_United_Kingdom',
-    countries: ['gb', 'great britain'],
+    key: 'gb_air_force',
+    countries: ['gb'],
   },
   {
-    key: 'Coat_of_Arms_of_Ukraine',
-    countries: ['ua', 'ukraine'],
+    key: 'ua_air_force',
+    countries: ['ua'],
   },
   {
-    key: 'Armee_de_lAir',
-    countries: ['fr', 'france'],
+    key: 'fr_air_force',
+    countries: ['fr'],
+  },
+  {
+    key: 'de_police',
+    operators: ['Bundespolizei'],
+    countries: ['de'],
+  },
+  {
+    key: 'nato',
+    countries: [],
+    operators: ['NATO'],
+  },
+  {
+    key: 'pl_air_force',
+    countries: ['pl'],
   },
 ];
