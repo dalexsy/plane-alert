@@ -92,14 +92,7 @@ export class AircraftCountryService {
         finishDec: parseInt(r.finishHex, 16),
       }));
       this.icaoRangesLoaded = true;
-      console.log(
-        `Loaded ${this.icaoCountryRanges.length} comprehensive ICAO country ranges`
-      );
     } catch (error) {
-      console.warn(
-        'Failed to load comprehensive ICAO country ranges, falling back to config-based allocations:',
-        error
-      );
       this.icaoRangesLoaded = true; // Mark as loaded to prevent retries
     }
   }

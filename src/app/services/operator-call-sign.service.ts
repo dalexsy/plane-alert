@@ -59,19 +59,23 @@ export class OperatorCallSignService {
     }
     const operator = foundPrefix ? this.operatorMap[foundPrefix] : undefined;
     // Log unknown call signs on first unseen prefix (using first 3 letters)
-    const logPrefix = cs.slice(0, 3);
+    // Extract entire prefix until first digit (so names like LIFTER are fully captured)
+    const prefixMatch = cs.match(/^[^0-9]+/);
+    const logPrefix = prefixMatch ? prefixMatch[0] : cs;
     if (!operator && !this.unknownCallSigns.has(logPrefix)) {
+      // Only log alphabetic prefixes (skip all-digit or N-prefix, VFR/IFR)
       if (
         !/^\d+$/.test(callSign) &&
         !logPrefix.startsWith('N') &&
         logPrefix !== 'VFR' &&
         logPrefix !== 'IFR'
       ) {
-        if (Math.random() < 0.1) {
-          console.log(`[Unknown Call Sign] ${logPrefix}`);
-        }
+        // Add new prefix then output entire set formatted for JSON
+        this.unknownCallSigns.add(logPrefix);
+        console.log(
+          [...this.unknownCallSigns].map((p) => `"${p}": ""`).join(', ')
+        );
       }
-      this.unknownCallSigns.add(logPrefix);
     }
 
     return operator;
