@@ -227,6 +227,8 @@ $grayscale-faded: 0.7;
 // Special Plane State
 :host.special-plane {
   color: $color-airport;
+  @include border-with-compensation(left, $border-width-thick, $color-airport);
+  @include gradient-background($color-airport);
 }
 
 // Highlighted Plane State
