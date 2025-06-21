@@ -19,7 +19,7 @@
   >
   |
   <span *ngIf="distanceKm != null" class="distance">
-    {{ distanceKm | number : "1.1-1" }} km
+    {{ distanceKm | number : "1.1-1" }} {{ distanceUnit }}
   </span>
   <span
     class="eta"

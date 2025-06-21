@@ -19,6 +19,7 @@ import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
+import { DistanceUnit, getDistanceUnitLabel, convertFromKm, convertToKm } from '../../utils/units.util';
 
 @Component({
   selector: 'app-input-overlay',
@@ -58,10 +59,9 @@ export class InputOverlayComponent implements OnDestroy {
   @Input() showViewAxes = false;
   /** Whether to show altitude-colored tooltip borders */
   @Input() showAltitudeBorders = false;
-  @Output() altitudeBordersChange = new EventEmitter<boolean>();
-
-  scanButtonText = '';
+  @Output() altitudeBordersChange = new EventEmitter<boolean>();  scanButtonText = '';
   private sub!: Subscription;
+  private isUserEditingRadius = false;
   @HostBinding('class.collapsed')
   collapsed: boolean = localStorage.getItem('inputOverlayCollapsed') === 'true';
   public currentAddress: string = '';
@@ -95,14 +95,11 @@ export class InputOverlayComponent implements OnDestroy {
       this.scanButtonText = active
         ? `Update now (next update in ${count}s)`
         : `Start scanning at location`;
-      this.cdr.detectChanges();
-    });
-
-    // Only set input values if not collapsed and refs exist
+      this.cdr.detectChanges();    });    // Only set input values if not collapsed and refs exist
     if (!this.collapsed) {
       if (this.searchRadiusInputRef?.nativeElement) {
-        const radius = this.settings.radius ?? 5;
-        this.searchRadiusInputRef.nativeElement.value = radius.toString();
+        const displayRadius = this.getDisplayRadius();
+        this.searchRadiusInputRef.nativeElement.value = displayRadius.toString();
       }
       if (this.checkIntervalInputRef?.nativeElement) {
         const displayedInterval = this.settings.interval.toString();
@@ -115,27 +112,39 @@ export class InputOverlayComponent implements OnDestroy {
     this.collapsed = !this.collapsed;
     localStorage.setItem('inputOverlayCollapsed', this.collapsed.toString());
     this.cdr.detectChanges();
-  }
-
-  ngOnDestroy(): void {
+  }  ngOnDestroy(): void {
     this.sub?.unsubscribe();
-  }
-
-  onResolveAndUpdate(event?: Event): void {
+  }  onResolveAndUpdate(event?: Event): void {
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
+    
+    // Make sure to save the current radius value in the correct unit before proceeding
+    this.processRadiusChange();
+    
     // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
-  }
-  onUseCurrentLocation(): void {
+  }onUseCurrentLocation(): void {
     this.useCurrentLocation.emit();
-  }
-
-  onRadiusChange(): void {
-    const val = this.searchRadiusInputRef.nativeElement.valueAsNumber;
-    if (!isNaN(val)) {
-      this.settings.setRadius(val);
+  }  processRadiusChange(): void {
+    if (!this.searchRadiusInputRef?.nativeElement) {
+      return;
     }
+    
+    const val = this.searchRadiusInputRef.nativeElement.valueAsNumber;
+    const currentUnit = this.settings.distanceUnit;
+    
+    if (!isNaN(val) && val > 0) {
+      // Convert displayed value to kilometers for storage
+      const unit = currentUnit as DistanceUnit;
+      const radiusInKm = convertToKm(val, unit);
+      this.settings.setRadius(radiusInKm);
+    }
+  }
+  onRadiusFocus(): void {
+    this.isUserEditingRadius = true;
+  }  onRadiusBlur(): void {
+    this.isUserEditingRadius = false;
+    this.processRadiusChange();
   }
 
   onIntervalChange(event: Event): void {
@@ -319,8 +328,50 @@ export class InputOverlayComponent implements OnDestroy {
       return `${sunStatus} (${Math.round(
         this.brightnessState.brightness * 100
       )}%)`;
-    }
+    }    return '';
+  }
 
-    return '';
+  /** Get distance unit label for display */
+  getDistanceUnitLabel(): string {
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    return getDistanceUnitLabel(unit);
+  }  /** Get display radius value converted to current unit */  getDisplayRadius(): number {
+    const radiusKm = this.settings.radius ?? 5;
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    const converted = convertFromKm(radiusKm, unit);
+    // Round to 2 decimal places for precision, then to 1 for display
+    const precise = Math.round(converted * 100) / 100;
+    const rounded = Math.round(precise * 10) / 10;
+    return rounded;
+  }  /**
+   * Updates the radius input field with the correctly converted display value.
+   * This should be called instead of directly setting the input field value.
+   */
+  updateRadiusInputDisplay(): void {
+    // Don't update if user is actively editing the field
+    if (this.isUserEditingRadius) {
+      return;
+    }
+    
+    if (this.searchRadiusInputRef?.nativeElement) {
+      const displayValue = this.getDisplayRadius();
+      this.searchRadiusInputRef.nativeElement.value = displayValue.toString();
+    }
+  }/** Toggle between kilometers and miles */
+  toggleDistanceUnit(): void {
+    const currentUnit = this.settings.distanceUnit;
+    const newUnit = currentUnit === 'km' ? 'miles' : 'km';
+    
+    this.settings.setDistanceUnit(newUnit);
+    
+    // Temporarily allow update even if user was editing
+    const wasEditing = this.isUserEditingRadius;
+    this.isUserEditingRadius = false;
+    
+    // Update the display value using our dedicated method
+    this.updateRadiusInputDisplay();
+    
+    // Restore editing state
+    this.isUserEditingRadius = wasEditing;
   }
 }

@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { IconComponent } from '../ui/icon.component';
 import { PlaneModel } from '../../models/plane-model';
 import { haversineDistance } from '../../utils/geo-utils';
+import { DistanceUnit, convertFromKm, getDistanceUnitShortLabel } from '../../utils/units.util';
 import { SettingsService } from '../../services/settings.service';
 import { DebouncedClickService } from '../../services/debounced-click.service';
 import { TextUtils } from '../../utils/text-utils';
@@ -27,20 +28,22 @@ export class ClosestPlaneOverlayComponent {
   constructor(
     private settings: SettingsService,
     private debounced: DebouncedClickService
-  ) {}
-  /** Distance computed dynamically from home location */
+  ) {}  /** Distance computed dynamically from home location */
   get distanceKm(): number {
     if (!this.plane) {
       return 0;
     }
     const lat = this.settings.lat ?? 0;
     const lon = this.settings.lon ?? 0;
-    // Round to nearest 0.1km
-    return (
-      Math.round(
-        haversineDistance(lat, lon, this.plane.lat, this.plane.lon) * 10
-      ) / 10
-    );
+    const distanceInKm = haversineDistance(lat, lon, this.plane.lat, this.plane.lon);
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    return Math.round(convertFromKm(distanceInKm, unit) * 10) / 10;
+  }
+
+  /** Get distance unit for display */
+  get distanceUnit(): string {
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    return getDistanceUnitShortLabel(unit);
   }
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.isSelected && this.plane?.isMilitary === true;

@@ -32,9 +32,18 @@
   h1 {
     margin-bottom: 1rem;
   }
-
   .form-group {
     margin-bottom: 15px;
+  }
+
+  .radius-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+
+    input {
+      flex: 1;
+    }
   }
 
   label {

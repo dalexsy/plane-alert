@@ -34,10 +34,13 @@ export class SettingsService {
   // Key and backing store for brightness mode preference
   private brightnessAutoModeKey = 'brightnessAutoMode';
   private _brightnessAutoMode: boolean = false;
-
   // Key and backing store for wind units preference
   private windUnitIndexKey = 'windUnitIndex';
-  private _windUnitIndex: number = 0; // Keys and backing stores for cloud and rain cover visibility
+  private _windUnitIndex: number = 0;
+
+  // Key and backing store for distance unit preference
+  private distanceUnitKey = 'distanceUnit';
+  private _distanceUnit: string = 'km'; // 'km' or 'miles'// Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
   private _showCloudCover: boolean = true;
   private rainCoverKey = 'showRainCover';
@@ -275,7 +278,6 @@ export class SettingsService {
     this._windUnitIndex = value;
     localStorage.setItem(this.windUnitIndexKey, value.toString());
   }
-
   /** Get clicked airports from localStorage */
   getClickedAirports(): Set<number> {
     const saved = localStorage.getItem(this.clickedAirportsKey);
@@ -294,6 +296,17 @@ export class SettingsService {
   setClickedAirports(clickedAirports: Set<number>): void {
     const airportIds = Array.from(clickedAirports);
     localStorage.setItem(this.clickedAirportsKey, JSON.stringify(airportIds));
+  }
+
+  /** Current distance unit ('km' or 'miles') */
+  get distanceUnit(): string {
+    return this._distanceUnit;
+  }
+
+  /** Persist distance unit preference */
+  setDistanceUnit(value: string): void {
+    this._distanceUnit = value;
+    localStorage.setItem(this.distanceUnitKey, value);
   }
 
   load(): void {
@@ -371,15 +384,19 @@ export class SettingsService {
     const brightnessStr = localStorage.getItem(this.brightnessAutoModeKey);
     if (brightnessStr !== null) {
       this._brightnessAutoMode = brightnessStr === 'true';
-    }
-
-    // Load wind unit preference
+    }    // Load wind unit preference
     const windUnitStr = localStorage.getItem(this.windUnitIndexKey);
     if (windUnitStr !== null) {
       const windUnitIndex = parseInt(windUnitStr, 10);
       if (!isNaN(windUnitIndex)) {
         this._windUnitIndex = windUnitIndex;
       }
+    }
+
+    // Load distance unit preference
+    const distanceUnitStr = localStorage.getItem(this.distanceUnitKey);
+    if (distanceUnitStr !== null) {
+      this._distanceUnit = distanceUnitStr;
     }
   }
 }
