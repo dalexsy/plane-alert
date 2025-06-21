@@ -1,14 +1,49 @@
 import { Injectable } from '@angular/core';
 import { OPERATOR_SYMBOLS } from '../config/operator-symbols.config';
+import { AircraftCountryService } from './aircraft-country.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OperatorTooltipService {
-  constructor() {}
+  constructor(private aircraftCountryService: AircraftCountryService) {}
+
+  // Get country with fallback chain for better location detection
+  private getCountryWithFallback(plane: any): string | null {
+    // First try: Use the detected country from plane.origin
+    if (plane.origin && plane.origin !== 'Unknown') {
+      return plane.origin.toLowerCase();
+    }
+
+    // Second try: Use coordinates to determine country
+    if (typeof plane.lat === 'number' && typeof plane.lon === 'number') {
+      const coordResult = this.aircraftCountryService.getCountryFromCoordinates(
+        plane.lat,
+        plane.lon
+      );
+      if (coordResult.countryCode !== 'Unknown') {
+        return coordResult.countryCode.toLowerCase();
+      }
+    }
+
+    // Third try: Use registration or ICAO for country detection
+    if (plane.callsign || plane.icao) {
+      const detectionResult =
+        this.aircraftCountryService.getAircraftCountryDetailed(
+          plane.callsign,
+          plane.icao
+        );
+      if (detectionResult.countryCode !== 'Unknown') {
+        return detectionResult.countryCode.toLowerCase();
+      }
+    }
+
+    return null;
+  }
+
   // Get operator symbol config for a plane
   public getSymbolConfig(plane: any) {
-    const country = plane.country?.toLowerCase();
+    const country = this.getCountryWithFallback(plane);
     const operator = plane.operator?.toLowerCase();
 
     // First, try to match by specific operator name
