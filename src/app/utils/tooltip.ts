@@ -120,7 +120,8 @@ export function planeTooltip(
     operator: string;
     country: string;
     isMilitary: boolean;
-  }) => string
+  }) => string,
+  distanceText?: string
 ): string {
   // Single place to control white mixing amount for both altitude text and arrow
   const WHITE_MIX_AMOUNT = 0.3;
@@ -183,10 +184,10 @@ export function planeTooltip(
       ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>`
       : /* ...existing speed/alt logic... */ ''
   }
-  </span>`; // Info row: include speed/alt/model when operator present, else only model
+  </span>`;  // Info row: include speed/alt/model when operator present, else only model
   const infoItems: string[] = [];
   if (truncatedOperator) {
-    // Show model first, then speed, then altitude+arrow
+    // Show model first, then speed, then altitude+arrow, then distance
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
     if (speedText) infoItems.push(`<span class="velocity">${speedText}</span>`);
     if (isGrounded) {
@@ -200,9 +201,11 @@ export function planeTooltip(
         `<span class=\"altitude\">${styledAltText}${verticalRateSpan}</span>`
       );
     }
+    if (distanceText) infoItems.push(`<span class="distance">${distanceText}</span>`);
   } else {
-    // No operator: only show model
+    // No operator: only show model and distance
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
+    if (distanceText) infoItems.push(`<span class="distance">${distanceText}</span>`);
   }
   const infoRow = infoItems.length
     ? `
@@ -237,7 +240,8 @@ export function planeTooltipLeft(
     operator: string;
     country: string;
     isMilitary: boolean;
-  }) => string
+  }) => string,
+  distanceText?: string
 ): string {
   // Use the same logic as the regular tooltip but with different styling
   const tooltip = planeTooltip(
@@ -256,7 +260,8 @@ export function planeTooltipLeft(
     verticalRate,
     altitude,
     getAltitudeColor,
-    getOperatorLogo
+    getOperatorLogo,
+    distanceText
   );
 
   // Wrap with left-side variant class

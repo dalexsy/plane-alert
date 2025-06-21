@@ -8,6 +8,9 @@ export class SettingsService {
   constructor() {
     this.load();
   }
+
+  /** Event emitted when distance unit changes */
+  distanceUnitChanged = new EventEmitter<string>();
   private _lat: number | null = null;
   private _lon: number | null = null;
   private _radius: number | null = 50;
@@ -302,11 +305,11 @@ export class SettingsService {
   get distanceUnit(): string {
     return this._distanceUnit;
   }
-
   /** Persist distance unit preference */
   setDistanceUnit(value: string): void {
     this._distanceUnit = value;
     localStorage.setItem(this.distanceUnitKey, value);
+    this.distanceUnitChanged.emit(value);
   }
 
   load(): void {

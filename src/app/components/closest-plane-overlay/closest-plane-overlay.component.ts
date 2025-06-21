@@ -4,9 +4,12 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  OnDestroy,
   HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { IconComponent } from '../ui/icon.component';
 import { PlaneModel } from '../../models/plane-model';
 import { haversineDistance } from '../../utils/geo-utils';
@@ -23,12 +26,24 @@ import { TextUtils } from '../../utils/text-utils';
   styleUrls: ['./closest-plane-overlay.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClosestPlaneOverlayComponent {
+export class ClosestPlaneOverlayComponent implements OnDestroy {
   @Input() plane: PlaneModel | null = null;
+  private distanceUnitSubscription?: Subscription;
+  
   constructor(
     private settings: SettingsService,
-    private debounced: DebouncedClickService
-  ) {}  /** Distance computed dynamically from home location */
+    private debounced: DebouncedClickService,
+    private cdr: ChangeDetectorRef
+  ) {
+    // Subscribe to distance unit changes to trigger change detection
+    this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.distanceUnitSubscription?.unsubscribe();
+  }/** Distance computed dynamically from home location */
   get distanceKm(): number {
     if (!this.plane) {
       return 0;

@@ -24,6 +24,14 @@ export function milesToKm(miles: number): number {
 }
 
 /**
+ * Convert kilometers to feet
+ */
+export function kmToFeet(km: number): number {
+  // 1 km = 3280.8398950131 feet (exact conversion)
+  return km * 3280.8398950131;
+}
+
+/**
  * Convert distance from kilometers to the specified unit
  */
 export function convertFromKm(km: number, unit: DistanceUnit): number {
@@ -72,5 +80,22 @@ export function getDistanceUnitShortLabel(unit: DistanceUnit): string {
     case DistanceUnit.KILOMETERS:
     default:
       return 'km';
+  }
+}
+
+/**
+ * Convert distance from kilometers to feet for tooltip display
+ * This is used when the user has selected miles as their unit preference
+ */
+export function convertKmToTooltipDistance(km: number, userUnit: DistanceUnit): { value: number; label: string } {
+  if (userUnit === DistanceUnit.MILES) {
+    // Use feet for tooltips when user prefers imperial
+    const feet = kmToFeet(km);
+    const rounded = Math.round(feet);
+    return { value: rounded, label: 'ft' };
+  } else {
+    // Use meters when user prefers metric
+    const meters = Math.round(km * 1000);
+    return { value: meters, label: 'm' };
   }
 }

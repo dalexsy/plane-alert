@@ -15,6 +15,7 @@ import {
   removeLeftMarkerFromPlane,
 } from '../utils/plane-marker';
 import { planeTooltip } from '../utils/tooltip';
+import { convertKmToTooltipDistance, DistanceUnit } from '../utils/units.util';
 import { PlaneModel, PositionHistory } from '../models/plane-model';
 import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
@@ -961,12 +962,17 @@ export class PlaneFinderService {
             velocity,
             altitude
           );
-        }
-
-        // Create/Update Marker
+        }        // Create/Update Marker
         const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
         const altText = altitude ? altitude.toFixed(0) + 'm' : '';
         const verticalRate = ac.baro_rate ?? null;
+        
+        // Calculate distance from center and format for tooltip
+        const distanceKm = haversineDistance(centerLat, centerLon, lat, lon);
+        const userUnit = this.settings.distanceUnit as DistanceUnit;
+        const { value: distanceValue, label: distanceLabel } = convertKmToTooltipDistance(distanceKm, userUnit);
+        const distanceText = `${distanceValue}${distanceLabel}`;
+        
         const tooltip = planeTooltip(
           id,
           callsign,
@@ -982,7 +988,9 @@ export class PlaneFinderService {
           isSpecial,
           verticalRate,
           altitude,
-          (alt: number) => this.altitudeColor.getFillColor(alt)
+          (alt: number) => this.altitudeColor.getFillColor(alt),
+          undefined, // getOperatorLogo function - not currently used
+          distanceText
         );
         const extraStyle = this.computeExtraStyle(altitude, onGround);
         let trackForMarker: number;

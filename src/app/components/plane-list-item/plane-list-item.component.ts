@@ -5,13 +5,16 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   // Add HostBinding for dynamic classes
   HostBinding,
   HostListener,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { PlaneLogEntry } from '../results-overlay/results-overlay.component'; // Adjust path if needed
 import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
@@ -33,7 +36,8 @@ import * as L from 'leaflet';
   styleUrls: ['./plane-list-item.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
 })
-export class PlaneListItemComponent implements OnChanges {  /** Distance from center, in current unit rounded to nearest tenth */
+export class PlaneListItemComponent implements OnChanges, OnDestroy {
+  private distanceUnitSubscription?: Subscription;  /** Distance from center, in current unit rounded to nearest tenth */
   get distanceKm(): number {
     const lat = this.settings.lat ?? 0;
     const lon = this.settings.lon ?? 0;
@@ -147,15 +151,24 @@ export class PlaneListItemComponent implements OnChanges {  /** Distance from ce
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
-
   constructor(
     private settings: SettingsService,
     public countryService: CountryService,
     public planeFilter: PlaneFilterService,
     public planeStyle: PlaneStyleService,
     private announcementService: AnnouncementService,
-    private operatorTooltipService: OperatorTooltipService
-  ) {}
+    private operatorTooltipService: OperatorTooltipService,
+    private cdr: ChangeDetectorRef
+  ) {
+    // Subscribe to distance unit changes to trigger change detection
+    this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.distanceUnitSubscription?.unsubscribe();
+  }
 
   // Make the whole item clickable: clicking the host emits centerPlane
   @HostListener('click')

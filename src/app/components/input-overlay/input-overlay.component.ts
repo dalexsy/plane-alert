@@ -54,8 +54,10 @@ export class InputOverlayComponent implements OnDestroy {
   /** Emit when zoom in button is clicked */
   @Output() zoomIn = new EventEmitter<void>();
   /** Emit when zoom out button is clicked */
-  @Output() zoomOut =
-    new EventEmitter<void>(); /** Whether to show view axes (cones) */
+  @Output() zoomOut = new EventEmitter<void>();
+  /** Emit when distance unit is toggled */
+  @Output() distanceUnitChanged = new EventEmitter<string>();
+  /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
   /** Whether to show altitude-colored tooltip borders */
   @Input() showAltitudeBorders = false;
@@ -373,5 +375,11 @@ export class InputOverlayComponent implements OnDestroy {
     
     // Restore editing state
     this.isUserEditingRadius = wasEditing;
+    
+    // Manually trigger change detection to ensure all UI updates
+    this.cdr.detectChanges();
+    
+    // Emit the unit change event so parent component can react
+    this.distanceUnitChanged.emit(newUnit);
   }
 }
