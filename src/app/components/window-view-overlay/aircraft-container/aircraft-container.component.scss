@@ -85,7 +85,6 @@ $animation-optimization: optimizeSpeed;
     pointer-events: auto;
     perspective: none;
     transform: none; // Hide chemtrail for grounded planes - no longer needed since we use *ngIf
-    // .plane-icon::after { display: none; }    // Reset transforms inside icon wrappers
     .icon-wrapper,
     .icon-scale-wrapper,
     .copter-plane-icon {
@@ -104,6 +103,18 @@ $animation-optimization: optimizeSpeed;
       transform-origin: bottom center;
       // remove absolute offset
       bottom: auto;
+    }
+
+    // Helicopter-specific grounding transform and styling
+    .copter-wrapper {
+      transform: perspective(300px) skewX(-30deg) rotateX(50deg)
+        scale($grounded-plane-scale);
+      transform-origin: bottom center;
+    }
+    .copter-plane-icon {
+      font-size: $plane-icon-size * $grounded-plane-scale;
+      color: #ededed;
+      animation: none;
     }
 
     .plane-label {
