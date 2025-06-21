@@ -182,12 +182,36 @@ export function planeTooltip(
   }    ${
     truncatedOperator
       ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>`
-      : /* ...existing speed/alt logic... */ ''
+      : // When no operator, show speed and altitude in main row
+        (() => {
+          const items: string[] = [];
+          if (speedText)
+            items.push(`<span class="velocity">${speedText}</span>`);
+          if (isGrounded) {
+            items.push(`<span class="altitude">On ground</span>`);
+          } else if (altText || verticalRateSpan) {
+            let styledAltText = altText;
+            if (mixedAltitudeColor && altText) {
+              styledAltText = `<span style=\"color: ${mixedAltitudeColor};\">${altText}</span>`;
+            }
+            items.push(
+              `<span class=\"altitude\">${styledAltText}${verticalRateSpan}</span>`
+            );
+          }
+          return items.length
+            ? `<span class="divider">•</span>${items
+                .map(
+                  (item, i) =>
+                    (i > 0 ? '<span class="divider">•</span>' : '') + item
+                )
+                .join('')}`
+            : '';
+        })()
   }
   </span>`; // Info row: include speed/alt/model when operator present, else only model
   const infoItems: string[] = [];
   if (truncatedOperator) {
-    // Show model first, then speed, then altitude+arrow, then distance
+    // Show model first, then speed, then altitude+arrow (no distance in tooltips)
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
     if (speedText) infoItems.push(`<span class="velocity">${speedText}</span>`);
     if (isGrounded) {
@@ -201,13 +225,9 @@ export function planeTooltip(
         `<span class=\"altitude\">${styledAltText}${verticalRateSpan}</span>`
       );
     }
-    if (distanceText)
-      infoItems.push(`<span class="distance">${distanceText}</span>`);
   } else {
-    // No operator: only show model and distance
+    // No operator: only show model (no distance in tooltips)
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
-    if (distanceText)
-      infoItems.push(`<span class="distance">${distanceText}</span>`);
   }
   const infoRow = infoItems.length
     ? `

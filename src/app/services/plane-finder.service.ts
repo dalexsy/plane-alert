@@ -15,7 +15,12 @@ import {
   removeLeftMarkerFromPlane,
 } from '../utils/plane-marker';
 import { planeTooltip } from '../utils/tooltip';
-import { convertKmToTooltipDistance, DistanceUnit } from '../utils/units.util';
+import {
+  convertKmToTooltipDistance,
+  convertAltitudeForTooltip,
+  convertSpeedForTooltip,
+  DistanceUnit,
+} from '../utils/units.util';
 import { PlaneModel, PositionHistory } from '../models/plane-model';
 import { NewPlaneService } from '../services/new-plane.service';
 import { SettingsService } from './settings.service';
@@ -93,7 +98,12 @@ export class PlaneFinderService {
     private aircraftCountryService: AircraftCountryService,
     private helicopterIdentificationService: HelicopterIdentificationService,
     private operatorTooltipService: OperatorTooltipService
-  ) {}
+  ) {
+    // Subscribe to unit changes to update all existing tooltips
+    this.settings.distanceUnitChanged.subscribe(() => {
+      this.updateAllTooltipsForUnitChange();
+    });
+  }
 
   private randomizeBrightness(): string {
     const brightness = (Math.random() * 0.4 + 0.8).toFixed(2);
@@ -682,6 +692,112 @@ export class PlaneFinderService {
     return [lat, lon];
   }
 
+  // Store reference to the current plane log for tooltip updates
+  private currentPlaneLog: Map<string, PlaneModel> = new Map();
+  private currentMap: L.Map | null = null;
+  private currentCenterLat: number = 0;
+  private currentCenterLon: number = 0;
+  private currentGetFlagHTML: ((origin: string) => string) | null = null;
+  /**
+   * Update all existing plane tooltips when unit preference changes
+   */
+  private updateAllTooltipsForUnitChange(): void {
+    if (
+      !this.currentMap ||
+      !this.currentGetFlagHTML ||
+      this.currentPlaneLog.size === 0
+    ) {
+      return;
+    }
+
+    const userUnit = this.settings.distanceUnit as DistanceUnit;
+
+    // Update each plane's tooltip
+    for (const [id, planeModel] of this.currentPlaneLog) {
+      if (!planeModel.marker) continue;
+
+      const { lat, lon, altitude, callsign, model, operator, origin } =
+        planeModel; // Recalculate speed text with user's unit preference
+      const velocity = planeModel.velocity;
+      let speedText = '';
+      if (velocity) {
+        const { value: speedValue, label: speedLabel } = convertSpeedForTooltip(
+          velocity,
+          userUnit
+        );
+        speedText = `${speedValue}${speedLabel}`;
+      }
+
+      // Recalculate altitude text with new unit
+      let altText = '';
+      if (altitude) {
+        const { value: altValue, label: altLabel } = convertAltitudeForTooltip(
+          altitude,
+          userUnit
+        );
+        altText = `${altValue}${altLabel}`;
+      }
+
+      // Recalculate distance text (not used in tooltip but needed for function signature)
+      const distanceKm = haversineDistance(
+        this.currentCenterLat,
+        this.currentCenterLon,
+        lat,
+        lon
+      );
+      const { value: distanceValue, label: distanceLabel } =
+        convertKmToTooltipDistance(distanceKm, userUnit);
+      const distanceText = `${distanceValue}${distanceLabel}`; // Get current state
+      const isNew = planeModel.isNew;
+      const onGround = planeModel.onGround ?? false;
+      const isMilitary = planeModel.isMilitary ?? false;
+      const isSpecial = planeModel.isSpecial ?? false;
+      const verticalRate = planeModel.verticalRate ?? null;
+
+      // Generate new tooltip
+      const tooltip = planeTooltip(
+        id,
+        callsign,
+        origin,
+        model,
+        operator,
+        speedText,
+        altText,
+        this.currentGetFlagHTML,
+        isNew,
+        onGround,
+        isMilitary,
+        isSpecial,
+        verticalRate,
+        altitude,
+        (alt: number) => this.altitudeColor.getFillColor(alt),
+        undefined, // getOperatorLogo function - not currently used
+        distanceText
+      );
+
+      // Update the marker's tooltip
+      if (planeModel.marker.getTooltip()) {
+        planeModel.marker.unbindTooltip();
+      }
+
+      // Define tooltip options (same as in createOrUpdatePlaneMarker)
+      const rightTooltipOptions: L.TooltipOptions = {
+        permanent: true,
+        direction: 'right',
+        offset: onGround ? L.point(-10, 0) : L.point(10, 0),
+        interactive: true,
+        className: `plane-tooltip ${onGround ? 'grounded-plane-tooltip' : ''} ${
+          isNew ? 'new-plane-tooltip' : ''
+        } ${isMilitary ? 'military-plane-tooltip' : ''} ${
+          isSpecial ? 'special-plane-tooltip' : ''
+        }`,
+        pane: 'tooltipPane',
+      };
+
+      planeModel.marker.bindTooltip(tooltip, rightTooltipOptions);
+    }
+  }
+
   async findPlanes(
     map: L.Map,
     centerLat: number,
@@ -704,6 +820,13 @@ export class PlaneFinderService {
     currentIDs: string[];
     updatedLog: PlaneModel[];
   }> {
+    // Store references for unit change updates
+    this.currentMap = map;
+    this.currentCenterLat = centerLat;
+    this.currentCenterLon = centerLon;
+    this.currentGetFlagHTML = getFlagHTML;
+    this.currentPlaneLog = previousLog;
+
     // Refresh custom lists before scanning
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
     // Refresh asset-based lists
@@ -963,13 +1086,29 @@ export class PlaneFinderService {
             altitude
           );
         } // Create/Update Marker
-        const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
-        const altText = altitude ? altitude.toFixed(0) + 'm' : '';
+        // Get user's distance unit preference for both speed, altitude and distance conversions
+        const userUnit = this.settings.distanceUnit as DistanceUnit;
+
+        // Convert speed based on user's distance unit preference
+        let speedText = '';
+        if (velocity) {
+          const { value: speedValue, label: speedLabel } =
+            convertSpeedForTooltip(velocity, userUnit);
+          speedText = `${speedValue}${speedLabel}`;
+        }
+
+        // Convert altitude based on user's distance unit preference
+        let altText = '';
+        if (altitude) {
+          const { value: altValue, label: altLabel } =
+            convertAltitudeForTooltip(altitude, userUnit);
+          altText = `${altValue}${altLabel}`;
+        }
+
         const verticalRate = ac.baro_rate ?? null;
 
         // Calculate distance from center and format for tooltip
         const distanceKm = haversineDistance(centerLat, centerLon, lat, lon);
-        const userUnit = this.settings.distanceUnit as DistanceUnit;
         const { value: distanceValue, label: distanceLabel } =
           convertKmToTooltipDistance(distanceKm, userUnit);
         const distanceText = `${distanceValue}${distanceLabel}`;
