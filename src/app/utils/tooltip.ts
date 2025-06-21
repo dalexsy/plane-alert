@@ -184,7 +184,7 @@ export function planeTooltip(
       ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>`
       : /* ...existing speed/alt logic... */ ''
   }
-  </span>`;  // Info row: include speed/alt/model when operator present, else only model
+  </span>`; // Info row: include speed/alt/model when operator present, else only model
   const infoItems: string[] = [];
   if (truncatedOperator) {
     // Show model first, then speed, then altitude+arrow, then distance
@@ -201,11 +201,13 @@ export function planeTooltip(
         `<span class=\"altitude\">${styledAltText}${verticalRateSpan}</span>`
       );
     }
-    if (distanceText) infoItems.push(`<span class="distance">${distanceText}</span>`);
+    if (distanceText)
+      infoItems.push(`<span class="distance">${distanceText}</span>`);
   } else {
     // No operator: only show model and distance
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
-    if (distanceText) infoItems.push(`<span class="distance">${distanceText}</span>`);
+    if (distanceText)
+      infoItems.push(`<span class="distance">${distanceText}</span>`);
   }
   const infoRow = infoItems.length
     ? `

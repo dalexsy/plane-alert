@@ -994,7 +994,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.updateMarkersVisibility(lat, lon);
 
     // Load planes immediately for faster UX
-    this.findPlanes();    // Only update input fields if overlay is not collapsed and refs exist
+    this.findPlanes(); // Only update input fields if overlay is not collapsed and refs exist
     if (!this.inputOverlayComponent.collapsed) {
       // Update search radius input with the correctly converted display value
       this.inputOverlayComponent.updateRadiusInputDisplay();
@@ -1862,14 +1862,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     } else {
       alert('Geolocation is not supported by your browser.');
     }
-  }  resolveAndUpdateFromAddress(): void {
+  }
+  resolveAndUpdateFromAddress(): void {
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
-    
+
     // Make sure the input overlay processes any pending radius changes first
     // This ensures the stored radius is up-to-date with the current unit
     this.inputOverlayComponent.processRadiusChange();
-    
+
     // Use the stored radius (already in km) instead of reading input directly
     const mainRadius = this.settings.radius ?? 5;
 

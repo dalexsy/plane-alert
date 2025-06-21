@@ -962,17 +962,18 @@ export class PlaneFinderService {
             velocity,
             altitude
           );
-        }        // Create/Update Marker
+        } // Create/Update Marker
         const speedText = velocity ? (velocity * 3.6).toFixed(0) + 'km/h' : '';
         const altText = altitude ? altitude.toFixed(0) + 'm' : '';
         const verticalRate = ac.baro_rate ?? null;
-        
+
         // Calculate distance from center and format for tooltip
         const distanceKm = haversineDistance(centerLat, centerLon, lat, lon);
         const userUnit = this.settings.distanceUnit as DistanceUnit;
-        const { value: distanceValue, label: distanceLabel } = convertKmToTooltipDistance(distanceKm, userUnit);
+        const { value: distanceValue, label: distanceLabel } =
+          convertKmToTooltipDistance(distanceKm, userUnit);
         const distanceText = `${distanceValue}${distanceLabel}`;
-        
+
         const tooltip = planeTooltip(
           id,
           callsign,

@@ -17,7 +17,8 @@
   <span class="operator" *ngIf="operator">
     {{ truncateOperator(operator) }}</span
   >
-  |  <span *ngIf="distanceKm != null" class="distance">
+  |
+  <span *ngIf="distanceKm != null" class="distance">
     {{ formattedDistance }} {{ distanceUnit }}
   </span>
   <span

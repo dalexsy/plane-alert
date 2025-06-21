@@ -4,7 +4,7 @@
 
 export enum DistanceUnit {
   KILOMETERS = 'km',
-  MILES = 'miles'
+  MILES = 'miles',
 }
 
 /**
@@ -16,7 +16,7 @@ export function kmToMiles(km: number): number {
 }
 
 /**
- * Convert miles to kilometers  
+ * Convert miles to kilometers
  */
 export function milesToKm(miles: number): number {
   // 1 mile = 1.609344 km (exact conversion)
@@ -87,7 +87,10 @@ export function getDistanceUnitShortLabel(unit: DistanceUnit): string {
  * Convert distance from kilometers to feet for tooltip display
  * This is used when the user has selected miles as their unit preference
  */
-export function convertKmToTooltipDistance(km: number, userUnit: DistanceUnit): { value: number; label: string } {
+export function convertKmToTooltipDistance(
+  km: number,
+  userUnit: DistanceUnit
+): { value: number; label: string } {
   if (userUnit === DistanceUnit.MILES) {
     // Use feet for tooltips when user prefers imperial
     const feet = kmToFeet(km);
@@ -107,15 +110,14 @@ export function convertKmToTooltipDistance(km: number, userUnit: DistanceUnit): 
 export function formatDistance(distance: number): string {
   // Round to 1 decimal place
   const rounded = Math.round(distance * 10) / 10;
-  
+
   // Manual formatting to ensure period as decimal separator
   const integerPart = Math.floor(rounded);
   const decimalPart = Math.round((rounded - integerPart) * 10);
-  
+
   // Always show one decimal place
-  const formatted = decimalPart === 0 
-    ? `${integerPart}.0` 
-    : `${integerPart}.${decimalPart}`;
-  
+  const formatted =
+    decimalPart === 0 ? `${integerPart}.0` : `${integerPart}.${decimalPart}`;
+
   return formatted;
 }

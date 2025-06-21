@@ -19,7 +19,13 @@ import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
-import { DistanceUnit, getDistanceUnitLabel, convertFromKm, convertToKm, formatDistance } from '../../utils/units.util';
+import {
+  DistanceUnit,
+  getDistanceUnitLabel,
+  convertFromKm,
+  convertToKm,
+  formatDistance,
+} from '../../utils/units.util';
 
 @Component({
   selector: 'app-input-overlay',
@@ -61,7 +67,8 @@ export class InputOverlayComponent implements OnDestroy {
   @Input() showViewAxes = false;
   /** Whether to show altitude-colored tooltip borders */
   @Input() showAltitudeBorders = false;
-  @Output() altitudeBordersChange = new EventEmitter<boolean>();  scanButtonText = '';
+  @Output() altitudeBordersChange = new EventEmitter<boolean>();
+  scanButtonText = '';
   private sub!: Subscription;
   private isUserEditingRadius = false;
   @HostBinding('class.collapsed')
@@ -89,7 +96,8 @@ export class InputOverlayComponent implements OnDestroy {
     this.zoomOut.emit();
   }
 
-  ngAfterViewInit(): void {    this.sub = combineLatest([
+  ngAfterViewInit(): void {
+    this.sub = combineLatest([
       this.scanService.countdown$,
       this.scanService.isActive$,
     ]).subscribe(([count, active]) => {
@@ -100,7 +108,8 @@ export class InputOverlayComponent implements OnDestroy {
     });
 
     // Only set input values if not collapsed and refs exist
-    if (!this.collapsed) {      if (this.searchRadiusInputRef?.nativeElement) {
+    if (!this.collapsed) {
+      if (this.searchRadiusInputRef?.nativeElement) {
         const displayRadius = this.getDisplayRadius();
         // Use formatDistance for both units to ensure period decimal separator
         const formattedValue = formatDistance(displayRadius);
@@ -125,10 +134,10 @@ export class InputOverlayComponent implements OnDestroy {
   onResolveAndUpdate(event?: Event): void {
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
-    
+
     // Make sure to save the current radius value in the correct unit before proceeding
     this.processRadiusChange();
-      // Update now button pressed would be logged here
+    // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
   }
 
@@ -137,18 +146,20 @@ export class InputOverlayComponent implements OnDestroy {
   }
   onRadiusFocus(): void {
     this.isUserEditingRadius = true;
-  }  onRadiusBlur(): void {
+  }
+  onRadiusBlur(): void {
     this.isUserEditingRadius = false;
     this.processRadiusChange();
-  }  processRadiusChange(): void {
+  }
+  processRadiusChange(): void {
     if (!this.searchRadiusInputRef?.nativeElement) {
       return;
     }
-    
+
     const stringValue = this.searchRadiusInputRef.nativeElement.value;
     const val = parseFloat(stringValue);
     const currentUnit = this.settings.distanceUnit;
-    
+
     if (!isNaN(val) && val > 0) {
       // Convert displayed value to kilometers for storage
       const unit = currentUnit as DistanceUnit;
@@ -337,14 +348,16 @@ export class InputOverlayComponent implements OnDestroy {
       return `${sunStatus} (${Math.round(
         this.brightnessState.brightness * 100
       )}%)`;
-    }    return '';
+    }
+    return '';
   }
 
   /** Get distance unit label for display */
   getDistanceUnitLabel(): string {
     const unit = this.settings.distanceUnit as DistanceUnit;
     return getDistanceUnitLabel(unit);
-  }  /** Get display radius value converted to current unit */  getDisplayRadius(): number {
+  }
+  /** Get display radius value converted to current unit */ getDisplayRadius(): number {
     const radiusKm = this.settings.radius ?? 5;
     const unit = this.settings.distanceUnit as DistanceUnit;
     const converted = convertFromKm(radiusKm, unit);
@@ -352,51 +365,54 @@ export class InputOverlayComponent implements OnDestroy {
     const precise = Math.round(converted * 100) / 100;
     const rounded = Math.round(precise * 10) / 10;
     return rounded;
-  }  /**
+  }
+  /**
    * Updates the radius input field with the correctly converted display value.
    * This should be called instead of directly setting the input field value.
-   */  updateRadiusInputDisplay(): void {
+   */ updateRadiusInputDisplay(): void {
     // Don't update if user is actively editing the field
     if (this.isUserEditingRadius) {
       return;
-    }    if (this.searchRadiusInputRef?.nativeElement) {
+    }
+    if (this.searchRadiusInputRef?.nativeElement) {
       const displayValue = this.getDisplayRadius();
       // Use formatDistance for both units to ensure period decimal separator
       const formattedValue = formatDistance(displayValue);
       this.searchRadiusInputRef.nativeElement.value = formattedValue;
     }
-  }/** Toggle between kilometers and miles */
+  } /** Toggle between kilometers and miles */
   toggleDistanceUnit(): void {
     const currentUnit = this.settings.distanceUnit;
     const newUnit = currentUnit === 'km' ? 'miles' : 'km';
-    
+
     this.settings.setDistanceUnit(newUnit);
-    
+
     // Temporarily allow update even if user was editing
     const wasEditing = this.isUserEditingRadius;
     this.isUserEditingRadius = false;
-      // Update the display value using our dedicated method
+    // Update the display value using our dedicated method
     this.updateRadiusInputDisplay();
-    
+
     // Restore editing state
     this.isUserEditingRadius = wasEditing;
-    
+
     // Manually trigger change detection to ensure all UI updates
     this.cdr.detectChanges();
-    
+
     // Emit the unit change event so parent component can react
     this.distanceUnitChanged.emit(newUnit);
-  }/**
+  }
+  /**
    * Handle input events on the radius field.
    * Ensures periods are used as decimal separators instead of commas.
    */
   onRadiusInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     let value = input.value;
-    
+
     // Replace any commas with periods
     const normalizedValue = value.replace(/,/g, '.');
-    
+
     // Update the input if we made changes
     if (input.value !== normalizedValue) {
       const cursorPosition = input.selectionStart;
@@ -406,48 +422,64 @@ export class InputOverlayComponent implements OnDestroy {
         input.setSelectionRange(cursorPosition, cursorPosition);
       }
     }
-  }  /**
+  }
+  /**
    * Handle keydown events on the radius field.
    * Prevents comma input and converts it to period.
    * Also validates that only valid decimal number characters are entered.
    */
   onRadiusKeydown(event: KeyboardEvent): void {
     const allowedKeys = [
-      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
-      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-      'Home', 'End'
+      'Backspace',
+      'Delete',
+      'Tab',
+      'Escape',
+      'Enter',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Home',
+      'End',
     ];
-    
+
     // Allow control keys
     if (allowedKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
       return;
     }
-    
+
     // If user types a comma, convert it to a period
     if (event.key === ',') {
       event.preventDefault();
       const input = event.target as HTMLInputElement;
       const cursorPosition = input.selectionStart || 0;
       const currentValue = input.value;
-      
+
       // Only add period if there isn't one already
       if (!currentValue.includes('.')) {
-        const newValue = currentValue.slice(0, cursorPosition) + '.' + currentValue.slice(cursorPosition);
+        const newValue =
+          currentValue.slice(0, cursorPosition) +
+          '.' +
+          currentValue.slice(cursorPosition);
         input.value = newValue;
         input.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
       }
       return;
     }
-    
+
     // Allow digits
     if (/^[0-9]$/.test(event.key)) {
       return;
     }
-    
+
     // Allow period (decimal point) if there isn't one already
-    if (event.key === '.' && !(event.target as HTMLInputElement).value.includes('.')) {
-      return;    }
-    
+    if (
+      event.key === '.' &&
+      !(event.target as HTMLInputElement).value.includes('.')
+    ) {
+      return;
+    }
+
     // Block all other characters
     event.preventDefault();
   }

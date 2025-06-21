@@ -129,10 +129,12 @@
         id="address"
         placeholder="Enter address"
         (keydown.enter)="onResolveAndUpdate()"
-      />    </div>
+      />
+    </div>
     <div class="form-group">
-      <label for="searchRadius">Search Radius ({{ getDistanceUnitLabel() }}):</label>
-      <div class="radius-input-group">        <input
+      <label for="searchRadius">Search Radius</label>
+      <div class="radius-input-group">
+        <input
           #searchRadiusInput
           type="text"
           autocomplete="off"
@@ -151,12 +153,15 @@
           type="secondary"
           [size]="'small'"
           (click)="toggleDistanceUnit()"
-          [title]="'Switch to ' + (settings.distanceUnit === 'km' ? 'miles' : 'kilometers')"
+          [title]="
+            'Switch to ' +
+            (settings.distanceUnit === 'km' ? 'miles' : 'kilometers')
+          "
         ></app-button>
       </div>
     </div>
     <div class="form-group">
-      <label for="checkInterval">Check Interval (seconds):</label>
+      <label for="checkInterval">Check Interval (seconds)</label>
       <input
         #checkIntervalInput
         type="number"

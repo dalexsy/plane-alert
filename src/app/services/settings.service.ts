@@ -387,7 +387,7 @@ export class SettingsService {
     const brightnessStr = localStorage.getItem(this.brightnessAutoModeKey);
     if (brightnessStr !== null) {
       this._brightnessAutoMode = brightnessStr === 'true';
-    }    // Load wind unit preference
+    } // Load wind unit preference
     const windUnitStr = localStorage.getItem(this.windUnitIndexKey);
     if (windUnitStr !== null) {
       const windUnitIndex = parseInt(windUnitStr, 10);

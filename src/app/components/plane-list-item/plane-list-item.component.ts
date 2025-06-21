@@ -21,7 +21,12 @@ import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComponent is standalone
 import { haversineDistance } from '../../utils/geo-utils';
-import { DistanceUnit, convertFromKm, getDistanceUnitShortLabel, formatDistance } from '../../utils/units.util';
+import {
+  DistanceUnit,
+  convertFromKm,
+  getDistanceUnitShortLabel,
+  formatDistance,
+} from '../../utils/units.util';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
 import { OperatorTooltipService } from '../../services/operator-tooltip.service';
@@ -37,12 +42,17 @@ import * as L from 'leaflet';
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
 })
 export class PlaneListItemComponent implements OnChanges, OnDestroy {
-  private distanceUnitSubscription?: Subscription;  /** Distance from center, in current unit rounded to nearest tenth */
+  private distanceUnitSubscription?: Subscription; /** Distance from center, in current unit rounded to nearest tenth */
   get distanceKm(): number {
     const lat = this.settings.lat ?? 0;
     const lon = this.settings.lon ?? 0;
     if (this.plane.lat == null || this.plane.lon == null) return 0;
-    const distanceInKm = haversineDistance(lat, lon, this.plane.lat, this.plane.lon);
+    const distanceInKm = haversineDistance(
+      lat,
+      lon,
+      this.plane.lat,
+      this.plane.lon
+    );
     const unit = this.settings.distanceUnit as DistanceUnit;
     return Math.round(convertFromKm(distanceInKm, unit) * 10) / 10;
   }
@@ -51,7 +61,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
   get distanceUnit(): string {
     const unit = this.settings.distanceUnit as DistanceUnit;
     return getDistanceUnitShortLabel(unit);
-  }  /** Format distance with proper decimal separator (always period) */
+  } /** Format distance with proper decimal separator (always period) */
   get formattedDistance(): string {
     return formatDistance(this.distanceKm);
   }
@@ -164,9 +174,11 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     private cdr: ChangeDetectorRef
   ) {
     // Subscribe to distance unit changes to trigger change detection
-    this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(() => {
-      this.cdr.markForCheck();
-    });
+    this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(
+      () => {
+        this.cdr.markForCheck();
+      }
+    );
   }
 
   ngOnDestroy(): void {

@@ -6,13 +6,8 @@ import { OPERATOR_SYMBOLS } from '../config/operator-symbols.config';
 })
 export class OperatorTooltipService {
   constructor() {}
-
   // Get operator symbol config for a plane
   public getSymbolConfig(plane: any) {
-    if (!plane.isMilitary) {
-      return null;
-    }
-
     const country = plane.country?.toLowerCase();
     const operator = plane.operator?.toLowerCase();
 
@@ -32,8 +27,8 @@ export class OperatorTooltipService {
       }
     }
 
-    // Fall back to country-based matching
-    if (country) {
+    // Fall back to country-based matching for military aircraft
+    if (plane.isMilitary && country) {
       const countryMatch = OPERATOR_SYMBOLS.find((cfg) =>
         cfg.countries.includes(country)
       );
