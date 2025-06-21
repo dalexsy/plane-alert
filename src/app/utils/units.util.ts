@@ -99,3 +99,23 @@ export function convertKmToTooltipDistance(km: number, userUnit: DistanceUnit): 
     return { value: meters, label: 'm' };
   }
 }
+
+/**
+ * Format distance with proper decimal separator (always period, not comma)
+ * This ensures consistent formatting regardless of user locale
+ */
+export function formatDistance(distance: number): string {
+  // Round to 1 decimal place
+  const rounded = Math.round(distance * 10) / 10;
+  
+  // Manual formatting to ensure period as decimal separator
+  const integerPart = Math.floor(rounded);
+  const decimalPart = Math.round((rounded - integerPart) * 10);
+  
+  // Always show one decimal place
+  const formatted = decimalPart === 0 
+    ? `${integerPart}.0` 
+    : `${integerPart}.${decimalPart}`;
+  
+  return formatted;
+}

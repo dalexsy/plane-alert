@@ -13,7 +13,7 @@ import { Subscription } from 'rxjs';
 import { IconComponent } from '../ui/icon.component';
 import { PlaneModel } from '../../models/plane-model';
 import { haversineDistance } from '../../utils/geo-utils';
-import { DistanceUnit, convertFromKm, getDistanceUnitShortLabel } from '../../utils/units.util';
+import { DistanceUnit, convertFromKm, getDistanceUnitShortLabel, formatDistance } from '../../utils/units.util';
 import { SettingsService } from '../../services/settings.service';
 import { DebouncedClickService } from '../../services/debounced-click.service';
 import { TextUtils } from '../../utils/text-utils';
@@ -59,6 +59,9 @@ export class ClosestPlaneOverlayComponent implements OnDestroy {
   get distanceUnit(): string {
     const unit = this.settings.distanceUnit as DistanceUnit;
     return getDistanceUnitShortLabel(unit);
+  }  /** Format distance with proper decimal separator (always period) */
+  get formattedDistance(): string {
+    return formatDistance(this.distanceKm);
   }
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.isSelected && this.plane?.isMilitary === true;
@@ -70,9 +73,7 @@ export class ClosestPlaneOverlayComponent implements OnDestroy {
   @Input() secondsAway: number | null = null;
   @Input() velocity: number | null = null;
   @Input() isSelected: boolean = false;
-  @Output() selectPlane = new EventEmitter<PlaneModel>();
-
-  /** Formatted ETA in #m #s format without suffix */
+  @Output() selectPlane = new EventEmitter<PlaneModel>();  /** Formatted ETA in #m #s format without suffix */
   get formattedEta(): string {
     if (this.secondsAway == null) {
       return '';

@@ -128,7 +128,7 @@
       >
         navigation
       </span>
-      <span>{{ distanceKm | number : "1.1-1" }} {{ distanceUnit }}</span>
+      <span>{{ formattedDistance }} {{ distanceUnit }}</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">

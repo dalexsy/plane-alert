@@ -134,12 +134,18 @@
       <label for="searchRadius">Search Radius ({{ getDistanceUnitLabel() }}):</label>
       <div class="radius-input-group">        <input
           #searchRadiusInput
-          type="number"
+          type="text"
           autocomplete="off"
-          id="searchRadius"          [placeholder]="'Enter search radius (' + getDistanceUnitLabel() + ')'"          step="any"
+          id="searchRadius"
+          pattern="[0-9]*\.?[0-9]*"
+          inputmode="decimal"
+          [placeholder]="'Enter search radius (' + getDistanceUnitLabel() + ')'"
           (keydown.enter)="onResolveAndUpdate()"
+          (keydown)="onRadiusKeydown($event)"
           (focus)="onRadiusFocus()"
           (blur)="onRadiusBlur()"
+          (input)="onRadiusInput($event)"
+          (change)="onRadiusInput($event)"
         /><app-button
           [text]="getDistanceUnitLabel()"
           type="secondary"

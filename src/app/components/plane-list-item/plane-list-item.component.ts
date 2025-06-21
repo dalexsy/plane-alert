@@ -21,7 +21,7 @@ import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComponent is standalone
 import { haversineDistance } from '../../utils/geo-utils';
-import { DistanceUnit, convertFromKm, getDistanceUnitShortLabel } from '../../utils/units.util';
+import { DistanceUnit, convertFromKm, getDistanceUnitShortLabel, formatDistance } from '../../utils/units.util';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
 import { OperatorTooltipService } from '../../services/operator-tooltip.service';
@@ -51,6 +51,9 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
   get distanceUnit(): string {
     const unit = this.settings.distanceUnit as DistanceUnit;
     return getDistanceUnitShortLabel(unit);
+  }  /** Format distance with proper decimal separator (always period) */
+  get formattedDistance(): string {
+    return formatDistance(this.distanceKm);
   }
 
   @Input({ required: true }) plane!: PlaneLogEntry;
