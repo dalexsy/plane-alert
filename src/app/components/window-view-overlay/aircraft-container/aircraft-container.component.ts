@@ -525,29 +525,39 @@ export class AircraftContainerComponent implements OnChanges {
     // Return opacity: close planes = 1.0, distant planes fade to 0.3
     return Math.max(0.1, 1 - atmosphericIntensity * 0.7);
   }
-
   /**
    * Get operator logo content for window view tooltip
    */
   getOperatorLogoContent(plane: WindowViewPlane): string {
     // Convert plane to the format expected by OperatorTooltipService
     const planeData = {
-      isMilitary: plane.isMilitary,
-      country: plane.origin?.toLowerCase(), // origin is used as country in window view
+      operator: plane.operator || '',
+      origin: plane.origin || '', // origin is used as country in window view
+      isMilitary: plane.isMilitary || false,
+      callsign: plane.callsign || '',
+      icao: plane.icao || '',
+      lat: plane.lat,
+      lon: plane.lon,
     };
 
     return this.operatorTooltipService.getLeftTooltipContent(planeData);
   }
-
   /**
    * Check if plane should show operator logo tooltip
    */
   shouldShowOperatorLogo(plane: WindowViewPlane): boolean {
-    return !!(
-      plane.isMilitary &&
-      plane.origin &&
-      this.getOperatorLogoContent(plane)
-    );
+    // Use the same logic as the operator tooltip service
+    const planeData = {
+      operator: plane.operator || '',
+      origin: plane.origin || '',
+      isMilitary: plane.isMilitary || false,
+      callsign: plane.callsign || '',
+      icao: plane.icao || '',
+      lat: plane.lat,
+      lon: plane.lon,
+    };
+
+    return this.operatorTooltipService.getSymbolConfig(planeData) !== null;
   }
 
   /** Debug function to analyze planes within 10km */

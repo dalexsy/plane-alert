@@ -752,9 +752,7 @@ export class PlaneFinderService {
       const onGround = planeModel.onGround ?? false;
       const isMilitary = planeModel.isMilitary ?? false;
       const isSpecial = planeModel.isSpecial ?? false;
-      const verticalRate = planeModel.verticalRate ?? null;
-
-      // Generate new tooltip
+      const verticalRate = planeModel.verticalRate ?? null; // Generate new tooltip
       const tooltip = planeTooltip(
         id,
         callsign,
@@ -771,7 +769,7 @@ export class PlaneFinderService {
         verticalRate,
         altitude,
         (alt: number) => this.altitudeColor.getFillColor(alt),
-        undefined, // getOperatorLogo function - not currently used
+        undefined, // No operator logo in right tooltip
         distanceText
       );
 
@@ -1112,7 +1110,6 @@ export class PlaneFinderService {
         const { value: distanceValue, label: distanceLabel } =
           convertKmToTooltipDistance(distanceKm, userUnit);
         const distanceText = `${distanceValue}${distanceLabel}`;
-
         const tooltip = planeTooltip(
           id,
           callsign,
@@ -1129,7 +1126,7 @@ export class PlaneFinderService {
           verticalRate,
           altitude,
           (alt: number) => this.altitudeColor.getFillColor(alt),
-          undefined, // getOperatorLogo function - not currently used
+          undefined, // No operator logo in right tooltip
           distanceText
         );
         const extraStyle = this.computeExtraStyle(altitude, onGround);

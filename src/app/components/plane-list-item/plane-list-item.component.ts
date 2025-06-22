@@ -202,16 +202,9 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     if (minutes < 60) return `${minutes}m ago`;
     return `${hours}h ${minutes % 60}m ago`;
   }
-
   /** Get matched operator symbol config */
   public get operatorSymbolConfig(): OperatorSymbolConfig | null {
-    return (
-      this.operatorTooltipService.getSymbolConfig({
-        operator: this.plane.operator || '',
-        country: this.plane.origin || '',
-        isMilitary: !!this.plane.isMilitary,
-      }) ?? null
-    );
+    return this.operatorTooltipService.getSymbolConfig(this.plane) ?? null;
   }
 
   // --- Event Handlers ---
