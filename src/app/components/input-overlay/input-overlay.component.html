@@ -224,5 +224,8 @@
         (click)="onGoToHome()"
       ></app-button>
     </div>
+    <div class="last-scan-time" *ngIf="lastScanTime">
+      <small>Last scan: {{ lastScanTimeText }}</small>
+    </div>
   </form>
 </div>

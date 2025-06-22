@@ -563,7 +563,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.updatePlaneLog(Array.from(this.planeLog.values()));
       }
     );
-
     this.scanService.start(this.settings.interval, () => {
       this.findPlanes();
     });
@@ -1144,6 +1143,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
   findPlanes(): void {
+    // Update last scan time in input overlay
+    if (this.inputOverlayComponent) {
+      this.inputOverlayComponent.lastScanTime = new Date();
+    }
+
     const previousPlaneKeys = new Set(this.planeLog.keys());
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];

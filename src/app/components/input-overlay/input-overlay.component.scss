@@ -78,6 +78,13 @@
     margin-bottom: 20px;
   }
 
+  .last-scan-time {
+    text-align: center;
+    margin-top: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+  }
+
   &.collapsed {
     display: flex;
     flex-direction: column;

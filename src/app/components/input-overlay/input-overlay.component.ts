@@ -78,6 +78,7 @@ export class InputOverlayComponent implements OnDestroy {
   collapsed: boolean = localStorage.getItem('inputOverlayCollapsed') === 'true';
   public currentAddress: string = '';
   public showBrightnessTooltip = false;
+  public lastScanTime: Date | null = null;
 
   constructor(
     public settings: SettingsService,
@@ -140,6 +141,8 @@ export class InputOverlayComponent implements OnDestroy {
 
     // Make sure to save the current radius value in the correct unit before proceeding
     this.processRadiusChange();
+    // Update the last scan time
+    this.lastScanTime = new Date();
     // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
   }
@@ -338,6 +341,14 @@ export class InputOverlayComponent implements OnDestroy {
   /** Get go home tooltip text */
   get goHomeTooltip(): string {
     return 'Go to home';
+  }
+
+  /** Get formatted last scan time text */
+  get lastScanTimeText(): string {
+    if (!this.lastScanTime) {
+      return 'No scans yet';
+    }
+    return this.lastScanTime.toLocaleTimeString();
   }
 
   /** Get brightness status text for custom tooltip */
