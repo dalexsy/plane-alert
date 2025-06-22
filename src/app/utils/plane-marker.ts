@@ -67,7 +67,8 @@ export function createOrUpdatePlaneMarker(
   icao: string = '', // ICAO identifier for debugging
   callsign: string = '', // Callsign for glider icon logic
   operatorTooltipService?: OperatorTooltipService, // Service for operator-specific tooltips
-  planeData?: any // Complete plane data for operator checks
+  planeData?: any, // Complete plane data for operator checks
+  animationsEnabled: boolean = true // Whether animations are enabled
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Use centralized helicopter identification via isCustomHelicopter parameter
   const isCopter = isCustomHelicopter;
@@ -247,14 +248,12 @@ export function createOrUpdatePlaneMarker(
   if (oldMarker) {
     // Get the current position for smooth interpolation
     const currentLatLng = oldMarker.getLatLng();
-    const newLatLng = L.latLng(lat, lon);
-
-    // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
+    const newLatLng = L.latLng(lat, lon); // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
     // Make this more sensitive to catch smaller movements
     const latDiff = Math.abs(currentLatLng.lat - lat);
     const lngDiff = Math.abs(currentLatLng.lng - lon);
     const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
-    if (hasPositionChanged) {
+    if (hasPositionChanged && animationsEnabled) {
       // Calculate animation duration: use 95% of scan interval for seamless movement
       // This matches the window view animation timing to prevent delays/pauses
       const animationDuration = Math.max(2, scanInterval * 0.95) * 1000; // Convert to milliseconds
@@ -267,7 +266,7 @@ export function createOrUpdatePlaneMarker(
         animationDuration
       );
     } else {
-      // For planes that haven't moved significantly, update position immediately
+      // For planes that haven't moved significantly or animations are disabled, update position immediately
       oldMarker.setLatLng([lat, lon]);
     }
     oldMarker.setIcon(icon);

@@ -51,6 +51,9 @@ export class SettingsService {
   // Key and backing store for altitude borders visibility
   private altitudeBordersKey = 'showAltitudeBorders';
   private _showAltitudeBorders: boolean = false;
+  // Key and backing store for animations enabled/disabled
+  private animationsEnabledKey = 'animationsEnabled';
+  private _animationsEnabled: boolean = true;
   // Key for clicked airports persistence
   private clickedAirportsKey = 'clickedAirports';
 
@@ -262,6 +265,16 @@ export class SettingsService {
     localStorage.setItem(this.altitudeBordersKey, value.toString());
   }
 
+  /** Whether animations are enabled */
+  get animationsEnabled(): boolean {
+    return this._animationsEnabled;
+  }
+  /** Persist animations enabled preference */
+  setAnimationsEnabled(value: boolean): void {
+    this._animationsEnabled = value;
+    localStorage.setItem(this.animationsEnabledKey, value.toString());
+  }
+
   /** Whether brightness auto-dimming mode is enabled */
   get brightnessAutoMode(): boolean {
     return this._brightnessAutoMode;
@@ -331,6 +344,11 @@ export class SettingsService {
     const altitudeBordersStr = localStorage.getItem(this.altitudeBordersKey);
     if (altitudeBordersStr !== null) {
       this._showAltitudeBorders = altitudeBordersStr === 'true';
+    }
+    // Load animations enabled preference
+    const animationsStr = localStorage.getItem(this.animationsEnabledKey);
+    if (animationsStr !== null) {
+      this._animationsEnabled = animationsStr === 'true';
     }
     const lat = parseFloat(localStorage.getItem('lastLat') || '');
     const lon = parseFloat(localStorage.getItem('lastLon') || '');

@@ -27,6 +27,7 @@ import {
 } from '../../services/brightness.service';
 import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 import { ScanService } from '../../services/scan.service';
+import { SettingsService } from '../../services/settings.service';
 import { calculateTiltAngle } from '../../utils/vertical-rate.util';
 
 // Import child components
@@ -190,6 +191,7 @@ export class WindowViewOverlayComponent
   @Input() observerLon!: number;
   @Input() isAtHome: boolean = false;
   @Input() showAltitudeBorders: boolean = false;
+  @Input() animationsEnabled: boolean = true;
 
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
 
@@ -230,7 +232,8 @@ export class WindowViewOverlayComponent
     private skyColorSync: SkyColorSyncService,
     private scanService: ScanService,
     private stormPressureService: StormPressureService,
-    private brightnessService: BrightnessService
+    private brightnessService: BrightnessService,
+    private settings: SettingsService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -307,6 +310,11 @@ export class WindowViewOverlayComponent
       this.setCompassBackground();
       this.assignGroundStackOrder();
       // Update animation timing to ensure smooth movement
+      this.updateAnimationTiming();
+    }
+
+    // Update animation timing when animations enabled setting changes
+    if (changes['animationsEnabled']) {
       this.updateAnimationTiming();
     }
   }
@@ -1043,12 +1051,14 @@ export class WindowViewOverlayComponent
   /** Handle plane selection from aircraft container */
   public handlePlaneSelection(plane: WindowViewPlane): void {
     this.selectPlane.emit(plane);
-  } /** Update CSS animation timing based on scan interval */
-  private updateAnimationTiming(): void {
+  }
+  /** Update CSS animation timing based on scan interval */ private updateAnimationTiming(): void {
     // Use consistent timing formula to match plane marker animations:
     // 95% of scan interval for smooth overlap with next update cycle
     // This ensures seamless movement without visible pauses
-    const animationDuration = this.scanService.scanInterval * 0.95;
+    const baseDuration = this.scanService.scanInterval * 0.95;
+    // Set duration to 0 when animations are disabled
+    const animationDuration = this.animationsEnabled ? baseDuration : 0;
 
     // Set CSS custom properties for dynamic animation timing
     const rootElement = this.elRef.nativeElement as HTMLElement;

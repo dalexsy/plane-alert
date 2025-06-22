@@ -161,3 +161,13 @@ input {
 app-input-overlay.collapsed ~ app-clock .clock-container {
   left: 3.5rem;
 }
+
+/* Disable all animations when animations are disabled */
+body.animations-disabled *,
+body.animations-disabled *::before,
+body.animations-disabled *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}

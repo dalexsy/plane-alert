@@ -39,6 +39,8 @@
   [showAltitudeBorders]="showAltitudeBorders"
   (toggleAirportLabels)="onToggleAirportLabels()"
   (altitudeBordersChange)="onToggleAltitudeBorders($event)"
+  [animationsEnabled]="animationsEnabled"
+  (animationsEnabledChange)="onToggleAnimations($event)"
 ></app-input-overlay>
 
 <!-- Pass the set of active ICAOs to the results overlay -->
@@ -204,5 +206,6 @@
   [observerLon]="observerLon"
   [isAtHome]="isAtHome"
   [showAltitudeBorders]="showAltitudeBorders"
+  [animationsEnabled]="animationsEnabled"
   (selectPlane)="followNearestPlane($event)"
 ></app-window-view-overlay>

@@ -1200,7 +1200,6 @@ export class PlaneFinderService {
           isSpecial,
           isUnknown,
         };
-
         const { marker } = createOrUpdatePlaneMarker(
           planeModelInstance.marker,
           map,
@@ -1223,7 +1222,8 @@ export class PlaneFinderService {
           id, // icao
           callsign, // callsign for glider logic
           this.operatorTooltipService, // operator tooltip service
-          planeData // complete plane data
+          planeData, // complete plane data
+          this.settings.animationsEnabled // animations enabled setting
         );
         planeModelInstance.marker = marker; // Update marker reference on model
 

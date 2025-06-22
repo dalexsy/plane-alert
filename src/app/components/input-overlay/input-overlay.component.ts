@@ -68,6 +68,9 @@ export class InputOverlayComponent implements OnDestroy {
   /** Whether to show altitude-colored tooltip borders */
   @Input() showAltitudeBorders = false;
   @Output() altitudeBordersChange = new EventEmitter<boolean>();
+  /** Whether animations are enabled */
+  @Input() animationsEnabled = true;
+  @Output() animationsEnabledChange = new EventEmitter<boolean>();
   scanButtonText = '';
   private sub!: Subscription;
   private isUserEditingRadius = false;
@@ -201,6 +204,13 @@ export class InputOverlayComponent implements OnDestroy {
     this.showAirportLabels = !this.showAirportLabels;
     this.toggleAirportLabels.emit(this.showAirportLabels);
   }
+
+  onToggleAnimations(): void {
+    // Toggle the internal flag and emit new state
+    this.animationsEnabled = !this.animationsEnabled;
+    this.animationsEnabledChange.emit(this.animationsEnabled);
+  }
+
   /** Get brightness button icon based on current state */
   get brightnessIcon(): string {
     if (!this.brightnessState) return 'brightness_empty';
@@ -306,11 +316,9 @@ export class InputOverlayComponent implements OnDestroy {
     return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
   }
 
-  /** Get altitude borders toggle tooltip text */
-  get altitudeBordersTooltip(): string {
-    return this.showAltitudeBorders
-      ? 'Hide altitude-colored borders'
-      : 'Show altitude-colored borders';
+  /** Get animations toggle tooltip text */
+  get animationsTooltip(): string {
+    return this.animationsEnabled ? 'Disable animations' : 'Enable animations';
   }
 
   /** Get force scan tooltip text */

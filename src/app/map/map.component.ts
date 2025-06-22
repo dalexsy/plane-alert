@@ -198,6 +198,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Toggle for altitude-colored tooltip borders
   showAltitudeBorders = false; // Default to disabled
 
+  // Toggle for animations
+  animationsEnabled = true; // Default to enabled
+
   private _initialScanDone = false; // Flag to prevent double scan
 
   // New properties for location-overlay component
@@ -267,6 +270,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.showDateTime = this.settings.showDateTimeOverlay;
     this.showAirportLabels = this.settings.showAirportLabels;
     this.showAltitudeBorders = this.settings.showAltitudeBorders;
+    this.animationsEnabled = this.settings.animationsEnabled;
     this.currentWindUnitIndex = this.settings.windUnitIndex;
 
     // Initialize brightness service with current location if available
@@ -429,6 +433,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.inputOverlayComponent.showAirportLabels =
         this.settings.showAirportLabels;
     }
+
+    // Apply initial animation setting
+    this.applyAnimationSetting(this.animationsEnabled);
+
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
@@ -2690,6 +2698,28 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.updateTooltipAltitudeBorders();
 
     this.cdr.detectChanges();
+  }
+
+  /** Toggle animations on/off */
+  onToggleAnimations(enabled: boolean): void {
+    this.animationsEnabled = enabled;
+
+    // Save the setting for persistence
+    this.settings.setAnimationsEnabled(enabled);
+
+    // Apply animation setting to document body for CSS animation control
+    this.applyAnimationSetting(enabled);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Apply animation setting to the document for global animation control */
+  private applyAnimationSetting(enabled: boolean): void {
+    if (enabled) {
+      this.document.body.classList.remove('animations-disabled');
+    } else {
+      this.document.body.classList.add('animations-disabled');
+    }
   }
 
   /** Update all existing plane tooltips with altitude-colored borders based on current setting */

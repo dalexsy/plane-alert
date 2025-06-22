@@ -71,6 +71,16 @@
         [appTooltip]="viewAxesTooltip"
         (click)="coneVisibilityChange.emit(!showViewAxes)"
       ></app-button>
+      <!-- Animations toggle button -->
+      <app-button
+        class="toggle-animations"
+        [icon]="animationsEnabled ? 'motion_photos_paused' : 'motion_play'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="animationsTooltip"
+        [appTooltip]="animationsTooltip"
+        (click)="onToggleAnimations()"
+      ></app-button>
       <app-button
         class="go-home"
         icon="home"
