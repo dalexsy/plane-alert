@@ -744,7 +744,6 @@
   "ZIP": "ZIPAIR Tokyo",
   "ZLT": "Zulutime",
   "ZMA": "Zambia Skyways",
-  "MSC": "Air Cairo",
   "GAF": "Luftwaffe",
   "NIL": "Nile Air",
   "BOX": "DHL Aviation",
@@ -995,5 +994,6 @@
   "MET": "Armée de l'Air",
   "SWU": "Luxwing",
   "EAGLE": "Luftwaffe",
-  "MGL": "Mongolian Airlines"
+  "MGL": "Mongolian Airlines",
+  "MSC": "SkyUp Airlines"
 }

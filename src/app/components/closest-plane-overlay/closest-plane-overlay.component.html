@@ -14,17 +14,13 @@
     ariaLabel="Closest plane"
   ></app-icon>
   <span class="callsign">{{ plane.callsign || "Unknown" }}</span>
-  <span class="operator" *ngIf="operator">
-    {{ truncateOperator(operator) }}</span
-  >
-  |
-  <span *ngIf="distanceKm != null" class="distance">
-    {{ formattedDistance }} {{ distanceUnit }}
-  </span>
-  <span
+  <span class="operator" *ngIf="operator">{{ truncateOperator(operator) }}</span
+  ><span class="divider">|</span
+  ><span *ngIf="distanceKm != null" class="distance"
+    >{{ formattedDistance }} {{ distanceUnit }}</span
+  ><span
     class="eta"
     *ngIf="secondsAway !== null && velocity !== null && velocity > 0"
+    >{{ formattedEta }}</span
   >
-    {{ formattedEta }}
-  </span>
 </div>

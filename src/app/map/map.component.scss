@@ -227,3 +227,15 @@ app-map.map-panning app-input-overlay {
   // Ensure smooth interaction
   transition: opacity 0.2s ease;
 }
+
+.overlay-container {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  z-index: 1001;
+}

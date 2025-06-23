@@ -1,20 +1,22 @@
-<app-closest-plane-overlay
-  *ngIf="closestPlane"
-  [plane]="closestPlane"
-  [operator]="closestOperator"
-  [secondsAway]="closestSecondsAway"
-  [velocity]="closestVelocity"
-  (selectPlane)="followNearestPlane($event)"
-  [isSelected]="closestPlane.icao === highlightedPlaneIcao"
-></app-closest-plane-overlay>
+<div class="overlay-container">
+  <app-closest-plane-overlay
+    *ngIf="closestPlane"
+    [plane]="closestPlane"
+    [operator]="closestOperator"
+    [secondsAway]="closestSecondsAway"
+    [velocity]="closestVelocity"
+    (selectPlane)="followNearestPlane($event)"
+    [isSelected]="closestPlane.icao === highlightedPlaneIcao"
+  ></app-closest-plane-overlay>
 
-<app-location-overlay
-  [plane]="closestPlane"
-  [street]="locationStreet"
-  [district]="locationDistrict"
-  (selectPlane)="followNearestPlane($event)"
-  [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
-></app-location-overlay>
+  <app-location-overlay
+    [plane]="closestPlane"
+    [street]="locationStreet"
+    [district]="locationDistrict"
+    (selectPlane)="followNearestPlane($event)"
+    [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
+  ></app-location-overlay>
+</div>
 
 <app-input-overlay
   (resolveAndUpdate)="resolveAndUpdateFromAddress()"
