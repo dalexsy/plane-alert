@@ -7,13 +7,16 @@
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   max-height: calc(100vh - 10.5rem);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   width: 20rem;
   backdrop-filter: blur(0.5rem);
   overflow: visible;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
   .top-buttons {
     position: absolute;
@@ -36,13 +39,26 @@
     margin-bottom: 15px;
   }
 
-  .radius-input-group {
+  .input-with-unit-group {
     display: flex;
-    gap: 0.5rem;
+    gap: 0;
     align-items: center;
 
     input {
       flex: 1;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right: none;
+      box-sizing: border-box;
+      border: 1px solid white;
+      border-right: none;
+    }
+
+    app-button {
+      ::ng-deep button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
     }
   }
 
@@ -50,7 +66,6 @@
     display: block;
     margin-bottom: 5px;
   }
-
   input[type="text"],
   input[type="number"] {
     width: 100%;
@@ -62,6 +77,17 @@
     background: rgba(255, 255, 255, 0.18);
     color: white;
     font-family: "JetBrains Mono", monospace;
+
+    // Hide number input spinner arrows
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    } // Firefox
+    &[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
   }
 
   .checkbox-inline {
@@ -75,12 +101,10 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 20px;
   }
 
   .last-scan-time {
     text-align: center;
-    margin-top: 0.5rem;
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.8rem;
   }
@@ -112,6 +136,15 @@
     .form-group,
     .button-group {
       display: none;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+
+    .form-group {
+      flex: 1;
     }
   }
 }

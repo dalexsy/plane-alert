@@ -9,6 +9,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   OnDestroy,
+  OnInit,
   HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -34,7 +35,7 @@ import {
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
-export class InputOverlayComponent implements OnDestroy {
+export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() showAirportLabels: boolean = true;
   @Output() toggleAirportLabels = new EventEmitter<boolean>();
   @ViewChild('addressInput', { static: false })
@@ -80,11 +81,50 @@ export class InputOverlayComponent implements OnDestroy {
   public showBrightnessTooltip = false;
   public lastScanTime: Date | null = null;
 
+  /** Get the current radius value formatted for display */
+  get displayRadiusValue(): string {
+    const displayValue = this.getDisplayRadius();
+    return formatDistance(displayValue);
+  }
+
+  /** Get the current interval value formatted for display */
+  get displayIntervalValue(): string {
+    return this.settings.getFormattedIntervalDisplay();
+  }
+
+  /** Trigger change detection to update display values */
+  public refreshDisplayValues(): void {
+    this.cdr.detectChanges();
+  }
+
   constructor(
     public settings: SettingsService,
     private cdr: ChangeDetectorRef,
     private scanService: ScanService
   ) {}
+  ngOnInit(): void {
+    // Subscribe to settings changes that might affect input display
+    this.sub = combineLatest([
+      this.scanService.countdown$,
+      this.scanService.isActive$,
+    ]).subscribe(([count, active]) => {
+      this.scanButtonText = active
+        ? `Update now (next update in ${this.formatCountdown(count)})`
+        : `Start scanning at location`;
+      this.cdr.detectChanges();
+    });
+  }
+
+  /** Format countdown time in a user-friendly format */
+  private formatCountdown(seconds: number): string {
+    if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes}m ${remainingSeconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
 
   /** Emit when brightness toggle button is clicked */
   onBrightnessToggle(): void {
@@ -99,32 +139,10 @@ export class InputOverlayComponent implements OnDestroy {
   onZoomOut(): void {
     this.zoomOut.emit();
   }
-
   ngAfterViewInit(): void {
-    this.sub = combineLatest([
-      this.scanService.countdown$,
-      this.scanService.isActive$,
-    ]).subscribe(([count, active]) => {
-      this.scanButtonText = active
-        ? `Update now (next update in ${count}s)`
-        : `Start scanning at location`;
-      this.cdr.detectChanges();
-    });
-
-    // Only set input values if not collapsed and refs exist
-    if (!this.collapsed) {
-      if (this.searchRadiusInputRef?.nativeElement) {
-        const displayRadius = this.getDisplayRadius();
-        // Use formatDistance for both units to ensure period decimal separator
-        const formattedValue = formatDistance(displayRadius);
-        this.searchRadiusInputRef.nativeElement.value = formattedValue;
-      }
-      if (this.checkIntervalInputRef?.nativeElement) {
-        const displayedInterval = this.settings.interval.toString();
-        this.checkIntervalInputRef.nativeElement.value = displayedInterval;
-      }
-    }
+    // No longer need to manually set input values since we use property binding
   }
+
   toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
     localStorage.setItem('inputOverlayCollapsed', this.collapsed.toString());
@@ -155,7 +173,21 @@ export class InputOverlayComponent implements OnDestroy {
   }
   onRadiusBlur(): void {
     this.isUserEditingRadius = false;
+    this.validateAndFixRadius();
     this.processRadiusChange();
+  } /** Validate radius input and fix if empty or invalid */
+  private validateAndFixRadius(): void {
+    if (!this.searchRadiusInputRef?.nativeElement) {
+      return;
+    }
+
+    const input = this.searchRadiusInputRef.nativeElement;
+    const value = input.value.trim();
+
+    // If empty or invalid, trigger change detection to restore value binding
+    if (!value || isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
+      this.cdr.detectChanges();
+    }
   }
   processRadiusChange(): void {
     if (!this.searchRadiusInputRef?.nativeElement) {
@@ -175,13 +207,26 @@ export class InputOverlayComponent implements OnDestroy {
   }
   onIntervalChange(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const seconds = input.valueAsNumber;
-    if (isNaN(seconds)) {
+    const value = input.valueAsNumber;
+    if (isNaN(value)) {
       return;
     }
-    const newInterval = seconds;
-    this.settings.interval = newInterval;
-    this.scanService.updateInterval(newInterval);
+    // Use the new method that handles unit conversion
+    this.settings.setIntervalFromDisplayUnit(value);
+    this.scanService.updateInterval(this.settings.interval);
+  } /** Toggle between seconds and minutes for scan interval */
+  toggleTimeUnit(): void {
+    const newUnit =
+      this.settings.timeUnit === 'seconds' ? 'minutes' : 'seconds';
+    this.settings.setTimeUnit(newUnit);
+
+    // Trigger change detection to update the input display
+    this.cdr.detectChanges();
+  }
+
+  /** Get the current time unit label for the button */
+  getTimeUnitLabel(): string {
+    return this.settings.timeUnit === 'seconds' ? 'sec' : 'min';
   }
 
   onSetHome(): void {
@@ -385,35 +430,13 @@ export class InputOverlayComponent implements OnDestroy {
     const rounded = Math.round(precise * 10) / 10;
     return rounded;
   }
-  /**
-   * Updates the radius input field with the correctly converted display value.
-   * This should be called instead of directly setting the input field value.
-   */ updateRadiusInputDisplay(): void {
-    // Don't update if user is actively editing the field
-    if (this.isUserEditingRadius) {
-      return;
-    }
-    if (this.searchRadiusInputRef?.nativeElement) {
-      const displayValue = this.getDisplayRadius();
-      // Use formatDistance for both units to ensure period decimal separator
-      const formattedValue = formatDistance(displayValue);
-      this.searchRadiusInputRef.nativeElement.value = formattedValue;
-    }
-  } /** Toggle between kilometers and miles */
+
+  /** Toggle between kilometers and miles */
   toggleDistanceUnit(): void {
     const currentUnit = this.settings.distanceUnit;
     const newUnit = currentUnit === 'km' ? 'miles' : 'km';
 
     this.settings.setDistanceUnit(newUnit);
-
-    // Temporarily allow update even if user was editing
-    const wasEditing = this.isUserEditingRadius;
-    this.isUserEditingRadius = false;
-    // Update the display value using our dedicated method
-    this.updateRadiusInputDisplay();
-
-    // Restore editing state
-    this.isUserEditingRadius = wasEditing;
 
     // Manually trigger change detection to ensure all UI updates
     this.cdr.detectChanges();

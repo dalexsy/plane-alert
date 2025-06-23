@@ -40,10 +40,15 @@ export class SettingsService {
   // Key and backing store for wind units preference
   private windUnitIndexKey = 'windUnitIndex';
   private _windUnitIndex: number = 0;
-
   // Key and backing store for distance unit preference
   private distanceUnitKey = 'distanceUnit';
-  private _distanceUnit: string = 'km'; // 'km' or 'miles'// Keys and backing stores for cloud and rain cover visibility
+  private _distanceUnit: string = 'km'; // 'km' or 'miles'
+
+  // Key and backing store for time unit preference (for scan interval)
+  private timeUnitKey = 'timeUnit';
+  private _timeUnit: string = 'seconds'; // 'seconds' or 'minutes'
+
+  // Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
   private _showCloudCover: boolean = true;
   private rainCoverKey = 'showRainCover';
@@ -142,7 +147,6 @@ export class SettingsService {
     localStorage.setItem('lastSearchRadius', value.toString());
     this.radiusChanged.emit(value);
   }
-
   get interval(): number {
     return this._interval;
   }
@@ -150,6 +154,26 @@ export class SettingsService {
   set interval(value: number) {
     this._interval = value;
     localStorage.setItem('checkInterval', value.toString());
+  } /** Get interval in the currently selected display unit (seconds or minutes) */
+  getIntervalInDisplayUnit(): number {
+    if (this._timeUnit === 'minutes') {
+      const minutes = this._interval / 60;
+      // Round to whole minutes only for simplicity
+      return Math.round(minutes);
+    }
+    return Math.round(this._interval);
+  }
+
+  /** Set interval from display unit value (converts to seconds for storage) */
+  setIntervalFromDisplayUnit(value: number): void {
+    const intervalInSeconds = this._timeUnit === 'minutes' ? value * 60 : value;
+    this.interval = intervalInSeconds;
+  }
+  /** Get formatted interval display value as string with appropriate precision and no locale commas */
+  getFormattedIntervalDisplay(): string {
+    const value = this.getIntervalInDisplayUnit();
+    // Always return whole numbers as strings to avoid locale formatting issues
+    return Math.round(value).toString();
   }
 
   get excludeDiscount(): boolean {
@@ -313,7 +337,6 @@ export class SettingsService {
     const airportIds = Array.from(clickedAirports);
     localStorage.setItem(this.clickedAirportsKey, JSON.stringify(airportIds));
   }
-
   /** Current distance unit ('km' or 'miles') */
   get distanceUnit(): string {
     return this._distanceUnit;
@@ -323,6 +346,16 @@ export class SettingsService {
     this._distanceUnit = value;
     localStorage.setItem(this.distanceUnitKey, value);
     this.distanceUnitChanged.emit(value);
+  }
+
+  /** Current time unit for scan interval ('seconds' or 'minutes') */
+  get timeUnit(): string {
+    return this._timeUnit;
+  }
+  /** Persist time unit preference */
+  setTimeUnit(value: string): void {
+    this._timeUnit = value;
+    localStorage.setItem(this.timeUnitKey, value);
   }
 
   load(): void {
@@ -412,12 +445,16 @@ export class SettingsService {
       if (!isNaN(windUnitIndex)) {
         this._windUnitIndex = windUnitIndex;
       }
-    }
-
-    // Load distance unit preference
+    } // Load distance unit preference
     const distanceUnitStr = localStorage.getItem(this.distanceUnitKey);
     if (distanceUnitStr !== null) {
       this._distanceUnit = distanceUnitStr;
+    }
+
+    // Load time unit preference
+    const timeUnitStr = localStorage.getItem(this.timeUnitKey);
+    if (timeUnitStr !== null) {
+      this._timeUnit = timeUnitStr;
     }
   }
 }

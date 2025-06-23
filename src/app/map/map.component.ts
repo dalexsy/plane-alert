@@ -998,13 +998,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.currentLocationMarker.setLatLng([lat, lon]);
 
     // Update markers visibility based on new location
-    this.updateMarkersVisibility(lat, lon);
-
-    // Load planes immediately for faster UX
+    this.updateMarkersVisibility(lat, lon); // Load planes immediately for faster UX
     this.findPlanes(); // Only update input fields if overlay is not collapsed and refs exist
     if (!this.inputOverlayComponent.collapsed) {
-      // Update search radius input with the correctly converted display value
-      this.inputOverlayComponent.updateRadiusInputDisplay();
+      // Trigger change detection to update input displays with property binding
+      this.inputOverlayComponent.refreshDisplayValues();
       // Reverse geocode current center and update address input
       const addressInput =
         this.inputOverlayComponent.addressInputRef?.nativeElement;
