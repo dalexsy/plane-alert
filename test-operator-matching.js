@@ -1,5 +1,5 @@
 // Test the operator matching logic
-import { OPERATOR_SYMBOLS } from "../src/app/config/operator-symbols.config";
+import { OPERATOR_SYMBOLS } from "./src/app/config/operator-symbols.config.ts";
 
 // Test plane objects
 const testPlanes = [

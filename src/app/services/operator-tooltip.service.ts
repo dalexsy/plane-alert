@@ -115,16 +115,15 @@ export class OperatorTooltipService {
         );
         return operatorMatch;
       }
-    }
-
-    // Fall back to country-based matching
-    if (country) {
+    } // Fall back to country-based matching ONLY for military aircraft
+    // This prevents civilian airlines from showing military logos
+    if (country && normalizedPlane.isMilitary) {
       const countryMatch = OPERATOR_SYMBOLS.find((cfg) =>
         cfg.countries?.includes(country)
       );
       if (countryMatch) {
         console.debug(
-          `[OperatorTooltip] Found country match for ${normalizedPlane.icao}:`,
+          `[OperatorTooltip] Found country match for military aircraft ${normalizedPlane.icao}:`,
           countryMatch.key
         );
         return countryMatch;
