@@ -16,7 +16,7 @@
 
 .left {
   left: -2px;
-  border-radius: 0.5rem 0 0 0.5rem;
+  border-radius: 0.5rem 0 0.5rem 0.5rem; // round bottom-right corner as well
   border-right: none;
 }
 
@@ -27,11 +27,15 @@
   border-left: none;
 }
 
-/* When overlay is collapsed, make the tab fully rounded and position it flush with the overlay */
+/* When overlay is collapsed, keep the tab absolutely positioned - don't change layout */
 :host-context(.collapsed) .top-buttons,
 .collapsed > .top-buttons {
-  position: static;
-  border-color: transparent;
-  background: transparent;
-  border-radius: 0.5rem;
+  /* Keep absolute positioning and exact same values as expanded state */
+  position: absolute;
+  top: -0.5px; /* Match the expanded state exactly */
+  left: -2px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-right: none;
+  border-radius: 0.5rem; /* Keep bottom-right rounded corner */
 }

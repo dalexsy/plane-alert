@@ -121,6 +121,7 @@ export class HelicopterIdentificationService {
       'md902',
       'black hawk',
       'Chinook',
+      'JetRanger',
     ];
 
     // Check if any pattern matches

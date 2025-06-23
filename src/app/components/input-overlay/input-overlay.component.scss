@@ -1,13 +1,13 @@
 .options-overlay {
   position: absolute;
   top: 0.25rem;
-  left: 0.25rem;
+  left: 2.75rem; // shift overlay right so left-side tab remains in view
   z-index: 1000;
   background: rgba(0, 0, 0, 0.7);
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   max-height: calc(100vh - 10.5rem);
-  border-radius: 0.5rem 0 0.5rem 0.5rem;
+  border-radius: 0 0.5rem 0.5rem 0; // square left edge corners for tab flush
   width: 20rem;
   backdrop-filter: blur(0.5rem);
   overflow: visible;
@@ -15,28 +15,21 @@
   form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1.5rem;
   }
 
   .top-buttons {
     position: absolute;
     top: -1px;
-    right: -2.5rem;
+    left: -2.5rem;
     display: flex;
     flex-direction: column;
     z-index: 900;
     background: rgba(0, 0, 0, 0.7);
-    border-radius: 0 0.5rem 0.5rem 0;
+    border-radius: 0.5rem 0 0 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.4);
-    border-left: none;
+    border-right: none;
     overflow: visible;
-  }
-
-  h1 {
-    margin-bottom: 1rem;
-  }
-  .form-group {
-    margin-bottom: 15px;
   }
 
   .input-with-unit-group {
@@ -108,29 +101,14 @@
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.8rem;
   }
-
   &.collapsed {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    // When collapsed, overlay should only be as wide as needed for the tab
+    width: 0;
     padding: 0;
-    width: auto;
-    height: auto;
-    max-width: none;
-    overflow: hidden;
-    min-width: 0;
-    min-height: 0;
-    max-height: none;
-    border-radius: 0.5rem;
-
-    .top-buttons {
-      position: static;
-      align-items: center;
-      margin: 0;
-      border-radius: 0.5rem;
-      border-color: transparent;
-    }
+    background: transparent;
+    border-color: transparent;
+    backdrop-filter: none;
+    overflow: visible; // Allow tab to show outside the 0-width container
 
     form,
     .form-group,
@@ -190,7 +168,7 @@
   display: none;
 }
 
-// Override right-side tab container to show overflow
-.options-overlay .top-buttons .right {
+// Override left-side tab container to show overflow
+.options-overlay .top-buttons .left {
   overflow: visible !important;
 }
