@@ -26,14 +26,6 @@ export class LocationOverlayComponent {
 
     // Check if we had an empty district before the plane was set
     if (value && this._hasEmptyDistrict) {
-      console.log(
-        `[LOCATION-OVERLAY] Plane set after empty district detected for ${value.icao} (${value.callsign})`,
-        {
-          district: this._district,
-          plane: { icao: value.icao, callsign: value.callsign },
-          timestamp: new Date().toISOString(),
-        }
-      );
       this._hasEmptyDistrict = false; // Reset the flag
     }
   }
@@ -56,19 +48,7 @@ export class LocationOverlayComponent {
     // Enhanced logging: capture all empty district scenarios
     if (isEmpty) {
       if (this.plane) {
-        console.log(
-          `[LOCATION-OVERLAY] District empty for ${this.plane.icao} (${this.plane.callsign})`,
-          {
-            district: value,
-            plane: { icao: this.plane.icao, callsign: this.plane.callsign },
-            timestamp: new Date().toISOString(),
-          }
-        );
       } else {
-        console.log(`[LOCATION-OVERLAY] District empty but no plane yet`, {
-          district: value,
-          timestamp: new Date().toISOString(),
-        });
         // Store the empty state to check later when plane is set
         this._hasEmptyDistrict = true;
       }

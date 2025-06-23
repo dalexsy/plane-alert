@@ -25,7 +25,7 @@ import {
   DistanceUnit,
   convertFromKm,
   getDistanceUnitShortLabel,
-  formatDistance,
+  formatDistanceWithTenths,
 } from '../../utils/units.util';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
@@ -63,7 +63,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     return getDistanceUnitShortLabel(unit);
   } /** Format distance with proper decimal separator (always period) */
   get formattedDistance(): string {
-    return formatDistance(this.distanceKm);
+    return formatDistanceWithTenths(this.distanceKm);
   }
 
   @Input({ required: true }) plane!: PlaneLogEntry;
@@ -240,16 +240,6 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
       });
     }
   }
-
-  /** Get operator logo HTML for display in tooltips */
-  getOperatorLogoHtml(): string {
-    return this.operatorTooltipService.getLeftTooltipContent({
-      operator: this.plane.operator || '',
-      country: this.plane.origin || '',
-      isMilitary: this.plane.isMilitary || false,
-    });
-  }
-
   ngOnChanges(changes: SimpleChanges): void {
     // Announce new plane
     if (this.plane.isNew) {

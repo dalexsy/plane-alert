@@ -71,8 +71,8 @@ export class ClosestPlaneOverlayComponent implements OnDestroy {
   get distanceUnit(): string {
     const unit = this.settings.distanceUnit as DistanceUnit;
     return getDistanceUnitShortLabel(unit);
-  } /** Format distance with proper decimal separator (always period) */
-  get formattedDistance(): string {
+  }
+  /** Format distance with proper decimal separator (always period) */ get formattedDistance(): string {
     return formatDistance(this.distanceKm);
   }
   @HostBinding('class.military-plane') get hostMilitary() {

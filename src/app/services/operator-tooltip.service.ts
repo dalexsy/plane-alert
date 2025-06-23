@@ -2,17 +2,45 @@ import { Injectable } from '@angular/core';
 import { OPERATOR_SYMBOLS } from '../config/operator-symbols.config';
 import { AircraftCountryService } from './aircraft-country.service';
 
+// Normalized interface for operator symbol lookup
+interface NormalizedPlaneData {
+  icao: string;
+  callsign?: string;
+  operator?: string;
+  country?: string;
+  isMilitary?: boolean;
+  lat?: number;
+  lon?: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class OperatorTooltipService {
   constructor(private aircraftCountryService: AircraftCountryService) {}
 
+  /**
+   * Normalize plane data to ensure consistent field access regardless of source
+   * Handles both PlaneLogEntry (with 'origin') and map marker data (with 'country')
+   */
+  private normalizePlaneData(plane: any): NormalizedPlaneData {
+    return {
+      icao: plane.icao || '',
+      callsign: plane.callsign || '',
+      operator: plane.operator || '',
+      // Handle both 'origin' and 'country' fields for consistent access
+      country: plane.country || plane.origin || '',
+      isMilitary: plane.isMilitary || false,
+      lat: plane.lat,
+      lon: plane.lon,
+    };
+  }
+
   // Get country with fallback chain for better location detection
-  private getCountryWithFallback(plane: any): string | null {
-    // First try: Use the detected country from plane.origin
-    if (plane.origin && plane.origin !== 'Unknown') {
-      return plane.origin.toLowerCase();
+  private getCountryWithFallback(plane: NormalizedPlaneData): string | null {
+    // First try: Use the detected country from normalized data
+    if (plane.country && plane.country !== 'Unknown') {
+      return plane.country.toLowerCase();
     }
 
     // Second try: Use coordinates to determine country
@@ -40,11 +68,34 @@ export class OperatorTooltipService {
 
     return null;
   }
-
-  // Get operator symbol config for a plane
+  /**
+   * Get operator symbol config for a plane with robust data normalization and debugging
+   */
   public getSymbolConfig(plane: any) {
-    const country = this.getCountryWithFallback(plane);
-    const operator = plane.operator?.toLowerCase();
+    // Normalize the data to handle different input formats
+    const normalizedPlane = this.normalizePlaneData(plane);
+    const country = this.getCountryWithFallback(normalizedPlane);
+    const operator = (normalizedPlane.operator || '').toLowerCase();
+
+    // Debug logging to help track down inconsistencies
+    if (normalizedPlane.icao) {
+      console.debug(
+        `[OperatorTooltip] Processing plane ${normalizedPlane.icao}:`,
+        {
+          originalInput: {
+            country: plane.country,
+            origin: plane.origin,
+            operator: plane.operator,
+          },
+          normalized: {
+            country: normalizedPlane.country,
+            operator: normalizedPlane.operator,
+          },
+          resolvedCountry: country,
+          isMilitary: normalizedPlane.isMilitary,
+        }
+      );
+    }
 
     // First, try to match by specific operator name
     if (operator) {
@@ -58,25 +109,41 @@ export class OperatorTooltipService {
           )
       );
       if (operatorMatch) {
+        console.debug(
+          `[OperatorTooltip] Found operator match for ${normalizedPlane.icao}:`,
+          operatorMatch.key
+        );
         return operatorMatch;
       }
     }
 
-    // Fall back to country-based matching for military aircraft
-    if (plane.isMilitary && country) {
+    // Fall back to country-based matching for military aircraft only
+    if (normalizedPlane.isMilitary && country) {
       const countryMatch = OPERATOR_SYMBOLS.find((cfg) =>
-        cfg.countries.includes(country)
+        cfg.countries?.includes(country)
       );
+      if (countryMatch) {
+        console.debug(
+          `[OperatorTooltip] Found military country match for ${normalizedPlane.icao}:`,
+          countryMatch.key
+        );
+      } else {
+        console.debug(
+          `[OperatorTooltip] No military country match found for ${normalizedPlane.icao} (country: ${country})`
+        );
+      }
       return countryMatch || null;
     }
 
+    console.debug(
+      `[OperatorTooltip] No match found for ${normalizedPlane.icao}`
+    );
     return null;
-  }
-  /** Get the left tooltip content (symbol) based on config */
+  } /** Get the left tooltip content (symbol) based on config */
   getLeftTooltipContent(plane: any): string {
     const cfg = this.getSymbolConfig(plane);
     return cfg
-      ? `<span class="operator-symbol ${cfg.key}"><img src="assets/operator-logos/${cfg.key}.svg" alt="${cfg.key}" title="${cfg.key}"/></span>`
+      ? `<span class="operator-symbol"><img src="assets/operator-logos/${cfg.key}.svg" alt="${cfg.key}" title="${cfg.key}"/></span>`
       : '';
   }
 

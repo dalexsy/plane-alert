@@ -2,6 +2,8 @@
 // Aircraft Container Component - Aircraft Display and 3D Transforms
 // =============================================================================
 
+@use "../../../styles/operator-symbol" as op;
+
 $overlay-height: 10rem;
 $plane-icon-size: 2.5rem;
 $grounded-plane-scale: 0.4;
@@ -403,20 +405,8 @@ $animation-optimization: optimizeSpeed;
     border-right: 4px solid transparent;
     border-top: 4px solid rgba(255, 255, 255, 0.8);
     z-index: 0;
-  }
-
-  // Operator symbol styling (same as map tooltips)
+  } // Operator symbol styling for aircraft tooltips
   .operator-symbol {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
+    @include op.operator-symbol(0.125rem);
   }
 }

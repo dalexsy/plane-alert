@@ -128,7 +128,7 @@
       >
         navigation
       </span>
-      <span>{{ formattedDistance }} {{ distanceUnit }}</span>
+      <span>{{ distanceKm | number : "1.1-1" }} {{ distanceUnit }}</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">
@@ -158,7 +158,7 @@
       <!-- Logo placeholder for layout consistency -->
       <span class="operator-logo">
         <ng-container *ngIf="operatorSymbolConfig">
-          <span class="operator-symbol {{ operatorSymbolConfig.key }}">
+          <span class="operator-symbol">
             <img
               [src]="
                 'assets/operator-logos/' + operatorSymbolConfig.key + '.svg'

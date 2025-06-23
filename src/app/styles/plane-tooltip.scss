@@ -1,3 +1,5 @@
+@use "operator-symbol" as op;
+
 $followed-plane-color: #00ffff;
 $new-plane-color: #ff6161;
 
@@ -240,10 +242,8 @@ $new-plane-color: #ff6161;
   &.grounded-plane-tooltip {
     margin-left: -0.5rem;
     top: -2.75rem;
-
     .operator-symbol {
-      height: 1.5rem;
-      width: 1.5rem;
+      @include op.operator-symbol();
     }
   }
 }
@@ -258,28 +258,12 @@ $new-plane-color: #ff6161;
   height: 1px;
 }
 
-// Operator symbols in tooltips
-.operator-symbol {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    // filter: brightness(1.5) saturate(0.8);
-  }
+// Operator symbols in map tooltips
+.leaflet-tooltip .operator-symbol {
+  @include op.operator-symbol();
 }
 
 // Override for map tooltip operator-symbols to ensure correct size
 .plane-tooltip-left-variant .operator-symbol {
-  width: 2rem;
-  height: 2rem;
-}
-.plane-tooltip-left-variant .operator-symbol img {
-  width: 100%;
-  height: 100%;
+  @include op.operator-symbol();
 }

@@ -151,7 +151,25 @@ export function formatDistance(distance: number): string {
   const integerPart = Math.floor(rounded);
   const decimalPart = Math.round((rounded - integerPart) * 10);
 
-  // Always show one decimal place
+  // Don't show decimal place if it's zero
+  const formatted =
+    decimalPart === 0 ? `${integerPart}` : `${integerPart}.${decimalPart}`;
+
+  return formatted;
+}
+
+/**
+ * Format distance for results lists - always shows tenths place for consistency
+ */
+export function formatDistanceWithTenths(distance: number): string {
+  // Round to 1 decimal place
+  const rounded = Math.round(distance * 10) / 10;
+
+  // Manual formatting to ensure period as decimal separator
+  const integerPart = Math.floor(rounded);
+  const decimalPart = Math.round((rounded - integerPart) * 10);
+
+  // Always show one decimal place even when zero
   const formatted =
     decimalPart === 0 ? `${integerPart}.0` : `${integerPart}.${decimalPart}`;
 

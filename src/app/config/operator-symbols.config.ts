@@ -1,6 +1,6 @@
 export interface OperatorSymbolConfig {
   key: string; // filename (without .svg)
-  countries: string[]; // ISO2 codes
+  countries?: string[]; // ISO2 codes (optional)
   operators?: string[]; // operator names for specific matching
 }
 
@@ -50,6 +50,10 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
     countries: ['de'],
   },
   {
+    key: 'adac',
+    operators: ['DRF Luftrettung'],
+  },
+  {
     key: 'nato',
     countries: [],
     operators: ['NATO'],
@@ -57,5 +61,9 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
   {
     key: 'pl_air_force',
     countries: ['pl'],
+  },
+  {
+    key: 'kw_air_force',
+    countries: ['kw'],
   },
 ];

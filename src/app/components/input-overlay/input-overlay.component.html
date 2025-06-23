@@ -151,7 +151,7 @@
           id="searchRadius"
           pattern="[0-9]*\.?[0-9]*"
           inputmode="decimal"
-          [placeholder]="'Enter search radius (' + getDistanceUnitLabel() + ')'"
+          [placeholder]="'Enter search radius'"
           (keydown.enter)="onResolveAndUpdate()"
           (keydown)="onRadiusKeydown($event)"
           (focus)="onRadiusFocus()"
