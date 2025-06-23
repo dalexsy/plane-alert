@@ -117,22 +117,18 @@ export class OperatorTooltipService {
       }
     }
 
-    // Fall back to country-based matching for military aircraft only
-    if (normalizedPlane.isMilitary && country) {
+    // Fall back to country-based matching
+    if (country) {
       const countryMatch = OPERATOR_SYMBOLS.find((cfg) =>
         cfg.countries?.includes(country)
       );
       if (countryMatch) {
         console.debug(
-          `[OperatorTooltip] Found military country match for ${normalizedPlane.icao}:`,
+          `[OperatorTooltip] Found country match for ${normalizedPlane.icao}:`,
           countryMatch.key
         );
-      } else {
-        console.debug(
-          `[OperatorTooltip] No military country match found for ${normalizedPlane.icao} (country: ${country})`
-        );
+        return countryMatch;
       }
-      return countryMatch || null;
     }
 
     console.debug(

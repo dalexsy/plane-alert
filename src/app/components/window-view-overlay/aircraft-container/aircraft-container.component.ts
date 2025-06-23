@@ -5,6 +5,7 @@ import {
   EventEmitter,
   OnChanges,
   SimpleChanges,
+  ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WindowViewPlane } from '../window-view-overlay.component';
@@ -14,6 +15,7 @@ import { FlagCallsignComponent } from '../../flag-callsign/flag-callsign.compone
 import { calculateTiltAngle } from '../../../utils/vertical-rate.util';
 import { TextUtils } from '../../../utils/text-utils';
 import { OperatorTooltipService } from '../../../services/operator-tooltip.service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-aircraft-container',
@@ -21,6 +23,7 @@ import { OperatorTooltipService } from '../../../services/operator-tooltip.servi
   imports: [CommonModule, FlagCallsignComponent],
   templateUrl: './aircraft-container.component.html',
   styleUrl: './aircraft-container.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class AircraftContainerComponent implements OnChanges {
   @Input() aircraftPlanes: WindowViewPlane[] = [];
@@ -37,7 +40,8 @@ export class AircraftContainerComponent implements OnChanges {
   constructor(
     public altitudeColor: AltitudeColorService,
     public planeStyle: PlaneStyleService,
-    public operatorTooltipService: OperatorTooltipService
+    public operatorTooltipService: OperatorTooltipService,
+    private sanitizer: DomSanitizer
   ) {
     // Expose debug function to window for console debugging
     if (typeof window !== 'undefined') {
@@ -79,23 +83,6 @@ export class AircraftContainerComponent implements OnChanges {
   } /** Debug function to log plane data when clicking on plane icon */
   handlePlaneIconClick(plane: WindowViewPlane, event: MouseEvent): void {
     event.stopPropagation();
-
-    // Debug the has-details logic for planes within 10km
-    if (plane.distanceKm != null && plane.distanceKm <= 10) {
-      console.log(`🛩️ Plane ${plane.callsign} (${plane.icao}) details:`, {
-        distanceKm: plane.distanceKm,
-        operator: plane.operator,
-        model: plane.model,
-        isGrounded: plane.isGrounded,
-        hasOperatorOrModel: !!(plane.operator || plane.model),
-        shouldHaveDetails:
-          plane.distanceKm != null &&
-          plane.distanceKm <= 10 &&
-          (plane.operator || plane.model) &&
-          !plane.isGrounded,
-        labelClasses: this.getLabelClasses(plane),
-      });
-    }
 
     // Show trail positions to see actual movement
     if (plane.historyTrail && plane.historyTrail.length > 1) {
@@ -527,8 +514,7 @@ export class AircraftContainerComponent implements OnChanges {
   }
   /**
    * Get operator logo content for window view tooltip
-   */
-  getOperatorLogoContent(plane: WindowViewPlane): string {
+   */ getOperatorLogoContent(plane: WindowViewPlane): SafeHtml {
     // Convert plane to the format expected by OperatorTooltipService
     const planeData = {
       operator: plane.operator || '',
@@ -539,8 +525,9 @@ export class AircraftContainerComponent implements OnChanges {
       lat: plane.lat,
       lon: plane.lon,
     };
-
-    return this.operatorTooltipService.getLeftTooltipContent(planeData);
+    const logoHtml =
+      this.operatorTooltipService.getLeftTooltipContent(planeData);
+    return this.sanitizer.bypassSecurityTrustHtml(logoHtml);
   }
   /**
    * Check if plane should show operator logo tooltip
@@ -569,23 +556,5 @@ export class AircraftContainerComponent implements OnChanges {
         !plane.isMarker &&
         !plane.isCelestial
     );
-
-    console.log(`🛩️ Found ${closePlanes.length} planes within 10km:`);
-    closePlanes.forEach((plane) => {
-      const hasDetails =
-        plane.distanceKm != null &&
-        plane.distanceKm <= 10 &&
-        !plane.isGrounded &&
-        (plane.operator || plane.model || plane.distanceKm <= 3);
-
-      console.log(`  ${plane.callsign} (${plane.icao}):`, {
-        distance: `${plane.distanceKm?.toFixed(1)}km`,
-        operator: plane.operator || 'none',
-        model: plane.model || 'none',
-        grounded: plane.isGrounded,
-        hasDetails: hasDetails,
-        classes: this.getLabelClasses(plane),
-      });
-    });
   }
 }

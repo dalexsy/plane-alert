@@ -31,6 +31,7 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
   {
     key: 'ch_air_force',
     countries: ['ch'],
+    operators: ['swiss air force'],
   },
   {
     key: 'gb_air_force',
