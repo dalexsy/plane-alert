@@ -9,7 +9,7 @@
   border-radius: 0.25rem;
   display: inline-flex;
   white-space: nowrap;
-  max-width: none;
+  max-width: calc(100% - 2rem);
   flex-shrink: 0;
   gap: 0.5rem;
   align-items: center;

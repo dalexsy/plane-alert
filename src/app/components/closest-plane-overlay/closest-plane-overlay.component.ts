@@ -80,21 +80,10 @@ export class ClosestPlaneOverlayComponent implements OnDestroy {
   }
   @HostBinding('class.special-plane') get hostSpecial() {
     return this.isSelected && this.plane?.isSpecial === true;
-  }
-  @Input() operator: string | null = null;
-  @Input() secondsAway: number | null = null;
-  @Input() velocity: number | null = null;
+  }  @Input() operator: string | null = null;
   @Input() isSelected: boolean = false;
   @Output() selectPlane =
-    new EventEmitter<PlaneModel>(); /** Formatted ETA in #m #s format without suffix */
-  get formattedEta(): string {
-    if (this.secondsAway == null) {
-      return '';
-    }
-    const m = Math.floor(this.secondsAway / 60);
-    const s = this.secondsAway % 60;
-    return `${m}m ${s}s`;
-  }
+    new EventEmitter<PlaneModel>();
 
   /** Handle user click to select this plane */
   onClick(): void {
