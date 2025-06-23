@@ -9,14 +9,15 @@
   border-radius: 0.25rem;
   display: inline-flex;
   white-space: nowrap;
-  max-width: calc(100% - 2rem);
   flex-shrink: 0;
   gap: 0.5rem;
   align-items: center;
   font-family: "JetBrains Mono", monospace;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(0.5rem);
   backdrop-filter: blur(0.5rem);
+  justify-content: center;
 
   .divider {
     color: rgb(255 255 255 / 50%);

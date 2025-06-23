@@ -230,12 +230,13 @@ app-map.map-panning app-input-overlay {
 
 .overlay-container {
   position: absolute;
-  top: 0.5rem;
+  top: 0.25rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  min-width: calc(100vw - 0.75rem);
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   align-items: center;
-  z-index: 1001;
+  z-index: 1000;
 }

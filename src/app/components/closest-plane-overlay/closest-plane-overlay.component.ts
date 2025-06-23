@@ -80,10 +80,10 @@ export class ClosestPlaneOverlayComponent implements OnDestroy {
   }
   @HostBinding('class.special-plane') get hostSpecial() {
     return this.isSelected && this.plane?.isSpecial === true;
-  }  @Input() operator: string | null = null;
+  }
+  @Input() operator: string | null = null;
   @Input() isSelected: boolean = false;
-  @Output() selectPlane =
-    new EventEmitter<PlaneModel>();
+  @Output() selectPlane = new EventEmitter<PlaneModel>();
 
   /** Handle user click to select this plane */
   onClick(): void {
