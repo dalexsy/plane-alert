@@ -96,28 +96,27 @@
   &:not(.collapsed) > *:first-child:not(.top-buttons) {
     margin-top: 0;
   }
-
   &.collapsed {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    width: auto;
+    // When collapsed, keep position but only show the top-buttons
+    width: 2.5rem; // Width of just the button panel
     height: auto;
-    min-width: 0;
     min-height: 0;
-    border-radius: 0.5rem;
-    overflow: hidden;
+    padding: 0;
+    border: none;
+    background: transparent;
+    backdrop-filter: none;
 
     .top-buttons {
       position: static;
       margin: 0;
       border-radius: 0.5rem;
-      border-color: transparent;
-      background: transparent;
+      border: 1px solid rgb(255 255 255 / 40%);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(0.5rem);
     }
-    > :not(.top-buttons) {
+
+    // Hide everything except top-buttons
+    > *:not(.top-buttons) {
       display: none;
     }
   }
