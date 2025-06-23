@@ -30,7 +30,7 @@ $text-shadow-color: #000;
   right: 0;
   bottom: $overlay-bottom-spacing;
   height: $overlay-height;
-  z-index: $overlay-z-index;
+  z-index: $overlay-z-index; // Keep base overlay behind aircraft
 
   // Visual styling
   background: linear-gradient(
@@ -51,6 +51,11 @@ $text-shadow-color: #000;
 
   // Smooth brightness transitions
   transition: filter 0.8s ease-in-out;
+}
+
+// After definition of .window-view-overlay, add higher z-index for aircraft tooltips above everything
+.window-view-overlay .planes-container {
+  z-index: 1002; // Ensure planes container is on top
 }
 
 // =============================================================================

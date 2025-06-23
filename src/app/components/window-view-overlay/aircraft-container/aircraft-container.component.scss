@@ -27,10 +27,13 @@ $animation-optimization: optimizeSpeed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: 1001; // Bring aircraft icons above other overlay elements
   pointer-events: none;
   transform-style: preserve-3d; // Ensure 3D transforms are preserved
   perspective: 1000px; // Add perspective for better 3D depth perception
+  transform: translateZ(
+    5px
+  ); // Bring entire aircraft container further forward in 3D space
 }
 
 .planes-container {
@@ -39,6 +42,9 @@ $animation-optimization: optimizeSpeed;
   height: 100%;
   transform-style: preserve-3d; // Ensure 3D transforms are preserved
   perspective-origin: 50% 100%; // Set vanishing point at bottom center
+  transform: translateZ(
+    5px
+  ); // Elevate planes container further above altitude bands in 3D
 }
 
 // =============================================================================
@@ -139,6 +145,7 @@ $animation-optimization: optimizeSpeed;
   position: relative;
   display: inline-block;
   transform-style: preserve-3d;
+  z-index: 20; // Ensure plane icons render above labels
 }
 
 // =============================================================================
@@ -202,6 +209,7 @@ $animation-optimization: optimizeSpeed;
 
 .copter-wrapper {
   display: inline-block;
+  z-index: 20; // Ensure helicopter icons also render above labels
 }
 
 .copter-plane-icon {
