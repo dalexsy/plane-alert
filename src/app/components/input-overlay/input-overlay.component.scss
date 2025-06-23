@@ -1,3 +1,16 @@
+// Mobile-first tooltip visibility mixin
+@mixin tooltip-visibility($show-on-mobile: false) {
+  @if not $show-on-mobile {
+    // Hide by default (mobile-first)
+    display: none !important;
+
+    // Show on desktop and larger screens
+    @media (min-width: 601px) {
+      display: block;
+    }
+  }
+}
+
 .options-overlay {
   position: absolute;
   top: 0.25rem;
@@ -131,14 +144,19 @@
   .options-overlay {
     display: flex !important;
     flex-direction: column;
+  }
 
-    > *:not(.form-group:nth-child(3)) {
-      display: none !important;
-    }
+  // Hide all tooltips on mobile - direct approach
+  .brightness-button-wrapper[data-tooltip].auto:hover::after {
+    display: none !important;
+  }
 
-    .form-group:nth-child(3) {
-      display: block !important;
-    }
+  ::ng-deep [appTooltip]:hover::after,
+  ::ng-deep .tooltip,
+  ::ng-deep .tooltip-content,
+  ::ng-deep app-tooltip,
+  ::ng-deep .app-tooltip {
+    display: none !important;
   }
 }
 
@@ -147,6 +165,7 @@
   position: relative;
 }
 .brightness-button-wrapper[data-tooltip].auto:hover::after {
+  @include tooltip-visibility();
   content: attr(data-tooltip);
   position: absolute;
   left: calc(100% + 0.5rem);
