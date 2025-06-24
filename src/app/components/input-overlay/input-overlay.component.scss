@@ -13,23 +13,18 @@
 
 .options-overlay {
   position: absolute;
-  // Mobile-first: position at a fixed pixel location that won't shift
-  top: calc(
-    50vh - 15rem
-  ); // Fixed position that doesn't depend on element height
-  left: 2.75rem; // Same as desktop to accommodate tab
+  top: 0.25rem;
+  left: 2.75rem;
   z-index: 1001;
   background: rgba(0, 0, 0, 0.7);
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0 0.5rem 0.5rem 0; // Keep tab-style border for consistency
-  width: calc(100vw - 7rem); // Mobile-first: responsive width
   backdrop-filter: blur(0.5rem);
   overflow: visible;
+  width: calc(100vw - 3rem);
 
-  // Desktop and larger screens: position at top and fixed width
   @media (min-width: 601px) {
-    top: 0.25rem;
     width: 20rem;
   }
 

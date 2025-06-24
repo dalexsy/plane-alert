@@ -4,20 +4,26 @@
   position: absolute;
   top: 0.25rem;
   right: 45px;
-  z-index: 1000;
+  z-index: 1001;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  width: 25rem;
   display: flex;
   flex-direction: column;
   /* restore original height behavior */
-  max-height: calc(100vh - 11rem);
+
   height: fit-content;
   min-height: 18rem;
   overflow: visible;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
+  max-height: calc(100vh - 0.5rem);
+  width: calc(100vw - 3rem);
+
+  @media (min-width: 601px) {
+    width: 20rem;
+    max-height: calc(100vh - 11rem);
+  }
 
   h3 {
     padding: 1rem;
@@ -100,6 +106,7 @@
     width: 0;
     min-height: 0;
     border-color: transparent;
+    z-index: 1000;
 
     .top-buttons {
       width: 2.5rem;
