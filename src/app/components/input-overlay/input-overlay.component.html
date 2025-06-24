@@ -129,15 +129,14 @@
   >
     <div class="form-group">
       <label for="address">Address</label>
-      <div *ngIf="currentAddress" class="current-address">
-        Current: {{ currentAddress }}
-      </div>
       <input
         #addressInput
         type="text"
         autocomplete="off"
         id="address"
         placeholder="Enter address"
+        [value]="currentAddress"
+        (input)="currentAddress = addressInput.value"
         (keydown.enter)="onResolveAndUpdate()"
       />
     </div>

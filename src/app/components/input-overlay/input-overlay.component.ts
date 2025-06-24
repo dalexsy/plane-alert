@@ -27,6 +27,7 @@ import {
   convertToKm,
   formatDistance,
 } from '../../utils/units.util';
+import { LocationContextService } from '../../services/location-context.service';
 
 @Component({
   selector: 'app-input-overlay',
@@ -100,9 +101,15 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     public settings: SettingsService,
     private cdr: ChangeDetectorRef,
-    private scanService: ScanService
+    private scanService: ScanService,
+    private locationContext: LocationContextService // Inject the service
   ) {}
   ngOnInit(): void {
+    // Subscribe to address changes
+    this.locationContext.address$.subscribe((address) => {
+      this.currentAddress = address || '';
+      this.cdr.detectChanges();
+    });
     // Subscribe to settings changes that might affect input display
     this.sub = combineLatest([
       this.scanService.countdown$,

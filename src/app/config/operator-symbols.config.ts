@@ -51,6 +51,10 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
     countries: ['de'],
   },
   {
+    key: 'bb_police',
+    operators: ['Polizei Brandenburg'],
+  },
+  {
     key: 'adac',
     operators: ['DRF Luftrettung'],
   },
