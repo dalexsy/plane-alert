@@ -23,13 +23,14 @@
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0 0.5rem 0.5rem 0; // Keep tab-style border for consistency
-  width: 20rem;
+  width: calc(100vw - 7rem); // Mobile-first: responsive width
   backdrop-filter: blur(0.5rem);
   overflow: visible;
 
-  // Desktop and larger screens: position at top
+  // Desktop and larger screens: position at top and fixed width
   @media (min-width: 601px) {
     top: 0.25rem;
+    width: 20rem;
   }
 
   form {
