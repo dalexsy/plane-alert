@@ -32,10 +32,8 @@
 .collapsed > .top-buttons {
   /* Keep absolute positioning and exact same values as expanded state */
   position: absolute;
-  top: -0.5px; /* Match the expanded state exactly */
-  left: -2px;
+
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-right: none;
   border-radius: 0.5rem; /* Keep bottom-right rounded corner */
 }

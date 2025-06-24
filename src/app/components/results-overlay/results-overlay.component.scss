@@ -3,7 +3,7 @@
 .results-overlay {
   position: absolute;
   top: 0.25rem;
-  right: 0.25rem;
+  right: 45px;
   z-index: 1000;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
@@ -15,7 +15,7 @@
   height: fit-content;
   min-height: 18rem;
   overflow: visible;
-  border-radius: 0 0.5rem 0.5rem 0.5rem;
+  border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
 
@@ -48,15 +48,14 @@
   }
   .top-buttons {
     position: absolute;
+    right: -40px;
     top: -1px;
-    left: -2.5rem;
+    border-radius: 0 0.5rem 0.5rem 0;
     display: flex;
     flex-direction: column;
     z-index: 900;
     background: rgba(0, 0, 0, 0.7);
-    border-radius: 0.5rem 0 0 0.5rem;
     border: 1px solid rgb(255 255 255 / 40%);
-    border-right: none;
 
     .shuffle-toggle.active {
       color: cyan;
@@ -98,22 +97,12 @@
     margin-top: 0;
   }
   &.collapsed {
-    // When collapsed, keep position but only show the top-buttons
-    width: 2.5rem; // Width of just the button panel
-    height: auto;
+    width: 0;
     min-height: 0;
-    padding: 0;
-    border: none;
-    background: transparent;
-    backdrop-filter: none;
+    border-color: transparent;
 
     .top-buttons {
-      position: static;
-      margin: 0;
-      border-radius: 0.5rem;
-      border: none;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(0.5rem);
+      width: 2.5rem;
     }
 
     // Hide everything except top-buttons
