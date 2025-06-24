@@ -13,24 +13,30 @@
 
 .options-overlay {
   position: absolute;
-  top: 0.25rem;
-  left: 2.75rem; // shift overlay right so left-side tab remains in view
-  z-index: 1000;
+  // Mobile-first: position at a fixed pixel location that won't shift
+  top: calc(
+    50vh - 15rem
+  ); // Fixed position that doesn't depend on element height
+  left: 2.75rem; // Same as desktop to accommodate tab
+  z-index: 1001;
   background: rgba(0, 0, 0, 0.7);
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  max-height: calc(100vh - 10.5rem);
-  border-radius: 0 0.5rem 0.5rem 0; // square left edge corners for tab flush
+  border-radius: 0 0.5rem 0.5rem 0; // Keep tab-style border for consistency
   width: 20rem;
   backdrop-filter: blur(0.5rem);
   overflow: visible;
+
+  // Desktop and larger screens: position at top
+  @media (min-width: 601px) {
+    top: 0.25rem;
+  }
 
   form {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
   }
-
   .top-buttons {
     position: absolute;
     top: -1px;
@@ -108,7 +114,6 @@
     flex-direction: column;
     gap: 10px;
   }
-
   .last-scan-time {
     text-align: center;
     color: rgba(255, 255, 255, 0.7);
@@ -141,11 +146,6 @@
 }
 
 @media (max-width: 600px) {
-  .options-overlay {
-    display: flex !important;
-    flex-direction: column;
-  }
-
   // Hide all tooltips on mobile - direct approach
   .brightness-button-wrapper[data-tooltip].auto:hover::after {
     display: none !important;
@@ -165,12 +165,10 @@
   position: relative;
 }
 .brightness-button-wrapper[data-tooltip].auto:hover::after {
-  @include tooltip-visibility();
   content: attr(data-tooltip);
   position: absolute;
   left: calc(100% + 0.5rem);
   top: 50%;
-  transform: translateY(-50%);
   background: rgba(0, 0, 0, 0.9);
   color: white;
   padding: 0.5rem 0.75rem;
@@ -180,6 +178,9 @@
   z-index: 1001;
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(0.25rem);
+  transform: translateY(-50%);
+
+  @include tooltip-visibility();
 }
 
 // Hide the old explicit tooltip if still present
