@@ -909,4 +909,13 @@ export class ResultsOverlayComponent
       ? 'Disable military priority'
       : 'Enable military priority';
   }
+
+  @Output() windowViewToggle = new EventEmitter<boolean>();
+  showWindowView = true;
+
+  toggleWindowView() {
+    this.showWindowView = !this.showWindowView;
+    this.windowViewToggle.emit(this.showWindowView);
+    this.cdr.detectChanges();
+  }
 }

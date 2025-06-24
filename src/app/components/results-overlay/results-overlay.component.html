@@ -81,6 +81,17 @@
         <span class="military-badge">{{ militaryCount }}</span>
       </div>
       <!-- end .military-toggle-wrapper -->
+      <!-- Window view overlay toggle button -->
+      <app-button
+        class="window-view-toggle"
+        [icon]="showWindowView ? 'window_closed' : 'window_closed'"
+        type="tertiary"
+        size="medium"
+        ariaLabel="Toggle window view overlay"
+        [appTooltip]="showWindowView ? 'Hide window view' : 'Show window view'"
+        tooltipPosition="left"
+        (click)="toggleWindowView()"
+      ></app-button>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">

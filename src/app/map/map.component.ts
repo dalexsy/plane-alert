@@ -2899,4 +2899,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public get observerLon(): number {
     return this.currentLon;
   }
+
+  /** New state for window view visibility */
+  showWindowView = true;
+
+  /** Toggle window view overlay visibility */
+  onWindowViewToggle(show: boolean) {
+    this.showWindowView = show;
+    this.cdr.detectChanges();
+  }
 }

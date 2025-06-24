@@ -45,6 +45,7 @@
 
 <!-- Pass the set of active ICAOs to the results overlay -->
 <app-results-overlay
+  (windowViewToggle)="onWindowViewToggle($event)"
   [skyPlaneLog]="resultsOverlayComponent.skyPlaneLog"
   [airportPlaneLog]="resultsOverlayComponent.airportPlaneLog"
   [seenPlaneLog]="resultsOverlayComponent.seenPlaneLog"
@@ -200,6 +201,7 @@
 </div>
 
 <app-window-view-overlay
+  *ngIf="showWindowView"
   [windowViewPlanes]="windowViewPlanes"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [observerLat]="observerLat"

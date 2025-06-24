@@ -58,6 +58,11 @@ $text-shadow-color: #000;
   z-index: 1002; // Ensure planes container is on top
 }
 
+// Hide the window view overlay when this class is applied
+.window-view-overlay.hide-window-view {
+  display: none !important;
+}
+
 // =============================================================================
 // Sun Sky Gradient - Simulates atmospheric influence
 // =============================================================================
