@@ -903,7 +903,7 @@ export class ResultsOverlayComponent
     return this.nearestMode
       ? 'Disable nearest follow'
       : 'Enable nearest follow';
-  }  /** Get military priority toggle tooltip text */
+  } /** Get military priority toggle tooltip text */
   get militaryPriorityTooltip(): string {
     return this.militaryPriority
       ? 'Disable military priority'

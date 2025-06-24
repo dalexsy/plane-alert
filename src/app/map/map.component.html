@@ -65,8 +65,12 @@
 <app-temperature
   *ngIf="showDateTime"
   [resultsCollapsed]="resultsOverlayComponent.collapsed"
+  [windowViewHidden]="!showWindowView"
 ></app-temperature>
-<app-clock *ngIf="showDateTime"></app-clock>
+<app-clock
+  *ngIf="showDateTime"
+  [windowViewHidden]="!showWindowView"
+></app-clock>
 
 <div id="map"></div>
 

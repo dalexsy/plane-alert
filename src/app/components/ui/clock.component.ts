@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Input, Component, OnInit, OnDestroy } from '@angular/core';
 import { LocationContextService } from '../../services/location-context.service';
 import { Subscription } from 'rxjs';
 
@@ -9,6 +9,7 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./clock.component.scss'],
 })
 export class ClockComponent implements OnInit, OnDestroy {
+  @Input() windowViewHidden = false;
   currentTime = '';
   weekday = '';
   dayMonth = '';

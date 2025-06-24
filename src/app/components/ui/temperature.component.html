@@ -1,4 +1,8 @@
-<div *ngIf="!loading" class="temperature-container">
+<div
+  *ngIf="!loading"
+  class="temperature-container"
+  [class.window-view-hidden]="windowViewHidden"
+>
   <div class="temperature-row">
     <app-icon
       [icon]="weatherIcon"

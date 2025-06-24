@@ -23,6 +23,7 @@ export class TemperatureComponent implements OnInit, OnDestroy {
   @HostBinding('class.collapsed') get collapsed() {
     return this.resultsCollapsed;
   }
+  @Input() windowViewHidden = false;
   temperature: number | null = null;
   highTemp: number | null = null;
   lowTemp: number | null = null;
