@@ -534,4 +534,16 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     // Block all other characters
     event.preventDefault();
   }
+
+  onAddressFocus(event: FocusEvent): void {
+    // Only select all on mobile devices
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+    if (isMobile) {
+      const input = event.target as HTMLInputElement;
+      setTimeout(() => input.select(), 0); // Timeout ensures select after focus
+    }
+  }
 }

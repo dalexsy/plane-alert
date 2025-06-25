@@ -138,6 +138,7 @@
         [value]="currentAddress"
         (input)="currentAddress = addressInput.value"
         (keydown.enter)="onResolveAndUpdate()"
+        (focus)="onAddressFocus($event)"
       />
     </div>
     <div class="form-row">
