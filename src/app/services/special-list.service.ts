@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
+import { APP_BASE_HREF } from '@angular/common';
 
 @Injectable({
   providedIn: 'root',
@@ -19,7 +20,7 @@ export class SpecialListService {
   public readonly specialListUpdated$: Observable<void> =
     this.listUpdated.asObservable();
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {
     this.loadCustomList();
     this.loadSpecialList();
   }
@@ -51,8 +52,8 @@ export class SpecialListService {
   loadSpecialList(): Promise<void> {
     const cacheBuster = new Date().getTime();
     return this.http
-      .get(`/assets/special-icaos.json?_=${cacheBuster}`, {
-        responseType: 'text',
+      .get(`${this.baseHref}assets/special-icaos.json?_=${cacheBuster}`, {
+        responseType: 'text', 
       })
       .toPromise()
       .then((text: string | undefined) => {

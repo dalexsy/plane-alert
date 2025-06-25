@@ -1,7 +1,8 @@
 // filepath: src/app/services/unknown-list.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
+import { APP_BASE_HREF } from '@angular/common';
 
 @Injectable({
   providedIn: 'root',
@@ -13,15 +14,13 @@ export class UnknownListService {
   public readonly unknownListUpdated$: Observable<void> =
     this.listUpdated.asObservable();
 
-  constructor(private http: HttpClient) {
-    this.loadUnknownList();
-  }
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {}
 
   /** Load the list of unknown device ICAOs from JSON asset */
   loadUnknownList(): Promise<void> {
     const cacheBuster = new Date().getTime();
     return this.http
-      .get(`/assets/unknown-device-icaos.json?_=${cacheBuster}`, {
+      .get(`${this.baseHref}assets/unknown-device-icaos.json?_=${cacheBuster}`, {
         responseType: 'text',
       })
       .toPromise()

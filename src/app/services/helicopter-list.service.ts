@@ -1,7 +1,8 @@
 // src/app/services/helicopter-list.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
+import { APP_BASE_HREF } from '@angular/common';
 
 // Import static helicopter ICAO list to ensure synchronous loading
 import helicopterIcaosData from '../../assets/helicopter-icaos.json';
@@ -19,7 +20,7 @@ export class HelicopterListService {
   public readonly helicopterListUpdated$: Observable<void> =
     this.listUpdated.asObservable();
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {
     // Load asynchronously, but also apply static list immediately for window view
     this.loadHelicopterList();
     this.helicopterIcaos = new Set(
@@ -37,7 +38,7 @@ export class HelicopterListService {
     const cacheBuster = new Date().getTime();
 
     return this.http
-      .get(`/assets/helicopter-icaos.json?_=${cacheBuster}`, {
+      .get(`${this.baseHref}assets/helicopter-icaos.json?_=${cacheBuster}`, {
         responseType: 'text',
       })
       .toPromise()

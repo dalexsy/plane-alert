@@ -1,19 +1,20 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { APP_BASE_HREF } from '@angular/common';
 
 @Injectable({ providedIn: 'root' })
 export class MilitaryPrefixService {
   private prefixes: string[] = [];
   private loaded = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {}
 
   loadPrefixes(): Promise<void> {
     if (this.loaded) {
       return Promise.resolve();
     }
     return this.http
-      .get<string[]>('/assets/military-prefixes.json')
+      .get<string[]>(`${this.baseHref}assets/military-prefixes.json`)
       .toPromise()
       .then(list => {
         this.prefixes = (list || []).map(p => p.toUpperCase());
