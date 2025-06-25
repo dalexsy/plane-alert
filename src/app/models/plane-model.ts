@@ -1,5 +1,6 @@
 import * as L from 'leaflet';
 import { Plane } from '../types/plane';
+import { removeLeftMarkerFromPlane } from '../utils/plane-marker';
 
 // Position history entry with timestamp
 export interface PositionHistory {
@@ -124,10 +125,13 @@ export class PlaneModel implements Plane {
       this.historyTrailSegments.forEach((segment) => map.removeLayer(segment));
       this.historyTrailSegments = []; // Clear the array
     }
-  }
-
-  // Helper method to remove all visual elements from the map
+  } // Helper method to remove all visual elements from the map
   public removeVisuals(map: L.Map): void {
+    // Remove left marker if it exists
+    if (this.marker) {
+      removeLeftMarkerFromPlane(this.marker, map);
+    }
+
     this.marker?.remove();
     this.path?.remove();
     this.predictedPathArrowhead?.remove();

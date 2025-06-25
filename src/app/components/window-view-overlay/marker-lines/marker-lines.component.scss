@@ -2,7 +2,7 @@
 // Marker Lines Component - Boundary Line Markers
 // =============================================================================
 
-$vertical-line-width: 2px;
+$vertical-line-width: 1px;
 $balcony-color: #4caf50;
 $streetside-color: #2196f3;
 
@@ -12,7 +12,9 @@ $streetside-color: #2196f3;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: 0; // Push marker lines behind in 3D space
+  transform-style: preserve-3d; // Enable 3D transforms
+  transform: translateZ(-5px); // Move marker lines backward behind planes
   pointer-events: none;
 }
 

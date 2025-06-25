@@ -734,11 +734,11 @@ export class ResultsOverlayComponent
     });
   }
 
-  public collapsed = localStorage.getItem('resultsOverlayCollapsed') === 'true';
+  public collapsed: boolean = true; // Default to collapsed
 
   public toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
-    localStorage.setItem('resultsOverlayCollapsed', this.collapsed.toString());
+    this.settings.setResultsOverlayCollapsed(this.collapsed);
     this.cdr.detectChanges();
   } /** Toggle shuffle mode on/off */
   public toggleShuffle(): void {
@@ -903,10 +903,19 @@ export class ResultsOverlayComponent
     return this.nearestMode
       ? 'Disable nearest follow'
       : 'Enable nearest follow';
-  }  /** Get military priority toggle tooltip text */
+  } /** Get military priority toggle tooltip text */
   get militaryPriorityTooltip(): string {
     return this.militaryPriority
       ? 'Disable military priority'
       : 'Enable military priority';
+  }
+
+  @Output() windowViewToggle = new EventEmitter<boolean>();
+  showWindowView = true;
+
+  toggleWindowView() {
+    this.showWindowView = !this.showWindowView;
+    this.windowViewToggle.emit(this.showWindowView);
+    this.cdr.detectChanges();
   }
 }

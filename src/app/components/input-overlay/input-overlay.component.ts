@@ -9,6 +9,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
   OnDestroy,
+  OnInit,
   HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -19,6 +20,14 @@ import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
+import {
+  DistanceUnit,
+  getDistanceUnitLabel,
+  convertFromKm,
+  convertToKm,
+  formatDistance,
+} from '../../utils/units.util';
+import { LocationContextService } from '../../services/location-context.service';
 
 @Component({
   selector: 'app-input-overlay',
@@ -27,7 +36,7 @@ import { TooltipDirective } from '../../directives/tooltip.directive';
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
-export class InputOverlayComponent implements OnDestroy {
+export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() showAirportLabels: boolean = true;
   @Output() toggleAirportLabels = new EventEmitter<boolean>();
   @ViewChild('addressInput', { static: false })
@@ -53,25 +62,78 @@ export class InputOverlayComponent implements OnDestroy {
   /** Emit when zoom in button is clicked */
   @Output() zoomIn = new EventEmitter<void>();
   /** Emit when zoom out button is clicked */
-  @Output() zoomOut =
-    new EventEmitter<void>(); /** Whether to show view axes (cones) */
+  @Output() zoomOut = new EventEmitter<void>();
+  /** Emit when distance unit is toggled */
+  @Output() distanceUnitChanged = new EventEmitter<string>();
+  /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
   /** Whether to show altitude-colored tooltip borders */
   @Input() showAltitudeBorders = false;
   @Output() altitudeBordersChange = new EventEmitter<boolean>();
-
+  /** Whether animations are enabled */
+  @Input() animationsEnabled = true;
+  @Output() animationsEnabledChange = new EventEmitter<boolean>();
   scanButtonText = '';
   private sub!: Subscription;
+  private isUserEditingRadius = false;
   @HostBinding('class.collapsed')
-  collapsed: boolean = localStorage.getItem('inputOverlayCollapsed') === 'true';
+  collapsed: boolean = true; // Default to collapsed
   public currentAddress: string = '';
   public showBrightnessTooltip = false;
+  public lastScanTime: Date | null = null;
+
+  /** Get the current radius value formatted for display */
+  get displayRadiusValue(): string {
+    const displayValue = this.getDisplayRadius();
+    return formatDistance(displayValue);
+  }
+
+  /** Get the current interval value formatted for display */
+  get displayIntervalValue(): string {
+    return this.settings.getFormattedIntervalDisplay();
+  }
+
+  /** Trigger change detection to update display values */
+  public refreshDisplayValues(): void {
+    this.cdr.detectChanges();
+  }
 
   constructor(
     public settings: SettingsService,
     private cdr: ChangeDetectorRef,
-    private scanService: ScanService
+    private scanService: ScanService,
+    private locationContext: LocationContextService // Inject the service
   ) {}
+  ngOnInit(): void {
+    // Subscribe to address changes
+    this.locationContext.address$.subscribe((address) => {
+      this.currentAddress = address || '';
+      this.cdr.detectChanges();
+    });
+    // Subscribe to settings changes that might affect input display
+    this.sub = combineLatest([
+      this.scanService.countdown$,
+      this.scanService.isActive$,
+    ]).subscribe(([count, active]) => {
+      this.scanButtonText = active
+        ? `Update now (next update in ${this.formatCountdown(count)})`
+        : `Start scanning at location`;
+      this.cdr.detectChanges();
+    });
+    // Use SettingsService for collapsed state
+    this.collapsed = this.settings.inputOverlayCollapsed;
+  }
+
+  /** Format countdown time in a user-friendly format */
+  private formatCountdown(seconds: number): string {
+    if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes}m ${remainingSeconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
 
   /** Emit when brightness toggle button is clicked */
   onBrightnessToggle(): void {
@@ -86,34 +148,13 @@ export class InputOverlayComponent implements OnDestroy {
   onZoomOut(): void {
     this.zoomOut.emit();
   }
-
   ngAfterViewInit(): void {
-    this.sub = combineLatest([
-      this.scanService.countdown$,
-      this.scanService.isActive$,
-    ]).subscribe(([count, active]) => {
-      this.scanButtonText = active
-        ? `Update now (next update in ${count}s)`
-        : `Start scanning at location`;
-      this.cdr.detectChanges();
-    });
-
-    // Only set input values if not collapsed and refs exist
-    if (!this.collapsed) {
-      if (this.searchRadiusInputRef?.nativeElement) {
-        const radius = this.settings.radius ?? 5;
-        this.searchRadiusInputRef.nativeElement.value = radius.toString();
-      }
-      if (this.checkIntervalInputRef?.nativeElement) {
-        const displayedInterval = this.settings.interval.toString();
-        this.checkIntervalInputRef.nativeElement.value = displayedInterval;
-      }
-    }
+    // No longer need to manually set input values since we use property binding
   }
 
   toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
-    localStorage.setItem('inputOverlayCollapsed', this.collapsed.toString());
+    this.settings.setInputOverlayCollapsed(this.collapsed);
     this.cdr.detectChanges();
   }
 
@@ -124,29 +165,77 @@ export class InputOverlayComponent implements OnDestroy {
   onResolveAndUpdate(event?: Event): void {
     // Prevent the browser from reloading the page on form submit
     event?.preventDefault();
+
+    // Make sure to save the current radius value in the correct unit before proceeding
+    this.processRadiusChange();
+    // Update the last scan time
+    this.lastScanTime = new Date();
     // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
   }
+
   onUseCurrentLocation(): void {
     this.useCurrentLocation.emit();
   }
-
-  onRadiusChange(): void {
-    const val = this.searchRadiusInputRef.nativeElement.valueAsNumber;
-    if (!isNaN(val)) {
-      this.settings.setRadius(val);
-    }
+  onRadiusFocus(): void {
+    this.isUserEditingRadius = true;
   }
-
-  onIntervalChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const seconds = input.valueAsNumber;
-    if (isNaN(seconds)) {
+  onRadiusBlur(): void {
+    this.isUserEditingRadius = false;
+    this.validateAndFixRadius();
+    this.processRadiusChange();
+  } /** Validate radius input and fix if empty or invalid */
+  private validateAndFixRadius(): void {
+    if (!this.searchRadiusInputRef?.nativeElement) {
       return;
     }
-    const newInterval = seconds;
-    this.settings.interval = newInterval;
-    this.scanService.updateInterval(newInterval);
+
+    const input = this.searchRadiusInputRef.nativeElement;
+    const value = input.value.trim();
+
+    // If empty or invalid, trigger change detection to restore value binding
+    if (!value || isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
+      this.cdr.detectChanges();
+    }
+  }
+  processRadiusChange(): void {
+    if (!this.searchRadiusInputRef?.nativeElement) {
+      return;
+    }
+
+    const stringValue = this.searchRadiusInputRef.nativeElement.value;
+    const val = parseFloat(stringValue);
+    const currentUnit = this.settings.distanceUnit;
+
+    if (!isNaN(val) && val > 0) {
+      // Convert displayed value to kilometers for storage
+      const unit = currentUnit as DistanceUnit;
+      const radiusInKm = convertToKm(val, unit);
+      this.settings.setRadius(radiusInKm);
+    }
+  }
+  onIntervalChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.valueAsNumber;
+    if (isNaN(value)) {
+      return;
+    }
+    // Use the new method that handles unit conversion
+    this.settings.setIntervalFromDisplayUnit(value);
+    this.scanService.updateInterval(this.settings.interval);
+  } /** Toggle between seconds and minutes for scan interval */
+  toggleTimeUnit(): void {
+    const newUnit =
+      this.settings.timeUnit === 'seconds' ? 'minutes' : 'seconds';
+    this.settings.setTimeUnit(newUnit);
+
+    // Trigger change detection to update the input display
+    this.cdr.detectChanges();
+  }
+
+  /** Get the current time unit label for the button */
+  getTimeUnitLabel(): string {
+    return this.settings.timeUnit === 'seconds' ? 'sec' : 'min';
   }
 
   onSetHome(): void {
@@ -172,6 +261,13 @@ export class InputOverlayComponent implements OnDestroy {
     this.showAirportLabels = !this.showAirportLabels;
     this.toggleAirportLabels.emit(this.showAirportLabels);
   }
+
+  onToggleAnimations(): void {
+    // Toggle the internal flag and emit new state
+    this.animationsEnabled = !this.animationsEnabled;
+    this.animationsEnabledChange.emit(this.animationsEnabled);
+  }
+
   /** Get brightness button icon based on current state */
   get brightnessIcon(): string {
     if (!this.brightnessState) return 'brightness_empty';
@@ -277,11 +373,9 @@ export class InputOverlayComponent implements OnDestroy {
     return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
   }
 
-  /** Get altitude borders toggle tooltip text */
-  get altitudeBordersTooltip(): string {
-    return this.showAltitudeBorders
-      ? 'Hide altitude-colored borders'
-      : 'Show altitude-colored borders';
+  /** Get animations toggle tooltip text */
+  get animationsTooltip(): string {
+    return this.animationsEnabled ? 'Disable animations' : 'Enable animations';
   }
 
   /** Get force scan tooltip text */
@@ -303,6 +397,14 @@ export class InputOverlayComponent implements OnDestroy {
     return 'Go to home';
   }
 
+  /** Get formatted last scan time text */
+  get lastScanTimeText(): string {
+    if (!this.lastScanTime) {
+      return 'No scans yet';
+    }
+    return this.lastScanTime.toLocaleTimeString();
+  }
+
   /** Get brightness status text for custom tooltip */
   get brightnessStatusText(): string {
     if (!this.brightnessState) return '';
@@ -320,7 +422,128 @@ export class InputOverlayComponent implements OnDestroy {
         this.brightnessState.brightness * 100
       )}%)`;
     }
-
     return '';
+  }
+
+  /** Get distance unit label for display */
+  getDistanceUnitLabel(): string {
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    return getDistanceUnitLabel(unit);
+  }
+  /** Get display radius value converted to current unit */ getDisplayRadius(): number {
+    const radiusKm = this.settings.radius ?? 5;
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    const converted = convertFromKm(radiusKm, unit);
+    // Round to 2 decimal places for precision, then to 1 for display
+    const precise = Math.round(converted * 100) / 100;
+    const rounded = Math.round(precise * 10) / 10;
+    return rounded;
+  }
+
+  /** Toggle between kilometers and miles */
+  toggleDistanceUnit(): void {
+    const currentUnit = this.settings.distanceUnit;
+    const newUnit = currentUnit === 'km' ? 'miles' : 'km';
+
+    this.settings.setDistanceUnit(newUnit);
+
+    // Manually trigger change detection to ensure all UI updates
+    this.cdr.detectChanges();
+
+    // Emit the unit change event so parent component can react
+    this.distanceUnitChanged.emit(newUnit);
+  }
+  /**
+   * Handle input events on the radius field.
+   * Ensures periods are used as decimal separators instead of commas.
+   */
+  onRadiusInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let value = input.value;
+
+    // Replace any commas with periods
+    const normalizedValue = value.replace(/,/g, '.');
+
+    // Update the input if we made changes
+    if (input.value !== normalizedValue) {
+      const cursorPosition = input.selectionStart;
+      input.value = normalizedValue;
+      // Restore cursor position
+      if (cursorPosition !== null) {
+        input.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }
+  }
+  /**
+   * Handle keydown events on the radius field.
+   * Prevents comma input and converts it to period.
+   * Also validates that only valid decimal number characters are entered.
+   */
+  onRadiusKeydown(event: KeyboardEvent): void {
+    const allowedKeys = [
+      'Backspace',
+      'Delete',
+      'Tab',
+      'Escape',
+      'Enter',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Home',
+      'End',
+    ];
+
+    // Allow control keys
+    if (allowedKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    // If user types a comma, convert it to a period
+    if (event.key === ',') {
+      event.preventDefault();
+      const input = event.target as HTMLInputElement;
+      const cursorPosition = input.selectionStart || 0;
+      const currentValue = input.value;
+
+      // Only add period if there isn't one already
+      if (!currentValue.includes('.')) {
+        const newValue =
+          currentValue.slice(0, cursorPosition) +
+          '.' +
+          currentValue.slice(cursorPosition);
+        input.value = newValue;
+        input.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
+      }
+      return;
+    }
+
+    // Allow digits
+    if (/^[0-9]$/.test(event.key)) {
+      return;
+    }
+
+    // Allow period (decimal point) if there isn't one already
+    if (
+      event.key === '.' &&
+      !(event.target as HTMLInputElement).value.includes('.')
+    ) {
+      return;
+    }
+
+    // Block all other characters
+    event.preventDefault();
+  }
+
+  onAddressFocus(event: FocusEvent): void {
+    // Only select all on mobile devices
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+    if (isMobile) {
+      const input = event.target as HTMLInputElement;
+      setTimeout(() => input.select(), 0); // Timeout ensures select after focus
+    }
   }
 }

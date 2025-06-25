@@ -1,20 +1,20 @@
-<app-closest-plane-overlay
-  *ngIf="closestPlane"
-  [plane]="closestPlane"
-  [operator]="closestOperator"
-  [secondsAway]="closestSecondsAway"
-  [velocity]="closestVelocity"
-  (selectPlane)="followNearestPlane($event)"
-  [isSelected]="closestPlane.icao === highlightedPlaneIcao"
-></app-closest-plane-overlay>
+<div class="overlay-container">
+  <app-closest-plane-overlay
+    *ngIf="closestPlane"
+    [plane]="closestPlane"
+    [operator]="closestOperator"
+    (selectPlane)="followNearestPlane($event)"
+    [isSelected]="closestPlane.icao === highlightedPlaneIcao"
+  ></app-closest-plane-overlay>
 
-<app-location-overlay
-  [plane]="closestPlane"
-  [street]="locationStreet"
-  [district]="locationDistrict"
-  (selectPlane)="followNearestPlane($event)"
-  [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
-></app-location-overlay>
+  <app-location-overlay
+    [plane]="closestPlane"
+    [street]="locationStreet"
+    [district]="locationDistrict"
+    (selectPlane)="followNearestPlane($event)"
+    [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
+  ></app-location-overlay>
+</div>
 
 <app-input-overlay
   (resolveAndUpdate)="resolveAndUpdateFromAddress()"
@@ -39,10 +39,13 @@
   [showAltitudeBorders]="showAltitudeBorders"
   (toggleAirportLabels)="onToggleAirportLabels()"
   (altitudeBordersChange)="onToggleAltitudeBorders($event)"
+  [animationsEnabled]="animationsEnabled"
+  (animationsEnabledChange)="onToggleAnimations($event)"
 ></app-input-overlay>
 
 <!-- Pass the set of active ICAOs to the results overlay -->
 <app-results-overlay
+  (windowViewToggle)="onWindowViewToggle($event)"
   [skyPlaneLog]="resultsOverlayComponent.skyPlaneLog"
   [airportPlaneLog]="resultsOverlayComponent.airportPlaneLog"
   [seenPlaneLog]="resultsOverlayComponent.seenPlaneLog"
@@ -62,8 +65,12 @@
 <app-temperature
   *ngIf="showDateTime"
   [resultsCollapsed]="resultsOverlayComponent.collapsed"
+  [windowViewHidden]="!showWindowView"
 ></app-temperature>
-<app-clock *ngIf="showDateTime"></app-clock>
+<app-clock
+  *ngIf="showDateTime"
+  [windowViewHidden]="!showWindowView"
+></app-clock>
 
 <div id="map"></div>
 
@@ -80,6 +87,7 @@
 <div
   class="angle-overlay-container"
   [class.collapsed]="resultsOverlayComponent.collapsed"
+  [class.window-view-closed]="!showWindowView"
 >
   <!-- Sun angle indicator overlay -->
   <div
@@ -133,7 +141,7 @@
               display: block;
               margin: 0 auto;
             "
-            [style.transform]="'rotate(90deg)'"
+            [style.transform]="'rotate(-90deg)'"
           >
             <defs>
               <mask id="moon-phase-mask">
@@ -198,11 +206,13 @@
 </div>
 
 <app-window-view-overlay
+  *ngIf="showWindowView"
   [windowViewPlanes]="windowViewPlanes"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [observerLat]="observerLat"
   [observerLon]="observerLon"
   [isAtHome]="isAtHome"
   [showAltitudeBorders]="showAltitudeBorders"
+  [animationsEnabled]="animationsEnabled"
   (selectPlane)="followNearestPlane($event)"
 ></app-window-view-overlay>

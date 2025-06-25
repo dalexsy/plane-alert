@@ -1,6 +1,7 @@
 /* src/app/utils/plane-marker.ts */
 import * as L from 'leaflet';
 import { getIconPathForModel } from './plane-icons';
+import { OperatorTooltipService } from '../services/operator-tooltip.service';
 import SunCalc from 'suncalc';
 
 // Smooth lerping animation function
@@ -53,7 +54,7 @@ export function createOrUpdatePlaneMarker(
   extraStyle: string,
   isNew: boolean,
   isGrounded: boolean,
-  tooltip: string,
+  tooltipContent: string,
   planeIcon: string = '',
   isMilitary: boolean = false,
   model: string = '',
@@ -63,15 +64,18 @@ export function createOrUpdatePlaneMarker(
   altitude: number | null = null,
   followed: boolean = false,
   scanInterval: number = 10, // Scan interval in seconds for smooth transition timing
-  icao: string = '' // ICAO identifier for debugging
+  icao: string = '', // ICAO identifier for debugging
+  callsign: string = '', // Callsign for glider icon logic
+  operatorTooltipService?: OperatorTooltipService, // Service for operator-specific tooltips
+  planeData?: any, // Complete plane data for operator checks
+  animationsEnabled: boolean = true // Whether animations are enabled
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Use centralized helicopter identification via isCustomHelicopter parameter
   const isCopter = isCustomHelicopter;
-
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter
     ? { path: '', iconType: 'copter' as const }
-    : getIconPathForModel(model);
+    : getIconPathForModel(model, callsign, altitude || undefined);
   // Only render inline SVG for non-helicopters that are not unknown devices
   const iconInner =
     !isCopter && !isUnknown
@@ -127,21 +131,45 @@ export function createOrUpdatePlaneMarker(
     html: markerHtml,
   });
 
-  // Define tooltip options with the correct classes and ensure offset is a proper PointTuple
-  const tooltipOptions: L.TooltipOptions = {
+  // Get left tooltip content from operator service
+  const leftTooltipContent =
+    (operatorTooltipService as OperatorTooltipService | undefined) && planeData
+      ? operatorTooltipService!.getLeftTooltipContent(planeData)
+      : '&nbsp;';
+
+  // Get additional operator classes
+  const operatorClasses =
+    operatorTooltipService && planeData
+      ? operatorTooltipService.getTooltipClasses(planeData)
+      : '';
+
+  // Define tooltip options for RIGHT side (main tooltip with content)
+  const rightTooltipOptions: L.TooltipOptions = {
     permanent: true,
     direction: 'right',
     offset: isGrounded ? L.point(-10, 0) : L.point(10, 0),
-    interactive: true, // enable pointer events on tooltip
+    interactive: true,
     className: `plane-tooltip ${isGrounded ? 'grounded-plane-tooltip' : ''} ${
       isNew ? 'new-plane-tooltip' : ''
     } ${isMilitary ? 'military-plane-tooltip' : ''} ${
       isSpecial ? 'special-plane-tooltip' : ''
-    }${followed ? ' followed-plane-tooltip' : ''}`,
-    pane: 'tooltipPane', // Ensure tooltip is in the tooltipPane (typically above markerPane)
+    }${followed ? ' followed-plane-tooltip' : ''} ${operatorClasses}`,
+    pane: 'tooltipPane',
   };
 
-  // Helper function to manage bringing marker and tooltip to front
+  // Define tooltip options for LEFT side (minimal/empty tooltip)
+  const leftTooltipOptions: L.TooltipOptions = {
+    permanent: true,
+    direction: 'left',
+    offset: isGrounded ? L.point(10, 0) : L.point(-10, 0),
+    interactive: false,
+    className: `plane-tooltip ${isGrounded ? 'grounded-plane-tooltip' : ''} ${
+      isNew ? 'new-plane-tooltip' : ''
+    } ${isMilitary ? 'military-plane-tooltip' : ''} ${
+      isSpecial ? 'special-plane-tooltip' : ''
+    }${followed ? ' followed-plane-tooltip' : ''} ${operatorClasses}`,
+    pane: 'tooltipPane',
+  }; // Helper function to manage bringing marker and tooltip to front
   const manageZIndex = (markerInstance: L.Marker, bringForward: boolean) => {
     const offset = bringForward ? 10000 : 0; // High offset for marker
     const tooltipZIndex = bringForward ? '20000' : ''; // Even higher z-index for tooltip
@@ -154,18 +182,78 @@ export function createOrUpdatePlaneMarker(
       // Directly style the tooltip element to be above other panes/elements
       tooltipEl.style.zIndex = tooltipZIndex;
     }
+
+    // Also manage left marker if it exists
+    const leftMarker = (markerInstance as any).__leftMarker;
+    if (leftMarker) {
+      leftMarker.setZIndexOffset(offset);
+      const leftTooltip = leftMarker.getTooltip();
+      const leftTooltipEl = leftTooltip?.getElement();
+      if (leftTooltipEl) {
+        leftTooltipEl.style.zIndex = tooltipZIndex;
+      }
+    }
+  };
+  // Helper function to create a left marker with tooltip
+  const createLeftMarker = (markerInstance: L.Marker) => {
+    // Only create left marker if main marker is on the map
+    if (!map.hasLayer(markerInstance)) {
+      return null;
+    }
+
+    // Remove existing left marker if any
+    removeLeftMarker(markerInstance);
+
+    // Create invisible icon for left marker
+    const invisibleIcon = L.divIcon({
+      className: 'invisible-marker',
+      html: '',
+      iconSize: [1, 1],
+    });
+
+    // Create left marker at same position
+    const leftMarker = L.marker(markerInstance.getLatLng(), {
+      icon: invisibleIcon,
+    });
+    leftMarker.bindTooltip(leftTooltipContent, leftTooltipOptions);
+    leftMarker.addTo(map);
+
+    // Store reference
+    (markerInstance as any).__leftMarker = leftMarker;
+
+    // Sync position when main marker moves
+    const syncPosition = () => {
+      leftMarker.setLatLng(markerInstance.getLatLng());
+    };
+    markerInstance.on('move', syncPosition);
+    (markerInstance as any).__syncLeftMarker = syncPosition;
+
+    return leftMarker;
+  };
+
+  // Helper function to remove left marker
+  const removeLeftMarker = (markerInstance: L.Marker) => {
+    const leftMarker = (markerInstance as any).__leftMarker;
+    const syncFn = (markerInstance as any).__syncLeftMarker;
+
+    if (leftMarker) {
+      map.removeLayer(leftMarker);
+      delete (markerInstance as any).__leftMarker;
+    }
+    if (syncFn) {
+      markerInstance.off('move', syncFn);
+      delete (markerInstance as any).__syncLeftMarker;
+    }
   };
   if (oldMarker) {
     // Get the current position for smooth interpolation
     const currentLatLng = oldMarker.getLatLng();
-    const newLatLng = L.latLng(lat, lon);
-
-    // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
+    const newLatLng = L.latLng(lat, lon); // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
     // Make this more sensitive to catch smaller movements
     const latDiff = Math.abs(currentLatLng.lat - lat);
     const lngDiff = Math.abs(currentLatLng.lng - lon);
     const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
-    if (hasPositionChanged) {
+    if (hasPositionChanged && animationsEnabled) {
       // Calculate animation duration: use 95% of scan interval for seamless movement
       // This matches the window view animation timing to prevent delays/pauses
       const animationDuration = Math.max(2, scanInterval * 0.95) * 1000; // Convert to milliseconds
@@ -178,7 +266,7 @@ export function createOrUpdatePlaneMarker(
         animationDuration
       );
     } else {
-      // For planes that haven't moved significantly, update position immediately
+      // For planes that haven't moved significantly or animations are disabled, update position immediately
       oldMarker.setLatLng([lat, lon]);
     }
     oldMarker.setIcon(icon);
@@ -191,13 +279,17 @@ export function createOrUpdatePlaneMarker(
     } else {
       // Reset z-index for non-followed planes
       oldMarker.setZIndexOffset(0);
-    }
-
-    // Remove old tooltip and create a new one with updated classes/options
+    } // Remove old tooltip and create a new one with updated classes/options
     if (oldMarker.getTooltip()) {
       oldMarker.unbindTooltip();
     }
-    oldMarker.bindTooltip(tooltip, tooltipOptions);
+    oldMarker.bindTooltip(tooltipContent, rightTooltipOptions);
+    // Only retain left tooltip marker if there is content
+    if (leftTooltipContent) {
+      createLeftMarker(oldMarker);
+    } else {
+      removeLeftMarker(oldMarker);
+    }
 
     // --- Set followed style immediately ---
     // if (followed) {
@@ -265,22 +357,16 @@ export function createOrUpdatePlaneMarker(
     return { marker: oldMarker, isNewMarker: false };
   } else {
     const marker = L.marker([lat, lon], { icon });
-    marker.bindTooltip(tooltip, tooltipOptions);
+    marker.bindTooltip(tooltipContent, rightTooltipOptions);
     marker.addTo(map);
 
-    // --- Set followed style immediately ---
-    // if (followed) {
-    //   const markerEl = marker.getElement();
-    //   if (markerEl) {
-    //     // markerEl.style.borderColor = '#00ffff'; // Handled by SCSS
-    //     // markerEl.style.color = '#00ffff'; // Handled by SCSS
-    //   }
-    //   const tooltipEl = marker.getTooltip()?.getElement();
-    //   if (tooltipEl) {
-    //     // tooltipEl.style.borderColor = '#00ffff'; // Handled by SCSS
-    //     // tooltipEl.style.color = '#00ffff'; // Handled by SCSS
-    //   }
-    // }
+    // Only create left tooltip if content is non-empty
+    if (leftTooltipContent) {
+      createLeftMarker(marker);
+    } else {
+      // Ensure no leftover left marker exists
+      removeLeftMarker(marker);
+    }
 
     // --- Event Handling for New Markers ---
     const bringForwardHandler = () => manageZIndex(marker, true);
@@ -325,6 +411,22 @@ export function createOrUpdatePlaneMarker(
     // --- End Event Handling ---
 
     return { marker, isNewMarker: true };
+  }
+} // End of createOrUpdatePlaneMarker function
+
+// Export function to clean up left markers for external use
+export function removeLeftMarkerFromPlane(marker: L.Marker, map: L.Map): void {
+  const leftMarker = (marker as any).__leftMarker;
+  const syncFn = (marker as any).__syncLeftMarker;
+
+  if (leftMarker) {
+    map.removeLayer(leftMarker);
+    delete (marker as any).__leftMarker;
+  }
+
+  if (syncFn) {
+    marker.off('move', syncFn);
+    delete (marker as any).__syncLeftMarker;
   }
 }
 

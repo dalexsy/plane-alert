@@ -5,6 +5,7 @@ import {
   EventEmitter,
   OnChanges,
   SimpleChanges,
+  ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WindowViewPlane } from '../window-view-overlay.component';
@@ -13,6 +14,8 @@ import { PlaneStyleService } from '../../../services/plane-style.service';
 import { FlagCallsignComponent } from '../../flag-callsign/flag-callsign.component';
 import { calculateTiltAngle } from '../../../utils/vertical-rate.util';
 import { TextUtils } from '../../../utils/text-utils';
+import { OperatorTooltipService } from '../../../services/operator-tooltip.service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-aircraft-container',
@@ -20,6 +23,7 @@ import { TextUtils } from '../../../utils/text-utils';
   imports: [CommonModule, FlagCallsignComponent],
   templateUrl: './aircraft-container.component.html',
   styleUrl: './aircraft-container.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class AircraftContainerComponent implements OnChanges {
   @Input() aircraftPlanes: WindowViewPlane[] = [];
@@ -27,14 +31,23 @@ export class AircraftContainerComponent implements OnChanges {
   @Input() showAltitudeBorders: boolean = false;
   @Input() skyBottomColor: string = 'rgb(135, 206, 235)'; // Default horizon color
   @Input() skyTopColor: string = 'rgb(25, 25, 112)'; // Default zenith color
-  @Output() selectPlane = new EventEmitter<WindowViewPlane>(); // Cache for altitude border styles to avoid recalculation
+  @Output() selectPlane = new EventEmitter<WindowViewPlane>();
+  // Cache for altitude border styles to avoid recalculation
   private altitudeBorderCache = new Map<string, { [key: string]: string }>();
   private labelClassCache = new Map<string, string>();
   private readonly MAX_CACHE_SIZE = 1000; // Prevent memory leaks
+
   constructor(
     public altitudeColor: AltitudeColorService,
-    public planeStyle: PlaneStyleService
-  ) {}
+    public planeStyle: PlaneStyleService,
+    public operatorTooltipService: OperatorTooltipService,
+    private sanitizer: DomSanitizer
+  ) {
+    // Expose debug function to window for console debugging
+    if (typeof window !== 'undefined') {
+      (window as any).debugClosePlanes = () => this.debugClosePlanes();
+    }
+  }
   ngOnChanges(changes: SimpleChanges): void {
     // Clear caches when showAltitudeBorders changes or when planes data changes
     if (changes['showAltitudeBorders'] || changes['aircraftPlanes']) {
@@ -341,14 +354,16 @@ export class AircraftContainerComponent implements OnChanges {
     return result;
   }
 
-  /** Get CSS classes for plane labels including altitude border class */
-  getLabelClasses(plane: WindowViewPlane): string {
+  /** Get CSS classes for plane labels including altitude border class */ getLabelClasses(
+    plane: WindowViewPlane
+  ): string {
     // Create a more efficient cache key using only the essential properties
     const hasDetails =
       plane.distanceKm != null &&
       plane.distanceKm <= 10 &&
-      (plane.operator || plane.model) &&
-      !plane.isGrounded;
+      !plane.isGrounded &&
+      // Show tooltip style if: has operator/model data OR is very close (within 3km)
+      (plane.operator || plane.model || plane.distanceKm <= 3);
     const isFollowed = plane.icao === this.highlightedPlaneIcao;
     const hasAltitudeBorder =
       hasDetails && this.showAltitudeBorders && plane.altitude;
@@ -496,5 +511,50 @@ export class AircraftContainerComponent implements OnChanges {
 
     // Return opacity: close planes = 1.0, distant planes fade to 0.3
     return Math.max(0.1, 1 - atmosphericIntensity * 0.7);
+  }
+  /**
+   * Get operator logo content for window view tooltip
+   */ getOperatorLogoContent(plane: WindowViewPlane): SafeHtml {
+    // Convert plane to the format expected by OperatorTooltipService
+    const planeData = {
+      operator: plane.operator || '',
+      origin: plane.origin || '', // origin is used as country in window view
+      isMilitary: plane.isMilitary || false,
+      callsign: plane.callsign || '',
+      icao: plane.icao || '',
+      lat: plane.lat,
+      lon: plane.lon,
+    };
+    const logoHtml =
+      this.operatorTooltipService.getLeftTooltipContent(planeData);
+    return this.sanitizer.bypassSecurityTrustHtml(logoHtml);
+  }
+  /**
+   * Check if plane should show operator logo tooltip
+   */
+  shouldShowOperatorLogo(plane: WindowViewPlane): boolean {
+    // Use the same logic as the operator tooltip service
+    const planeData = {
+      operator: plane.operator || '',
+      origin: plane.origin || '',
+      isMilitary: plane.isMilitary || false,
+      callsign: plane.callsign || '',
+      icao: plane.icao || '',
+      lat: plane.lat,
+      lon: plane.lon,
+    };
+
+    return this.operatorTooltipService.getSymbolConfig(planeData) !== null;
+  }
+
+  /** Debug function to analyze planes within 10km */
+  debugClosePlanes(): void {
+    const closePlanes = this.aircraftPlanes.filter(
+      (plane) =>
+        plane.distanceKm != null &&
+        plane.distanceKm <= 10 &&
+        !plane.isMarker &&
+        !plane.isCelestial
+    );
   }
 }

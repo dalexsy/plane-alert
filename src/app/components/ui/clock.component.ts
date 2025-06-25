@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Input, Component, OnInit, OnDestroy } from '@angular/core';
 import { LocationContextService } from '../../services/location-context.service';
 import { Subscription } from 'rxjs';
 
@@ -9,6 +9,7 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./clock.component.scss'],
 })
 export class ClockComponent implements OnInit, OnDestroy {
+  @Input() windowViewHidden = false;
   currentTime = '';
   weekday = '';
   dayMonth = '';
@@ -47,9 +48,12 @@ export class ClockComponent implements OnInit, OnDestroy {
       day: 'numeric',
       month: 'long',
     });
-    this.currentTime = locationTime.toLocaleTimeString([], {
+    // Use default locale, only hour and minute, strip AM/PM
+    let timeString = locationTime.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
     });
+    timeString = timeString.replace(/\s*AM|\s*PM|\s*a\.m\.|\s*p\.m\./gi, '');
+    this.currentTime = timeString.trim();
   }
 }

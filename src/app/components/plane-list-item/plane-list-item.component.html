@@ -128,7 +128,7 @@
       >
         navigation
       </span>
-      <span>{{ distanceKm | number : "1.1-1" }} km</span>
+      <span>{{ distanceKm | number : "1.1-1" }} {{ distanceUnit }}</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">
@@ -155,6 +155,21 @@
     ></app-button>
     <!-- Operator: show 'Unknown' when operator is missing -->
     <span class="operator" [ngClass]="{ 'unknown-operator': !plane.operator }">
+      <!-- Logo placeholder for layout consistency -->
+      <span class="operator-logo">
+        <ng-container *ngIf="operatorSymbolConfig">
+          <span class="operator-symbol">
+            <img
+              [src]="
+                'assets/operator-logos/' + operatorSymbolConfig.key + '.svg'
+              "
+              [alt]="operatorSymbolConfig.key"
+              width="16"
+              height="16"
+            />
+          </span>
+        </ng-container>
+      </span>
       {{ plane.operator || "Unknown" }}
     </span>
   </span>

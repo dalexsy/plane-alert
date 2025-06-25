@@ -1,7 +1,7 @@
 <!-- src/app/components/input-overlay/input-overlay.component.html -->
 <div class="options-overlay" [class.collapsed]="collapsed">
   <div class="top-buttons">
-    <app-tab side="right">
+    <app-tab side="left">
       <app-button
         class="collapse-toggle"
         [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
@@ -9,6 +9,7 @@
         size="medium"
         [ariaLabel]="collapseTooltip"
         [appTooltip]="collapseTooltip"
+        tooltipPosition="right"
         (click)="toggleCollapsed()"
       ></app-button>
       <app-button
@@ -71,6 +72,16 @@
         [appTooltip]="viewAxesTooltip"
         (click)="coneVisibilityChange.emit(!showViewAxes)"
       ></app-button>
+      <!-- Animations toggle button -->
+      <app-button
+        class="toggle-animations"
+        [icon]="animationsEnabled ? 'motion_photos_paused' : 'motion_play'"
+        type="tertiary"
+        size="medium"
+        [ariaLabel]="animationsTooltip"
+        [appTooltip]="animationsTooltip"
+        (click)="onToggleAnimations()"
+      ></app-button>
       <app-button
         class="go-home"
         icon="home"
@@ -78,7 +89,6 @@
         size="medium"
         [ariaLabel]="goHomeTooltip"
         [appTooltip]="goHomeTooltip"
-        tooltipPosition="left"
         (click)="onGoToHome()"
       ></app-button>
       <!-- Force scan button -->
@@ -119,43 +129,72 @@
   >
     <div class="form-group">
       <label for="address">Address</label>
-      <div *ngIf="currentAddress" class="current-address">
-        Current: {{ currentAddress }}
-      </div>
       <input
         #addressInput
         type="text"
         autocomplete="off"
         id="address"
         placeholder="Enter address"
+        [value]="currentAddress"
+        (input)="currentAddress = addressInput.value"
         (keydown.enter)="onResolveAndUpdate()"
+        (focus)="onAddressFocus($event)"
       />
     </div>
-    <div class="form-group">
-      <label for="searchRadius">Search Radius (km):</label>
-      <input
-        #searchRadiusInput
-        type="number"
-        autocomplete="off"
-        id="searchRadius"
-        placeholder="Enter search radius (km)"
-        step="any"
-        [value]="settings.radius || 5"
-        (keydown.enter)="onResolveAndUpdate()"
-      />
-    </div>
-    <div class="form-group">
-      <label for="checkInterval">Check Interval (seconds):</label>
-      <input
-        #checkIntervalInput
-        type="number"
-        autocomplete="off"
-        id="checkInterval"
-        placeholder="Enter check interval (seconds)"
-        step="any"
-        [value]="settings.interval"
-        (change)="onIntervalChange($event)"
-      />
+    <div class="form-row">
+      <div class="form-group">
+        <label for="searchRadius">Search Radius</label>
+        <div class="input-with-unit-group">
+          <input
+            #searchRadiusInput
+            type="text"
+            autocomplete="off"
+            id="searchRadius"
+            pattern="[0-9]*\.?[0-9]*"
+            inputmode="decimal"
+            [value]="displayRadiusValue"
+            (keydown.enter)="onResolveAndUpdate()"
+            (keydown)="onRadiusKeydown($event)"
+            (focus)="onRadiusFocus()"
+            (blur)="onRadiusBlur()"
+            (input)="onRadiusInput($event)"
+            (change)="onRadiusInput($event)"
+          /><app-button
+            [text]="getDistanceUnitLabel()"
+            type="secondary"
+            [size]="'small'"
+            (click)="toggleDistanceUnit()"
+            [title]="
+              'Switch to ' +
+              (settings.distanceUnit === 'km' ? 'miles' : 'kilometers')
+            "
+          ></app-button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="checkInterval">Check Interval</label>
+        <div class="input-with-unit-group">
+          <input
+            #checkIntervalInput
+            type="number"
+            autocomplete="off"
+            id="checkInterval"
+            step="any"
+            [value]="displayIntervalValue"
+            (change)="onIntervalChange($event)"
+          />
+          <app-button
+            [text]="getTimeUnitLabel()"
+            type="secondary"
+            [size]="'small'"
+            (click)="toggleTimeUnit()"
+            [title]="
+              'Switch to ' +
+              (settings.timeUnit === 'seconds' ? 'minutes' : 'seconds')
+            "
+          ></app-button>
+        </div>
+      </div>
     </div>
     <!-- <div class="form-group">
       <label class="checkbox-inline" for="showCone">
@@ -197,6 +236,9 @@
         type="secondary"
         (click)="onGoToHome()"
       ></app-button>
+    </div>
+    <div class="last-scan-time" *ngIf="lastScanTime">
+      Last scan: {{ lastScanTimeText }}
     </div>
   </form>
 </div>

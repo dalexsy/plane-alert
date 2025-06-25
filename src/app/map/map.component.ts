@@ -198,6 +198,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Toggle for altitude-colored tooltip borders
   showAltitudeBorders = false; // Default to disabled
 
+  // Toggle for animations
+  animationsEnabled = true; // Default to enabled
+
   private _initialScanDone = false; // Flag to prevent double scan
 
   // New properties for location-overlay component
@@ -267,7 +270,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.showDateTime = this.settings.showDateTimeOverlay;
     this.showAirportLabels = this.settings.showAirportLabels;
     this.showAltitudeBorders = this.settings.showAltitudeBorders;
+    this.animationsEnabled = this.settings.animationsEnabled;
     this.currentWindUnitIndex = this.settings.windUnitIndex;
+    this.showWindowView = this.settings.showWindowView;
 
     // Initialize brightness service with current location if available
     const currentLocation = this.settings.getCurrentLocation();
@@ -429,6 +434,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.inputOverlayComponent.showAirportLabels =
         this.settings.showAirportLabels;
     }
+
+    // Apply initial animation setting
+    this.applyAnimationSetting(this.animationsEnabled);
+
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
@@ -555,7 +564,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.updatePlaneLog(Array.from(this.planeLog.values()));
       }
     );
-
     this.scanService.start(this.settings.interval, () => {
       this.findPlanes();
     });
@@ -991,18 +999,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.currentLocationMarker.setLatLng([lat, lon]);
 
     // Update markers visibility based on new location
-    this.updateMarkersVisibility(lat, lon);
-
-    // Load planes immediately for faster UX
-    this.findPlanes();
-
-    // Only update input fields if overlay is not collapsed and refs exist
+    this.updateMarkersVisibility(lat, lon); // Load planes immediately for faster UX
+    this.findPlanes(); // Only update input fields if overlay is not collapsed and refs exist
     if (!this.inputOverlayComponent.collapsed) {
-      // Update search radius input
-      if (this.inputOverlayComponent.searchRadiusInputRef?.nativeElement) {
-        this.inputOverlayComponent.searchRadiusInputRef.nativeElement.value =
-          String(mainRadius);
-      }
+      // Trigger change detection to update input displays with property binding
+      this.inputOverlayComponent.refreshDisplayValues();
       // Reverse geocode current center and update address input
       const addressInput =
         this.inputOverlayComponent.addressInputRef?.nativeElement;
@@ -1141,6 +1142,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
   findPlanes(): void {
+    // Update last scan time in input overlay
+    if (this.inputOverlayComponent) {
+      this.inputOverlayComponent.lastScanTime = new Date();
+    }
+
     const previousPlaneKeys = new Set(this.planeLog.keys());
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
@@ -1673,7 +1679,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // For grounded planes, use 0 altitude for consistency
         const alt = isGrounded ? 0 : plane.altitude ?? 0;
         const y = (Math.min(alt, 20000) / 20000) * 100;
-        const iconData = getIconPathForModel(plane.model);
+        const iconData = getIconPathForModel(plane.model, plane.callsign, alt);
         // Calculate scale, distance
         const distKm = haversineDistance(
           centerLat,
@@ -1868,16 +1874,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       alert('Geolocation is not supported by your browser.');
     }
   }
-
   resolveAndUpdateFromAddress(): void {
     const address =
       this.inputOverlayComponent.addressInputRef.nativeElement.value;
-    // Get the MAIN radius from the input, fallback to settings.radius
-    const mainRadius = (() => {
-      const ref = this.inputOverlayComponent.searchRadiusInputRef;
-      const val = ref?.nativeElement?.valueAsNumber;
-      return !isNaN(val!) ? val! : this.settings.radius ?? 5;
-    })();
+
+    // Make sure the input overlay processes any pending radius changes first
+    // This ensures the stored radius is up-to-date with the current unit
+    this.inputOverlayComponent.processRadiusChange();
+
+    // Use the stored radius (already in km) instead of reading input directly
+    const mainRadius = this.settings.radius ?? 5;
 
     // Check if we're at home location before clearing cones
     const homeLocation = this.settings.getHomeLocation();
@@ -2697,6 +2703,28 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /** Toggle animations on/off */
+  onToggleAnimations(enabled: boolean): void {
+    this.animationsEnabled = enabled;
+
+    // Save the setting for persistence
+    this.settings.setAnimationsEnabled(enabled);
+
+    // Apply animation setting to document body for CSS animation control
+    this.applyAnimationSetting(enabled);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Apply animation setting to the document for global animation control */
+  private applyAnimationSetting(enabled: boolean): void {
+    if (enabled) {
+      this.document.body.classList.remove('animations-disabled');
+    } else {
+      this.document.body.classList.add('animations-disabled');
+    }
+  }
+
   /** Update all existing plane tooltips with altitude-colored borders based on current setting */
   private updateTooltipAltitudeBorders(): void {
     this.planeLog.forEach((plane) => {
@@ -2871,5 +2899,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Observer longitude (current map center longitude) */
   public get observerLon(): number {
     return this.currentLon;
+  }
+
+  /** New state for window view visibility */
+  showWindowView = true;
+
+  /** Toggle window view overlay visibility */
+  onWindowViewToggle(show: boolean) {
+    this.showWindowView = show;
+    this.settings.setShowWindowView(show);
+    this.cdr.detectChanges();
   }
 }

@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 import { LocationContextService } from '../../services/location-context.service';
 import { Subscription } from 'rxjs';
+import { SettingsService } from '../../services/settings.service';
+import { DistanceUnit } from '../../utils/units.util';
 
 @Component({
   selector: 'app-temperature',
@@ -23,6 +25,7 @@ export class TemperatureComponent implements OnInit, OnDestroy {
   @HostBinding('class.collapsed') get collapsed() {
     return this.resultsCollapsed;
   }
+  @Input() windowViewHidden = false;
   temperature: number | null = null;
   highTemp: number | null = null;
   lowTemp: number | null = null;
@@ -31,7 +34,32 @@ export class TemperatureComponent implements OnInit, OnDestroy {
   private locationSubscription?: Subscription;
   private refreshInterval?: number;
 
-  constructor(private locationContext: LocationContextService) {}
+  constructor(
+    private locationContext: LocationContextService,
+    private settings: SettingsService // Inject SettingsService
+  ) {}
+
+  get isImperial(): boolean {
+    return this.settings.distanceUnit === DistanceUnit.MILES;
+  }
+
+  get displayTemperature(): number | null {
+    return this.convertIfNeeded(this.temperature);
+  }
+  get displayHighTemp(): number | null {
+    return this.convertIfNeeded(this.highTemp);
+  }
+  get displayLowTemp(): number | null {
+    return this.convertIfNeeded(this.lowTemp);
+  }
+  get tempUnitLabel(): string {
+    return this.isImperial ? '°F' : '°C';
+  }
+  private convertIfNeeded(temp: number | null): number | null {
+    if (temp == null) return null;
+    return this.isImperial ? Math.round((temp * 9) / 5 + 32) : Math.round(temp);
+  }
+
   ngOnInit(): void {
     // Subscribe to location changes and fetch temperature accordingly
     this.locationSubscription = this.locationContext.currentLocation$.subscribe(

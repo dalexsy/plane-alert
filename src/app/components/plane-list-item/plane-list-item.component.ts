@@ -5,21 +5,32 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   // Add HostBinding for dynamic classes
   HostBinding,
   HostListener,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { PlaneLogEntry } from '../results-overlay/results-overlay.component'; // Adjust path if needed
 import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
 import { ButtonComponent } from '../ui/button.component'; // Assuming ButtonComponent is standalone
 import { haversineDistance } from '../../utils/geo-utils';
+import {
+  DistanceUnit,
+  convertFromKm,
+  getDistanceUnitShortLabel,
+  formatDistanceWithTenths,
+} from '../../utils/units.util';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
+import { OperatorTooltipService } from '../../services/operator-tooltip.service';
+import { OperatorSymbolConfig } from '../../config/operator-symbols.config';
 import * as L from 'leaflet';
 
 @Component({
@@ -30,24 +41,29 @@ import * as L from 'leaflet';
   styleUrls: ['./plane-list-item.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
 })
-export class PlaneListItemComponent implements OnChanges {
-  constructor(
-    public countryService: CountryService,
-    public planeFilter: PlaneFilterService,
-    private settings: SettingsService,
-    public planeStyle: PlaneStyleService, // Inject style service
-    private announcementService: AnnouncementService
-  ) {}
-  /** Distance from center, in km rounded to nearest tenth */
+export class PlaneListItemComponent implements OnChanges, OnDestroy {
+  private distanceUnitSubscription?: Subscription; /** Distance from center, in current unit rounded to nearest tenth */
   get distanceKm(): number {
     const lat = this.settings.lat ?? 0;
     const lon = this.settings.lon ?? 0;
     if (this.plane.lat == null || this.plane.lon == null) return 0;
-    return (
-      Math.round(
-        haversineDistance(lat, lon, this.plane.lat, this.plane.lon) * 10
-      ) / 10
+    const distanceInKm = haversineDistance(
+      lat,
+      lon,
+      this.plane.lat,
+      this.plane.lon
     );
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    return Math.round(convertFromKm(distanceInKm, unit) * 10) / 10;
+  }
+
+  /** Get distance unit for display */
+  get distanceUnit(): string {
+    const unit = this.settings.distanceUnit as DistanceUnit;
+    return getDistanceUnitShortLabel(unit);
+  } /** Format distance with proper decimal separator (always period) */
+  get formattedDistance(): string {
+    return formatDistanceWithTenths(this.distanceKm);
   }
 
   @Input({ required: true }) plane!: PlaneLogEntry;
@@ -148,6 +164,26 @@ export class PlaneListItemComponent implements OnChanges {
   @Output() toggleSpecial = new EventEmitter<PlaneLogEntry>();
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
+  constructor(
+    private settings: SettingsService,
+    public countryService: CountryService,
+    public planeFilter: PlaneFilterService,
+    public planeStyle: PlaneStyleService,
+    private announcementService: AnnouncementService,
+    private operatorTooltipService: OperatorTooltipService,
+    private cdr: ChangeDetectorRef
+  ) {
+    // Subscribe to distance unit changes to trigger change detection
+    this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(
+      () => {
+        this.cdr.markForCheck();
+      }
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.distanceUnitSubscription?.unsubscribe();
+  }
 
   // Make the whole item clickable: clicking the host emits centerPlane
   @HostListener('click')
@@ -165,6 +201,10 @@ export class PlaneListItemComponent implements OnChanges {
     if (diff < 60) return '<1m ago';
     if (minutes < 60) return `${minutes}m ago`;
     return `${hours}h ${minutes % 60}m ago`;
+  }
+  /** Get matched operator symbol config */
+  public get operatorSymbolConfig(): OperatorSymbolConfig | null {
+    return this.operatorTooltipService.getSymbolConfig(this.plane) ?? null;
   }
 
   // --- Event Handlers ---
@@ -201,11 +241,9 @@ export class PlaneListItemComponent implements OnChanges {
     }
   }
   ngOnChanges(changes: SimpleChanges): void {
-    // Use the announcement service to handle new aircraft announcements
+    // Announce new plane
     if (this.plane.isNew) {
-      const context = {
-        isAirportClicked: this.hostAirportClicked,
-      };
+      const context = { isAirportClicked: this.hostAirportClicked };
       this.announcementService.announceNewAircraft(this.plane, context);
     }
   }

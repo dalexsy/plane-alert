@@ -30,6 +30,7 @@
   <app-swallow-animation
     [pressureIntensity]="0.8"
     [isStormApproaching]="true"
+    [animationsEnabled]="animationsEnabled"
   ></app-swallow-animation>
   <!-- Compass labels with roof background -->
   <app-compass-labels
@@ -42,9 +43,11 @@
 
   <!-- Altitude bands for visual reference -->
   <app-altitude-bands [altitudeTicks]="altitudeTicks"></app-altitude-bands>
-
   <!-- Dimmed regions outside marker spans -->
-  <app-dim-overlay [dimSegments]="dimSegments"></app-dim-overlay>
+  <app-dim-overlay
+    [dimSegments]="dimSegments"
+    [brightnessState]="brightnessState"
+  ></app-dim-overlay>
 
   <!-- Celestial objects (sun/moon) -->
   <app-celestial-objects

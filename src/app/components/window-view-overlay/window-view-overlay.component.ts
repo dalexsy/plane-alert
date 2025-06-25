@@ -21,8 +21,13 @@ import { CountryService } from '../../services/country.service';
 import { AtmosphericSkyService } from '../../services/atmospheric-sky.service';
 import { RainService } from '../../services/rain.service';
 import { SkyColorSyncService } from '../../services/sky-color-sync.service';
+import {
+  BrightnessService,
+  BrightnessState,
+} from '../../services/brightness.service';
 import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 import { ScanService } from '../../services/scan.service';
+import { SettingsService } from '../../services/settings.service';
 import { calculateTiltAngle } from '../../utils/vertical-rate.util';
 
 // Import child components
@@ -186,6 +191,7 @@ export class WindowViewOverlayComponent
   @Input() observerLon!: number;
   @Input() isAtHome: boolean = false;
   @Input() showAltitudeBorders: boolean = false;
+  @Input() animationsEnabled: boolean = true;
 
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
 
@@ -193,9 +199,12 @@ export class WindowViewOverlayComponent
   private readonly OWM_TILE_ZOOM = 3;
   private readonly OPEN_WEATHER_MAP_API_KEY =
     'ffcc03a274b2d049bf4633584e7b5699';
-
   /** Maximum altitude represented in window view (for band layout) */
   private readonly viewMaxAltitude = 20000;
+
+  /** Window view dimming intensity factor (0.5 = half dimming, 1.0 = full dimming) */
+  private readonly WINDOW_DIM_FACTOR = 0.5;
+
   // Altitude ticks, populated in ngOnInit
   public altitudeTicks: AltitudeTick[] = [];
 
@@ -205,6 +214,11 @@ export class WindowViewOverlayComponent
   public streetsideStartX?: number;
   public streetsideEndX?: number; /** Segments to dim outside marker spans */
   public dimSegments: DimSegment[] = [];
+
+  // Brightness dimming support
+  public brightnessState: BrightnessState | null = null;
+  private brightnessSubscription?: Subscription;
+
   private readonly maxHistorySegmentLengthPercent = 1; // Max trail segment length in % coordinates
   constructor(
     private celestial: CelestialService,
@@ -217,7 +231,9 @@ export class WindowViewOverlayComponent
     private rainService: RainService,
     private skyColorSync: SkyColorSyncService,
     private scanService: ScanService,
-    private stormPressureService: StormPressureService
+    private stormPressureService: StormPressureService,
+    private brightnessService: BrightnessService,
+    private settings: SettingsService
   ) {}
   ngOnInit(): void {
     this.altitudeTicks = this.computeAltitudeTicks();
@@ -238,6 +254,14 @@ export class WindowViewOverlayComponent
         this.stormDropIntensity = analysis.dropIntensity;
         this.isStormApproaching = analysis.isStormApproaching;
       });
+
+    // Subscribe to brightness changes for dimming effect
+    this.brightnessSubscription = this.brightnessService.brightness$.subscribe(
+      (state) => {
+        this.brightnessState = state;
+        this.applyBrightnessToWindowView();
+      }
+    );
   }
   ngOnDestroy(): void {
     // Clean up subscription to prevent memory leaks
@@ -246,6 +270,9 @@ export class WindowViewOverlayComponent
     }
     if (this.stormPressureSubscription) {
       this.stormPressureSubscription.unsubscribe();
+    }
+    if (this.brightnessSubscription) {
+      this.brightnessSubscription.unsubscribe();
     }
   }
 
@@ -283,6 +310,11 @@ export class WindowViewOverlayComponent
       this.setCompassBackground();
       this.assignGroundStackOrder();
       // Update animation timing to ensure smooth movement
+      this.updateAnimationTiming();
+    }
+
+    // Update animation timing when animations enabled setting changes
+    if (changes['animationsEnabled']) {
       this.updateAnimationTiming();
     }
   }
@@ -1019,12 +1051,14 @@ export class WindowViewOverlayComponent
   /** Handle plane selection from aircraft container */
   public handlePlaneSelection(plane: WindowViewPlane): void {
     this.selectPlane.emit(plane);
-  } /** Update CSS animation timing based on scan interval */
-  private updateAnimationTiming(): void {
+  }
+  /** Update CSS animation timing based on scan interval */ private updateAnimationTiming(): void {
     // Use consistent timing formula to match plane marker animations:
     // 95% of scan interval for smooth overlap with next update cycle
     // This ensures seamless movement without visible pauses
-    const animationDuration = this.scanService.scanInterval * 0.95;
+    const baseDuration = this.scanService.scanInterval * 0.95;
+    // Set duration to 0 when animations are disabled
+    const animationDuration = this.animationsEnabled ? baseDuration : 0;
 
     // Set CSS custom properties for dynamic animation timing
     const rootElement = this.elRef.nativeElement as HTMLElement;
@@ -1049,5 +1083,94 @@ export class WindowViewOverlayComponent
     console.debug(
       `Animation timing updated: ${animationDuration}s (${this.scanService.scanInterval}s scan interval)`
     );
+  }
+  /**
+   * Apply brightness dimming effects to the window view overlay
+   */
+  private applyBrightnessToWindowView(): void {
+    if (!this.brightnessState) {
+      return;
+    }
+
+    const windowViewElement = this.elRef.nativeElement?.querySelector(
+      '.window-view-overlay'
+    );
+    if (!windowViewElement) {
+      return;
+    }
+
+    const originalBrightness = this.brightnessState.brightness;
+    const isDimming = this.brightnessState.isDimming; // Apply only half the dimming intensity for window view
+    // This keeps the window view more visible while still following the brightness curve
+    const adjustedBrightness =
+      1 - (1 - originalBrightness) * this.WINDOW_DIM_FACTOR;
+
+    // Create CSS filter based on adjusted brightness state
+    let filterString = `brightness(${adjustedBrightness})`;
+
+    // Add more subtle additional effects during dimming
+    if (isDimming) {
+      const dimAmount = 1 - adjustedBrightness;
+      const contrastValue = 1 + dimAmount * 0.05; // Very slight contrast increase
+      const saturationValue = 1 - dimAmount * 0.1; // Mild desaturation
+      filterString += ` contrast(${contrastValue}) saturate(${saturationValue})`;
+
+      // Add subtle blue tint only during very dark hours, but more muted
+      if (originalBrightness < 0.1) {
+        filterString += ` hue-rotate(2deg)`;
+      }
+    }
+
+    // Apply the filter to the window view overlay
+    (windowViewElement as HTMLElement).style.filter = filterString; // Apply a much more subtle overlay for very dark conditions
+    this.updateDarkOverlay(originalBrightness, this.WINDOW_DIM_FACTOR);
+  }
+  /**
+   * Add/remove a dark overlay for very dim conditions
+   */
+  private updateDarkOverlay(brightness: number, dimFactor: number = 1.0): void {
+    const windowViewElement = this.elRef.nativeElement?.querySelector(
+      '.window-view-overlay'
+    );
+    if (!windowViewElement) {
+      return;
+    }
+
+    let darkOverlay = windowViewElement.querySelector(
+      '.brightness-dark-overlay'
+    ) as HTMLElement;
+
+    if (brightness < 0.1) {
+      // Create dark overlay if it doesn't exist
+      if (!darkOverlay) {
+        darkOverlay = document.createElement('div');
+        darkOverlay.className = 'brightness-dark-overlay';
+        darkOverlay.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.3);
+          pointer-events: none;
+          z-index: 1000;
+          transition: opacity 0.5s ease-in-out;
+        `;
+        windowViewElement.appendChild(darkOverlay);
+      }
+
+      // Adjust overlay opacity based on brightness and apply dim factor
+      const baseOpacity = Math.max(0, (0.1 - brightness) / 0.1) * 0.4;
+      const adjustedOpacity = baseOpacity * dimFactor; // Apply the dim factor to reduce intensity
+      darkOverlay.style.opacity = adjustedOpacity.toString();
+    } else if (darkOverlay) {
+      // Fade out and remove overlay when not needed
+      darkOverlay.style.opacity = '0';
+      setTimeout(() => {
+        if (darkOverlay && darkOverlay.parentNode) {
+          darkOverlay.parentNode.removeChild(darkOverlay);
+        }
+      }, 500);
+    }
   }
 }

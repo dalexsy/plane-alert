@@ -84,6 +84,7 @@ export interface SwallowConfig {
 export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
   @Input() isStormApproaching: boolean = false;
   @Input() pressureIntensity: number = 0; // 0-1 scale based on how low pressure is
+  @Input() animationsEnabled: boolean = true;
 
   private readonly defaultConfig: SwallowConfig = {
     birdCount: 12,
@@ -108,13 +109,18 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit(): void {
     // Force start animation for testing (remove conditions)
 
-    this.startAnimation();
+    if (this.animationsEnabled) {
+      this.startAnimation();
+    }
   }
   ngOnChanges(): void {
-    // React to changes in storm approaching state
-    if (this.isStormApproaching && !this.isActive) {
+    // React to changes in storm approaching state and animations enabled setting
+    if (this.isStormApproaching && this.animationsEnabled && !this.isActive) {
       this.startAnimation();
-    } else if (!this.isStormApproaching && this.isActive) {
+    } else if (
+      (!this.isStormApproaching || !this.animationsEnabled) &&
+      this.isActive
+    ) {
       this.stopAnimation();
     }
   }

@@ -1,3 +1,5 @@
+@use "operator-symbol" as op;
+
 $followed-plane-color: #00ffff;
 $new-plane-color: #ff6161;
 
@@ -199,4 +201,69 @@ $new-plane-color: #ff6161;
   text-align: center;
   font-family: "Instrument Sans", sans-serif;
   backdrop-filter: blur(0.5rem);
+}
+
+// Left-side variant of plane tooltips - use normal plane-tooltip styles
+.leaflet-tooltip.plane-tooltip.leaflet-tooltip-left {
+  top: -3rem;
+  padding: 0.5rem;
+  left: -2rem;
+  border-radius: 50%;
+  border-color: #989898;
+
+  &.leaflet-tooltip-left:before {
+    content: "";
+    position: absolute;
+    top: 36px;
+    right: 8px;
+    width: 0;
+    filter: drop-shadow(-1px -1px 0px black);
+    transform: rotate(180deg);
+    height: 0;
+    border: 11px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.5);
+  }
+
+  &.leaflet-tooltip-left:after {
+    content: "";
+    position: absolute;
+    top: 30px;
+    right: -3px;
+    transform: rotate(-180deg);
+    width: 0;
+    /* transform: rotate(-157deg); */
+    height: 0;
+    /* z-index: 10; */
+    border: 10px solid transparent;
+    border-top-color: inherit;
+    border-left-color: inherit;
+  } // Grounded planes need even more left positioning since right side is closer
+  &.grounded-plane-tooltip {
+    margin-left: -0.5rem;
+    top: -2.75rem;
+    .operator-symbol {
+      @include op.operator-symbol();
+    }
+  }
+}
+
+// Invisible marker for left tooltips
+.invisible-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+// Operator symbols in map tooltips
+.leaflet-tooltip .operator-symbol {
+  @include op.operator-symbol();
+}
+
+// Override for map tooltip operator-symbols to ensure correct size
+.plane-tooltip-left-variant .operator-symbol {
+  @include op.operator-symbol();
 }

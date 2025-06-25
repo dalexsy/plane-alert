@@ -1,7 +1,11 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
-<div class="results-overlay" [class.collapsed]="collapsed">
+<div
+  class="results-overlay"
+  [class.collapsed]="collapsed"
+  [class.window-view-closed]="!settings.showWindowView"
+>
   <div class="top-buttons">
-    <app-tab side="left">
+    <app-tab side="right">
       <app-button
         class="collapse-toggle"
         [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
@@ -81,6 +85,17 @@
         <span class="military-badge">{{ militaryCount }}</span>
       </div>
       <!-- end .military-toggle-wrapper -->
+      <!-- Window view overlay toggle button -->
+      <app-button
+        class="window-view-toggle"
+        [icon]="showWindowView ? 'window_closed' : 'window_closed'"
+        type="tertiary"
+        size="medium"
+        ariaLabel="Toggle window view overlay"
+        [appTooltip]="showWindowView ? 'Hide window view' : 'Show window view'"
+        tooltipPosition="left"
+        (click)="toggleWindowView()"
+      ></app-button>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">
@@ -185,8 +200,11 @@
       </div>
     </div>
     <!-- .middle-section -->
-    <div id="seenResults" [class.collapsed]="seenCollapsed">      <h3 class="top" (click)="toggleSeenCollapsed()">
-        <span class="section-title">All Planes Peeped ({{ seenPlaneLog.length }})</span>
+    <div id="seenResults" [class.collapsed]="seenCollapsed">
+      <h3 class="top" (click)="toggleSeenCollapsed()">
+        <span class="section-title"
+          >All Planes Peeped ({{ seenPlaneLog.length }})</span
+        >
         <span class="header-buttons">
           <!-- Collapse toggle button -->
           <app-button
@@ -208,7 +226,8 @@
             class="clear-seen"
           ></app-button>
         </span>
-      </h3><!-- Wrap seen list in collapse container -->
+      </h3>
+      <!-- Wrap seen list in collapse container -->
       <div class="collapse-wrapper">
         <div
           class="plane-list-wrapper"
@@ -240,7 +259,8 @@
               (unhoverPlane)="onUnhoverPlane($event, 'seen')"
             ></app-plane-list-item>
           </div>
-        </div>        <ng-template #noSeen>
+        </div>
+        <ng-template #noSeen>
           <p>No planes peeped.</p>
         </ng-template>
       </div>

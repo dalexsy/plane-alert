@@ -4,7 +4,7 @@
   align-items: flex-end;
   position: fixed;
   bottom: 12rem;
-  right: calc(28rem + 0.5rem);
+  right: calc(25rem + 0.5rem);
   z-index: 1000;
   font-size: 10rem;
   pointer-events: none;
@@ -54,10 +54,15 @@
     letter-spacing: -0.4vw;
     margin-top: 2px;
   }
+
+  // Move down if window view is hidden
+  &.window-view-hidden {
+    bottom: 0.5rem;
+  }
 }
 
 :host(.collapsed) .temperature-container {
-  right: 2rem;
+  right: 2.5rem;
 }
 
 .temperature-range {

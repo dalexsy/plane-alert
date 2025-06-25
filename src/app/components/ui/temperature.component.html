@@ -1,4 +1,8 @@
-<div *ngIf="!loading" class="temperature-container">
+<div
+  *ngIf="!loading"
+  class="temperature-container"
+  [class.window-view-hidden]="windowViewHidden"
+>
   <div class="temperature-row">
     <app-icon
       [icon]="weatherIcon"
@@ -7,8 +11,8 @@
       class="weather-icon"
       ariaLabel="Current weather"
     ></app-icon>
-    <div class="temp-high">{{ highTemp | number : "1.0-0" }}°</div>
-    <div class="temp-low">{{ lowTemp | number : "1.0-0" }}°</div>
+    <div class="temp-high">{{ displayHighTemp }}°</div>
+    <div class="temp-low">{{ displayLowTemp }}°</div>
   </div>
-  <div class="temperature-current">{{ temperature | number : "1.0-0" }}°</div>
+  <div class="temperature-current">{{ displayTemperature }}°</div>
 </div>

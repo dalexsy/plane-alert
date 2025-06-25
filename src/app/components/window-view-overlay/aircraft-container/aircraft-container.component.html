@@ -112,6 +112,12 @@
             </div>
           </ng-container>
         </ng-container>
+        <!-- Operator logo tooltip above the main tooltip -->
+        <div
+          *ngIf="shouldShowOperatorLogo(plane)"
+          class="operator-logo-tooltip"
+          [innerHTML]="getOperatorLogoContent(plane)"
+        ></div>
         <span
           class="plane-label"
           [class]="getLabelClasses(plane)"
@@ -125,8 +131,8 @@
             *ngIf="
               plane.distanceKm != null &&
               plane.distanceKm <= 10 &&
-              (plane.operator || plane.model) &&
-              !plane.isGrounded
+              !plane.isGrounded &&
+              (plane.operator || plane.model)
             "
             class="plane-details"
           >

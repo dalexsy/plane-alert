@@ -8,7 +8,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1; // Above background, below plane dots
+  z-index: 0; // Push altitude bands behind planes in 3D space
+  transform-style: preserve-3d; // Enable 3D transforms for host
+  transform: translateZ(-5px); // Push altitude bands backward behind planes
   opacity: 0.5;
   pointer-events: none;
 }

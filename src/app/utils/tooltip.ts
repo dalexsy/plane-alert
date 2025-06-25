@@ -115,7 +115,13 @@ export function planeTooltip(
   isSpecial: boolean,
   verticalRate: number | null,
   altitude?: number | null,
-  getAltitudeColor?: (alt: number) => string
+  getAltitudeColor?: (alt: number) => string,
+  getOperatorLogo?: (plane: {
+    operator: string;
+    country: string;
+    isMilitary: boolean;
+  }) => string,
+  distanceText?: string
 ): string {
   // Single place to control white mixing amount for both altitude text and arrow
   const WHITE_MIX_AMOUNT = 0.3;
@@ -151,11 +157,15 @@ export function planeTooltip(
       arrowStyle += `color: ${mixedAltitudeColor};`;
     }
     verticalRateSpan = `<span class="material-symbols-sharp vertical-rate" style="${arrowStyle}">${iconName}</span>`;
-  }
+  } // Get operator logo if available
+  const operatorLogo = getOperatorLogo
+    ? getOperatorLogo({ operator, country: origin, isMilitary })
+    : '';
+
   // Main row: callsign with flag and either operator or speed/alt
   const mainRow = `
   <span class="tooltip-row">
-    ${getFlagHTML(origin)}
+    ${operatorLogo}${getFlagHTML(origin)}
       <a class="callsign-text" href="https://globe.adsbexchange.com/?icao=${id}" target="_blank" title="Open in ADS-B Exchange" onclick="event.stopPropagation()">${
     callsign && callsign.trim().length >= 3
       ? callsign
@@ -172,12 +182,36 @@ export function planeTooltip(
   }    ${
     truncatedOperator
       ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>`
-      : /* ...existing speed/alt logic... */ ''
+      : // When no operator, show speed and altitude in main row
+        (() => {
+          const items: string[] = [];
+          if (speedText)
+            items.push(`<span class="velocity">${speedText}</span>`);
+          if (isGrounded) {
+            items.push(`<span class="altitude">On ground</span>`);
+          } else if (altText || verticalRateSpan) {
+            let styledAltText = altText;
+            if (mixedAltitudeColor && altText) {
+              styledAltText = `<span style=\"color: ${mixedAltitudeColor};\">${altText}</span>`;
+            }
+            items.push(
+              `<span class=\"altitude\">${styledAltText}${verticalRateSpan}</span>`
+            );
+          }
+          return items.length
+            ? `<span class="divider">•</span>${items
+                .map(
+                  (item, i) =>
+                    (i > 0 ? '<span class="divider">•</span>' : '') + item
+                )
+                .join('')}`
+            : '';
+        })()
   }
   </span>`; // Info row: include speed/alt/model when operator present, else only model
   const infoItems: string[] = [];
   if (truncatedOperator) {
-    // Show model first, then speed, then altitude+arrow
+    // Show model first, then speed, then altitude+arrow (no distance in tooltips)
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
     if (speedText) infoItems.push(`<span class="velocity">${speedText}</span>`);
     if (isGrounded) {
@@ -192,7 +226,7 @@ export function planeTooltip(
       );
     }
   } else {
-    // No operator: only show model
+    // No operator: only show model (no distance in tooltips)
     if (model) infoItems.push(`<span class="aircraft-model">${model}</span>`);
   }
   const infoRow = infoItems.length
@@ -206,4 +240,52 @@ export function planeTooltip(
 
   // Combine rows
   return `<span class="plane-tooltip-link tooltip-follow-wrapper" data-icao="${id}" onclick="(function(e){window.dispatchEvent(new CustomEvent('plane-tooltip-follow',{detail:{icao:'${id}'}}));e.stopPropagation();e.preventDefault();})(event)">${mainRow}${infoRow}</span>`;
+}
+
+export function planeTooltipLeft(
+  id: string,
+  callsign: string,
+  origin: string,
+  model: string,
+  operator: string,
+  speedText: string,
+  altText: string,
+  getFlagHTML: (origin: string) => string,
+  isNew: boolean,
+  isGrounded: boolean,
+  isMilitary: boolean,
+  isSpecial: boolean,
+  verticalRate: number | null,
+  altitude?: number | null,
+  getAltitudeColor?: (alt: number) => string,
+  getOperatorLogo?: (plane: {
+    operator: string;
+    country: string;
+    isMilitary: boolean;
+  }) => string,
+  distanceText?: string
+): string {
+  // Use the same logic as the regular tooltip but with different styling
+  const tooltip = planeTooltip(
+    id,
+    callsign,
+    origin,
+    model,
+    operator,
+    speedText,
+    altText,
+    getFlagHTML,
+    isNew,
+    isGrounded,
+    isMilitary,
+    isSpecial,
+    verticalRate,
+    altitude,
+    getAltitudeColor,
+    getOperatorLogo,
+    distanceText
+  );
+
+  // Wrap with left-side variant class
+  return `<span class="plane-tooltip-left-variant">${tooltip}</span>`;
 }

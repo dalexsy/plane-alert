@@ -12,6 +12,7 @@ $tooltip-z-index: 10000;
 .app-tooltip {
   --tooltip-offset: #{$tooltip-offset - 1px}; // Closer by default
 
+  // Default desktop styles
   position: fixed;
   background: $tooltip-background;
   color: white;
@@ -24,7 +25,16 @@ $tooltip-z-index: 10000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   border: 1px solid $tooltip-border-color;
   backdrop-filter: blur(0.25rem);
-  font-family: "Instrument Sans", sans-serif; // Positioning variants - no transforms needed since positioning is handled in TypeScript
+  font-family: "Instrument Sans", sans-serif;
+
+  // Animation
+  opacity: 0;
+
+  &.tooltip-visible {
+    opacity: 1;
+  }
+
+  // Positioning variants - no transforms needed since positioning is handled in TypeScript
   &.tooltip-right {
     transform: translateY(-50%);
   }
@@ -41,17 +51,26 @@ $tooltip-z-index: 10000;
     transform: translateY(-50%);
   }
 
-  // Animation
-  opacity: 0;
+  // Left-side variant with different styling
+  &.tooltip-left-variant {
+    background: rgba(0, 0, 20, 0.8);
+    border-color: rgba(100, 150, 255, 0.5);
+    backdrop-filter: blur(0.3rem);
 
-  &.tooltip-visible {
-    opacity: 1;
+    &.tooltip-left {
+      transform: translateY(-50%);
+    }
   }
 
-  // Responsive adjustments
-  @media (max-width: 768px) {
-    font-size: 0.7rem;
-    padding: 0.4rem 0.6rem;
-    --tooltip-offset: #{$tooltip-offset - 2px};
+  // Mobile-first: Hide tooltips on mobile only
+  @media (max-width: 600px) {
+    display: none !important;
+  }
+
+  // Tablet adjustments (768px and up)
+  @media (min-width: 768px) {
+    font-size: $tooltip-font-size;
+    padding: $tooltip-padding;
+    --tooltip-offset: #{$tooltip-offset - 1px};
   }
 }

@@ -8,6 +8,9 @@ export class SettingsService {
   constructor() {
     this.load();
   }
+
+  /** Event emitted when distance unit changes */
+  distanceUnitChanged = new EventEmitter<string>();
   private _lat: number | null = null;
   private _lon: number | null = null;
   private _radius: number | null = 50;
@@ -34,19 +37,37 @@ export class SettingsService {
   // Key and backing store for brightness mode preference
   private brightnessAutoModeKey = 'brightnessAutoMode';
   private _brightnessAutoMode: boolean = false;
-
   // Key and backing store for wind units preference
   private windUnitIndexKey = 'windUnitIndex';
-  private _windUnitIndex: number = 0; // Keys and backing stores for cloud and rain cover visibility
+  private _windUnitIndex: number = 0;
+  // Key and backing store for distance unit preference
+  private distanceUnitKey = 'distanceUnit';
+  private _distanceUnit: string = 'km'; // 'km' or 'miles'
+
+  // Key and backing store for time unit preference (for scan interval)
+  private timeUnitKey = 'timeUnit';
+  private _timeUnit: string = 'seconds'; // 'seconds' or 'minutes'
+
+  // Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
   private _showCloudCover: boolean = true;
   private rainCoverKey = 'showRainCover';
   private _showRainCover: boolean = true;
   // Key and backing store for altitude borders visibility
   private altitudeBordersKey = 'showAltitudeBorders';
-  private _showAltitudeBorders: boolean = false;
+  private _showAltitudeBorders: boolean = true;
+  // Key and backing store for animations enabled/disabled
+  private animationsEnabledKey = 'animationsEnabled';
+  private _animationsEnabled: boolean = true;
   // Key for clicked airports persistence
   private clickedAirportsKey = 'clickedAirports';
+
+  // Key and backing store for window view visibility
+  private windowViewKey = 'showWindowView';
+  private _showWindowView: boolean = true;
+
+  private _inputOverlayCollapsed: boolean = true; // Collapsed by default
+  private _resultsOverlayCollapsed: boolean = true; // Collapsed by default
 
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
@@ -75,20 +96,18 @@ export class SettingsService {
   }
   /** Whether the input overlay is collapsed */
   get inputOverlayCollapsed(): boolean {
-    const value =
-      localStorage.getItem(this.inputOverlayCollapsedKey) === 'true';
-    return value;
+    return this._inputOverlayCollapsed;
   }
   setInputOverlayCollapsed(value: boolean): void {
+    this._inputOverlayCollapsed = value;
     localStorage.setItem(this.inputOverlayCollapsedKey, value.toString());
   }
   /** Whether the results overlay is collapsed */
   get resultsOverlayCollapsed(): boolean {
-    const value =
-      localStorage.getItem(this.resultsOverlayCollapsedKey) === 'true';
-    return value;
+    return this._resultsOverlayCollapsed;
   }
   setResultsOverlayCollapsed(value: boolean): void {
+    this._resultsOverlayCollapsed = value;
     localStorage.setItem(this.resultsOverlayCollapsedKey, value.toString());
   }
   /** Whether military alerts are muted */
@@ -133,7 +152,6 @@ export class SettingsService {
     localStorage.setItem('lastSearchRadius', value.toString());
     this.radiusChanged.emit(value);
   }
-
   get interval(): number {
     return this._interval;
   }
@@ -141,6 +159,26 @@ export class SettingsService {
   set interval(value: number) {
     this._interval = value;
     localStorage.setItem('checkInterval', value.toString());
+  } /** Get interval in the currently selected display unit (seconds or minutes) */
+  getIntervalInDisplayUnit(): number {
+    if (this._timeUnit === 'minutes') {
+      const minutes = this._interval / 60;
+      // Round to whole minutes only for simplicity
+      return Math.round(minutes);
+    }
+    return Math.round(this._interval);
+  }
+
+  /** Set interval from display unit value (converts to seconds for storage) */
+  setIntervalFromDisplayUnit(value: number): void {
+    const intervalInSeconds = this._timeUnit === 'minutes' ? value * 60 : value;
+    this.interval = intervalInSeconds;
+  }
+  /** Get formatted interval display value as string with appropriate precision and no locale commas */
+  getFormattedIntervalDisplay(): string {
+    const value = this.getIntervalInDisplayUnit();
+    // Always return whole numbers as strings to avoid locale formatting issues
+    return Math.round(value).toString();
   }
 
   get excludeDiscount(): boolean {
@@ -256,6 +294,16 @@ export class SettingsService {
     localStorage.setItem(this.altitudeBordersKey, value.toString());
   }
 
+  /** Whether animations are enabled */
+  get animationsEnabled(): boolean {
+    return this._animationsEnabled;
+  }
+  /** Persist animations enabled preference */
+  setAnimationsEnabled(value: boolean): void {
+    this._animationsEnabled = value;
+    localStorage.setItem(this.animationsEnabledKey, value.toString());
+  }
+
   /** Whether brightness auto-dimming mode is enabled */
   get brightnessAutoMode(): boolean {
     return this._brightnessAutoMode;
@@ -275,7 +323,6 @@ export class SettingsService {
     this._windUnitIndex = value;
     localStorage.setItem(this.windUnitIndexKey, value.toString());
   }
-
   /** Get clicked airports from localStorage */
   getClickedAirports(): Set<number> {
     const saved = localStorage.getItem(this.clickedAirportsKey);
@@ -294,6 +341,35 @@ export class SettingsService {
   setClickedAirports(clickedAirports: Set<number>): void {
     const airportIds = Array.from(clickedAirports);
     localStorage.setItem(this.clickedAirportsKey, JSON.stringify(airportIds));
+  }
+  /** Current distance unit ('km' or 'miles') */
+  get distanceUnit(): string {
+    return this._distanceUnit;
+  }
+  /** Persist distance unit preference */
+  setDistanceUnit(value: string): void {
+    this._distanceUnit = value;
+    localStorage.setItem(this.distanceUnitKey, value);
+    this.distanceUnitChanged.emit(value);
+  }
+
+  /** Current time unit for scan interval ('seconds' or 'minutes') */
+  get timeUnit(): string {
+    return this._timeUnit;
+  }
+  /** Persist time unit preference */
+  setTimeUnit(value: string): void {
+    this._timeUnit = value;
+    localStorage.setItem(this.timeUnitKey, value);
+  }
+
+  /** Whether the window view overlay is shown */
+  get showWindowView(): boolean {
+    return this._showWindowView;
+  }
+  setShowWindowView(value: boolean): void {
+    this._showWindowView = value;
+    localStorage.setItem(this.windowViewKey, value.toString());
   }
 
   load(): void {
@@ -315,6 +391,11 @@ export class SettingsService {
     const altitudeBordersStr = localStorage.getItem(this.altitudeBordersKey);
     if (altitudeBordersStr !== null) {
       this._showAltitudeBorders = altitudeBordersStr === 'true';
+    }
+    // Load animations enabled preference
+    const animationsStr = localStorage.getItem(this.animationsEnabledKey);
+    if (animationsStr !== null) {
+      this._animationsEnabled = animationsStr === 'true';
     }
     const lat = parseFloat(localStorage.getItem('lastLat') || '');
     const lon = parseFloat(localStorage.getItem('lastLon') || '');
@@ -371,15 +452,42 @@ export class SettingsService {
     const brightnessStr = localStorage.getItem(this.brightnessAutoModeKey);
     if (brightnessStr !== null) {
       this._brightnessAutoMode = brightnessStr === 'true';
-    }
-
-    // Load wind unit preference
+    } // Load wind unit preference
     const windUnitStr = localStorage.getItem(this.windUnitIndexKey);
     if (windUnitStr !== null) {
       const windUnitIndex = parseInt(windUnitStr, 10);
       if (!isNaN(windUnitIndex)) {
         this._windUnitIndex = windUnitIndex;
       }
+    } // Load distance unit preference
+    const distanceUnitStr = localStorage.getItem(this.distanceUnitKey);
+    if (distanceUnitStr !== null) {
+      this._distanceUnit = distanceUnitStr;
+    }
+
+    // Load time unit preference
+    const timeUnitStr = localStorage.getItem(this.timeUnitKey);
+    if (timeUnitStr !== null) {
+      this._timeUnit = timeUnitStr;
+    }
+    // Load show/hide window view preference
+    const windowViewStr = localStorage.getItem(this.windowViewKey);
+    if (windowViewStr !== null) {
+      this._showWindowView = windowViewStr === 'true';
+    }
+    // Load input overlay collapsed preference
+    const inputOverlayCollapsedStr = localStorage.getItem(
+      this.inputOverlayCollapsedKey
+    );
+    if (inputOverlayCollapsedStr !== null) {
+      this._inputOverlayCollapsed = inputOverlayCollapsedStr === 'true';
+    }
+    // Load results overlay collapsed preference
+    const resultsOverlayCollapsedStr = localStorage.getItem(
+      this.resultsOverlayCollapsedKey
+    );
+    if (resultsOverlayCollapsedStr !== null) {
+      this._resultsOverlayCollapsed = resultsOverlayCollapsedStr === 'true';
     }
   }
 }
