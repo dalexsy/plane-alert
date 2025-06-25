@@ -62,6 +62,10 @@ export class SettingsService {
   // Key for clicked airports persistence
   private clickedAirportsKey = 'clickedAirports';
 
+  // Key and backing store for window view visibility
+  private windowViewKey = 'showWindowView';
+  private _showWindowView: boolean = true;
+
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
     return this._showDateTimeOverlay;
@@ -358,6 +362,15 @@ export class SettingsService {
     localStorage.setItem(this.timeUnitKey, value);
   }
 
+  /** Whether the window view overlay is shown */
+  get showWindowView(): boolean {
+    return this._showWindowView;
+  }
+  setShowWindowView(value: boolean): void {
+    this._showWindowView = value;
+    localStorage.setItem(this.windowViewKey, value.toString());
+  }
+
   load(): void {
     // Load airport labels visibility preference
     const labelsStr = localStorage.getItem(this.airportLabelsKey);
@@ -455,6 +468,11 @@ export class SettingsService {
     const timeUnitStr = localStorage.getItem(this.timeUnitKey);
     if (timeUnitStr !== null) {
       this._timeUnit = timeUnitStr;
+    }
+    // Load show/hide window view preference
+    const windowViewStr = localStorage.getItem(this.windowViewKey);
+    if (windowViewStr !== null) {
+      this._showWindowView = windowViewStr === 'true';
     }
   }
 }

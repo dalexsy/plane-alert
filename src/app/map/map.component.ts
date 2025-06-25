@@ -272,6 +272,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.showAltitudeBorders = this.settings.showAltitudeBorders;
     this.animationsEnabled = this.settings.animationsEnabled;
     this.currentWindUnitIndex = this.settings.windUnitIndex;
+    this.showWindowView = this.settings.showWindowView;
 
     // Initialize brightness service with current location if available
     const currentLocation = this.settings.getCurrentLocation();
@@ -2906,6 +2907,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Toggle window view overlay visibility */
   onWindowViewToggle(show: boolean) {
     this.showWindowView = show;
+    this.settings.setShowWindowView(show);
     this.cdr.detectChanges();
   }
 }
