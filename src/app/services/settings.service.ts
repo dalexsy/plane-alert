@@ -66,6 +66,9 @@ export class SettingsService {
   private windowViewKey = 'showWindowView';
   private _showWindowView: boolean = true;
 
+  private _inputOverlayCollapsed: boolean = true; // Collapsed by default
+  private _resultsOverlayCollapsed: boolean = true; // Collapsed by default
+
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
     return this._showDateTimeOverlay;
@@ -93,20 +96,18 @@ export class SettingsService {
   }
   /** Whether the input overlay is collapsed */
   get inputOverlayCollapsed(): boolean {
-    const value =
-      localStorage.getItem(this.inputOverlayCollapsedKey) === 'true';
-    return value;
+    return this._inputOverlayCollapsed;
   }
   setInputOverlayCollapsed(value: boolean): void {
+    this._inputOverlayCollapsed = value;
     localStorage.setItem(this.inputOverlayCollapsedKey, value.toString());
   }
   /** Whether the results overlay is collapsed */
   get resultsOverlayCollapsed(): boolean {
-    const value =
-      localStorage.getItem(this.resultsOverlayCollapsedKey) === 'true';
-    return value;
+    return this._resultsOverlayCollapsed;
   }
   setResultsOverlayCollapsed(value: boolean): void {
+    this._resultsOverlayCollapsed = value;
     localStorage.setItem(this.resultsOverlayCollapsedKey, value.toString());
   }
   /** Whether military alerts are muted */
@@ -473,6 +474,20 @@ export class SettingsService {
     const windowViewStr = localStorage.getItem(this.windowViewKey);
     if (windowViewStr !== null) {
       this._showWindowView = windowViewStr === 'true';
+    }
+    // Load input overlay collapsed preference
+    const inputOverlayCollapsedStr = localStorage.getItem(
+      this.inputOverlayCollapsedKey
+    );
+    if (inputOverlayCollapsedStr !== null) {
+      this._inputOverlayCollapsed = inputOverlayCollapsedStr === 'true';
+    }
+    // Load results overlay collapsed preference
+    const resultsOverlayCollapsedStr = localStorage.getItem(
+      this.resultsOverlayCollapsedKey
+    );
+    if (resultsOverlayCollapsedStr !== null) {
+      this._resultsOverlayCollapsed = resultsOverlayCollapsedStr === 'true';
     }
   }
 }

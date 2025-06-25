@@ -734,11 +734,11 @@ export class ResultsOverlayComponent
     });
   }
 
-  public collapsed = localStorage.getItem('resultsOverlayCollapsed') === 'true';
+  public collapsed: boolean = true; // Default to collapsed
 
   public toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
-    localStorage.setItem('resultsOverlayCollapsed', this.collapsed.toString());
+    this.settings.setResultsOverlayCollapsed(this.collapsed);
     this.cdr.detectChanges();
   } /** Toggle shuffle mode on/off */
   public toggleShuffle(): void {

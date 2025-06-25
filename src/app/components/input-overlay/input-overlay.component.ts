@@ -77,7 +77,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   private sub!: Subscription;
   private isUserEditingRadius = false;
   @HostBinding('class.collapsed')
-  collapsed: boolean = localStorage.getItem('inputOverlayCollapsed') === 'true';
+  collapsed: boolean = true; // Default to collapsed
   public currentAddress: string = '';
   public showBrightnessTooltip = false;
   public lastScanTime: Date | null = null;
@@ -120,6 +120,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
         : `Start scanning at location`;
       this.cdr.detectChanges();
     });
+    // Use SettingsService for collapsed state
+    this.collapsed = this.settings.inputOverlayCollapsed;
   }
 
   /** Format countdown time in a user-friendly format */
@@ -152,7 +154,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
-    localStorage.setItem('inputOverlayCollapsed', this.collapsed.toString());
+    this.settings.setInputOverlayCollapsed(this.collapsed);
     this.cdr.detectChanges();
   }
 
