@@ -37,3 +37,20 @@
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0.5rem; /* Keep bottom-right rounded corner */
 }
+
+/* Only apply height for .top-buttons.left on mobile (mobile-first approach) */
+:host-context(.options-overlay) .top-buttons.left {
+  height: calc(100vh - 0.5rem);
+  border-bottom-right-radius: 0;
+}
+:host-context(.options-overlay.collapsed) .top-buttons.left {
+  height: auto;
+  border-bottom-right-radius: 0.5rem;
+}
+
+@media (min-width: 601px) {
+  :host-context(.options-overlay) .top-buttons.left {
+    height: auto;
+    border-bottom-right-radius: 0.5rem;
+  }
+}

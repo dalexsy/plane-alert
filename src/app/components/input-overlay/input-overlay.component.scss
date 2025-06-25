@@ -11,6 +11,7 @@
   }
 }
 
+// Overlay background for modal effect using pseudo-element
 .options-overlay {
   position: absolute;
   top: 0.25rem;
@@ -23,9 +24,11 @@
   backdrop-filter: blur(0.5rem);
   overflow: visible;
   width: calc(100vw - 3rem);
+  height: calc(100vh - 0.5rem);
 
   @media (min-width: 601px) {
     width: 20rem;
+    height: auto;
   }
 
   form {
@@ -45,6 +48,10 @@
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-right: none;
     overflow: visible;
+    transition: height 0.2s;
+    height: 100%; // fallback for debugging
+    min-height: 3rem; // ensure visible when collapsed
+    max-height: calc(100vh - 0.5rem);
   }
 
   .input-with-unit-group {
@@ -129,6 +136,12 @@
     .button-group {
       display: none;
     }
+
+    .top-buttons {
+      height: auto;
+      min-height: 3rem;
+      max-height: none;
+    }
   }
 
   .form-row {
@@ -139,6 +152,13 @@
       flex: 1;
     }
   }
+}
+
+.options-overlay:not(.collapsed) .top-buttons {
+  height: calc(100vh - 0.5rem) !important;
+}
+.options-overlay.collapsed .top-buttons {
+  height: auto !important;
 }
 
 @media (max-width: 600px) {
