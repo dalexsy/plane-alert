@@ -55,7 +55,7 @@ export class SettingsService {
   private _showRainCover: boolean = true;
   // Key and backing store for altitude borders visibility
   private altitudeBordersKey = 'showAltitudeBorders';
-  private _showAltitudeBorders: boolean = false;
+  private _showAltitudeBorders: boolean = true;
   // Key and backing store for animations enabled/disabled
   private animationsEnabledKey = 'animationsEnabled';
   private _animationsEnabled: boolean = true;

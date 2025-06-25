@@ -234,7 +234,7 @@ app-map.map-panning app-input-overlay {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  min-width: calc(100vw - 0.75rem);
+  width: calc(100vw - 6rem);
   flex-direction: column;
   gap: 0.25rem;
   align-items: center;

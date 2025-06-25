@@ -4,20 +4,19 @@
 
 .closest-plane-overlay {
   background: rgba(0, 0, 0, 0.7);
-  color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
-  display: inline-flex;
-  white-space: nowrap;
-  flex-shrink: 0;
+  display: flex;
   gap: 0.5rem;
   align-items: center;
+  justify-content: center;
   font-family: "JetBrains Mono", monospace;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.4);
   -webkit-backdrop-filter: blur(0.5rem);
   backdrop-filter: blur(0.5rem);
-  justify-content: center;
+  flex-wrap: wrap;
+  text-align: center;
 
   .divider {
     color: rgb(255 255 255 / 50%);
