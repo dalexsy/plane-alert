@@ -35,6 +35,8 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    height: 100%;
+    justify-content: space-between;
   }
   .top-buttons {
     position: absolute;
@@ -173,6 +175,21 @@
   ::ng-deep app-tooltip,
   ::ng-deep .app-tooltip {
     display: none !important;
+  }
+
+  // Mobile-specific: style all overlay and top-buttons buttons (native, app-button, and projected) for mobile only
+  .options-overlay button,
+  .options-overlay app-button button,
+  .options-overlay ::ng-deep button {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+
+  // Mobile-specific: style only overlay inputs for mobile only
+  .options-overlay input[type="text"],
+  .options-overlay input[type="number"] {
+    padding: 1.25rem;
+    font-size: 1rem;
   }
 }
 
