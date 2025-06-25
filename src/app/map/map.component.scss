@@ -77,7 +77,8 @@ app-map.map-panning app-input-overlay {
 // Container for both sun and wind overlays
 .angle-overlay-container {
   @extend %angle-overlay;
-  top: 0.25rem;
+  // Remove top, use bottom dynamically
+  // top: 0.25rem;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -92,9 +93,20 @@ app-map.map-panning app-input-overlay {
     width: 4.5rem;
     height: 4.5rem;
   }
+
+  // When window view is closed
+  &.window-view-closed {
+    bottom: 11rem;
+    top: auto;
+  }
+  // When window view is visible
+  &:not(.window-view-closed) {
+    bottom: 21.5rem;
+    top: auto;
+  }
 }
 .angle-overlay-container.collapsed {
-  right: 3.5rem;
+  right: 1rem;
 }
 .angle-overlay-container:not(.collapsed) {
   right: calc(25rem + 3.5rem);

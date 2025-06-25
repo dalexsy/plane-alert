@@ -1,5 +1,9 @@
 <!-- src/app/components/results-overlay/results-overlay.component.html -->
-<div class="results-overlay" [class.collapsed]="collapsed">
+<div
+  class="results-overlay"
+  [class.collapsed]="collapsed"
+  [class.window-view-closed]="!settings.showWindowView"
+>
   <div class="top-buttons">
     <app-tab side="right">
       <app-button
