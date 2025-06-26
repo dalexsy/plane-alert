@@ -104,6 +104,10 @@ app-map.map-panning app-input-overlay {
     bottom: 21.5rem;
     top: auto;
   }
+
+  &.clock-visible {
+    bottom: 50.5rem;
+  }
 }
 .angle-overlay-container.collapsed {
   right: 1rem;
