@@ -1078,11 +1078,6 @@ export class WindowViewOverlayComponent
     // Add animation optimization properties for better performance
     rootElement.style.setProperty('will-change', 'auto');
     rootElement.style.setProperty('backface-visibility', 'hidden');
-
-    // Debug log for timing verification (can be removed in production)
-    console.debug(
-      `Animation timing updated: ${animationDuration}s (${this.scanService.scanInterval}s scan interval)`
-    );
   }
   /**
    * Apply brightness dimming effects to the window view overlay

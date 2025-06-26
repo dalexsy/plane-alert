@@ -77,26 +77,6 @@ export class OperatorTooltipService {
     const country = this.getCountryWithFallback(normalizedPlane);
     const operator = (normalizedPlane.operator || '').toLowerCase();
 
-    // Debug logging to help track down inconsistencies
-    if (normalizedPlane.icao) {
-      console.debug(
-        `[OperatorTooltip] Processing plane ${normalizedPlane.icao}:`,
-        {
-          originalInput: {
-            country: plane.country,
-            origin: plane.origin,
-            operator: plane.operator,
-          },
-          normalized: {
-            country: normalizedPlane.country,
-            operator: normalizedPlane.operator,
-          },
-          resolvedCountry: country,
-          isMilitary: normalizedPlane.isMilitary,
-        }
-      );
-    }
-
     // First, try to match by specific operator name
     if (operator) {
       const operatorMatch = OPERATOR_SYMBOLS.find(
@@ -109,10 +89,6 @@ export class OperatorTooltipService {
           )
       );
       if (operatorMatch) {
-        console.debug(
-          `[OperatorTooltip] Found operator match for ${normalizedPlane.icao}:`,
-          operatorMatch.key
-        );
         return operatorMatch;
       }
     } // Fall back to country-based matching ONLY for military aircraft
@@ -122,17 +98,10 @@ export class OperatorTooltipService {
         cfg.countries?.includes(country)
       );
       if (countryMatch) {
-        console.debug(
-          `[OperatorTooltip] Found country match for military aircraft ${normalizedPlane.icao}:`,
-          countryMatch.key
-        );
         return countryMatch;
       }
     }
 
-    console.debug(
-      `[OperatorTooltip] No match found for ${normalizedPlane.icao}`
-    );
     return null;
   } /** Get the left tooltip content (symbol) based on config */
   getLeftTooltipContent(plane: any): string {
