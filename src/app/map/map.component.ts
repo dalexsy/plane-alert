@@ -2686,9 +2686,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onToggleDateTimeOverlays(): void {
     this.showDateTime = !this.showDateTime;
-
-    this.settings.setShowDateTimeOverlay(this.showDateTime);
-    this.cdr.detectChanges();
   }
 
   /** Toggle altitude-colored borders on plane tooltips */

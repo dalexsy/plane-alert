@@ -65,7 +65,7 @@
 <!-- Angle overlay above clock and temperature -->
 <div
   class="info-wrapper"
-  *ngIf="showDateTime"
+  [class.dateTimeHidden]="!showDateTime"
   [class.window-view-hidden]="!showWindowView"
   [class.collapsed]="resultsOverlayComponent.collapsed"
 >
@@ -82,7 +82,7 @@
     [windDirection]="getWindFromDirection(windAngle)"
     (cycleWindUnit)="cycleWindUnit()"
   ></app-angle-overlay>
-  <div class="time-temp-container">
+  <div class="time-temp-container" *ngIf="showDateTime">
     <app-clock></app-clock>
     <app-temperature
       [resultsCollapsed]="resultsOverlayComponent.collapsed"
