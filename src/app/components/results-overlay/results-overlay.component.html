@@ -7,95 +7,109 @@
   <div class="top-buttons">
     <app-tab side="right">
       <app-button
-        class="collapse-toggle"
-        [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
+        class="toggle-other-controls"
+        [icon]="otherControlsHidden ? 'arrow_drop_down' : 'arrow_drop_down'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="collapseTooltip"
-        [appTooltip]="collapseTooltip"
+        [ariaLabel]="otherControlsHidden ? 'Show controls' : 'Hide controls'"
+        [appTooltip]="otherControlsHidden ? 'Show controls' : 'Hide controls'"
         tooltipPosition="left"
-        (click)="toggleCollapsed()"
+        (click)="toggleOtherControls()"
       ></app-button>
-      <app-button
-        [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="commercialFilterTooltip"
-        [appTooltip]="commercialFilterTooltip"
-        tooltipPosition="left"
-        (click)="onToggleCommercialFilter()"
-      ></app-button>
-      <app-button
-        [icon]="militaryMute ? 'volume_off' : 'volume_up'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="militaryMuteTooltip"
-        [appTooltip]="militaryMuteTooltip"
-        tooltipPosition="left"
-        (click)="onToggleMilitaryMute()"
-      ></app-button>
-      <!-- Altitude tooltip borders toggle button -->
-      <app-button
-        class="toggle-altitude-borders"
-        [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="altitudeBordersTooltip"
-        [appTooltip]="altitudeBordersTooltip"
-        tooltipPosition="left"
-        (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
-      ></app-button>
-      <!-- Shuffle follow mode toggle -->
-      <app-button
-        class="shuffle-toggle"
-        [icon]="shuffleMode ? 'pause' : 'shuffle'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="shuffleTooltip"
-        [appTooltip]="shuffleTooltip"
-        tooltipPosition="left"
-        [ngClass]="{ active: shuffleMode }"
-        (click)="toggleShuffle()"
-      ></app-button>
-      <!-- Nearest follow toggle -->
-      <app-button
-        class="nearest-toggle"
-        [icon]="nearestMode ? 'my_location' : 'location_searching'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="nearestTooltip"
-        [appTooltip]="nearestTooltip"
-        tooltipPosition="left"
-        [ngClass]="{ active: nearestMode }"
-        (click)="toggleNearest()"
-      ></app-button>
-      <!-- Military priority toggle -->
-      <div class="military-toggle-wrapper">
+      <ng-container *ngIf="!otherControlsHidden">
         <app-button
-          class="military-priority-toggle"
-          [icon]="militaryPriority ? 'star_shine' : 'star'"
+          class="collapse-toggle"
+          [icon]="collapsed ? 'right_panel_open' : 'right_panel_close'"
           type="tertiary"
           size="medium"
-          [ariaLabel]="militaryPriorityTooltip"
-          [appTooltip]="militaryPriorityTooltip"
+          [ariaLabel]="collapseTooltip"
+          [appTooltip]="collapseTooltip"
           tooltipPosition="left"
-          [ngClass]="{ active: militaryPriority }"
-          (click)="toggleMilitaryPriority()"
+          (click)="toggleCollapsed()"
         ></app-button>
-        <span class="military-badge">{{ militaryCount }}</span>
-      </div>
-      <!-- end .military-toggle-wrapper -->
-      <!-- Window view overlay toggle button -->
-      <app-button
-        class="window-view-toggle"
-        [icon]="showWindowView ? 'window_closed' : 'window_closed'"
-        type="tertiary"
-        size="medium"
-        ariaLabel="Toggle window view overlay"
-        [appTooltip]="showWindowView ? 'Hide window view' : 'Show window view'"
-        tooltipPosition="left"
-        (click)="toggleWindowView()"
-      ></app-button>
+        <app-button
+          [icon]="settings.excludeDiscount ? 'visibility_off' : 'visibility'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="commercialFilterTooltip"
+          [appTooltip]="commercialFilterTooltip"
+          tooltipPosition="left"
+          (click)="onToggleCommercialFilter()"
+        ></app-button>
+        <app-button
+          [icon]="militaryMute ? 'volume_off' : 'volume_up'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="militaryMuteTooltip"
+          [appTooltip]="militaryMuteTooltip"
+          tooltipPosition="left"
+          (click)="onToggleMilitaryMute()"
+        ></app-button>
+        <!-- Altitude tooltip borders toggle button -->
+        <app-button
+          class="toggle-altitude-borders"
+          [icon]="showAltitudeBorders ? 'dropper_eye' : 'colorize'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="altitudeBordersTooltip"
+          [appTooltip]="altitudeBordersTooltip"
+          tooltipPosition="left"
+          (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
+        ></app-button>
+        <!-- Shuffle follow mode toggle -->
+        <app-button
+          class="shuffle-toggle"
+          [icon]="shuffleMode ? 'pause' : 'shuffle'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="shuffleTooltip"
+          [appTooltip]="shuffleTooltip"
+          tooltipPosition="left"
+          [ngClass]="{ active: shuffleMode }"
+          (click)="toggleShuffle()"
+        ></app-button>
+        <!-- Nearest follow toggle -->
+        <app-button
+          class="nearest-toggle"
+          [icon]="nearestMode ? 'my_location' : 'location_searching'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="nearestTooltip"
+          [appTooltip]="nearestTooltip"
+          tooltipPosition="left"
+          [ngClass]="{ active: nearestMode }"
+          (click)="toggleNearest()"
+        ></app-button>
+        <!-- Military priority toggle -->
+        <div class="military-toggle-wrapper">
+          <app-button
+            class="military-priority-toggle"
+            [icon]="militaryPriority ? 'star_shine' : 'star'"
+            type="tertiary"
+            size="medium"
+            [ariaLabel]="militaryPriorityTooltip"
+            [appTooltip]="militaryPriorityTooltip"
+            tooltipPosition="left"
+            [ngClass]="{ active: militaryPriority }"
+            (click)="toggleMilitaryPriority()"
+          ></app-button>
+          <span class="military-badge">{{ militaryCount }}</span>
+        </div>
+        <!-- end .military-toggle-wrapper -->
+        <!-- Window view overlay toggle button -->
+        <app-button
+          class="window-view-toggle"
+          [icon]="showWindowView ? 'window_closed' : 'window_closed'"
+          type="tertiary"
+          size="medium"
+          ariaLabel="Toggle window view overlay"
+          [appTooltip]="
+            showWindowView ? 'Hide window view' : 'Show window view'
+          "
+          tooltipPosition="left"
+          (click)="toggleWindowView()"
+        ></app-button>
+      </ng-container>
     </app-tab>
   </div>
   <ng-container *ngIf="!collapsed">

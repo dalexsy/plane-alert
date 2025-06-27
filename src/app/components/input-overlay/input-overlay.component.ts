@@ -78,6 +78,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   private isUserEditingRadius = false;
   @HostBinding('class.collapsed')
   collapsed: boolean = true; // Default to collapsed
+  public otherControlsHidden: boolean = false;
   public currentAddress: string = '';
   public showBrightnessTooltip = false;
   public lastScanTime: Date | null = null;
@@ -155,6 +156,15 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   toggleCollapsed(): void {
     this.collapsed = !this.collapsed;
     this.settings.setInputOverlayCollapsed(this.collapsed);
+    this.cdr.detectChanges();
+  }
+  /** Toggle visibility of other input overlay controls */
+  public toggleOtherControls(): void {
+    this.otherControlsHidden = !this.otherControlsHidden;
+    // If controls are now hidden and overlay is expanded, collapse it
+    if (this.otherControlsHidden && !this.collapsed) {
+      this.toggleCollapsed();
+    }
     this.cdr.detectChanges();
   }
 
