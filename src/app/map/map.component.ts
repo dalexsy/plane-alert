@@ -48,6 +48,7 @@ import { LocationService } from '../services/location.service';
 import SunCalc from 'suncalc';
 import { IconComponent } from '../components/ui/icon.component';
 import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
+import { AngleOverlayComponent } from '../components/angle-overlay/angle-overlay.component';
 import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
 import { getIconPathForModel } from '../utils/plane-icons';
 import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
@@ -99,8 +100,8 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     TemperatureComponent,
     ClosestPlaneOverlayComponent,
     LocationOverlayComponent,
-    IconComponent, // added for sun angle overlay
     WindowViewOverlayComponent,
+    AngleOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],

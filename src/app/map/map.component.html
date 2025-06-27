@@ -62,150 +62,35 @@
   (unhoverPlane)="onUnhoverOverlayPlane($event)"
 ></app-results-overlay>
 
-<app-temperature
-  *ngIf="showDateTime"
-  [resultsCollapsed]="resultsOverlayComponent.collapsed"
-  [windowViewHidden]="!showWindowView"
-></app-temperature>
-<app-clock
-  *ngIf="showDateTime"
-  [windowViewHidden]="!showWindowView"
-></app-clock>
-
-<div id="map"></div>
-
-<app-cone
-  *ngIf="map && coneVisible"
-  [map]="map"
-  [lat]="currentLat"
-  [lon]="currentLon"
-  [distanceKm]="radiusKm"
-  [isAtHome]="isAtHome"
-></app-cone>
-
-<!-- Container for angle overlays -->
+<!-- Angle overlay above clock and temperature -->
 <div
-  class="angle-overlay-container"
+  class="info-wrapper"
+  *ngIf="showDateTime"
+  [class.window-view-hidden]="!showWindowView"
   [class.collapsed]="resultsOverlayComponent.collapsed"
-  [class.window-view-closed]="!showWindowView"
-  [class.clock-visible]="showDateTime"
 >
-  <!-- Sun angle indicator overlay -->
-  <div
-    class="sun-angle-overlay"
-    [title]="
-      isNight
-        ? moonPhaseName +
-          ' - Illumination: ' +
-          (moonFraction * 100).toFixed(0) +
-          '%'
-        : 'Sun azimuth: ' + sunAngle.toFixed(1) + '°'
-    "
-  >
-    <!-- Sun event info on left (transparent background, white text) -->
-    <span class="sun-info">{{ sunEventText }}</span>
-    <ng-container *ngIf="isNight; else sunArrow">
-      <span
-        class="moon-angle-icon"
-        [style.--angle]="sunAngle + 'deg'"
-        role="img"
-        [attr.aria-label]="moonPhaseName + ' - Moon direction'"
-      >
-        <!-- Full moon fallback -->
-        <ng-container *ngIf="moonFraction >= 0.9; else maskedMoon">
-          <svg
-            class="moon-icon"
-            width="2rem"
-            height="2rem"
-            viewBox="0 0 22 22"
-            style="
-              z-index: 1;
-              position: relative;
-              display: block;
-              margin: 0 auto;
-            "
-            [style.transform]="'rotate(90deg)'"
-          >
-            <circle cx="11" cy="11" r="10" [attr.fill]="getMoonLitColor()" />
-          </svg>
-        </ng-container>
-        <!-- Masked moon for other phases -->
-        <ng-template #maskedMoon>
-          <svg
-            class="moon-icon"
-            width="2rem"
-            height="2rem"
-            viewBox="0 0 22 22"
-            style="
-              z-index: 1;
-              position: relative;
-              display: block;
-              margin: 0 auto;
-            "
-            [style.transform]="'rotate(-90deg)'"
-          >
-            <defs>
-              <mask id="moon-phase-mask">
-                <rect width="22" height="22" fill="white" />
-                <circle
-                  [attr.cx]="11 + (1 - 2 * moonFraction) * 10"
-                  cy="11"
-                  r="10"
-                  fill="black"
-                />
-              </mask>
-            </defs>
-            <!-- Draw the lit part first -->
-            <circle
-              cx="11"
-              cy="11"
-              r="10"
-              [attr.fill]="getMoonBackgroundColor()"
-            />
-            <!-- Overlay the shadow part using the mask -->
-            <circle
-              cx="11"
-              cy="11"
-              r="10"
-              [attr.fill]="getMoonLitColor()"
-              [attr.mask]="'url(#moon-phase-mask)'"
-            />
-          </svg>
-        </ng-template>
-      </span>
-    </ng-container>
-    <ng-template #sunArrow>
-      <!-- Sun indicator rendered via CSS pseudo-elements -->
-      <span
-        class="sun-angle-icon"
-        [attr.aria-label]="'Sun direction'"
-        [style.--angle]="sunAngle + 180 + 'deg'"
-        role="img"
-      ></span>
-    </ng-template>
-  </div>
-  <!-- Wind direction indicator overlay -->
-  <div
-    class="wind-angle-overlay"
-    title="Click to change units"
-    (click)="cycleWindUnit()"
-    style="cursor: pointer"
-  >
-    <!-- Wind info on left, transparent background and white text -->
-    <span class="wind-info">
-      {{ getCurrentWindSpeed().toFixed(1) }} {{ getCurrentWindUnit() }}
-      {{ getWindFromDirection(windAngle) }}
-    </span>
-    <app-icon
-      [icon]="'stat_' + windStat"
-      class="wind-intensity-icon"
-      variant="outlined"
-      [style.transform]="windStat > 0 ? 'rotate(' + windAngle + 'deg)' : ''"
-      ariaLabel="Wind intensity level {{ windStat }}"
-    ></app-icon>
+  <app-angle-overlay
+    [sunAngle]="sunAngle"
+    [sunEventText]="sunEventText"
+    [isNight]="isNight"
+    [moonPhaseName]="moonPhaseName"
+    [moonFraction]="moonFraction"
+    [windAngle]="windAngle"
+    [windStat]="windStat"
+    [windSpeed]="getCurrentWindSpeed()"
+    [windUnit]="getCurrentWindUnit()"
+    [windDirection]="getWindFromDirection(windAngle)"
+    (cycleWindUnit)="cycleWindUnit()"
+  ></app-angle-overlay>
+  <div class="time-temp-container">
+    <app-clock></app-clock>
+    <app-temperature
+      [resultsCollapsed]="resultsOverlayComponent.collapsed"
+    ></app-temperature>
   </div>
 </div>
 
+<!-- Window view overlay restored -->
 <app-window-view-overlay
   *ngIf="showWindowView"
   [windowViewPlanes]="windowViewPlanes"
@@ -217,3 +102,14 @@
   [animationsEnabled]="animationsEnabled"
   (selectPlane)="followNearestPlane($event)"
 ></app-window-view-overlay>
+
+<div id="map"></div>
+
+<app-cone
+  *ngIf="map && coneVisible"
+  [map]="map"
+  [lat]="currentLat"
+  [lon]="currentLon"
+  [distanceKm]="radiusKm"
+  [isAtHome]="isAtHome"
+></app-cone>

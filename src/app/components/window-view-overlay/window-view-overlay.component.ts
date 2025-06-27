@@ -112,6 +112,7 @@ export interface WindowViewPlane {
 @Component({
   selector: 'app-window-view-overlay',
   standalone: true,
+  // Removed host styling; parent component will manage collapsed and visibility classes
   imports: [
     CommonModule,
     HttpClientModule,

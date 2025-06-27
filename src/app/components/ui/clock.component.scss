@@ -1,7 +1,8 @@
 .clock-container {
-  position: fixed;
-  bottom: 12rem;
-  left: 2.5rem;
+  /* position handled by parent info-wrapper */
+  position: static;
+  bottom: auto;
+  left: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -30,14 +31,24 @@
   }
 
   .time-overlay {
-    font-size: 16vw;
+    font-size: 13vw;
     letter-spacing: -1vw;
     font-family: "JetBrains Mono", monospace;
   }
-
-  // Move down if window view is hidden
-  &.window-view-hidden {
-    bottom: 0.5rem;
-    left: 0.5rem;
+  // Adjust time font size when collapsed state is active on parent
+  :host-context(.collapsed) .time-overlay {
+    font-size: 16vw;
   }
+
+  // Large desktop breakpoint: set time font size to 4rem
+  @media (min-width: 1600px) {
+    .time-overlay {
+      font-size: 20rem;
+    }
+    :host-context(.collapsed) .time-overlay {
+      font-size: 20rem;
+    }
+  }
+
+  // position changes handled by parent info-wrapper
 }
