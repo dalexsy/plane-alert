@@ -133,7 +133,7 @@ export class ResultsOverlayComponent
   hoveredSkyPlaneIcao: string | null = null;
   hoveredAirportPlaneIcao: string | null = null;
   hoveredSeenPlaneIcao: string | null = null;
-  // Whether to hide other controls in the top bar
+  /** Whether to hide other controls in the top bar */
   public otherControlsHidden: boolean = false;
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
@@ -243,7 +243,14 @@ export class ResultsOverlayComponent
   }
 
   ngOnInit(): void {
-    // initial collapse state is set via property initializer
+    // Load 'other controls' hidden state from settings
+    this.otherControlsHidden = this.settings.resultsOverlayControlsHidden;
+    this.settings.resultsOverlayControlsChanged.subscribe((val: boolean) => {
+      this.otherControlsHidden = val;
+      this.cdr.markForCheck();
+    });
+    // load collapse state from SettingsService
+    this.collapsed = this.settings.resultsOverlayCollapsed;
     // Load military prefixes if needed
     this.militaryPrefixService.loadPrefixes().then(() => {
       this.resultsUpdated = true;
@@ -923,6 +930,8 @@ export class ResultsOverlayComponent
   /** Toggle visibility of other controls in results overlay */
   public toggleOtherControls(): void {
     this.otherControlsHidden = !this.otherControlsHidden;
+    // Persist 'other controls' hidden state
+    this.settings.setResultsOverlayControlsHidden(this.otherControlsHidden);
     // also collapse overlay if hiding controls and currently expanded
     if (this.otherControlsHidden && !this.collapsed) {
       this.toggleCollapsed();

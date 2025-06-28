@@ -106,6 +106,19 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     private locationContext: LocationContextService // Inject the service
   ) {}
   ngOnInit(): void {
+    // Initialize collapsed state from settings
+    this.collapsed = this.settings.inputOverlayCollapsed;
+    // Subscribe to collapsed changes
+    this.settings.inputOverlayCollapsedChanged.subscribe((val: boolean) => {
+      this.collapsed = val;
+      this.cdr.detectChanges();
+    });
+    // Initialize 'other controls' hidden state
+    this.otherControlsHidden = this.settings.inputOverlayControlsHidden;
+    this.settings.inputOverlayControlsChanged.subscribe((val: boolean) => {
+      this.otherControlsHidden = val;
+      this.cdr.detectChanges();
+    });
     // Subscribe to address changes
     this.locationContext.address$.subscribe((address) => {
       this.currentAddress = address || '';
@@ -161,6 +174,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Toggle visibility of other input overlay controls */
   public toggleOtherControls(): void {
     this.otherControlsHidden = !this.otherControlsHidden;
+    // Persist 'other controls' hidden state
+    this.settings.setInputOverlayControlsHidden(this.otherControlsHidden);
     // If controls are now hidden and overlay is expanded, collapse it
     if (this.otherControlsHidden && !this.collapsed) {
       this.toggleCollapsed();
