@@ -84,10 +84,10 @@ export class AircraftCountryService {
    * Load comprehensive ICAO country ranges from JSON file
    */ private async loadIcaoCountryRanges(): Promise<void> {
     try {
-
-      const ranges = await this.http
-        .get<IcaoCountryRange[]>(`${this.baseHref}assets/data/icao-country-ranges.json`)
-
+      const rawRanges = await this.http
+        .get<Omit<IcaoCountryRange, 'startDec' | 'finishDec'>[]>(
+          `${this.baseHref}assets/data/icao-country-ranges.json`
+        )
         .toPromise();
       // Compute decimal values from hex
       this.icaoCountryRanges = (rawRanges || []).map((r) => ({
@@ -100,7 +100,7 @@ export class AircraftCountryService {
       this.icaoRangesLoaded = true; // Mark as loaded to prevent retries
     }
   }
-
+  
   /**
    * Ensures ICAO ranges are loaded before proceeding
    */
