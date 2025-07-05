@@ -73,6 +73,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Whether animations are enabled */
   @Input() animationsEnabled = true;
   @Output() animationsEnabledChange = new EventEmitter<boolean>();
+
   scanButtonText = '';
   private sub!: Subscription;
   private isUserEditingRadius = false;

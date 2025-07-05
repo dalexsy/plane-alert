@@ -65,6 +65,7 @@ import { FollowCoordinatorService } from '../services/follow-coordinator.service
 import { TtsService } from '../services/tts.service';
 import { OperatorCallSignService } from '../services/operator-call-sign.service';
 import { SkyOverlayService } from '../services/sky-overlay.service';
+import { MapThemeService } from '../services/map-theme.service';
 import {
   BrightnessService,
   BrightnessState,
@@ -261,6 +262,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private tts: TtsService,
     private operatorCallSignService: OperatorCallSignService,
     private skyOverlayService: SkyOverlayService,
+    private mapThemeService: MapThemeService,
     private brightnessService: BrightnessService,
     private altitudeColor: AltitudeColorService
   ) {
@@ -638,6 +640,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.brightnessService.ngOnDestroy();
     // Clean up sky overlay service
     this.skyOverlayService.destroy();
+    // Clean up map theme service
+    this.mapThemeService.destroy();
     window.removeEventListener('click', this.globalTooltipClickHandler);
   }
 
@@ -743,13 +747,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       );
     }
 
-    L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    ).addTo(this.map);
-
-    L.tileLayer(
-      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
-    ).addTo(this.map);
+    // Initialize map themes (replaces hardcoded tile layers)
+    this.mapThemeService.initializeWithMap(this.map);
 
     // Create a custom pane for cloud coverage above markers
     this.map.createPane('cloudPane');
