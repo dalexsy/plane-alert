@@ -139,18 +139,18 @@
     autocomplete="off"
   >
     <div class="form-group">
-      <label for="address">Address</label>
-      <input
+      <app-input
         #addressInput
-        type="text"
-        autocomplete="off"
-        id="address"
+        type="textarea"
+        label="Address"
         placeholder="Enter address"
         [value]="currentAddress"
-        (input)="currentAddress = addressInput.value"
-        (keydown.enter)="onResolveAndUpdate()"
-        (focus)="onAddressFocus($event)"
-      />
+        (inputChange)="currentAddress = $event"
+        (enterPressed)="onResolveAndUpdate()"
+        (focusEvent)="onAddressFocus($event)"
+        [rows]="2"
+        autocomplete="off"
+      ></app-input>
     </div>
     <div class="form-row">
       <div class="form-group">

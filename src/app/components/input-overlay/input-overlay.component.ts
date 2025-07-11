@@ -19,6 +19,7 @@ import { BrightnessState } from '../../services/brightness.service';
 import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
+import { InputComponent } from '../ui/input.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
 import {
   DistanceUnit,
@@ -32,7 +33,7 @@ import { LocationContextService } from '../../services/location-context.service'
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TabComponent, TooltipDirective],
+  imports: [CommonModule, ButtonComponent, TabComponent, InputComponent, TooltipDirective],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
@@ -40,7 +41,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() showAirportLabels: boolean = true;
   @Output() toggleAirportLabels = new EventEmitter<boolean>();
   @ViewChild('addressInput', { static: false })
-  addressInputRef!: ElementRef<HTMLInputElement>;
+  addressInputRef!: InputComponent;
   @ViewChild('searchRadiusInput', { static: false })
   searchRadiusInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('checkIntervalInput', { static: false })
@@ -177,8 +178,13 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.otherControlsHidden = !this.otherControlsHidden;
     // Persist 'other controls' hidden state
     this.settings.setInputOverlayControlsHidden(this.otherControlsHidden);
+    
+    // If controls are being shown and overlay is collapsed, expand it
+    if (!this.otherControlsHidden && this.collapsed) {
+      this.toggleCollapsed();
+    }
     // If controls are now hidden and overlay is expanded, collapse it
-    if (this.otherControlsHidden && !this.collapsed) {
+    else if (this.otherControlsHidden && !this.collapsed) {
       this.toggleCollapsed();
     }
     this.cdr.detectChanges();
@@ -567,9 +573,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
-    if (isMobile) {
-      const input = event.target as HTMLInputElement;
-      setTimeout(() => input.select(), 0); // Timeout ensures select after focus
+    if (isMobile && this.addressInputRef) {
+      setTimeout(() => this.addressInputRef.select(), 0); // Use the component's select method
     }
   }
 }

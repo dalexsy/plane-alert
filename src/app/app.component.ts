@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MapComponent } from './map/map.component';
 import { CommonModule } from '@angular/common';
-import { MidnightRefreshService } from './services/midnight-refresh.service';
+import { NoonRefreshService } from './services/noon-refresh.service';
 
 @Component({
   selector: 'app-root',
@@ -13,9 +13,9 @@ import { MidnightRefreshService } from './services/midnight-refresh.service';
 export class AppComponent implements OnInit {
   title = 'plane-alert';
 
-  constructor(private midnightRefreshService: MidnightRefreshService) {}
+  constructor(private noonRefreshService: NoonRefreshService) {}
 
   ngOnInit() {
-    this.midnightRefreshService.start();
+    this.noonRefreshService.start();
   }
 }

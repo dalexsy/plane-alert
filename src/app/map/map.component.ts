@@ -328,8 +328,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               });
               // Update both address input overlay and location overlay info with single geocoding call
               this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-                this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                  address;
+                this.inputOverlayComponent.addressInputRef.setValue(address);
                 this.locationDistrict = address;
                 this.cdr.detectChanges();
               });
@@ -823,9 +822,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       this.reverseGeocode(lat, lng).then((address) => {
         // Guard against missing input reference
-        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
-          this.inputOverlayComponent.addressInputRef.nativeElement.value =
-            address;
+        if (this.inputOverlayComponent.addressInputRef) {
+          this.inputOverlayComponent.addressInputRef.setValue(address);
         }
       });
       this.scanService.forceScan(); // Restart the scan
@@ -1005,11 +1003,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Trigger change detection to update input displays with property binding
       this.inputOverlayComponent.refreshDisplayValues();
       // Reverse geocode current center and update address input
-      const addressInput =
-        this.inputOverlayComponent.addressInputRef?.nativeElement;
+      const addressInput = this.inputOverlayComponent.addressInputRef;
       if (addressInput) {
         this.reverseGeocode(lat, lon).then((address) => {
-          addressInput.value = address;
+          addressInput.setValue(address);
         });
       }
     }
@@ -1863,8 +1860,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               this.DEFAULT_COORDS[1],
               currentMainRadius // Pass main radius
             ); // Triggers airport search
-            this.inputOverlayComponent.addressInputRef.nativeElement.value =
-              'Unable to fetch location; using default';
+            this.inputOverlayComponent.addressInputRef.setValue(
+              'Unable to fetch location; using default'
+            );
             this.locationErrorShown = true;
           }
         },
@@ -1875,8 +1873,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
   resolveAndUpdateFromAddress(): void {
-    const address =
-      this.inputOverlayComponent.addressInputRef.nativeElement.value;
+    const address = this.inputOverlayComponent.addressInputRef.getValue();
 
     // Make sure the input overlay processes any pending radius changes first
     // This ensures the stored radius is up-to-date with the current unit
@@ -2255,9 +2252,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       markerEl?.classList.add('highlighted-marker');
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
         // Guard against missing input reference
-        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
-          this.inputOverlayComponent.addressInputRef.nativeElement.value =
-            address;
+        if (this.inputOverlayComponent.addressInputRef) {
+          this.inputOverlayComponent.addressInputRef.setValue(address);
         } // Update location overlay info using the same address result
         if (!address || address.trim() === '') {
           console.log('Empty geocoding result for followed plane:', address);

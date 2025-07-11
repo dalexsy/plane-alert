@@ -932,8 +932,13 @@ export class ResultsOverlayComponent
     this.otherControlsHidden = !this.otherControlsHidden;
     // Persist 'other controls' hidden state
     this.settings.setResultsOverlayControlsHidden(this.otherControlsHidden);
-    // also collapse overlay if hiding controls and currently expanded
-    if (this.otherControlsHidden && !this.collapsed) {
+    
+    // If controls are being shown and overlay is collapsed, expand it
+    if (!this.otherControlsHidden && this.collapsed) {
+      this.toggleCollapsed();
+    }
+    // If controls are now hidden and overlay is expanded, collapse it  
+    else if (this.otherControlsHidden && !this.collapsed) {
       this.toggleCollapsed();
     }
     this.cdr.markForCheck();
