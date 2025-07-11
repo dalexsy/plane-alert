@@ -113,7 +113,14 @@ export class InputComponent implements OnInit, ControlValueAccessor {
 
   onKeydown(event: KeyboardEvent) {
     this.keydownEvent.emit(event);
-    if (event.key === 'Enter') {
+    if (
+      event.key === 'Enter' &&
+      !(event.shiftKey || event.ctrlKey || event.metaKey)
+    ) {
+      // Prevent newline in textarea, treat as submit
+      if (this.type === 'textarea') {
+        event.preventDefault();
+      }
       this.enterPressed.emit(event);
     }
   }

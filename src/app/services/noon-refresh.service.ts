@@ -52,9 +52,6 @@ export class NoonRefreshService implements OnDestroy {
       new Date(today.getTime() + 24 * 60 * 60 * 1000) : today;
 
     const timeUntilNoon = targetTime.getTime() - now.getTime();
-    const minutesUntilNoon = Math.round(timeUntilNoon / 1000 / 60);
-
-    console.log(`Noon Refresh Service: Auto-refresh scheduled for noon (${minutesUntilNoon} minutes from now)`);
 
     // Set timer for the first noon refresh
     this.midnightRefreshTimer = window.setTimeout(() => {
@@ -68,9 +65,7 @@ export class NoonRefreshService implements OnDestroy {
   }
 
   private performRefresh(type: string): void {
-    console.log(`Noon Refresh Service: Performing ${type} refresh...`);
-    // Force a hard refresh like F5 - bypasses cache and reloads everything
-    // Add timestamp to force cache bypass
+
     const url = new URL(window.location.href);
     url.searchParams.set('_refresh', Date.now().toString());
     window.location.href = url.toString();

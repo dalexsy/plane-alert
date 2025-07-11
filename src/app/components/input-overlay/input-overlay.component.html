@@ -143,11 +143,12 @@
         #addressInput
         type="textarea"
         label="Address"
-        placeholder="Enter address"
+        placeholder="Enter address to search"
         [value]="currentAddress"
-        (inputChange)="currentAddress = $event"
+        (inputChange)="onAddressChange($event)"
         (enterPressed)="onResolveAndUpdate()"
         (focusEvent)="onAddressFocus($event)"
+        (blurEvent)="onAddressBlur()"
         [rows]="2"
         autocomplete="off"
       ></app-input>

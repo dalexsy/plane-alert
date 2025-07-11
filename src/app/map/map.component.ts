@@ -326,9 +326,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 animate: true,
                 duration: 1.0,
               });
-              // Update both address input overlay and location overlay info with single geocoding call
+              // Update location overlay info but NOT the address input field
+              // The address field should show map center location, not plane location
               this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-                this.inputOverlayComponent.addressInputRef.setValue(address);
+                // Don't set the address input field when following a plane
+                // this.inputOverlayComponent.addressInputRef.setValue(address);
                 this.locationDistrict = address;
                 this.cdr.detectChanges();
               });
@@ -1922,6 +1924,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             mainRadius, // Pass the potentially updated main radius
             currentZoom
           ); // Triggers airport search
+          
+          // Clear the address field after successful resolution
+          this.inputOverlayComponent.clearAddressField();
         }
       });
     // Always force a scan at the end
@@ -2251,10 +2256,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+        // Don't update the address input field when following a plane
+        // The address field should show map center location, not plane location
         // Guard against missing input reference
-        if (this.inputOverlayComponent.addressInputRef) {
-          this.inputOverlayComponent.addressInputRef.setValue(address);
-        } // Update location overlay info using the same address result
+        // if (this.inputOverlayComponent.addressInputRef) {
+        //   this.inputOverlayComponent.addressInputRef.setValue(address);
+        // } 
+        
+        // Update location overlay info using the same address result
         if (!address || address.trim() === '') {
           console.log('Empty geocoding result for followed plane:', address);
         }

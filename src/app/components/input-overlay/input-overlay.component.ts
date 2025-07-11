@@ -78,6 +78,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   scanButtonText = '';
   private sub!: Subscription;
   private isUserEditingRadius = false;
+  private isUserEditingAddress = false;
   @HostBinding('class.collapsed')
   collapsed: boolean = true; // Default to collapsed
   public otherControlsHidden: boolean = false;
@@ -121,10 +122,14 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
       this.otherControlsHidden = val;
       this.cdr.detectChanges();
     });
-    // Subscribe to address changes
+    // Subscribe to address changes - only populate if field is empty and not being edited
+    // This prevents overwriting user input while still showing current location when appropriate
     this.locationContext.address$.subscribe((address) => {
-      this.currentAddress = address || '';
-      this.cdr.detectChanges();
+      // Only update if user is not editing AND field is empty
+      if (!this.isUserEditingAddress && !this.currentAddress.trim()) {
+        this.currentAddress = address || '';
+        this.cdr.detectChanges();
+      }
     });
     // Subscribe to settings changes that might affect input display
     this.sub = combineLatest([
@@ -202,6 +207,9 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.processRadiusChange();
     // Update the last scan time
     this.lastScanTime = new Date();
+    // Clear the user editing flag since we're now processing the address
+    this.isUserEditingAddress = false;
+    
     // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
   }
@@ -568,6 +576,9 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onAddressFocus(event: FocusEvent): void {
+    // Set flag to indicate user is editing the address
+    this.isUserEditingAddress = true;
+    
     // Only select all on mobile devices
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -576,5 +587,23 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     if (isMobile && this.addressInputRef) {
       setTimeout(() => this.addressInputRef.select(), 0); // Use the component's select method
     }
+  }
+
+  onAddressChange(value: string): void {
+    this.currentAddress = value;
+    // Set editing flag when user types
+    this.isUserEditingAddress = true;
+  }
+
+  onAddressBlur(): void {
+    // Clear the editing flag when user stops editing
+    this.isUserEditingAddress = false;
+  }
+
+  /** Clear the address field (called after successful address resolution) */
+  public clearAddressField(): void {
+    this.currentAddress = '';
+    this.isUserEditingAddress = false;
+    this.cdr.detectChanges();
   }
 }
