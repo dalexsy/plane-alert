@@ -106,10 +106,8 @@
     width: 0;
     min-height: 0;
     z-index: 1000;
-
-    .top-buttons {
-      width: 2.5rem;
-    }
+    background: transparent;
+    border-color: transparent;
 
     // Hide everything except top-buttons
     > *:not(.top-buttons) {

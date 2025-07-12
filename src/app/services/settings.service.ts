@@ -11,6 +11,10 @@ export class SettingsService {
 
   /** Event emitted when distance unit changes */
   distanceUnitChanged = new EventEmitter<string>();
+  // Event emitted when input overlay collapse state changes
+  inputOverlayCollapsedChanged = new EventEmitter<boolean>();
+  // Event emitted when results overlay collapse state changes
+  resultsOverlayCollapsedChanged = new EventEmitter<boolean>();
   private _lat: number | null = null;
   private _lon: number | null = null;
   private _radius: number | null = 50;
@@ -69,6 +73,18 @@ export class SettingsService {
   private _inputOverlayCollapsed: boolean = true; // Collapsed by default
   private _resultsOverlayCollapsed: boolean = true; // Collapsed by default
 
+  // Key for input-overlay controls hidden
+  private inputOverlayControlsKey = 'inputOverlayOtherControlsHidden';
+  private _inputOverlayOtherControlsHidden: boolean = false;
+  // Event when input-overlay other controls are hidden/shown
+  inputOverlayControlsChanged = new EventEmitter<boolean>();
+
+  // Key for results-overlay controls hidden
+  private resultsOverlayControlsKey = 'resultsOverlayOtherControlsHidden';
+  private _resultsOverlayOtherControlsHidden: boolean = false;
+  // Event when results-overlay other controls are hidden/shown
+  resultsOverlayControlsChanged = new EventEmitter<boolean>();
+
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
     return this._showDateTimeOverlay;
@@ -98,17 +114,41 @@ export class SettingsService {
   get inputOverlayCollapsed(): boolean {
     return this._inputOverlayCollapsed;
   }
+  /** Persist input overlay collapse state */
   setInputOverlayCollapsed(value: boolean): void {
     this._inputOverlayCollapsed = value;
     localStorage.setItem(this.inputOverlayCollapsedKey, value.toString());
+    this.inputOverlayCollapsedChanged.emit(value);
+  }
+  /** Whether the input overlay other controls are hidden */
+  get inputOverlayControlsHidden(): boolean {
+    return this._inputOverlayOtherControlsHidden;
+  }
+  /** Persist input overlay other controls hidden state */
+  setInputOverlayControlsHidden(value: boolean): void {
+    this._inputOverlayOtherControlsHidden = value;
+    localStorage.setItem(this.inputOverlayControlsKey, value.toString());
+    this.inputOverlayControlsChanged.emit(value);
   }
   /** Whether the results overlay is collapsed */
   get resultsOverlayCollapsed(): boolean {
     return this._resultsOverlayCollapsed;
   }
+  /** Persist results overlay collapse state */
   setResultsOverlayCollapsed(value: boolean): void {
     this._resultsOverlayCollapsed = value;
     localStorage.setItem(this.resultsOverlayCollapsedKey, value.toString());
+    this.resultsOverlayCollapsedChanged.emit(value);
+  }
+  /** Whether the results overlay other controls are hidden */
+  get resultsOverlayControlsHidden(): boolean {
+    return this._resultsOverlayOtherControlsHidden;
+  }
+  /** Persist results overlay other controls hidden state */
+  setResultsOverlayControlsHidden(value: boolean): void {
+    this._resultsOverlayOtherControlsHidden = value;
+    localStorage.setItem(this.resultsOverlayControlsKey, value.toString());
+    this.resultsOverlayControlsChanged.emit(value);
   }
   /** Whether military alerts are muted */
   get militaryMute(): boolean {
@@ -482,12 +522,24 @@ export class SettingsService {
     if (inputOverlayCollapsedStr !== null) {
       this._inputOverlayCollapsed = inputOverlayCollapsedStr === 'true';
     }
+    // Load input overlay other controls hidden preference
+    const inputControlsStr = localStorage.getItem(this.inputOverlayControlsKey);
+    if (inputControlsStr !== null) {
+      this._inputOverlayOtherControlsHidden = inputControlsStr === 'true';
+    }
     // Load results overlay collapsed preference
     const resultsOverlayCollapsedStr = localStorage.getItem(
       this.resultsOverlayCollapsedKey
     );
     if (resultsOverlayCollapsedStr !== null) {
       this._resultsOverlayCollapsed = resultsOverlayCollapsedStr === 'true';
+    }
+    // Load results overlay other controls hidden preference
+    const resultsControlsStr = localStorage.getItem(
+      this.resultsOverlayControlsKey
+    );
+    if (resultsControlsStr !== null) {
+      this._resultsOverlayOtherControlsHidden = resultsControlsStr === 'true';
     }
   }
 }

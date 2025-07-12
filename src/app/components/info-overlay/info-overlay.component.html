@@ -1,0 +1,45 @@
+<div
+  class="info-wrapper"
+  [class.window-view-hidden]="!showWindowView"
+  [class.collapsed]="collapsed"
+  style="
+    position: fixed;
+    left: 0;
+    bottom: 1rem;
+    z-index: 2000;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 1rem;
+  "
+>
+  <app-angle-overlay
+    [sunAngle]="sunAngle"
+    [sunEventText]="sunEventText"
+    [isNight]="isNight"
+    [moonPhaseName]="moonPhaseName"
+    [moonFraction]="moonFraction"
+    [windAngle]="windAngle"
+    [windStat]="windStat"
+    [windSpeed]="windSpeed"
+    [windUnit]="windUnit"
+    [windDirection]="windDirection"
+    (cycleWindUnit)="onCycleWind()"
+  ></app-angle-overlay>
+  <div class="time-temp-container">
+    <app-clock></app-clock>
+    <app-temperature></app-temperature>
+  </div>
+  <app-window-view-overlay
+    *ngIf="showWindowView"
+    [windowViewPlanes]="windowViewPlanes"
+    [highlightedPlaneIcao]="highlightedPlaneIcao"
+    [observerLat]="observerLat"
+    [observerLon]="observerLon"
+    [isAtHome]="isAtHome"
+    [showAltitudeBorders]="showAltitudeBorders"
+    [animationsEnabled]="animationsEnabled"
+    (selectPlane)="followNearestPlane($event)"
+  ></app-window-view-overlay>
+</div>

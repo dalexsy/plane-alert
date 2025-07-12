@@ -1,0 +1,138 @@
+/* src/app/components/ui/input.component.scss */
+:host {
+  display: block;
+  width: 100%;
+  height: 100%; /* Allow host to take full height */
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%; /* Mobile-first: full height by default */
+  gap: 0.5rem;
+
+  .input-label {
+    display: block;
+    color: white;
+    font-size: 1rem; /* Mobile-first: larger text */
+    font-weight: 500;
+    flex-shrink: 0; /* Don't let label shrink */
+  }
+
+  .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1rem; /* Mobile-first: larger text */
+    padding: 1rem 1.25rem; /* Mobile-first: larger padding */
+    transition: background 0.2s ease, outline 0.2s ease;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:focus {
+      outline: 3px solid rgba(255, 255, 255, 0.3); /* Mobile-first: thicker outline */
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    // Hide number input spinner arrows
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    // Firefox
+    &[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    // Specific styling for textarea
+    &.textarea {
+      border-radius: 1rem;
+      line-height: 1.7;
+      resize: vertical;
+      height: 100%; /* Mobile-first: fill available height */
+      min-height: 8rem; /* Mobile-first: larger minimum height */
+      font-family: "JetBrains Mono", monospace;
+      outline: 1px solid white;
+      flex: 1; /* Take remaining space in flex container */
+      padding: 1.25rem 1.5rem; /* Mobile-first: larger padding for textarea */
+
+      &:focus {
+        outline: 3px solid white;
+      }
+    }
+  }
+
+  // Desktop and larger screens - reduce sizes
+  @media (min-width: 601px) {
+    height: auto; /* Desktop: don't force full height */
+    gap: 0.3rem; /* Smaller gap on desktop */
+
+    .input-label {
+      font-size: 0.875rem; /* Smaller label text */
+    }
+
+    .input-field {
+      font-size: 0.875rem; /* Smaller input text */
+      padding: 0.5rem 1rem; /* Smaller padding */
+
+      &:focus {
+        outline: 2px solid rgba(255, 255, 255, 0.3); /* Thinner outline */
+      }
+
+      &.textarea {
+        min-height: 2.5rem; /* Smaller minimum height */
+        padding: 0.75rem 1rem; /* Smaller textarea padding */
+        height: auto; /* Desktop: auto height */
+        flex: none; /* Don't stretch on desktop */
+
+        &:focus {
+          outline: 2px solid white; /* Thinner outline */
+        }
+      }
+    }
+  }
+
+  // Size variants (applied on top of mobile-first base)
+  &.small .input-field {
+    padding: 0.75rem 1rem; /* Mobile small */
+    font-size: 0.875rem;
+
+    @media (min-width: 601px) {
+      padding: 0.375rem 0.75rem; /* Desktop small */
+      font-size: 0.75rem;
+    }
+  }
+
+  &.large .input-field {
+    padding: 1.25rem 1.5rem; /* Mobile large */
+    font-size: 1.125rem;
+
+    &.textarea {
+      padding: 1.5rem 1.75rem; /* Mobile large textarea */
+    }
+
+    @media (min-width: 601px) {
+      padding: 0.75rem 1.25rem; /* Desktop large */
+      font-size: 1rem;
+
+      &.textarea {
+        padding: 1rem 1.25rem; /* Desktop large textarea */
+      }
+    }
+  }
+}

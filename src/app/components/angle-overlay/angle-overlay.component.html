@@ -1,0 +1,97 @@
+<!-- Host element acts as flex container -->
+<!-- Removed wrapper div -->
+<!-- Sun angle indicator overlay -->
+<div
+  class="sun-angle-overlay"
+  [title]="
+    isNight
+      ? moonPhaseName +
+        ' - Illumination: ' +
+        (moonFraction * 100).toFixed(0) +
+        '%'
+      : 'Sun azimuth: ' + sunAngle.toFixed(1) + '°'
+  "
+>
+  <span class="sun-info">{{ sunEventText }}</span>
+  <ng-container *ngIf="isNight; else sunArrow">
+    <span
+      class="moon-angle-icon"
+      [style.--angle]="sunAngle + 'deg'"
+      role="img"
+      [attr.aria-label]="moonPhaseName + ' - Moon direction'"
+    >
+      <ng-container *ngIf="moonFraction >= 0.9; else maskedMoon">
+        <svg
+          class="moon-icon"
+          width="2rem"
+          height="2rem"
+          viewBox="0 0 22 22"
+          [style.transform]="'rotate(90deg)'"
+        >
+          <circle cx="11" cy="11" r="10" [attr.fill]="getMoonLitColor()" />
+        </svg>
+      </ng-container>
+      <ng-template #maskedMoon>
+        <svg
+          class="moon-icon"
+          width="2rem"
+          height="2rem"
+          viewBox="0 0 22 22"
+          [style.transform]="'rotate(-90deg)'"
+        >
+          <defs>
+            <mask id="moon-phase-mask">
+              <rect width="22" height="22" fill="white" />
+              <circle
+                [attr.cx]="11 + (1 - 2 * moonFraction) * 10"
+                cy="11"
+                r="10"
+                fill="black"
+              />
+            </mask>
+          </defs>
+          <circle
+            cx="11"
+            cy="11"
+            r="10"
+            [attr.fill]="getMoonBackgroundColor()"
+          />
+          <circle
+            cx="11"
+            cy="11"
+            r="10"
+            [attr.fill]="getMoonLitColor()"
+            [attr.mask]="'url(#moon-phase-mask)'"
+          />
+        </svg>
+      </ng-template>
+    </span>
+  </ng-container>
+  <ng-template #sunArrow>
+    <span
+      class="sun-angle-icon"
+      [attr.aria-label]="'Sun direction'"
+      [style.--angle]="sunAngle + 180 + 'deg'"
+      role="img"
+    ></span>
+  </ng-template>
+</div>
+<!-- Wind direction indicator overlay -->
+<div
+  class="wind-angle-overlay"
+  title="Click to change units"
+  (click)="cycleWindUnit.emit()"
+  style="cursor: pointer"
+>
+  <span class="wind-info">
+    {{ windSpeed.toFixed(1) }} {{ windUnit }} {{ windDirection }}
+  </span>
+  <app-icon
+    [icon]="'stat_' + windStat"
+    class="wind-intensity-icon"
+    variant="outlined"
+    [style.transform]="windStat > 0 ? 'rotate(' + windAngle + 'deg)' : ''"
+    [attr.aria-label]="'Wind intensity level ' + windStat"
+  ></app-icon>
+</div>
+<!-- End of angle overlay -->

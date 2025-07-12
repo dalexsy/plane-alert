@@ -3,123 +3,134 @@
   <div class="top-buttons">
     <app-tab side="left">
       <app-button
-        class="collapse-toggle"
-        [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
+        class="toggle-other-controls"
+        [icon]="otherControlsHidden ? 'arrow_drop_down' : 'arrow_drop_down'"
         type="tertiary"
         size="medium"
-        [ariaLabel]="collapseTooltip"
-        [appTooltip]="collapseTooltip"
-        tooltipPosition="right"
-        (click)="toggleCollapsed()"
+        [ariaLabel]="otherControlsHidden ? 'Show controls' : 'Hide controls'"
+        [appTooltip]="otherControlsHidden ? 'Show controls' : 'Hide controls'"
+        (click)="toggleOtherControls()"
       ></app-button>
-      <app-button
-        class="toggle-datetime"
-        [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="dateTimeTooltip"
-        [appTooltip]="dateTimeTooltip"
-        (click)="toggleDateTimeOverlays.emit()"
-      ></app-button>
-      <div
-        class="brightness-button-wrapper"
-        [class.auto]="brightnessState?.mode === 'auto'"
-      >
+      <ng-container *ngIf="!otherControlsHidden">
         <app-button
-          class="toggle-brightness"
-          [icon]="brightnessIcon"
+          class="collapse-toggle"
+          [icon]="collapsed ? 'left_panel_open' : 'left_panel_close'"
           type="tertiary"
           size="medium"
-          [ariaLabel]="brightnessSimpleTooltip"
-          [appTooltip]="sunStatusTooltip"
-          (click)="onBrightnessToggle()"
+          [ariaLabel]="collapseTooltip"
+          [appTooltip]="collapseTooltip"
+          tooltipPosition="right"
+          (click)="toggleCollapsed()"
         ></app-button>
-      </div>
-      <app-button
-        class="toggle-airport-labels"
-        [icon]="showAirportLabels ? 'label' : 'label_off'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="airportLabelsTooltip"
-        [appTooltip]="airportLabelsTooltip"
-        (click)="toggleAirportLabels.emit()"
-      ></app-button>
-      <app-button
-        class="toggle-cloud-cover"
-        [icon]="showCloudCover ? 'cloud' : 'cloud_off'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="cloudCoverTooltip"
-        [appTooltip]="cloudCoverTooltip"
-        (click)="cloudToggleChange.emit(!showCloudCover)"
-      ></app-button>
-      <app-button
-        class="toggle-rain-cover"
-        [icon]="showRainCover ? 'rainy_heavy' : 'rainy_snow'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="rainCoverTooltip"
-        [appTooltip]="rainCoverTooltip"
-        (click)="rainToggleChange.emit(!showRainCover)"
-      ></app-button>
-      <!-- View axes toggle button -->
-      <app-button
-        class="toggle-view-axes"
-        [icon]="showViewAxes ? 'target' : 'filter_tilt_shift'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="viewAxesTooltip"
-        [appTooltip]="viewAxesTooltip"
-        (click)="coneVisibilityChange.emit(!showViewAxes)"
-      ></app-button>
-      <!-- Animations toggle button -->
-      <app-button
-        class="toggle-animations"
-        [icon]="animationsEnabled ? 'motion_photos_paused' : 'motion_play'"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="animationsTooltip"
-        [appTooltip]="animationsTooltip"
-        (click)="onToggleAnimations()"
-      ></app-button>
-      <app-button
-        class="go-home"
-        icon="home"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="goHomeTooltip"
-        [appTooltip]="goHomeTooltip"
-        (click)="onGoToHome()"
-      ></app-button>
-      <!-- Force scan button -->
-      <app-button
-        class="force-scan"
-        icon="refresh"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="forceScanTooltip"
-        [appTooltip]="forceScanTooltip"
-        (click)="onResolveAndUpdate($event)"
-      ></app-button>
-      <!-- Zoom controls -->
-      <app-button
-        class="zoom-in"
-        icon="add"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="zoomInTooltip"
-        [appTooltip]="zoomInTooltip"
-        (click)="onZoomIn()"
-      ></app-button>
-      <app-button
-        class="zoom-out"
-        icon="remove"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="zoomOutTooltip"
-        [appTooltip]="zoomOutTooltip"
-        (click)="onZoomOut()"
-      ></app-button>
+        <app-button
+          class="toggle-datetime"
+          [icon]="showDateTime ? 'schedule' : 'history_toggle_off'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="dateTimeTooltip"
+          [appTooltip]="dateTimeTooltip"
+          (click)="toggleDateTimeOverlays.emit()"
+        ></app-button>
+        <div
+          class="brightness-button-wrapper"
+          [class.auto]="brightnessState?.mode === 'auto'"
+        >
+          <app-button
+            class="toggle-brightness"
+            [icon]="brightnessIcon"
+            type="tertiary"
+            size="medium"
+            [ariaLabel]="brightnessSimpleTooltip"
+            [appTooltip]="sunStatusTooltip"
+            (click)="onBrightnessToggle()"
+          ></app-button>
+        </div>
+        <app-button
+          class="toggle-airport-labels"
+          [icon]="showAirportLabels ? 'label' : 'label_off'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="airportLabelsTooltip"
+          [appTooltip]="airportLabelsTooltip"
+          (click)="toggleAirportLabels.emit()"
+        ></app-button>
+        <app-button
+          class="toggle-cloud-cover"
+          [icon]="showCloudCover ? 'cloud' : 'cloud_off'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="cloudCoverTooltip"
+          [appTooltip]="cloudCoverTooltip"
+          (click)="cloudToggleChange.emit(!showCloudCover)"
+        ></app-button>
+        <app-button
+          class="toggle-rain-cover"
+          [icon]="showRainCover ? 'rainy_heavy' : 'rainy_snow'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="rainCoverTooltip"
+          [appTooltip]="rainCoverTooltip"
+          (click)="rainToggleChange.emit(!showRainCover)"
+        ></app-button>
+        <!-- View axes toggle button -->
+        <app-button
+          class="toggle-view-axes"
+          [icon]="showViewAxes ? 'target' : 'filter_tilt_shift'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="viewAxesTooltip"
+          [appTooltip]="viewAxesTooltip"
+          (click)="coneVisibilityChange.emit(!showViewAxes)"
+        ></app-button>
+        <!-- Animations toggle button -->
+        <app-button
+          class="toggle-animations"
+          [icon]="animationsEnabled ? 'motion_photos_paused' : 'motion_play'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="animationsTooltip"
+          [appTooltip]="animationsTooltip"
+          (click)="onToggleAnimations()"
+        ></app-button>
+        <app-button
+          class="go-home"
+          icon="home"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="goHomeTooltip"
+          [appTooltip]="goHomeTooltip"
+          (click)="onGoToHome()"
+        ></app-button>
+        <!-- Force scan button -->
+        <app-button
+          class="force-scan"
+          icon="refresh"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="forceScanTooltip"
+          [appTooltip]="forceScanTooltip"
+          (click)="onResolveAndUpdate($event)"
+        ></app-button>
+        <!-- Zoom controls -->
+        <app-button
+          class="zoom-in"
+          icon="add"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="zoomInTooltip"
+          [appTooltip]="zoomInTooltip"
+          (click)="onZoomIn()"
+        ></app-button>
+        <app-button
+          class="zoom-out"
+          icon="remove"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="zoomOutTooltip"
+          [appTooltip]="zoomOutTooltip"
+          (click)="onZoomOut()"
+        ></app-button>
+      </ng-container>
     </app-tab>
   </div>
   <form
@@ -128,18 +139,19 @@
     autocomplete="off"
   >
     <div class="form-group">
-      <label for="address">Address</label>
-      <input
+      <app-input
         #addressInput
-        type="text"
-        autocomplete="off"
-        id="address"
-        placeholder="Enter address"
+        type="textarea"
+        label="Address"
+        placeholder="Enter address to search"
         [value]="currentAddress"
-        (input)="currentAddress = addressInput.value"
-        (keydown.enter)="onResolveAndUpdate()"
-        (focus)="onAddressFocus($event)"
-      />
+        (inputChange)="onAddressChange($event)"
+        (enterPressed)="onResolveAndUpdate()"
+        (focusEvent)="onAddressFocus($event)"
+        (blurEvent)="onAddressBlur()"
+        [rows]="2"
+        autocomplete="off"
+      ></app-input>
     </div>
     <div class="form-row">
       <div class="form-group">

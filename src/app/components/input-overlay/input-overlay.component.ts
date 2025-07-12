@@ -19,6 +19,7 @@ import { BrightnessState } from '../../services/brightness.service';
 import { Subscription, combineLatest } from 'rxjs';
 import { ButtonComponent } from '../ui/button.component';
 import { TabComponent } from '../ui/tab.component';
+import { InputComponent } from '../ui/input.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
 import {
   DistanceUnit,
@@ -32,7 +33,7 @@ import { LocationContextService } from '../../services/location-context.service'
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TabComponent, TooltipDirective],
+  imports: [CommonModule, ButtonComponent, TabComponent, InputComponent, TooltipDirective],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
@@ -40,7 +41,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() showAirportLabels: boolean = true;
   @Output() toggleAirportLabels = new EventEmitter<boolean>();
   @ViewChild('addressInput', { static: false })
-  addressInputRef!: ElementRef<HTMLInputElement>;
+  addressInputRef!: InputComponent;
   @ViewChild('searchRadiusInput', { static: false })
   searchRadiusInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('checkIntervalInput', { static: false })
@@ -73,11 +74,14 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Whether animations are enabled */
   @Input() animationsEnabled = true;
   @Output() animationsEnabledChange = new EventEmitter<boolean>();
+
   scanButtonText = '';
   private sub!: Subscription;
   private isUserEditingRadius = false;
+  private isUserEditingAddress = false;
   @HostBinding('class.collapsed')
   collapsed: boolean = true; // Default to collapsed
+  public otherControlsHidden: boolean = false;
   public currentAddress: string = '';
   public showBrightnessTooltip = false;
   public lastScanTime: Date | null = null;
@@ -105,10 +109,27 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     private locationContext: LocationContextService // Inject the service
   ) {}
   ngOnInit(): void {
-    // Subscribe to address changes
-    this.locationContext.address$.subscribe((address) => {
-      this.currentAddress = address || '';
+    // Initialize collapsed state from settings
+    this.collapsed = this.settings.inputOverlayCollapsed;
+    // Subscribe to collapsed changes
+    this.settings.inputOverlayCollapsedChanged.subscribe((val: boolean) => {
+      this.collapsed = val;
       this.cdr.detectChanges();
+    });
+    // Initialize 'other controls' hidden state
+    this.otherControlsHidden = this.settings.inputOverlayControlsHidden;
+    this.settings.inputOverlayControlsChanged.subscribe((val: boolean) => {
+      this.otherControlsHidden = val;
+      this.cdr.detectChanges();
+    });
+    // Subscribe to address changes - only populate if field is empty and not being edited
+    // This prevents overwriting user input while still showing current location when appropriate
+    this.locationContext.address$.subscribe((address) => {
+      // Only update if user is not editing AND field is empty
+      if (!this.isUserEditingAddress && !this.currentAddress.trim()) {
+        this.currentAddress = address || '';
+        this.cdr.detectChanges();
+      }
     });
     // Subscribe to settings changes that might affect input display
     this.sub = combineLatest([
@@ -157,6 +178,22 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.settings.setInputOverlayCollapsed(this.collapsed);
     this.cdr.detectChanges();
   }
+  /** Toggle visibility of other input overlay controls */
+  public toggleOtherControls(): void {
+    this.otherControlsHidden = !this.otherControlsHidden;
+    // Persist 'other controls' hidden state
+    this.settings.setInputOverlayControlsHidden(this.otherControlsHidden);
+    
+    // If controls are being shown and overlay is collapsed, expand it
+    if (!this.otherControlsHidden && this.collapsed) {
+      this.toggleCollapsed();
+    }
+    // If controls are now hidden and overlay is expanded, collapse it
+    else if (this.otherControlsHidden && !this.collapsed) {
+      this.toggleCollapsed();
+    }
+    this.cdr.detectChanges();
+  }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
@@ -170,6 +207,9 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.processRadiusChange();
     // Update the last scan time
     this.lastScanTime = new Date();
+    // Clear the user editing flag since we're now processing the address
+    this.isUserEditingAddress = false;
+    
     // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
   }
@@ -536,14 +576,34 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onAddressFocus(event: FocusEvent): void {
+    // Set flag to indicate user is editing the address
+    this.isUserEditingAddress = true;
+    
     // Only select all on mobile devices
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
-    if (isMobile) {
-      const input = event.target as HTMLInputElement;
-      setTimeout(() => input.select(), 0); // Timeout ensures select after focus
+    if (isMobile && this.addressInputRef) {
+      setTimeout(() => this.addressInputRef.select(), 0); // Use the component's select method
     }
+  }
+
+  onAddressChange(value: string): void {
+    this.currentAddress = value;
+    // Set editing flag when user types
+    this.isUserEditingAddress = true;
+  }
+
+  onAddressBlur(): void {
+    // Clear the editing flag when user stops editing
+    this.isUserEditingAddress = false;
+  }
+
+  /** Clear the address field (called after successful address resolution) */
+  public clearAddressField(): void {
+    this.currentAddress = '';
+    this.isUserEditingAddress = false;
+    this.cdr.detectChanges();
   }
 }

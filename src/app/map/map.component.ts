@@ -48,6 +48,7 @@ import { LocationService } from '../services/location.service';
 import SunCalc from 'suncalc';
 import { IconComponent } from '../components/ui/icon.component';
 import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
+import { AngleOverlayComponent } from '../components/angle-overlay/angle-overlay.component';
 import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
 import { getIconPathForModel } from '../utils/plane-icons';
 import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
@@ -64,6 +65,7 @@ import { FollowCoordinatorService } from '../services/follow-coordinator.service
 import { TtsService } from '../services/tts.service';
 import { OperatorCallSignService } from '../services/operator-call-sign.service';
 import { SkyOverlayService } from '../services/sky-overlay.service';
+import { MapThemeService } from '../services/map-theme.service';
 import {
   BrightnessService,
   BrightnessState,
@@ -99,8 +101,8 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
     TemperatureComponent,
     ClosestPlaneOverlayComponent,
     LocationOverlayComponent,
-    IconComponent, // added for sun angle overlay
     WindowViewOverlayComponent,
+    AngleOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -260,6 +262,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private tts: TtsService,
     private operatorCallSignService: OperatorCallSignService,
     private skyOverlayService: SkyOverlayService,
+    private mapThemeService: MapThemeService,
     private brightnessService: BrightnessService,
     private altitudeColor: AltitudeColorService
   ) {
@@ -323,10 +326,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
                 animate: true,
                 duration: 1.0,
               });
-              // Update both address input overlay and location overlay info with single geocoding call
+              // Update location overlay info but NOT the address input field
+              // The address field should show map center location, not plane location
               this.reverseGeocode(pm.lat, pm.lon).then((address) => {
-                this.inputOverlayComponent.addressInputRef.nativeElement.value =
-                  address;
+                // Don't set the address input field when following a plane
+                // this.inputOverlayComponent.addressInputRef.setValue(address);
                 this.locationDistrict = address;
                 this.cdr.detectChanges();
               });
@@ -637,6 +641,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.brightnessService.ngOnDestroy();
     // Clean up sky overlay service
     this.skyOverlayService.destroy();
+    // Clean up map theme service
+    this.mapThemeService.destroy();
     window.removeEventListener('click', this.globalTooltipClickHandler);
   }
 
@@ -742,13 +748,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       );
     }
 
-    L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    ).addTo(this.map);
-
-    L.tileLayer(
-      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
-    ).addTo(this.map);
+    // Initialize map themes (replaces hardcoded tile layers)
+    this.mapThemeService.initializeWithMap(this.map);
 
     // Create a custom pane for cloud coverage above markers
     this.map.createPane('cloudPane');
@@ -823,9 +824,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       this.reverseGeocode(lat, lng).then((address) => {
         // Guard against missing input reference
-        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
-          this.inputOverlayComponent.addressInputRef.nativeElement.value =
-            address;
+        if (this.inputOverlayComponent.addressInputRef) {
+          this.inputOverlayComponent.addressInputRef.setValue(address);
         }
       });
       this.scanService.forceScan(); // Restart the scan
@@ -1005,11 +1005,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Trigger change detection to update input displays with property binding
       this.inputOverlayComponent.refreshDisplayValues();
       // Reverse geocode current center and update address input
-      const addressInput =
-        this.inputOverlayComponent.addressInputRef?.nativeElement;
+      const addressInput = this.inputOverlayComponent.addressInputRef;
       if (addressInput) {
         this.reverseGeocode(lat, lon).then((address) => {
-          addressInput.value = address;
+          addressInput.setValue(address);
         });
       }
     }
@@ -1863,8 +1862,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               this.DEFAULT_COORDS[1],
               currentMainRadius // Pass main radius
             ); // Triggers airport search
-            this.inputOverlayComponent.addressInputRef.nativeElement.value =
-              'Unable to fetch location; using default';
+            this.inputOverlayComponent.addressInputRef.setValue(
+              'Unable to fetch location; using default'
+            );
             this.locationErrorShown = true;
           }
         },
@@ -1875,8 +1875,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
   resolveAndUpdateFromAddress(): void {
-    const address =
-      this.inputOverlayComponent.addressInputRef.nativeElement.value;
+    const address = this.inputOverlayComponent.addressInputRef.getValue();
 
     // Make sure the input overlay processes any pending radius changes first
     // This ensures the stored radius is up-to-date with the current unit
@@ -1925,6 +1924,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             mainRadius, // Pass the potentially updated main radius
             currentZoom
           ); // Triggers airport search
+          
+          // Clear the address field after successful resolution
+          this.inputOverlayComponent.clearAddressField();
         }
       });
     // Always force a scan at the end
@@ -2254,11 +2256,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
       this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+        // Don't update the address input field when following a plane
+        // The address field should show map center location, not plane location
         // Guard against missing input reference
-        if (this.inputOverlayComponent.addressInputRef?.nativeElement) {
-          this.inputOverlayComponent.addressInputRef.nativeElement.value =
-            address;
-        } // Update location overlay info using the same address result
+        // if (this.inputOverlayComponent.addressInputRef) {
+        //   this.inputOverlayComponent.addressInputRef.setValue(address);
+        // } 
+        
+        // Update location overlay info using the same address result
         if (!address || address.trim() === '') {
           console.log('Empty geocoding result for followed plane:', address);
         }
@@ -2685,9 +2690,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onToggleDateTimeOverlays(): void {
     this.showDateTime = !this.showDateTime;
-
-    this.settings.setShowDateTimeOverlay(this.showDateTime);
-    this.cdr.detectChanges();
   }
 
   /** Toggle altitude-colored borders on plane tooltips */

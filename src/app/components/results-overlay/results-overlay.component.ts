@@ -113,11 +113,11 @@ export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit
 {
   constructor(
+    private cdr: ChangeDetectorRef, // ensure cdr available for change detection
     public settings: SettingsService,
     public countryService: CountryService,
     public planeFilter: PlaneFilterService,
     private specialListService: SpecialListService,
-    private cdr: ChangeDetectorRef,
     private aircraftDb: AircraftDbService,
     private scanService: ScanService,
     private militaryPrefixService: MilitaryPrefixService,
@@ -129,11 +129,12 @@ export class ResultsOverlayComponent
       this.resultsUpdated = true;
     });
   }
-
   // track hover state separately for each list to avoid cross-list hover
   hoveredSkyPlaneIcao: string | null = null;
   hoveredAirportPlaneIcao: string | null = null;
   hoveredSeenPlaneIcao: string | null = null;
+  /** Whether to hide other controls in the top bar */
+  public otherControlsHidden: boolean = false;
   // Controls collapse state for 'All Planes Peeped'
   get seenCollapsed(): boolean {
     return this.settings.seenCollapsed;
@@ -242,7 +243,14 @@ export class ResultsOverlayComponent
   }
 
   ngOnInit(): void {
-    // initial collapse state is set via property initializer
+    // Load 'other controls' hidden state from settings
+    this.otherControlsHidden = this.settings.resultsOverlayControlsHidden;
+    this.settings.resultsOverlayControlsChanged.subscribe((val: boolean) => {
+      this.otherControlsHidden = val;
+      this.cdr.markForCheck();
+    });
+    // load collapse state from SettingsService
+    this.collapsed = this.settings.resultsOverlayCollapsed;
     // Load military prefixes if needed
     this.militaryPrefixService.loadPrefixes().then(() => {
       this.resultsUpdated = true;
@@ -917,5 +925,22 @@ export class ResultsOverlayComponent
     this.showWindowView = !this.showWindowView;
     this.windowViewToggle.emit(this.showWindowView);
     this.cdr.detectChanges();
+  }
+
+  /** Toggle visibility of other controls in results overlay */
+  public toggleOtherControls(): void {
+    this.otherControlsHidden = !this.otherControlsHidden;
+    // Persist 'other controls' hidden state
+    this.settings.setResultsOverlayControlsHidden(this.otherControlsHidden);
+    
+    // If controls are being shown and overlay is collapsed, expand it
+    if (!this.otherControlsHidden && this.collapsed) {
+      this.toggleCollapsed();
+    }
+    // If controls are now hidden and overlay is expanded, collapse it  
+    else if (this.otherControlsHidden && !this.collapsed) {
+      this.toggleCollapsed();
+    }
+    this.cdr.markForCheck();
   }
 }
