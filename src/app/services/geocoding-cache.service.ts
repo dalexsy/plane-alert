@@ -76,12 +76,20 @@ export class GeocodingCacheService {
 
   private async performRequest(lat: number, lon: number): Promise<string> {
     try {
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
         {
           headers: { 'User-Agent': 'PlaneAlert/1.0' },
+          signal: controller.signal,
         }
       );
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok)
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
@@ -123,8 +131,16 @@ export class GeocodingCacheService {
       }
       // Fallback to the display_name or coordinates if absolutely nothing else
       return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-    } catch (error) {
-      console.warn('Geocoding failed:', error);
+    } catch (error: any) {
+      // Specific handling for CORS/network errors
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('Geocoding blocked by CORS policy or network error. Using coordinates fallback.');
+      } else if (error.name === 'AbortError') {
+        console.warn('Geocoding request timed out. Using coordinates fallback.');
+      } else {
+        console.warn('Geocoding failed:', error);
+      }
+      
       // Fallback to formatted coordinates so UI always has something meaningful
       return `${lat.toFixed(this.COORDINATE_PRECISION)}, ${lon.toFixed(
         this.COORDINATE_PRECISION

@@ -2,6 +2,7 @@
 <!-- Removed wrapper div -->
 <!-- Sun angle indicator overlay -->
 <div
+  *ngIf="showSunDirection"
   class="sun-angle-overlay"
   [title]="
     isNight
@@ -78,6 +79,7 @@
 </div>
 <!-- Wind direction indicator overlay -->
 <div
+  *ngIf="showWindDirection"
   class="wind-angle-overlay"
   title="Click to change units"
   (click)="cycleWindUnit.emit()"

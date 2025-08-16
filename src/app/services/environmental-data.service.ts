@@ -282,29 +282,49 @@ export class EnvironmentalDataService {
   ): Promise<WeatherData> {
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${this.WEATHER_API_KEY}&units=metric`;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Weather API error: ${response.status}`);
+    try {
+      // Add timeout to fetch using AbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Weather API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Calculate wind intensity based on speed
+      const windSpeed = data.wind?.speed || 0;
+      let windStat = 0;
+      if (windSpeed >= 6) windStat = 3;
+      else if (windSpeed >= 3) windStat = 2;
+      else if (windSpeed >= 0.5) windStat = 1;
+
+      return {
+        windDirection: data.wind?.deg || 0,
+        windSpeed: windSpeed,
+        windStat: windStat,
+        temperature: data.main?.temp,
+        humidity: data.main?.humidity,
+        pressure: data.main?.pressure,
+        lastUpdated: Date.now(),
+      };
+    } catch (error) {
+      console.warn('Weather API failed:', error);
+      // Return default weather data on error
+      return {
+        windDirection: 0,
+        windSpeed: 0,
+        windStat: 0,
+        temperature: undefined,
+        humidity: undefined,
+        pressure: undefined,
+        lastUpdated: Date.now(),
+      };
     }
-
-    const data = await response.json();
-
-    // Calculate wind intensity based on speed
-    const windSpeed = data.wind?.speed || 0;
-    let windStat = 0;
-    if (windSpeed >= 6) windStat = 3;
-    else if (windSpeed >= 3) windStat = 2;
-    else if (windSpeed >= 0.5) windStat = 1;
-
-    return {
-      windDirection: data.wind?.deg || 0,
-      windSpeed: windSpeed,
-      windStat: windStat,
-      temperature: data.main?.temp,
-      humidity: data.main?.humidity,
-      pressure: data.main?.pressure,
-      lastUpdated: Date.now(),
-    };
   }
 
   /**

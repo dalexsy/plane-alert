@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { Subscription } from 'rxjs';
+import { Subscription, timeout, catchError, of } from 'rxjs';
 import { EngineIconType } from '../../utils/plane-icons';
 import { PlaneStyleService } from '../../services/plane-style.service';
 import { CelestialService } from '../../services/celestial.service';
@@ -384,9 +384,15 @@ export class WindowViewOverlayComponent
 
     this.isUpdatingWeather = true;
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${this.observerLat}&lon=${this.observerLon}&appid=${this.OPEN_WEATHER_MAP_API_KEY}`;
-    this.http.get<any>(url).subscribe(
+    this.http.get<any>(url).pipe(
+      timeout(10000), // 10 second timeout for weather API
+      catchError((error) => {
+        console.warn('Weather API failed:', error.message || error);
+        return of(null); // Return null on error
+      })
+    ).subscribe(
       (data) => {
-        if (data.weather && data.weather.length) {
+        if (data?.weather && data.weather.length) {
           this.weatherCondition = data.weather[0].main;
           this.weatherDescription = data.weather[0].description;
         } else {

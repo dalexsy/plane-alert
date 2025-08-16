@@ -1,11 +1,13 @@
-// Simple map themes - reliable direct URLs
+// Map themes switched from Stadia Maps (403/upgrade) to free OSM & CARTO providers
 export const MAP_THEMES = {
   day: {
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg',
-    attribution: '&copy; Stadia Maps &copy; Stamen Design &copy; OpenStreetMap contributors'
+    // OpenStreetMap Standard tiles (respect usage policy; light theme)
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors'
   },
   night: {
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    // CARTO Dark Matter tiles (no key required)
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
   }
 };

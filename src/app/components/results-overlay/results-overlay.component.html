@@ -56,6 +56,28 @@
           tooltipPosition="left"
           (click)="altitudeBordersChange.emit(!showAltitudeBorders)"
         ></app-button>
+        <!-- Wind direction toggle button -->
+        <app-button
+          class="toggle-wind-direction"
+          [icon]="showWindDirection ? 'air' : 'air'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="windDirectionTooltip"
+          [appTooltip]="windDirectionTooltip"
+          tooltipPosition="left"
+          (click)="windDirectionToggleChange.emit(!showWindDirection)"
+        ></app-button>
+        <!-- Sun direction toggle button -->
+        <app-button
+          class="toggle-sun-direction"
+          [icon]="showSunDirection ? 'wb_sunny' : 'wb_sunny'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="sunDirectionTooltip"
+          [appTooltip]="sunDirectionTooltip"
+          tooltipPosition="left"
+          (click)="sunDirectionToggleChange.emit(!showSunDirection)"
+        ></app-button>
         <!-- Shuffle follow mode toggle -->
         <app-button
           class="shuffle-toggle"

@@ -9,6 +9,7 @@ import {
   tap,
   debounceTime,
   distinctUntilChanged,
+  timeout,
 } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
@@ -221,6 +222,7 @@ export class LocationContextService {
     this.http
       .get<any>(url)
       .pipe(
+        timeout(5000), // 5 second timeout
         map((response) => {
           // TimeAPI response debug
           const timezone: TimezoneData = {
@@ -234,7 +236,7 @@ export class LocationContextService {
           return timezone;
         }),
         catchError((error) => {
-          // Timezone lookup failed, using fallback
+          console.warn('Timezone API failed, using longitude-based fallback:', error.message || error);
           // Fallback: rough timezone estimation based on longitude
           const estimatedOffset = Math.round(lon / 15);
           return of({
@@ -282,6 +284,7 @@ export class LocationContextService {
     this.http
       .get<any>(url)
       .pipe(
+        timeout(5000), // 5 second timeout
         map((response) => {
           const addr = response.address || {};
           const components = [
@@ -297,6 +300,14 @@ export class LocationContextService {
             : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
         }),
         catchError((error) => {
+          // Specific handling for CORS and timeout errors
+          if (error.message && error.message.includes('Http failure response')) {
+            console.warn('Address lookup blocked by CORS policy. Using coordinates fallback.');
+          } else if (error.name === 'TimeoutError') {
+            console.warn('Address lookup timed out. Using coordinates fallback.');
+          } else {
+            console.warn('Address lookup failed:', error.message || error);
+          }
           // Address lookup failed, using coordinates
           return of(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
         }),
