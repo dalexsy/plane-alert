@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError, map } from 'rxjs';
+import { Observable, of, catchError, map, timeout } from 'rxjs';
 
 interface LocationResponse {
   address: {
@@ -32,6 +32,7 @@ export class LocationService {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`;
 
     return this.http.get<LocationResponse>(url).pipe(
+      timeout(5000), // 5 second timeout
       map((response) => {
         const street = response.address.road || null;
         // Try to get district from different possible fields

@@ -65,11 +65,11 @@
       line-height: 1.7;
       resize: vertical;
       height: 100%; /* Mobile-first: fill available height */
-      min-height: 8rem; /* Mobile-first: larger minimum height */
+      min-height: 2.5rem; /* Mobile-first: larger minimum height */
       font-family: "JetBrains Mono", monospace;
       outline: 1px solid white;
       flex: 1; /* Take remaining space in flex container */
-      padding: 1.25rem 1.5rem; /* Mobile-first: larger padding for textarea */
+      padding: 0.5; /* Mobile-first: larger padding for textarea */
 
       &:focus {
         outline: 3px solid white;
@@ -109,7 +109,7 @@
 
   // Size variants (applied on top of mobile-first base)
   &.small .input-field {
-    padding: 0.75rem 1rem; /* Mobile small */
+    padding: 0.375rem 0.75rem; /* Mobile small */
     font-size: 0.875rem;
 
     @media (min-width: 601px) {
@@ -119,11 +119,11 @@
   }
 
   &.large .input-field {
-    padding: 1.25rem 1.5rem; /* Mobile large */
+    padding: 0.75rem 1.25rem; /* Mobile large */
     font-size: 1.125rem;
 
     &.textarea {
-      padding: 1.5rem 1.75rem; /* Mobile large textarea */
+      padding: 0.75rem 1.25rem; /* Mobile large textarea */
     }
 
     @media (min-width: 601px) {

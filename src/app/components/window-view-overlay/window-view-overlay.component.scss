@@ -5,14 +5,18 @@
 // altitude bands, marker lines, dim overlay, and aircraft container
 
 // =============================================================================
-// SCSS Variables and Configuration
+// SCSS Variables and Configuration - Mobile First
 // =============================================================================
 
-// Layout Constants
-$overlay-height: 10rem;
+// Layout Constants - Mobile First
+$overlay-height-mobile: 4rem;
+$overlay-height-desktop: 10rem;
 $overlay-bottom-spacing: 0.5rem;
 $overlay-z-index: 1000;
 $overlay-perspective: 800rem;
+
+// Responsive Breakpoints
+$mobile-breakpoint: 600px;
 
 // Color Palette
 $overlay-bg-start: rgba(0, 0, 0, 0.7);
@@ -21,7 +25,7 @@ $overlay-border-color: rgba(255, 255, 255, 0.3);
 $text-shadow-color: #000;
 
 // =============================================================================
-// MAIN OVERLAY CONTAINER
+// MAIN OVERLAY CONTAINER - Mobile First
 // =============================================================================
 
 .window-view-overlay {
@@ -29,8 +33,13 @@ $text-shadow-color: #000;
   left: 0;
   right: 0;
   bottom: $overlay-bottom-spacing;
-  height: $overlay-height;
+  height: $overlay-height-mobile; // Mobile first
   z-index: $overlay-z-index; // Keep base overlay behind aircraft
+
+  // Desktop height
+  @media (min-width: #{$mobile-breakpoint + 1px}) {
+    height: $overlay-height-desktop;
+  }
 
   // Visual styling
   background: linear-gradient(

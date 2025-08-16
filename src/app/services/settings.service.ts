@@ -32,6 +32,12 @@ export class SettingsService {
   private _militaryMute: boolean = false;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = true;
+  private windDirectionKey = 'showWindDirection';
+  private _showWindDirection: boolean = true;
+  private sunDirectionKey = 'showSunDirection';
+  private _showSunDirection: boolean = true;
+  private useAutoLocationKey = 'useAutoLocation';
+  private _useAutoLocation: boolean = false;
   // Key and backing store for showing view axes (cones)
   private viewAxesKey = 'showViewAxes';
   private _showViewAxes: boolean = false; // Key and backing store for airport labels visibility
@@ -93,6 +99,34 @@ export class SettingsService {
     this._showDateTimeOverlay = value;
     localStorage.setItem(this.dateTimeOverlayKey, value.toString());
   }
+
+  /** Whether the wind direction is shown */
+  get showWindDirection(): boolean {
+    return this._showWindDirection;
+  }
+  setShowWindDirection(value: boolean): void {
+    this._showWindDirection = value;
+    localStorage.setItem(this.windDirectionKey, value.toString());
+  }
+
+  /** Whether the sun direction is shown */
+  get showSunDirection(): boolean {
+    return this._showSunDirection;
+  }
+  setShowSunDirection(value: boolean): void {
+    this._showSunDirection = value;
+    localStorage.setItem(this.sunDirectionKey, value.toString());
+  }
+
+  /** Whether to automatically update location each scan */
+  get useAutoLocation(): boolean {
+    return this._useAutoLocation;
+  }
+  setUseAutoLocation(value: boolean): void {
+    this._useAutoLocation = value;
+    localStorage.setItem(this.useAutoLocationKey, value.toString());
+  }
+
   /** Whether the view axes (cones) are shown */
   get showViewAxes(): boolean {
     return this._showViewAxes;
@@ -482,7 +516,27 @@ export class SettingsService {
     const dtStr = localStorage.getItem(this.dateTimeOverlayKey);
     if (dtStr !== null) {
       this._showDateTimeOverlay = dtStr === 'true';
-    } // Load show/hide view axes (cones) preference
+    }
+    
+    // Load show/hide wind direction preference
+    const windDirStr = localStorage.getItem(this.windDirectionKey);
+    if (windDirStr !== null) {
+      this._showWindDirection = windDirStr === 'true';
+    }
+    
+    // Load show/hide sun direction preference
+    const sunDirStr = localStorage.getItem(this.sunDirectionKey);
+    if (sunDirStr !== null) {
+      this._showSunDirection = sunDirStr === 'true';
+    }
+    
+    // Load auto-location update preference
+    const autoLocationStr = localStorage.getItem(this.useAutoLocationKey);
+    if (autoLocationStr !== null) {
+      this._useAutoLocation = autoLocationStr === 'true';
+    }
+    
+    // Load show/hide view axes (cones) preference
     const axesStr = localStorage.getItem(this.viewAxesKey);
     if (axesStr !== null) {
       this._showViewAxes = axesStr === 'true';

@@ -200,6 +200,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Toggle for altitude-colored tooltip borders
   showAltitudeBorders = false; // Default to disabled
 
+  // Toggle for wind direction display
+  showWindDirection = true; // Default to enabled
+
+  // Toggle for sun direction display
+  showSunDirection = true; // Default to enabled
+
   // Toggle for animations
   animationsEnabled = true; // Default to enabled
 
@@ -273,6 +279,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.showDateTime = this.settings.showDateTimeOverlay;
     this.showAirportLabels = this.settings.showAirportLabels;
     this.showAltitudeBorders = this.settings.showAltitudeBorders;
+    this.showWindDirection = this.settings.showWindDirection;
+    this.showSunDirection = this.settings.showSunDirection;
     this.animationsEnabled = this.settings.animationsEnabled;
     this.currentWindUnitIndex = this.settings.windUnitIndex;
     this.showWindowView = this.settings.showWindowView;
@@ -1141,6 +1149,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
   findPlanes(): void {
+    // Check for auto-location updates if enabled
+    if (this.settings.useAutoLocation) {
+      this.checkAutoLocationUpdate();
+    }
+
     // Update last scan time in input overlay
     if (this.inputOverlayComponent) {
       this.inputOverlayComponent.lastScanTime = new Date();
@@ -1687,13 +1700,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           plane.lon!
         );
         const maxRadius = this.settings.radius ?? 5; // fallback radius in km
-        // Dramatic scaling for planes within 10km, normal scaling beyond
+        // Mobile-first aircraft scaling: closer planes smaller on mobile, larger on desktop
         let scale = 1.0; // Default scale
+        const isMobile = window.innerWidth < 600; // Mobile breakpoint
+        
         if (distKm <= 10) {
-          // Within 10km: scale from 3.0 at 0km to 1.0 at 10km with exponential curve
+          // Within 10km: mobile vs desktop scaling behavior
           const normalizedDistance = distKm / 10; // 0 to 1 within 10km
           const exponentialCurve = Math.pow(normalizedDistance, 1.5); // Smooth exponential falloff
-          scale = Math.max(1.0, 3.0 - exponentialCurve * 2.0); // 3.0 to 1.0 range
+          
+          if (isMobile) {
+            // Mobile: closer planes smaller (scale from 0.6 at 0km to 1.0 at 10km)
+            scale = Math.max(0.6, 0.6 + exponentialCurve * 0.4); // 0.6 to 1.0 range
+          } else {
+            // Desktop: closer planes larger (scale from 3.0 at 0km to 1.0 at 10km)
+            scale = Math.max(1.0, 3.0 - exponentialCurve * 2.0); // 3.0 to 1.0 range
+          }
         } else {
           // Beyond 10km: gradual scaling from 1.0 to 0.5 based on max radius
           const beyondNormalized = Math.min(
@@ -1874,6 +1896,39 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       alert('Geolocation is not supported by your browser.');
     }
   }
+
+  /** Check and update location automatically if setting is enabled */
+  private checkAutoLocationUpdate(): void {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLat = position.coords.latitude;
+        const newLon = position.coords.longitude;
+        const currentLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+        const currentLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
+        // Check if location has changed significantly (more than ~10 meters)
+        const latDiff = Math.abs(newLat - currentLat);
+        const lonDiff = Math.abs(newLon - currentLon);
+        const hasLocationChanged = latDiff > 0.0001 || lonDiff > 0.0001;
+
+        if (hasLocationChanged) {
+          // Update to new location with current radius
+          const currentMainRadius = this.settings.radius ?? 5;
+          this.updateMap(newLat, newLon, currentMainRadius);
+        }
+      },
+      (error) => {
+        // Silently fail - don't show error messages during automatic updates
+        console.debug('Auto-location update failed:', error);
+      },
+      { enableHighAccuracy: false, timeout: 3000, maximumAge: 30000 }
+    );
+  }
+
   resolveAndUpdateFromAddress(): void {
     const address = this.inputOverlayComponent.addressInputRef.getValue();
 
@@ -1908,12 +1963,26 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // mainRadius = this.settings.radius ?? 5; // No need, updateMap handles undefined radiusKm
     }
 
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
     fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
         address
-      )}`
+      )}`,
+      {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'PlaneAlert/1.0' }
+      }
     )
-      .then((res) => res.json())
+      .then((res) => {
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (data.length) {
           const currentZoom = this.map.getZoom(); // Preserve current zoom level
@@ -1927,6 +1996,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           
           // Clear the address field after successful resolution
           this.inputOverlayComponent.clearAddressField();
+        } else {
+          console.warn('No results found for address:', address);
+        }
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        // Specific handling for CORS/network errors
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          console.warn('Address search blocked by CORS policy or network error:', address);
+        } else if (error.name === 'AbortError') {
+          console.warn('Address search timed out:', address);
+        } else {
+          console.warn('Address search failed:', error);
         }
       });
     // Always force a scan at the end
@@ -2714,6 +2796,26 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Apply animation setting to document body for CSS animation control
     this.applyAnimationSetting(enabled);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle wind direction display on/off */
+  onToggleWindDirection(enabled: boolean): void {
+    this.showWindDirection = enabled;
+
+    // Save the setting for persistence
+    this.settings.setShowWindDirection(enabled);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle sun direction display on/off */
+  onToggleSunDirection(enabled: boolean): void {
+    this.showSunDirection = enabled;
+
+    // Save the setting for persistence
+    this.settings.setShowSunDirection(enabled);
 
     this.cdr.detectChanges();
   }

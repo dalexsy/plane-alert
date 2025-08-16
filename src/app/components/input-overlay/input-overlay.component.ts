@@ -408,6 +408,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   get rainCoverTooltip(): string {
     return this.showRainCover ? 'Hide rain cover' : 'Show rain cover';
   }
+
   /** Get view axes toggle tooltip text */
   get viewAxesTooltip(): string {
     return this.showViewAxes ? 'Hide view axes' : 'Show view axes';

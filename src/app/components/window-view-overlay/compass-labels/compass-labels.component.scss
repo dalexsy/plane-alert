@@ -2,8 +2,12 @@
 // Compass Labels Component - Navigation Labels with Roof Background
 // =============================================================================
 
+// SCSS Variables - Mobile First
 $overlay-bottom-spacing: 1.5rem;
 $compass-label-color: #ffe066;
+$mobile-breakpoint: 600px;
+$label-font-size-mobile: 0.7rem;
+$label-font-size-desktop: 1rem;
 
 :host {
   position: absolute;
@@ -20,6 +24,12 @@ $compass-label-color: #ffe066;
   color: $compass-label-color;
   pointer-events: none;
   position: relative;
+  font-size: $label-font-size-mobile; // Mobile first
+
+  // Desktop font size
+  @media (min-width: #{$mobile-breakpoint + 1px}) {
+    font-size: $label-font-size-desktop;
+  }
   // Chimney decorations
   &::before,
   &::after {

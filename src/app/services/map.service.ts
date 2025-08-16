@@ -26,7 +26,10 @@ export class MapService {
     // SVG renderer is managed by MapComponent
 
     L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }
     ).addTo(this.map);
 
     const materialIcon = L.divIcon({
@@ -47,9 +50,7 @@ export class MapService {
     // disable pointer events on all vector overlays to speed up input handling
     svg.style.pointerEvents = 'none';
     ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
-    L.tileLayer(
-      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
-    ).addTo(this.map);
+    // Base layer is already added above, no need for overlay layer
 
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
       onDblClick(event.latlng.lat, event.latlng.lng);

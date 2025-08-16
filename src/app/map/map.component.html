@@ -55,7 +55,11 @@
   [clickedAirports]="clickedAirports"
   [airportCircles]="airportCircles"
   [showAltitudeBorders]="showAltitudeBorders"
+  [showWindDirection]="showWindDirection"
+  [showSunDirection]="showSunDirection"
   (altitudeBordersChange)="onToggleAltitudeBorders($event)"
+  (windDirectionToggleChange)="onToggleWindDirection($event)"
+  (sunDirectionToggleChange)="onToggleSunDirection($event)"
   (centerPlane)="followNearestPlane($event)"
   (centerAirport)="onCenterAirport($event)"
   (hoverPlane)="onHoverOverlayPlane($event)"
@@ -80,6 +84,8 @@
     [windSpeed]="getCurrentWindSpeed()"
     [windUnit]="getCurrentWindUnit()"
     [windDirection]="getWindFromDirection(windAngle)"
+    [showWindDirection]="showWindDirection"
+    [showSunDirection]="showSunDirection"
     (cycleWindUnit)="cycleWindUnit()"
   ></app-angle-overlay>
   <div class="time-temp-container" *ngIf="showDateTime">

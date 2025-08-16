@@ -18,7 +18,7 @@
   left: 2.75rem;
   z-index: 1001;
   background: rgba(0, 0, 0, 0.7);
-  padding: 1rem;
+  padding: 0.5rem; // Reduced padding on mobile
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0 0.5rem 0.5rem 0; // Keep tab-style border for consistency
   backdrop-filter: blur(0.5rem);
@@ -27,6 +27,7 @@
   height: calc(100vh - 0.5rem);
 
   @media (min-width: 601px) {
+    padding: 1rem; // Original padding on desktop
     width: 25rem;
     height: auto;
   }
@@ -34,9 +35,13 @@
   form {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem; // Reduced gap on mobile
     height: 100%;
     justify-content: space-between;
+
+    @media (min-width: 601px) {
+      gap: 1.5rem; // Original gap on desktop
+    }
   }
 
   // Mobile-first: form groups take full height by default
@@ -44,7 +49,11 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem; // Reduced gap on mobile
+
+    @media (min-width: 601px) {
+      gap: 0.5rem; // Original gap on desktop
+    }
 
     // Desktop: auto height
     @media (min-width: 601px) {
@@ -100,14 +109,19 @@
   input[type="text"],
   input[type="number"] {
     width: 100%;
-    padding: 8px;
+    padding: 6px; // Reduced padding on mobile
     box-sizing: border-box;
     border: none;
     border-radius: 2rem;
-    padding-left: 1rem;
+    padding-left: 0.75rem; // Reduced left padding on mobile
     background: rgba(255, 255, 255, 0.18);
     color: white;
     font-family: "JetBrains Mono", monospace;
+
+    @media (min-width: 601px) {
+      padding: 8px; // Original padding on desktop
+      padding-left: 1rem; // Original left padding on desktop
+    }
 
     // Hide number input spinner arrows
     &::-webkit-outer-spin-button,
@@ -162,11 +176,11 @@
 
   .form-row {
     display: flex;
-    gap: 1rem;
-    flex-direction: column;
+    gap: 0.5rem; // Reduced gap for mobile
+    flex-direction: row; // Always horizontal, even on mobile
 
     @media (min-width: 601px) {
-      flex-direction: row;
+      gap: 1rem; // Original gap on desktop
     }
 
     .form-group {
@@ -197,20 +211,13 @@
     display: none !important;
   }
 
-  // Mobile-specific: style all overlay and top-buttons buttons (native, app-button, and projected) for mobile only
-  .options-overlay button,
-  .options-overlay app-button button,
-  .options-overlay ::ng-deep button {
-    padding: 0.75rem;
-    font-size: 1rem;
-  }
-
   // Mobile-specific: style only overlay inputs for mobile only
   .options-overlay input[type="text"],
   .options-overlay input[type="number"] {
-    padding: 1.25rem;
+    padding: 0.5rem;
     font-size: 1rem;
     text-align: right;
+    line-height: 0.5;
   }
 }
 

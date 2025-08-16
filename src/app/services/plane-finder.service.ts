@@ -859,8 +859,10 @@ export class PlaneFinderService {
       const radiusNm = radiusKm / 1.852;
       const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
       const response = await fetch(url);
-      if (!response.ok)
+      if (!response.ok) {
+        console.warn(`ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`);
         throw new Error(`ADSB One API fetch error ${response.status}`);
+      }
       const data = await response.json();
 
       // Prepare update containers for this scan
@@ -1247,6 +1249,7 @@ export class PlaneFinderService {
         updatedLog: updatedLogModels,
       };
     } catch (err) {
+      console.warn('ADS-B API unavailable, using cached aircraft data:', err);
       return {
         anyNew: false,
         currentIDs: Array.from(previousLog.keys()),

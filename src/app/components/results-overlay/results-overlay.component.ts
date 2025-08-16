@@ -167,13 +167,35 @@ export class ResultsOverlayComponent
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
   /** Whether altitude-colored borders are enabled */
   @Input() showAltitudeBorders: boolean = false;
+  /** Whether wind direction is shown */
+  @Input() showWindDirection: boolean = true;
+  /** Whether sun direction is shown */
+  @Input() showSunDirection: boolean = true;
   /** Emit when altitude borders toggle is clicked */
   @Output() altitudeBordersChange = new EventEmitter<boolean>();
+  /** Emit when wind direction toggle is clicked */
+  @Output() windDirectionToggleChange = new EventEmitter<boolean>();
+  /** Emit when sun direction toggle is clicked */
+  @Output() sunDirectionToggleChange = new EventEmitter<boolean>();
   /** Get altitude borders toggle tooltip text */
   get altitudeBordersTooltip(): string {
     return this.showAltitudeBorders
       ? 'Hide altitude-colored borders'
       : 'Show altitude-colored borders';
+  }
+
+  /** Get wind direction toggle tooltip text */
+  get windDirectionTooltip(): string {
+    return this.showWindDirection
+      ? 'Hide wind direction'
+      : 'Show wind direction';
+  }
+
+  /** Get sun direction toggle tooltip text */
+  get sunDirectionTooltip(): string {
+    return this.showSunDirection
+      ? 'Hide sun direction'
+      : 'Show sun direction';
   }
   // Shuffle mode: pick random plane to follow every interval
   shuffleMode = false;

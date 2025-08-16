@@ -30,6 +30,8 @@ export class AngleOverlayComponent {
   @Input() windSpeed!: number;
   @Input() windUnit!: string;
   @Input() windDirection!: string;
+  @Input() showWindDirection: boolean = true;
+  @Input() showSunDirection: boolean = true;
 
   @Output() cycleWindUnit = new EventEmitter<void>();
   // No dynamic bottom; CSS handles positioning
