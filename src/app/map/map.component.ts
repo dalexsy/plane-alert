@@ -276,7 +276,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.cloudVisible = this.settings.showCloudCover;
     this.rainVisible = this.settings.showRainCover;
     this.coneVisible = this.settings.showViewAxes;
-    this.showDateTime = this.settings.showDateTimeOverlay;
+    this.showDateTime = this.settings.getDateTimeOverlayVisibility();
     this.showAirportLabels = this.settings.showAirportLabels;
     this.showAltitudeBorders = this.settings.showAltitudeBorders;
     this.showWindDirection = this.settings.showWindDirection;
@@ -399,7 +399,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     await this.aircraftDb.load();
     await this.militaryPrefixService.loadPrefixes();
     this.settings.load();
-    this.showDateTime = this.settings.showDateTimeOverlay;
+    this.showDateTime = this.settings.getDateTimeOverlayVisibility();
 
     // Load clicked airports from settings
     this.clickedAirports = this.settings.getClickedAirports();
@@ -2701,6 +2701,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Show loading indicator and inform Angular to update view
     this.isResizing = true;
     this.cdr.detectChanges();
+    // Update clock visibility based on new screen size
+    this.showDateTime = this.settings.getDateTimeOverlayVisibility();
     // Debounce end of resizing
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
@@ -2772,6 +2774,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   onToggleDateTimeOverlays(): void {
     this.showDateTime = !this.showDateTime;
+    // Save the setting based on device type
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      this.settings.setShowDateTimeOverlayMobile(this.showDateTime);
+    } else {
+      this.settings.setShowDateTimeOverlay(this.showDateTime);
+    }
   }
 
   /** Toggle altitude-colored borders on plane tooltips */

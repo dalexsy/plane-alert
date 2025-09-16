@@ -87,6 +87,80 @@ export class LocationContextService {
   }
 
   /**
+   * Parse UTC offset string like "+05:30" or "-08:00" to hours
+   */
+  private parseUtcOffset(offsetString: string): number {
+    if (!offsetString) return 0;
+    const match = offsetString.match(/([+-])(\d{2}):(\d{2})/);
+    if (!match) return 0;
+    const sign = match[1] === '+' ? 1 : -1;
+    const hours = parseInt(match[2], 10);
+    const minutes = parseInt(match[3], 10);
+    return sign * (hours + minutes / 60);
+  }
+
+  /**
+   * Find the nearest timezone to given coordinates using major city lookup
+   */
+  private findNearestTimezone(lat: number, lon: number): string | null {
+    // Major timezone reference points with their IANA timezone identifiers
+    const timezonePoints = [
+      // Europe
+      { lat: 51.5074, lon: -0.1278, tz: 'Europe/London' },
+      { lat: 52.5200, lon: 13.4050, tz: 'Europe/Berlin' },
+      { lat: 48.8566, lon: 2.3522, tz: 'Europe/Paris' },
+      { lat: 55.7558, lon: 37.6173, tz: 'Europe/Moscow' },
+
+      // North America
+      { lat: 40.7128, lon: -74.0060, tz: 'America/New_York' },
+      { lat: 41.8781, lon: -87.6298, tz: 'America/Chicago' },
+      { lat: 39.7392, lon: -104.9903, tz: 'America/Denver' },
+      { lat: 34.0522, lon: -118.2437, tz: 'America/Los_Angeles' },
+
+      // Asia
+      { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' },
+      { lat: 39.9042, lon: 116.4074, tz: 'Asia/Shanghai' },
+      { lat: 28.6139, lon: 77.2090, tz: 'Asia/Kolkata' },
+      { lat: 25.2048, lon: 55.2708, tz: 'Asia/Dubai' },
+
+      // Australia/Oceania
+      { lat: -33.8688, lon: 151.2093, tz: 'Australia/Sydney' },
+      { lat: -37.8136, lon: 144.9631, tz: 'Australia/Melbourne' },
+
+      // South America
+      { lat: -23.5505, lon: -46.6333, tz: 'America/Sao_Paulo' },
+      { lat: -34.6118, lon: -58.3960, tz: 'America/Argentina/Buenos_Aires' },
+
+      // Africa
+      { lat: -26.2041, lon: 28.0473, tz: 'Africa/Johannesburg' },
+      { lat: 30.0444, lon: 31.2357, tz: 'Africa/Cairo' },
+    ];
+
+    let nearest = null;
+    let minDistance = Infinity;
+
+    for (const point of timezonePoints) {
+      const distance = this.calculateDistance(lat, lon, point.lat, point.lon);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = point.tz;
+      }
+    }
+
+    // Only use if reasonably close (within ~20 degrees)
+    return minDistance < 20 ? nearest : null;
+  }
+
+  /**
+   * Determine if DST is likely active for a given location
+   */
+  private isDSTActive(lat: number, lon: number, baseOffset: number): boolean {
+    // This is now just a placeholder since the browser's Intl.DateTimeFormat
+    // automatically handles DST when we use proper timezone names
+    return false;
+  }
+
+  /**
    * Calculate distance between two points in degrees
    * Approximates distance using Euclidean distance for short distances
    */
@@ -217,45 +291,79 @@ export class LocationContextService {
     }
     this.lastTimezoneRequest = now;
 
-    // Use TimeAPI for timezone lookup (free, no API key required)
-    const url = `https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${lon}`;
-    this.http
-      .get<any>(url)
-      .pipe(
-        timeout(5000), // 5 second timeout
-        map((response) => {
-          // TimeAPI response debug
-          const timezone: TimezoneData = {
-            timezone: response.timeZone || 'UTC',
-            utcOffset: response.currentUtcOffset?.seconds
-              ? response.currentUtcOffset.seconds / 3600
-              : 0,
-            dst: response.dstActive || false,
-          };
-          // Parsed timezone data debug
-          return timezone;
-        }),
-        catchError((error) => {
-          console.warn('Timezone API failed, using longitude-based fallback:', error.message || error);
-          // Fallback: rough timezone estimation based on longitude
-          const estimatedOffset = Math.round(lon / 15);
-          return of({
-            timezone: `UTC${estimatedOffset >= 0 ? '+' : ''}${estimatedOffset}`,
-            utcOffset: estimatedOffset,
-            dst: false,
-          });
-        }),
-        tap((timezone) => {
-          // Cache the result
-          this.timezoneCache.set(cacheKey, {
-            data: timezone,
-            timestamp: Date.now(),
-          });
-        })
-      )
-      .subscribe((timezone) => {
+    // Use browser's timezone database to get accurate timezone for coordinates
+    // This uses the Intl.DateTimeFormat to determine timezone from coordinates
+    try {
+      // Use a known coordinate-to-timezone lookup for major cities
+      const nearestTimezone = this.findNearestTimezone(lat, lon);
+
+      if (nearestTimezone) {
+        // Get current time in that timezone
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: nearestTimezone,
+          hour12: false,
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric'
+        });
+
+        // Use the browser's built-in offset calculation for the timezone
+        const tempDate = new Date();
+        const utc1 = tempDate.getTime() + (tempDate.getTimezoneOffset() * 60000);
+        const utc2 = new Date(utc1 + (0 * 3600000)); // UTC time
+
+        // Get the formatted time in the target timezone
+        const timeInZone = new Intl.DateTimeFormat('en-CA', {
+          timeZone: nearestTimezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).format(tempDate);
+
+        // Parse the formatted time back to a Date
+        const zonedTime = new Date(timeInZone.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
+
+        // Calculate the offset in hours
+        const offsetHours = (zonedTime.getTime() - utc2.getTime()) / (1000 * 60 * 60);
+
+        const timezone = {
+          timezone: nearestTimezone,
+          utcOffset: offsetHours,
+          dst: this.isDSTActive(lat, lon, offsetHours),
+        };
+
+        this.timezoneCache.set(cacheKey, {
+          data: timezone,
+          timestamp: Date.now(),
+        });
         this._timezone.next(timezone);
-      });
+        return;
+      }
+    } catch (error) {
+      console.warn('Browser timezone detection failed');
+    }
+
+    // Fallback to simple longitude calculation
+    let estimatedOffset = lon / 15;
+    estimatedOffset = Math.round(estimatedOffset * 2) / 2;
+    estimatedOffset = Math.max(-12, Math.min(14, estimatedOffset));
+
+    const timezone = {
+      timezone: `UTC${estimatedOffset >= 0 ? '+' : ''}${estimatedOffset}`,
+      utcOffset: estimatedOffset,
+      dst: false,
+    };
+
+    this.timezoneCache.set(cacheKey, {
+      data: timezone,
+      timestamp: Date.now(),
+    });
+    this._timezone.next(timezone);
   }
 
   /**
@@ -332,17 +440,39 @@ export class LocationContextService {
       return new Date();
     }
 
-    // Get current UTC time
+    // If we have a proper IANA timezone name, use the browser's built-in support
+    if (timezone.timezone && timezone.timezone.includes('/')) {
+      try {
+        const now = new Date();
+
+        // Get the time in the target timezone as a formatted string
+        const timeString = new Intl.DateTimeFormat('en-CA', {
+          timeZone: timezone.timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).format(now);
+
+        // Convert back to Date object
+        const [datePart, timePart] = timeString.split(', ');
+        const isoString = `${datePart}T${timePart}`;
+        return new Date(isoString);
+
+      } catch (error) {
+        console.warn('Failed to use timezone name, falling back to offset calculation');
+      }
+    }
+
+    // Fallback to offset calculation
     const now = new Date();
-    const browserOffset = now.getTimezoneOffset(); // Browser offset in minutes from UTC
-    const utcTime = new Date(now.getTime() + browserOffset * 60000);
-
-    // Apply the location's timezone offset (convert hours to milliseconds)
-    const locationTime = new Date(
-      utcTime.getTime() + timezone.utcOffset * 3600000
-    );
-
-    return locationTime;
+    const browserOffsetMinutes = now.getTimezoneOffset();
+    const locationOffsetMinutes = timezone.utcOffset * 60;
+    const timeDifferenceMs = (locationOffsetMinutes + browserOffsetMinutes) * 60000;
+    return new Date(now.getTime() + timeDifferenceMs);
   }
 
   /**

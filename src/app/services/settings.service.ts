@@ -32,6 +32,8 @@ export class SettingsService {
   private _militaryMute: boolean = false;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = true;
+  private dateTimeOverlayMobileKey = 'showDateTimeOverlayMobile';
+  private _showDateTimeOverlayMobile: boolean = false;
   private windDirectionKey = 'showWindDirection';
   private _showWindDirection: boolean = true;
   private sunDirectionKey = 'showSunDirection';
@@ -98,6 +100,27 @@ export class SettingsService {
   setShowDateTimeOverlay(value: boolean): void {
     this._showDateTimeOverlay = value;
     localStorage.setItem(this.dateTimeOverlayKey, value.toString());
+  }
+
+  /** Whether the date/time overlays are shown on mobile */
+  get showDateTimeOverlayMobile(): boolean {
+    return this._showDateTimeOverlayMobile;
+  }
+  setShowDateTimeOverlayMobile(value: boolean): void {
+    this._showDateTimeOverlayMobile = value;
+    localStorage.setItem(this.dateTimeOverlayMobileKey, value.toString());
+  }
+
+  /** Get date/time overlay visibility based on device */
+  getDateTimeOverlayVisibility(): boolean {
+    const isMobile = window.innerWidth <= 768;
+
+    // If mobile and no preference has been set yet, default to hidden
+    if (isMobile && localStorage.getItem(this.dateTimeOverlayMobileKey) === null) {
+      return false;
+    }
+
+    return isMobile ? this._showDateTimeOverlayMobile : this._showDateTimeOverlay;
   }
 
   /** Whether the wind direction is shown */
@@ -516,6 +539,12 @@ export class SettingsService {
     const dtStr = localStorage.getItem(this.dateTimeOverlayKey);
     if (dtStr !== null) {
       this._showDateTimeOverlay = dtStr === 'true';
+    }
+
+    // Load show/hide date-time overlay mobile preference
+    const dtMobileStr = localStorage.getItem(this.dateTimeOverlayMobileKey);
+    if (dtMobileStr !== null) {
+      this._showDateTimeOverlayMobile = dtMobileStr === 'true';
     }
     
     // Load show/hide wind direction preference
