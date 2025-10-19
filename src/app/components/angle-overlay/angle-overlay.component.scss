@@ -1,5 +1,5 @@
 // Import global overlay info placeholder for label positioning
-@import "../../styles/_overlay.scss";
+@use "../../styles/_overlay.scss";
 
 // Shared icon styling for angle indicators
 %angle-icon {

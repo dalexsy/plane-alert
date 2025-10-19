@@ -36,11 +36,6 @@ $text-shadow-color: #000;
   height: $overlay-height-mobile; // Mobile first
   z-index: $overlay-z-index; // Keep base overlay behind aircraft
 
-  // Desktop height
-  @media (min-width: #{$mobile-breakpoint + 1px}) {
-    height: $overlay-height-desktop;
-  }
-
   // Visual styling
   background: linear-gradient(
     to top,
@@ -60,6 +55,11 @@ $text-shadow-color: #000;
 
   // Smooth brightness transitions
   transition: filter 0.8s ease-in-out;
+
+  // Desktop height
+  @media (min-width: #{$mobile-breakpoint + 1px}) {
+    height: $overlay-height-desktop;
+  }
 }
 
 // After definition of .window-view-overlay, add higher z-index for aircraft tooltips above everything
