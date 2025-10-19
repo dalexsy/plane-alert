@@ -17,8 +17,8 @@ export class SettingsService {
   resultsOverlayCollapsedChanged = new EventEmitter<boolean>();
   private _lat: number | null = null;
   private _lon: number | null = null;
-  private _radius: number | null = 50;
-  private _interval: number = 10; // default to 10 seconds
+  private _radius: number | null = 100;
+  private _interval: number = 60; // default to 60 seconds
   private _excludeDiscount: boolean = false;
   private _mapLat: number | null = null;
   private _mapLon: number | null = null;
@@ -31,7 +31,7 @@ export class SettingsService {
   private militaryMuteKey = 'militaryMute';
   private _militaryMute: boolean = false;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
-  private _showDateTimeOverlay: boolean = true;
+  private _showDateTimeOverlay: boolean = false;
   private dateTimeOverlayMobileKey = 'showDateTimeOverlayMobile';
   private _showDateTimeOverlayMobile: boolean = false;
   private windDirectionKey = 'showWindDirection';
@@ -62,9 +62,9 @@ export class SettingsService {
 
   // Keys and backing stores for cloud and rain cover visibility
   private cloudCoverKey = 'showCloudCover';
-  private _showCloudCover: boolean = true;
+  private _showCloudCover: boolean = false;
   private rainCoverKey = 'showRainCover';
-  private _showRainCover: boolean = true;
+  private _showRainCover: boolean = false;
   // Key and backing store for altitude borders visibility
   private altitudeBordersKey = 'showAltitudeBorders';
   private _showAltitudeBorders: boolean = true;
@@ -115,8 +115,11 @@ export class SettingsService {
   getDateTimeOverlayVisibility(): boolean {
     const isMobile = window.innerWidth <= 768;
 
-    // If mobile and no preference has been set yet, default to hidden
+    // If no preference has been set yet, default to hidden
     if (isMobile && localStorage.getItem(this.dateTimeOverlayMobileKey) === null) {
+      return false;
+    }
+    if (!isMobile && localStorage.getItem(this.dateTimeOverlayKey) === null) {
       return false;
     }
 

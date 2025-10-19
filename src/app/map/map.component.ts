@@ -71,6 +71,7 @@ import {
   BrightnessState,
 } from '../services/brightness.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
+import { WeatherOverlayService } from '../services/weather-overlay.service';
 import '../utils/plane-debug'; // Import debugging utilities for browser console
 
 // OpenWeatherMap tile service API key
@@ -270,7 +271,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private skyOverlayService: SkyOverlayService,
     private mapThemeService: MapThemeService,
     private brightnessService: BrightnessService,
-    private altitudeColor: AltitudeColorService
+    private altitudeColor: AltitudeColorService,
+    private weatherOverlayService: WeatherOverlayService
   ) {
     // Initialize UI toggles from stored settings
     this.cloudVisible = this.settings.showCloudCover;
