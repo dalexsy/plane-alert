@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { ChangeDetectorRef } from '@angular/core';
 import * as L from 'leaflet';
 import { AircraftDbService } from './aircraft-db.service';
 import { PlaneFilterService } from './plane-filter.service';
@@ -15,8 +14,7 @@ export class PlaneFilteringService {
     private aircraftDb: AircraftDbService,
     private planeFilter: PlaneFilterService,
     private settings: SettingsService,
-    private planeLogService: PlaneLogService,
-    private cdr: ChangeDetectorRef
+    private planeLogService: PlaneLogService
   ) {}
 
   /**
@@ -106,7 +104,5 @@ export class PlaneFilteringService {
     );
     // The service updates its internal state, but we don't need to assign back
     // since the component will get the updated data through other means
-
-    this.cdr.detectChanges();
   }
 }

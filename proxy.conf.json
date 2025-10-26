@@ -1,0 +1,7 @@
+{
+  "/nominatim/*": {
+    "target": "https://nominatim.openstreetmap.org",
+    "secure": true,
+    "changeOrigin": true
+  }
+}

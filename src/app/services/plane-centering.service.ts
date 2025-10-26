@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { ChangeDetectorRef } from '@angular/core';
 import * as L from 'leaflet';
 import { PlaneLogEntry } from '../components/results-overlay/results-overlay.component';
 import { PlaneModel } from '../models/plane-model';
@@ -12,8 +11,7 @@ import { PlaneLogService } from './plane-log.service';
 export class PlaneCenteringService {
   constructor(
     private followCoordinatorService: FollowCoordinatorService,
-    private planeLogService: PlaneLogService,
-    private cdr: ChangeDetectorRef
+    private planeLogService: PlaneLogService
   ) {}
 
   /**
@@ -59,7 +57,6 @@ export class PlaneCenteringService {
           Array.from(context.planeLog.values())
         )
       );
-      this.cdr.detectChanges();
       return;
     }
 
@@ -119,7 +116,6 @@ export class PlaneCenteringService {
             context.locationDistrict
           );
         }
-        this.cdr.detectChanges();
       });
 
       // Refresh logs and overlays
@@ -129,7 +125,6 @@ export class PlaneCenteringService {
           Array.from(context.planeLog.values())
         )
       );
-      this.cdr.detectChanges();
     } else {
       // Could not highlight plane - marker missing or coordinates invalid would be logged here
     }

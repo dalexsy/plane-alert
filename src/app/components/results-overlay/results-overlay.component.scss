@@ -215,7 +215,9 @@
       max-height: 100%;
       overflow-y: auto;
     }
-  } // Ensure seen section is limited and scrolls internally
+  }
+
+  // Ensure seen section is limited and scrolls internally
   #seenResults {
     // allow seen section to grow and layout as column for scrolling
     display: flex;
@@ -225,6 +227,7 @@
     flex: 1 0 auto;
     min-height: 0;
     overflow: hidden;
+    max-height: 60vh;
     h3 {
       flex: 0 0 auto;
       min-height: 0;

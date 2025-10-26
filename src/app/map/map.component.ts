@@ -211,8 +211,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private airportData = new Map<number, { name: string; code?: string }>(); // Track clicked airports for color toggling
   clickedAirports = new Set<number>();
 
-  // Flag for airport fetching (loading) to show loading indicator
-  loadingAirports = false;
+  // Flag to distinguish programmatic map moves from user-initiated moves
+  private isProgrammaticMove = false;
   // Flag for viewport resizing (legacy) if needed
   isResizing = false;
   private resizeTimeout: any;
@@ -242,6 +242,11 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private airportsLoading = false; // guard for Overpass fetches
   private isProcessingFollowRequest = false; // guard against recursive follow calls
   currentTime: string = '';
+
+  // Alias for template binding
+  get loadingAirports(): boolean {
+    return this.airportsLoading;
+  }
 
   // Replace showDateTime property initializer
   // public showDateTime = true; // Show date/time overlay by default - now in UiStateService
@@ -331,7 +336,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private helicopterListService: HelicopterListService,
     private helicopterIdentificationService: HelicopterIdentificationService,
     private skyColorSyncService: SkyColorSyncService,
-    private locationContextService: LocationContextService,
+    private locationContext: LocationContextService,
     private geocodingCache: GeocodingCacheService,
     private debouncedClickService: DebouncedClickService,
     private planeFollowService: PlaneFollowService,
@@ -383,8 +388,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // this.showWindowView = this.settings.showWindowView;
 
     // Initialize brightness service with current location if available
-    const currentLocation = this.settings.getCurrentLocation();
-    if (currentLocation) {
+    const currentLocation = { lat: this.settings.lat, lon: this.settings.lon };
+    if (currentLocation.lat !== null && currentLocation.lon !== null) {
       this.brightnessService.setLocation(
         currentLocation.lat,
         currentLocation.lon
@@ -530,17 +535,34 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
 
+    // If no current location is set but home location exists, start at home
+    const homeLoc = this.settings.getHomeLocation();
+    console.log('Home location from settings:', homeLoc);
+    console.log(
+      'Current settings lat/lon:',
+      this.settings.lat,
+      this.settings.lon
+    );
+    let startLat = lat;
+    let startLon = lon;
+    if (this.settings.lat === null && this.settings.lon === null && homeLoc) {
+      startLat = homeLoc.lat;
+      startLon = homeLoc.lon;
+      console.log('Starting at home location:', startLat, startLon);
+    }
+
     const storedExclude = localStorage.getItem('excludeDiscount');
     if (storedExclude !== null) {
       this.settings.excludeDiscount = storedExclude === 'true';
     }
 
     // Initialize map and overlays
+    this.isProgrammaticMove = true; // Prevent moveend from updating location context during initialization
     const { map, currentLocationMarker } =
       this.mapInitializerService.initializeMap(
         'map',
-        lat,
-        lon,
+        startLat,
+        startLon,
         radius,
         (dblLat, dblLng) => {
           // Use the current main radius for the update
@@ -551,17 +573,47 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           // The cone will now show full circular bands when away from home
           // No need to hide it or update the checkbox
 
-          this.reverseGeocode(dblLat, dblLng).then((address) => {
-            // Guard against missing input reference
-            if (this.inputOverlayComponent.addressInputRef) {
-              this.inputOverlayComponent.addressInputRef.setValue(address);
-            }
-          });
+          // Preserve the address input - don't update it with reverse geocoded address
+          // this.reverseGeocode(dblLat, dblLng).then((address) => {
+          //   console.log(
+          //     'Setting address input to:',
+          //     address,
+          //     'for coordinates:',
+          //     dblLat,
+          //     dblLng
+          //   );
+          //   // Guard against missing input reference
+          //   if (this.inputOverlayComponent.addressInputRef) {
+          //     this.inputOverlayComponent.addressInputRef.setValue(address);
+          //   }
+          // });
           this.scanService.forceScan(); // Restart the scan
         }
       );
     this.map = map;
     this.currentLocationMarker = currentLocationMarker;
+
+    // Add moveend listener to update location context when user pans the map
+    this.map.on('moveend', () => {
+      if (!this.isProgrammaticMove) {
+        const center = this.map.getCenter();
+        // Location context is now updated from address changes, not map center changes
+        // this.locationContext.updateFromMapCenter(center.lat, center.lng);
+      }
+      this.isProgrammaticMove = false; // Reset flag
+    });
+
+    // Subscribe to location context changes to update map when address is geocoded
+    this.locationContext.currentLocation$.subscribe((locationData) => {
+      if (
+        locationData.source === 'address' &&
+        locationData.lat !== undefined &&
+        locationData.lon !== undefined
+      ) {
+        const radius = this.settings.radius ?? 5;
+        this.updateMap(locationData.lat, locationData.lon, radius);
+      }
+    });
 
     // Initialize services with the map
     this.airportService.initialize(this.map);
@@ -583,9 +635,32 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Force Angular to detect view changes so radius and cone components render
     this.cdr.detectChanges();
     // Initial map update to draw radius, airports, and planes
-    this.updateMap(lat, lon, radius);
+    this.updateMap(startLat, startLon, radius);
     // updateMap is called within initMap now via findAndDisplayAirports
     // this.updateMap(lat, lon, radius); // REMOVED - initMap handles initial load
+
+    // Clear geocoding cache to ensure fresh results after unifying geocoding services
+    this.geocodingCache.clearCache();
+
+    // Set the address input to the saved user address, or geocoded address of the starting location if none saved
+    const savedAddress = this.settings.currentAddress;
+    if (savedAddress) {
+      console.log('Setting address input to saved address:', savedAddress);
+      this.inputOverlayComponent.currentAddress = savedAddress;
+      this.locationContext.setAddress(savedAddress);
+    } else {
+      this.reverseGeocode(startLat, startLon).then((address) => {
+        console.log(
+          'Setting address input to geocoded address (no saved address):',
+          address,
+          'for coordinates:',
+          startLat,
+          startLon
+        );
+        this.inputOverlayComponent.currentAddress = address;
+        this.locationContext.setAddress(address);
+      });
+    }
 
     // Initialize home marker if home location exists
     this.homeMarker = this.mapInitializerService.initializeHomeMarker(
@@ -605,8 +680,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const homeLocation = this.settings.getHomeLocation();
     if (
       homeLocation &&
-      Math.abs(lat - homeLocation.lat) < 0.0001 &&
-      Math.abs(lon - homeLocation.lon) < 0.0001
+      Math.abs(startLat - homeLocation.lat) < 0.0001 &&
+      Math.abs(startLon - homeLocation.lon) < 0.0001
     ) {
       // We're starting at the home position, enable cones
       this.uiState.setConeVisibility(true);
@@ -716,8 +791,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.scanService.start(this.settings.interval, () => {
       this.findPlanes();
     });
-    // Don't force scan here, updateMap will trigger it after airport search
-    // this.scanService.forceScan(); // REMOVED
+    // Force an initial scan on startup
+    this.scanService.forceScan();
 
     // Subscribe to radius changes: clear markers and paths outside new radius
     this.settings.radiusChanged.subscribe((newRadius) => {
@@ -758,7 +833,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // });
 
     // Initialize brightness service with current location
-    this.brightnessService.setLocation(lat, lon);
+    this.brightnessService.setLocation(startLat, startLon);
   }
 
   ngOnDestroy(): void {
@@ -904,6 +979,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     radiusKm?: number, // This is the MAIN search radius
     zoomLevel?: number
   ): Promise<void> {
+    this.isProgrammaticMove = true;
     await this.mapUpdate.updateMap(
       this.map,
       this.currentLocationMarker,
@@ -916,6 +992,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       radiusKm,
       zoomLevel
     );
+    // Location context is now updated from address changes, not map center changes
+    // this.locationContext.updateFromMapCenter(lat, lon);
   }
 
   /** Fetch wind direction from OpenWeatherMap and update windAngle */

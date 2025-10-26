@@ -860,7 +860,9 @@ export class PlaneFinderService {
       const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
       const response = await fetch(url);
       if (!response.ok) {
-        console.warn(`ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`);
+        console.warn(
+          `ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`
+        );
         throw new Error(`ADSB One API fetch error ${response.status}`);
       }
       const data = await response.json();

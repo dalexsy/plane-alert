@@ -82,14 +82,22 @@ export class MapUpdateService {
     if (!inputOverlayComponent.collapsed) {
       inputOverlayComponent.refreshDisplayValues();
 
-      // Reverse geocode current center and update address input
-      const addressInput = inputOverlayComponent.addressInputRef;
-      if (addressInput) {
-        try {
-          const address = await this.geocodingCache.reverseGeocode(lat, lon);
-          addressInput.setValue(address);
-        } catch (error) {
-          console.warn('Reverse geocoding failed:', error);
+      // Skip overwriting the address if the user has a saved/formatted address
+      const hasSavedAddress = !!this.settings.currentAddress?.trim();
+
+      // Only reverse geocode when we don't have a saved address and the location source isn't an address search
+      const currentLocation = this.locationContextService.currentLocation;
+      if (!hasSavedAddress && currentLocation.source !== 'address') {
+        const addressInput = inputOverlayComponent.addressInputRef;
+        if (addressInput) {
+          try {
+            const address = await this.geocodingCache.reverseGeocode(lat, lon);
+            addressInput.setValue(address);
+          } catch (error) {
+            console.warn('Reverse geocoding failed:', error);
+            // Fallback to coordinates
+            addressInput.setValue(`${lat.toFixed(3)}, ${lon.toFixed(3)}`);
+          }
         }
       }
     }
@@ -125,7 +133,9 @@ export class MapUpdateService {
     // Update other services
     this.windService.fetchWindDirection(lat, lon);
     this.brightnessService.setLocation(lat, lon);
-    this.locationContextService.updateFromMapCenter(lat, lon);
+
+    // Location context is now updated from address changes, not map center changes
+    // this.locationContextService.updateFromMapCenter(lat, lon);
   }
 
   /**

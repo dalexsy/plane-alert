@@ -326,12 +326,14 @@ export class PlaneLogService {
       ];
     });
     // Merge with actual planes for overlay, preserving all real planes (including grounded) and adding markers
-    this.windowViewOverlayComponent.windowViewPlanes = [
-      // keep only real plane entries (exclude marker objects)
-      ...windowViewPlanes.filter((p) => !p.isMarker),
-      // then append marker entries
-      ...markers,
-    ];
+    if (this.windowViewOverlayComponent) {
+      this.windowViewOverlayComponent.windowViewPlanes = [
+        // keep only real plane entries (exclude marker objects)
+        ...windowViewPlanes.filter((p) => !p.isMarker),
+        // then append marker entries
+        ...markers,
+      ];
+    }
   }
 
   /**

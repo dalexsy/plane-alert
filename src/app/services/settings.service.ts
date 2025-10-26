@@ -17,6 +17,7 @@ export class SettingsService {
   resultsOverlayCollapsedChanged = new EventEmitter<boolean>();
   private _lat: number | null = null;
   private _lon: number | null = null;
+  private _currentAddress: string | null = null;
   private _radius: number | null = 100;
   private _interval: number = 60; // default to 60 seconds
   private _excludeDiscount: boolean = false;
@@ -116,14 +117,19 @@ export class SettingsService {
     const isMobile = window.innerWidth <= 768;
 
     // If no preference has been set yet, default to hidden
-    if (isMobile && localStorage.getItem(this.dateTimeOverlayMobileKey) === null) {
+    if (
+      isMobile &&
+      localStorage.getItem(this.dateTimeOverlayMobileKey) === null
+    ) {
       return false;
     }
     if (!isMobile && localStorage.getItem(this.dateTimeOverlayKey) === null) {
       return false;
     }
 
-    return isMobile ? this._showDateTimeOverlayMobile : this._showDateTimeOverlay;
+    return isMobile
+      ? this._showDateTimeOverlayMobile
+      : this._showDateTimeOverlay;
   }
 
   /** Whether the wind direction is shown */
@@ -326,20 +332,17 @@ export class SettingsService {
     localStorage.setItem('mapZoom', value.toString());
   }
 
-  setCurrentLocation(lat: number, lon: number): void {
-    localStorage.setItem('currentLocation', JSON.stringify({ lat, lon }));
+  get currentAddress(): string | null {
+    return this._currentAddress;
   }
 
-  getCurrentLocation(): { lat: number; lon: number } | null {
-    const saved = localStorage.getItem('currentLocation');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return null;
-      }
+  setCurrentAddress(value: string | null): void {
+    this._currentAddress = value;
+    if (value) {
+      localStorage.setItem('currentAddress', value);
+    } else {
+      localStorage.removeItem('currentAddress');
     }
-    return null;
   }
 
   setHomeLocation(lat: number, lon: number): void {
@@ -505,6 +508,7 @@ export class SettingsService {
     const mapLat = parseFloat(localStorage.getItem('mapLat') || '');
     const mapLon = parseFloat(localStorage.getItem('mapLon') || '');
     const mapZoom = parseFloat(localStorage.getItem('mapZoom') || '');
+    const currentAddress = localStorage.getItem('currentAddress');
     if (!isNaN(lat)) {
       this._lat = lat;
     }
@@ -529,6 +533,9 @@ export class SettingsService {
     if (!isNaN(mapZoom)) {
       this._mapZoom = mapZoom;
     }
+    if (currentAddress) {
+      this._currentAddress = currentAddress;
+    }
     // Load seenCollapsed preference
     const seenStr = localStorage.getItem(this.seenCollapsedKey);
     if (seenStr !== null) {
@@ -549,25 +556,25 @@ export class SettingsService {
     if (dtMobileStr !== null) {
       this._showDateTimeOverlayMobile = dtMobileStr === 'true';
     }
-    
+
     // Load show/hide wind direction preference
     const windDirStr = localStorage.getItem(this.windDirectionKey);
     if (windDirStr !== null) {
       this._showWindDirection = windDirStr === 'true';
     }
-    
+
     // Load show/hide sun direction preference
     const sunDirStr = localStorage.getItem(this.sunDirectionKey);
     if (sunDirStr !== null) {
       this._showSunDirection = sunDirStr === 'true';
     }
-    
+
     // Load auto-location update preference
     const autoLocationStr = localStorage.getItem(this.useAutoLocationKey);
     if (autoLocationStr !== null) {
       this._useAutoLocation = autoLocationStr === 'true';
     }
-    
+
     // Load show/hide view axes (cones) preference
     const axesStr = localStorage.getItem(this.viewAxesKey);
     if (axesStr !== null) {
