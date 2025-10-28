@@ -96,6 +96,7 @@ import { MapUpdateService } from '../services/map-update.service';
 import { PlaneUpdateService } from '../services/plane-update.service';
 import { PlaneCenteringService } from '../services/plane-centering.service';
 import { PlaneFilteringService } from '../services/plane-filtering.service';
+import { EnvironmentalDataService } from '../services/environmental-data.service';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -377,7 +378,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private planeUpdate: PlaneUpdateService,
     private mapUpdate: MapUpdateService,
     private planeCentering: PlaneCenteringService,
-    private planeFiltering: PlaneFilteringService
+    private planeFiltering: PlaneFilteringService,
+    private environmentalData: EnvironmentalDataService
   ) {
     // Initialize UI toggles from stored settings - now handled by UiStateService
     // this.cloudVisible = this.settings.showCloudCover;
@@ -572,9 +574,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         (dblLat, dblLng) => {
           // Use the current main radius for the update
           const currentMainRadius = this.settings.radius ?? 5;
+          
+          // Set location immediately with placeholder address so forceScan uses the new coordinates
+          const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(4)}`;
+          this.settings.setLocationWithAddress(dblLat, dblLng, placeholderAddress);
+          
           this.updateMap(dblLat, dblLng, currentMainRadius); // This will trigger airport search
 
-          // Reverse geocode and save the new location
+          // Reverse geocode and update with real address
           this.reverseGeocode(dblLat, dblLng).then((address) => {
             this.locationContext.setLocation(
               dblLat,
@@ -585,7 +592,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.settings.setLocationWithAddress(dblLat, dblLng, address);
           });
 
-          this.scanService.forceScan(); // Restart the scan
+          this.scanService.forceScan(); // Restart the scan with new location
         }
       );
     this.map = map;
@@ -870,6 +877,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Initialize brightness service with current location
     this.brightnessService.setLocation(startLat, startLon);
+
+    // Initialize environmental data service and subscribe to wind data
+    this.environmentalData.setLocation(startLat, startLon);
+    this.environmentalData.windData$.subscribe((windData) => {
+      if (windData) {
+        this.windSpeed = windData.speed;
+        this.windAngle = windData.direction;
+        this.windStat = windData.stat;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   ngOnDestroy(): void {
