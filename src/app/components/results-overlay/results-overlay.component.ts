@@ -78,7 +78,7 @@ export interface PlaneLogEntry {
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   animations: [
     trigger('listAnimation', [
       transition('* <=> *', [
@@ -113,7 +113,7 @@ export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit
 {
   constructor(
-    private cdr: ChangeDetectorRef, // ensure cdr available for change detection
+    public cdr: ChangeDetectorRef, // ensure cdr available for change detection
     public settings: SettingsService,
     public countryService: CountryService,
     public planeFilter: PlaneFilterService,

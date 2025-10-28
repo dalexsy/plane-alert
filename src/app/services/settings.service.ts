@@ -26,7 +26,7 @@ export class SettingsService {
   private _mapZoom: number = 8;
   private homeLocationKey = 'homeLocation';
   private seenCollapsedKey = 'seenCollapsed';
-  private _seenCollapsed: boolean = false;
+  private _seenCollapsed: boolean = true; // Collapsed by default
   private inputOverlayCollapsedKey = 'inputOverlayCollapsed';
   private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
   private militaryMuteKey = 'militaryMute';
@@ -79,8 +79,8 @@ export class SettingsService {
   private windowViewKey = 'showWindowView';
   private _showWindowView: boolean = true;
 
-  private _inputOverlayCollapsed: boolean = true; // Collapsed by default
-  private _resultsOverlayCollapsed: boolean = true; // Collapsed by default
+  private _inputOverlayCollapsed: boolean = false; // Open by default on desktop
+  private _resultsOverlayCollapsed: boolean = false; // Open by default on desktop
 
   // Key for input-overlay controls hidden
   private inputOverlayControlsKey = 'inputOverlayOtherControlsHidden';
@@ -375,7 +375,12 @@ export class SettingsService {
         return null;
       }
     }
-    return null;
+    // Default home location: Berlin Brandenburg Airport (BER)
+    return {
+      lat: 52.3667,
+      lon: 13.5033,
+      address: 'Berlin Brandenburg Airport, Schönefeld, Germany'
+    };
   }
 
   /** Whether airport labels are permanently visible or only on hover */

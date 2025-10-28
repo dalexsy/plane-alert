@@ -9,6 +9,10 @@ import { PlaneLogService } from './plane-log.service';
   providedIn: 'root',
 })
 export class PlaneCenteringService {
+  private lastGeocodedLat: number | null = null;
+  private lastGeocodedLon: number | null = null;
+  private readonly GEOCODE_PRECISION = 3; // Only geocode if position changes by ~100m
+
   constructor(
     private followCoordinatorService: FollowCoordinatorService,
     private planeLogService: PlaneLogService
@@ -94,29 +98,21 @@ export class PlaneCenteringService {
       const markerEl = pm.marker.getElement();
       markerEl?.classList.add('highlighted-marker');
 
-      context.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
-        // Don't update the address input field when following a plane
-        // The address field should show map center location, not plane location
-        // Guard against missing input reference
-        // if (this.inputOverlayComponent.addressInputRef) {
-        //   this.inputOverlayComponent.addressInputRef.setValue(address);
-        // }
+      // Only geocode if position has meaningfully changed
+      const roundedLat = Number(plane.lat!.toFixed(this.GEOCODE_PRECISION));
+      const roundedLon = Number(plane.lon!.toFixed(this.GEOCODE_PRECISION));
 
-        // Update location overlay info using the same address result
-        if (!address || address.trim() === '') {
-          console.log('Empty geocoding result for followed plane:', address);
-        }
-        context.setLocationDistrict(address);
-        if (
-          !context.locationDistrict ||
-          context.locationDistrict.trim() === ''
-        ) {
-          console.log(
-            'locationDistrict is empty after setting (followed plane):',
-            context.locationDistrict
-          );
-        }
-      });
+      if (
+        this.lastGeocodedLat !== roundedLat ||
+        this.lastGeocodedLon !== roundedLon
+      ) {
+        this.lastGeocodedLat = roundedLat;
+        this.lastGeocodedLon = roundedLon;
+
+        context.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
+          context.setLocationDistrict(address);
+        });
+      }
 
       // Refresh logs and overlays
       context.setClosestPlane(pm);

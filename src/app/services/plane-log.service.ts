@@ -19,6 +19,7 @@ export class PlaneLogService {
   private planeHistoricalLog: PlaneModel[] = [];
   private resultsOverlayComponent!: ResultsOverlayComponent;
   private windowViewOverlayComponent!: WindowViewOverlayComponent;
+  private mapComponent!: any;
   private settings: SettingsService;
   private helicopterIdentificationService: HelicopterIdentificationService;
 
@@ -39,6 +40,13 @@ export class PlaneLogService {
   ): void {
     this.resultsOverlayComponent = resultsOverlayComponent;
     this.windowViewOverlayComponent = windowViewOverlayComponent;
+  }
+
+  /**
+   * Set the map component reference
+   */
+  setMapComponent(mapComponent: any): void {
+    this.mapComponent = mapComponent;
   }
 
   getLog(): Map<string, PlaneModel> {
@@ -84,12 +92,12 @@ export class PlaneLogService {
 
     // Sort sky list by firstSeen for display (newest bottom)
     visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
-    this.resultsOverlayComponent.skyPlaneLog =
+    this.mapComponent.skyPlaneLog =
       visiblePlanes as unknown as PlaneLogEntry[];
 
     // Show planes at airports (those with assigned airportCode)
     const airportPlanes = visiblePlanes.filter((p) => p.airportCode != null);
-    this.resultsOverlayComponent.airportPlaneLog =
+    this.mapComponent.airportPlaneLog =
       airportPlanes as unknown as PlaneLogEntry[];
 
     // Update the window view overlay with airborne planes
@@ -121,13 +129,16 @@ export class PlaneLogService {
       .sort((a, b) => b.firstSeen - a.firstSeen);
     const militaryPlanes = historyFiltered.filter((p) => p.isMilitary);
     const otherPlanes = historyFiltered.filter((p) => !p.isMilitary);
-    this.resultsOverlayComponent.seenPlaneLog = [
+    this.mapComponent.seenPlaneLog = [
       ...militaryPlanes,
       ...otherPlanes,
     ] as unknown as PlaneLogEntry[];
 
     // Update the service's historical log
     this.planeHistoricalLog = updatedHistoricalLog;
+
+    // Trigger change detection for the results overlay component
+    // this.resultsOverlayComponent.cdr.markForCheck();
 
     return updatedHistoricalLog;
   }

@@ -19,6 +19,11 @@ export class ClosestPlaneService {
   locationStreet: string | null = null;
   locationDistrict: string | null = null;
 
+  // Track last geocoded position to avoid redundant API calls
+  private lastGeocodedLat: number | null = null;
+  private lastGeocodedLon: number | null = null;
+  private readonly GEOCODE_PRECISION = 3; // Only geocode if position changes by ~100m
+
   constructor(
     private settings: SettingsService,
     private geocodingCache: GeocodingCacheService
@@ -103,18 +108,23 @@ export class ClosestPlaneService {
    * Update location information for the closest plane
    */
   private updateClosestPlaneLocation(lat: number, lon: number): void {
+    // Only geocode if position has meaningfully changed
+    const roundedLat = Number(lat.toFixed(this.GEOCODE_PRECISION));
+    const roundedLon = Number(lon.toFixed(this.GEOCODE_PRECISION));
+
+    if (
+      this.lastGeocodedLat === roundedLat &&
+      this.lastGeocodedLon === roundedLon
+    ) {
+      return; // Skip geocoding - position hasn't changed enough
+    }
+
+    this.lastGeocodedLat = roundedLat;
+    this.lastGeocodedLon = roundedLon;
+
     this.geocodingCache.reverseGeocode(lat, lon).then((address) => {
-      if (!address || address.trim() === '') {
-        console.log('Empty geocoding result for closest plane:', address);
-      }
       this.locationStreet = address;
       this.locationDistrict = address;
-      if (!this.locationDistrict || this.locationDistrict.trim() === '') {
-        console.log(
-          'locationDistrict is empty after setting:',
-          this.locationDistrict
-        );
-      }
     });
   }
 

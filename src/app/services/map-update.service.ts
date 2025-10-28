@@ -143,11 +143,9 @@ export class MapUpdateService {
       }
     }
 
-    // Update active plane ICAOs and historical log
-    planeHistoricalLog.length = 0;
-    planeHistoricalLog.push(
-      ...this.planeLogService.updatePlaneLog(Array.from(planeLog.values()))
-    );
+    // DON'T update plane logs here - let the scan that follows do it
+    // This was causing the list to show 0 planes after location changes
+    // because we cleared planes but the new scan hadn't completed yet
   }
 
   /**

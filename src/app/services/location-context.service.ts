@@ -124,7 +124,9 @@ export class LocationContextService {
       .subscribe((location) => {
         if (location.lat && location.lon) {
           this.updateTimezone(location.lat, location.lon);
-          if (location.source !== 'default') {
+          // Only update address if we don't already have one and source isn't default
+          // This prevents reverse-geocoding when we already set an address via setLocation()
+          if (location.source !== 'default' && !location.address) {
             this.updateAddress(location.lat, location.lon);
           }
         }

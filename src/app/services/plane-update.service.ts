@@ -116,6 +116,9 @@ export class PlaneUpdateService {
       map
     );
 
+    // CRITICAL: Update plane logs for UI components AFTER planes are fetched
+    this.planeLogService.updatePlaneLog(Array.from(planeLog.values()));
+
     // Update closest plane data
     this.closestPlaneService.computeClosestPlane(
       planeLog,

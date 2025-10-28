@@ -44,6 +44,10 @@ export class AirportService {
   // Guard for Overpass fetches
   private airportsLoading = false;
 
+  // Track current location to detect location changes
+  private currentLat: number | null = null;
+  private currentLon: number | null = null;
+
   constructor(private ngZone: NgZone) {}
 
   /**
@@ -83,6 +87,19 @@ export class AirportService {
     radiusKm: number,
     showLabels: boolean
   ): Promise<void> {
+    // Check if location has meaningfully changed (>1km)
+    const locationChanged = 
+      this.currentLat === null ||
+      this.currentLon === null ||
+      Math.abs(lat - this.currentLat) > 0.01 ||
+      Math.abs(lon - this.currentLon) > 0.01;
+
+    if (!locationChanged && this.airportCircles.size > 0) {
+      // Same location, just update label visibility
+      this.updateAirportLabels(showLabels);
+      return;
+    }
+
     if (this.airportsLoading) {
       return;
     }
@@ -91,6 +108,16 @@ export class AirportService {
     this.ngZone.run(() => {
       this.loadingAirports = true;
     });
+
+    // Update current location
+    this.currentLat = lat;
+    this.currentLon = lon;
+
+    // Clear existing airports from previous location
+    this.airportCircles.forEach((circle) => circle.remove());
+    this.airportCircles.clear();
+    this.airportData.clear();
+    // Keep clicked airports and radius cache for persistence
 
     try {
       // Track runway radius promises to delay spinner hiding
