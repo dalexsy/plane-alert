@@ -50,14 +50,20 @@ export class AddressResolutionService {
     // Format the address using geocoding context when available
     const formattedAddress = this.formatAddress(originalAddress, geocodeResult);
 
-    // Save the formatted address as the current address in settings
-    this.settings.setCurrentAddress(formattedAddress);
+    // Update location context - this is the SINGLE source of truth for the current address
+    this.locationContext.setLocation(
+      geocodeResult.lat,
+      geocodeResult.lon,
+      formattedAddress,
+      'address'
+    );
 
-    // Update the input field with the formatted address
-    inputOverlayComponent.currentAddress = formattedAddress;
-
-    // Ensure subscribers receive the formatted address
-    this.locationContext.setAddress(formattedAddress);
+    // Save coordinates AND address together atomically for persistence
+    this.settings.setLocationWithAddress(
+      geocodeResult.lat,
+      geocodeResult.lon,
+      formattedAddress
+    );
 
     // Force a scan at the end
     this.scanService.forceScan();

@@ -54,9 +54,9 @@ export class MapUpdateService {
       mainRadius = 500;
     }
 
-    // Update settings
-    this.settings.setLat(lat);
-    this.settings.setLon(lon);
+    // DON'T save coordinates here - they should only be saved together with address
+    // using settings.setLocationWithAddress() to prevent sync issues
+    // Only save radius since it's independent
     this.settings.setRadius(mainRadius);
 
     // Update map view
@@ -82,24 +82,8 @@ export class MapUpdateService {
     if (!inputOverlayComponent.collapsed) {
       inputOverlayComponent.refreshDisplayValues();
 
-      // Skip overwriting the address if the user has a saved/formatted address
-      const hasSavedAddress = !!this.settings.currentAddress?.trim();
-
-      // Only reverse geocode when we don't have a saved address and the location source isn't an address search
-      const currentLocation = this.locationContextService.currentLocation;
-      if (!hasSavedAddress && currentLocation.source !== 'address') {
-        const addressInput = inputOverlayComponent.addressInputRef;
-        if (addressInput) {
-          try {
-            const address = await this.geocodingCache.reverseGeocode(lat, lon);
-            addressInput.setValue(address);
-          } catch (error) {
-            console.warn('Reverse geocoding failed:', error);
-            // Fallback to coordinates
-            addressInput.setValue(`${lat.toFixed(3)}, ${lon.toFixed(3)}`);
-          }
-        }
-      }
+      // NEVER overwrite the address input here - it should only be updated via location context service
+      // based on programmatic changes (home, current, address entry), not map position updates
     }
 
     // Find airports and handle plane updates

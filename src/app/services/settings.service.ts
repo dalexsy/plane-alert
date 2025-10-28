@@ -249,6 +249,19 @@ export class SettingsService {
     localStorage.setItem('lastLon', value.toString());
   }
 
+  /**
+   * Set location (lat, lon) and address together atomically
+   * This ensures coordinates and address are always in sync
+   */
+  setLocationWithAddress(lat: number, lon: number, address: string): void {
+    this._lat = lat;
+    this._lon = lon;
+    this._currentAddress = address;
+    localStorage.setItem('lastLat', lat.toString());
+    localStorage.setItem('lastLon', lon.toString());
+    localStorage.setItem('currentAddress', address);
+  }
+
   get radius(): number | null {
     return this._radius;
   }
@@ -345,11 +358,15 @@ export class SettingsService {
     }
   }
 
-  setHomeLocation(lat: number, lon: number): void {
-    localStorage.setItem(this.homeLocationKey, JSON.stringify({ lat, lon }));
+  setHomeLocation(lat: number, lon: number, address?: string): void {
+    const homeData: any = { lat, lon };
+    if (address) {
+      homeData.address = address;
+    }
+    localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
   }
 
-  getHomeLocation(): { lat: number; lon: number } | null {
+  getHomeLocation(): { lat: number; lon: number; address?: string } | null {
     const saved = localStorage.getItem(this.homeLocationKey);
     if (saved) {
       try {

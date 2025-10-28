@@ -128,13 +128,18 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
       this.otherControlsHidden = val;
       this.cdr.detectChanges();
     });
-    // Subscribe to location context changes to update input field when map is panned
-    // this.locationContext.currentLocation$.subscribe((locationData) => {
-    //   if (locationData.source === 'map' && !this.isUserEditingAddress) {
-    //     this.currentAddress = locationData.address;
-    //     this.cdr.detectChanges();
-    //   }
-    // });
+    // Subscribe to location context changes to update input field when location changes programmatically
+    // Location context is the SINGLE source of truth for the current address
+    this.locationContext.currentLocation$.subscribe((locationData) => {
+      // Always update from location context unless user is actively editing
+      if (!this.isUserEditingAddress) {
+        this.currentAddress = locationData.address;
+        if (this.addressInputRef) {
+          this.addressInputRef.setValue(locationData.address);
+        }
+        this.cdr.detectChanges();
+      }
+    });
     // Subscribe to settings changes that might affect input display
     this.sub = combineLatest([
       this.scanService.countdown$,

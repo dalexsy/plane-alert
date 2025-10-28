@@ -43,7 +43,7 @@ export interface LocationData {
   address: string;
   lat?: number;
   lon?: number;
-  source: 'map' | 'home' | 'default' | 'address';
+  source: 'map' | 'home' | 'default' | 'address' | 'current';
   timestamp: number;
 }
 
@@ -282,7 +282,11 @@ export class LocationContextService {
    * Update current location from map center
    * Only updates if the distance moved is significant enough
    */
-  updateFromMapCenter(lat: number, lon: number): void {
+  updateFromMapCenter(
+    lat: number,
+    lon: number,
+    source: 'map' | 'home' | 'current' = 'map'
+  ): void {
     // Geocode the coordinates to get the address
     this.geocodingCache
       .reverseGeocode(lat, lon)
@@ -304,7 +308,7 @@ export class LocationContextService {
           address,
           lat,
           lon,
-          source: 'map',
+          source,
           timestamp: Date.now(),
         });
       })
@@ -611,6 +615,24 @@ export class LocationContextService {
    */
   setAddress(address: string): void {
     this._address.next(address);
+  }
+
+  /**
+   * Set location directly with all components (used when we already have the address)
+   */
+  setLocation(
+    lat: number,
+    lon: number,
+    address: string,
+    source: 'map' | 'home' | 'default' | 'address' | 'current'
+  ): void {
+    this._currentLocation.next({
+      address,
+      lat,
+      lon,
+      source,
+      timestamp: Date.now(),
+    });
   }
 
   /**

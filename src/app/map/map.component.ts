@@ -642,23 +642,50 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Clear geocoding cache to ensure fresh results after unifying geocoding services
     this.geocodingCache.clearCache();
 
-    // Set the address input to the saved user address, or geocoded address of the starting location if none saved
+    // Initialize location context with saved address or geocode the starting location
+    // Location context is the SINGLE source of truth for current address
     const savedAddress = this.settings.currentAddress;
-    if (savedAddress) {
-      console.log('Setting address input to saved address:', savedAddress);
-      this.inputOverlayComponent.currentAddress = savedAddress;
-      this.locationContext.setAddress(savedAddress);
-    } else {
+    console.log('=== INITIALIZATION ===');
+    console.log('savedAddress:', savedAddress);
+    console.log('startLat:', startLat, 'startLon:', startLon);
+    console.log('settings.lat:', this.settings.lat, 'settings.lon:', this.settings.lon);
+    
+    // CRITICAL: Check if saved address and coordinates make sense together
+    // If address and coordinates are out of sync (e.g., "New York" with Berlin coords),
+    // trust the coordinates and re-geocode
+    const needsResync = savedAddress && this.settings.lat !== null && this.settings.lon !== null &&
+      this.addressLooksWrongForCoordinates(savedAddress, startLat, startLon);
+    
+    if (needsResync) {
+      console.warn('Address and coordinates are out of sync! Re-geocoding...');
+      console.warn('Saved address:', savedAddress, 'Coordinates:', startLat, startLon);
+      // Clear the bad address and re-geocode
       this.reverseGeocode(startLat, startLon).then((address) => {
-        console.log(
-          'Setting address input to geocoded address (no saved address):',
-          address,
-          'for coordinates:',
+        console.log('Re-geocoded to fix mismatch:', address);
+        this.locationContext.setLocation(startLat, startLon, address, 'default');
+        this.settings.setLocationWithAddress(startLat, startLon, address);
+      });
+    } else if (savedAddress) {
+      console.log('Using saved address directly:', savedAddress);
+      this.locationContext.setLocation(
+        startLat,
+        startLon,
+        savedAddress,
+        'default'
+      );
+    } else {
+      // Only reverse-geocode if we don't have a saved address
+      console.log('No saved address - reverse geocoding coordinates');
+      this.reverseGeocode(startLat, startLon).then((address) => {
+        console.log('Reverse geocoded:', address);
+        this.locationContext.setLocation(
           startLat,
-          startLon
+          startLon,
+          address,
+          'default'
         );
-        this.inputOverlayComponent.currentAddress = address;
-        this.locationContext.setAddress(address);
+        // Save it for next session
+        this.settings.setLocationWithAddress(startLat, startLon, address);
       });
     }
 
@@ -854,6 +881,32 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Check if a saved address looks wrong for the given coordinates
+   * This detects out-of-sync issues like "New York" with Berlin coordinates
+   */
+  private addressLooksWrongForCoordinates(address: string, lat: number, lon: number): boolean {
+    // Simple heuristic: check if address mentions a place that's clearly wrong
+    const addressLower = address.toLowerCase();
+    
+    // European coordinates (roughly 35-70N, -10 to 40E)
+    const isEurope = lat > 35 && lat < 70 && lon > -10 && lon < 40;
+    // North American coordinates (roughly 25-50N, -125 to -65W)
+    const isNorthAmerica = lat > 25 && lat < 50 && lon > -125 && lon < -65;
+    
+    // Check for obvious mismatches
+    if (isEurope && (addressLower.includes('new york') || addressLower.includes('united states') || 
+                      addressLower.includes('canada') || addressLower.includes('mexico'))) {
+      return true;
+    }
+    if (isNorthAmerica && (addressLower.includes('berlin') || addressLower.includes('germany') ||
+                           addressLower.includes('france') || addressLower.includes('italy'))) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
    * Handle follow state changes from PlaneFollowService
    */
   private handleFollowStateChange(followState: any): void {
@@ -934,8 +987,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const lon = this.settings.lon;
 
     if (lat !== null && lon !== null) {
-      // Save home location to settings
-      this.settings.setHomeLocation(lat, lon);
+      // Get the current address from the location context (single source of truth)
+      const currentAddress = this.locationContext.currentLocation.address;
+      
+      console.log('=== SETTING HOME ===');
+      console.log('Coordinates:', lat, lon);
+      console.log('Current address from location context:', currentAddress);
+
+      // Save home location to settings with the address
+      this.settings.setHomeLocation(lat, lon, currentAddress || undefined);
+      
+      console.log('Saved home location:', this.settings.getHomeLocation());
 
       // Set home marker on map
       this.setHomeMarker(lat, lon);
@@ -954,6 +1016,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Go to home location
   goToHome(): void {
     const homeLocation = this.settings.getHomeLocation();
+    console.log('=== GO TO HOME ===');
+    console.log('homeLocation:', homeLocation);
+    
     if (homeLocation) {
       // Show the cone when going home
       this.uiState.setConeVisibility(true);
@@ -969,6 +1034,59 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Use current radius and settings
       const radius = this.settings.radius ?? 5;
       this.updateMap(homeLocation.lat, homeLocation.lon, radius);
+
+      // Determine the address to use
+      let addressToUse = homeLocation.address;
+      
+      // If home location doesn't have an address, try to get it from current location context
+      if (!addressToUse) {
+        console.log('Home location has no saved address - checking if current location matches');
+        const currentLoc = this.locationContext.currentLocation;
+        // If we're already at home coordinates, use the current address
+        if (currentLoc.lat === homeLocation.lat && currentLoc.lon === homeLocation.lon) {
+          addressToUse = currentLoc.address;
+          console.log('Using current location address:', addressToUse);
+          // Save it to home location for next time
+          this.settings.setHomeLocation(homeLocation.lat, homeLocation.lon, addressToUse);
+        }
+      }
+
+      if (addressToUse) {
+        console.log('Using saved home address:', addressToUse);
+        this.locationContext.setLocation(
+          homeLocation.lat,
+          homeLocation.lon,
+          addressToUse,
+          'home'
+        );
+        // Save coordinates AND address together atomically
+        this.settings.setLocationWithAddress(
+          homeLocation.lat,
+          homeLocation.lon,
+          addressToUse
+        );
+      } else {
+        console.warn('No saved home address and not at home - this should not happen!');
+        console.warn('Re-setting home will fix this issue.');
+        // As last resort, reverse geocode
+        this.locationContext.updateFromMapCenter(
+          homeLocation.lat,
+          homeLocation.lon,
+          'home'
+        );
+        this.reverseGeocode(homeLocation.lat, homeLocation.lon).then(
+          (address) => {
+            console.log('Reverse geocoded home address:', address);
+            this.settings.setLocationWithAddress(
+              homeLocation.lat,
+              homeLocation.lon,
+              address
+            );
+            // Also update home location to include address
+            this.settings.setHomeLocation(homeLocation.lat, homeLocation.lon, address);
+          }
+        );
+      }
     }
   }
 
@@ -1224,6 +1342,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             position.coords.longitude,
             currentMainRadius // Pass main radius
           ); // Triggers airport search
+          // Update location context with current source (this will reverse-geocode)
+          this.locationContext.updateFromMapCenter(
+            position.coords.latitude,
+            position.coords.longitude,
+            'current'
+          );
+
+          // Save coordinates AND address together atomically for persistence
+          this.reverseGeocode(
+            position.coords.latitude,
+            position.coords.longitude
+          ).then((address) => {
+            this.settings.setLocationWithAddress(
+              position.coords.latitude,
+              position.coords.longitude,
+              address
+            );
+          });
         },
         (error) => {
           if (!this.locationErrorShown) {
