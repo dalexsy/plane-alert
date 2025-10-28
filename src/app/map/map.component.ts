@@ -538,6 +538,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.document
     );
 
+    // Initialize altitude borders state
+    this.planeDisplayService.setAltitudeBordersEnabled(this.uiState.showAltitudeBorders);
+
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
@@ -730,6 +733,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.windowViewOverlayComponent
     );
     this.planeLogService.setMapComponent(this);
+
+    // Start astronomical updates (sun/moon/sunrise/sunset calculations)
+    this.astronomicalDisplay.startAstronomicalUpdates();
 
     // Initialize map update service
     this.mapUpdate.setInitialScanDone(false);

@@ -9,6 +9,7 @@ import { AltitudeColorService } from './altitude-color.service';
 export class PlaneDisplayService {
   private map!: L.Map;
   private altitudeColorService: AltitudeColorService;
+  private showAltitudeBorders: boolean = true; // Default to true
 
   constructor(altitudeColorService: AltitudeColorService) {
     this.altitudeColorService = altitudeColorService;
@@ -19,6 +20,13 @@ export class PlaneDisplayService {
    */
   initialize(map: L.Map): void {
     this.map = map;
+  }
+
+  /**
+   * Set the altitude borders enabled state
+   */
+  setAltitudeBordersEnabled(enabled: boolean): void {
+    this.showAltitudeBorders = enabled;
   }
 
   /**
@@ -105,10 +113,9 @@ export class PlaneDisplayService {
         'followed-plane-tooltip',
         'grounded-plane-tooltip',
         'new-plane-tooltip',
-        'military-plane-tooltip',
-        'altitude-bordered-tooltip'
+        'military-plane-tooltip'
       );
-      tooltipEl.style.borderColor = '';
+      // Don't reset altitude borders here - they're managed separately
     }
 
     marker.setZIndexOffset(0);
@@ -203,7 +210,7 @@ export class PlaneDisplayService {
     plane: PlaneModel,
     tooltipEl: HTMLElement | undefined
   ): void {
-    if (!tooltipEl || plane.altitude == null) return;
+    if (!tooltipEl || plane.altitude == null || !this.showAltitudeBorders) return;
 
     // Get altitude color from the service
     const altitudeColor = this.altitudeColorService.getFillColor(
@@ -219,6 +226,8 @@ export class PlaneDisplayService {
    * Update tooltip altitude borders for all planes
    */
   updateTooltipAltitudeBorders(planes: PlaneModel[], enabled: boolean): void {
+    this.showAltitudeBorders = enabled; // Store the state
+    
     planes.forEach((plane) => {
       const tooltipEl = plane.marker?.getTooltip()?.getElement();
       if (!tooltipEl) return;

@@ -167,7 +167,11 @@ export class PlaneLogService {
         // For grounded planes, use 0 altitude for consistency
         const alt = isGrounded ? 0 : plane.altitude ?? 0;
         const y = (Math.min(alt, 20000) / 20000) * 100;
-        const iconData = getIconPathForModel(plane.model, plane.callsign, alt);
+        const isHelicopter = this.helicopterIdentificationService.isHelicopter(
+          plane.icao,
+          plane.model
+        );
+        const iconData = getIconPathForModel(plane.model, plane.callsign, alt, isHelicopter);
         // Calculate scale, distance
         const distKm = haversineDistance(
           centerLat,
@@ -336,13 +340,19 @@ export class PlaneLogService {
       ];
     });
     // Merge with actual planes for overlay, preserving all real planes (including grounded) and adding markers
+    const mergedPlanes = [
+      // keep only real plane entries (exclude marker objects)
+      ...windowViewPlanes.filter((p) => !p.isMarker),
+      // then append marker entries
+      ...markers,
+    ];
+    
+    // Update both the component directly and the map component's property for Angular binding
     if (this.windowViewOverlayComponent) {
-      this.windowViewOverlayComponent.windowViewPlanes = [
-        // keep only real plane entries (exclude marker objects)
-        ...windowViewPlanes.filter((p) => !p.isMarker),
-        // then append marker entries
-        ...markers,
-      ];
+      this.windowViewOverlayComponent.windowViewPlanes = mergedPlanes;
+    }
+    if (this.mapComponent) {
+      this.mapComponent.windowViewPlanes = mergedPlanes;
     }
   }
 
