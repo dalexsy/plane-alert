@@ -9,14 +9,41 @@ import {
   tap,
   debounceTime,
   distinctUntilChanged,
-  timeout,
 } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { GeocodingCacheService } from './geocoding-cache.service';
 
-export interface LocationData {
+export interface GeocodeResult {
   lat: number;
   lon: number;
-  source: 'map' | 'home' | 'default';
+  displayName?: string;
+  addressDetails?: {
+    road?: string;
+    pedestrian?: string;
+    cycleway?: string;
+    footway?: string;
+    residential?: string;
+    house_number?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city_district?: string;
+    municipality?: string;
+    county?: string;
+    town?: string;
+    village?: string;
+    hamlet?: string;
+    city?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+}
+
+export interface LocationData {
+  address: string;
+  lat?: number;
+  lon?: number;
+  source: 'map' | 'home' | 'default' | 'address' | 'current';
   timestamp: number;
 }
 
@@ -43,6 +70,7 @@ export interface LocationContextInfo {
 })
 export class LocationContextService {
   private readonly _currentLocation = new BehaviorSubject<LocationData>({
+    address: 'Berlin, Germany',
     lat: 52.52,
     lon: 13.405,
     source: 'default',
@@ -69,20 +97,39 @@ export class LocationContextService {
 
   // Distance threshold: only update if moved more than ~1km (approximately 0.009 degrees)
   private readonly MIN_DISTANCE_THRESHOLD = 0.009;
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private geocodingCache: GeocodingCacheService
+  ) {
+    console.log(
+      'LocationContext initialized with default location:',
+      this._currentLocation.value
+    );
+    // Clear address cache since we're now using GeocodingCacheService
+    this.addressCache.clear();
     // Debounce location changes to prevent excessive API calls
     this._currentLocation
       .pipe(
         debounceTime(1000),
         distinctUntilChanged(
           (a, b) =>
-            this.calculateDistance(a.lat, a.lon, b.lat, b.lon) <
-            this.MIN_DISTANCE_THRESHOLD
+            this.calculateDistance(
+              a.lat || 0,
+              a.lon || 0,
+              b.lat || 0,
+              b.lon || 0
+            ) < this.MIN_DISTANCE_THRESHOLD
         )
       )
       .subscribe((location) => {
-        this.updateTimezone(location.lat, location.lon);
-        this.updateAddress(location.lat, location.lon);
+        if (location.lat && location.lon) {
+          this.updateTimezone(location.lat, location.lon);
+          // Only update address if we don't already have one and source isn't default
+          // This prevents reverse-geocoding when we already set an address via setLocation()
+          if (location.source !== 'default' && !location.address) {
+            this.updateAddress(location.lat, location.lon);
+          }
+        }
       });
   }
 
@@ -107,12 +154,12 @@ export class LocationContextService {
     const timezonePoints = [
       // Europe
       { lat: 51.5074, lon: -0.1278, tz: 'Europe/London' },
-      { lat: 52.5200, lon: 13.4050, tz: 'Europe/Berlin' },
+      { lat: 52.52, lon: 13.405, tz: 'Europe/Berlin' },
       { lat: 48.8566, lon: 2.3522, tz: 'Europe/Paris' },
       { lat: 55.7558, lon: 37.6173, tz: 'Europe/Moscow' },
 
       // North America
-      { lat: 40.7128, lon: -74.0060, tz: 'America/New_York' },
+      { lat: 40.7128, lon: -74.006, tz: 'America/New_York' },
       { lat: 41.8781, lon: -87.6298, tz: 'America/Chicago' },
       { lat: 39.7392, lon: -104.9903, tz: 'America/Denver' },
       { lat: 34.0522, lon: -118.2437, tz: 'America/Los_Angeles' },
@@ -120,7 +167,7 @@ export class LocationContextService {
       // Asia
       { lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' },
       { lat: 39.9042, lon: 116.4074, tz: 'Asia/Shanghai' },
-      { lat: 28.6139, lon: 77.2090, tz: 'Asia/Kolkata' },
+      { lat: 28.6139, lon: 77.209, tz: 'Asia/Kolkata' },
       { lat: 25.2048, lon: 55.2708, tz: 'Asia/Dubai' },
 
       // Australia/Oceania
@@ -129,7 +176,7 @@ export class LocationContextService {
 
       // South America
       { lat: -23.5505, lon: -46.6333, tz: 'America/Sao_Paulo' },
-      { lat: -34.6118, lon: -58.3960, tz: 'America/Argentina/Buenos_Aires' },
+      { lat: -34.6118, lon: -58.396, tz: 'America/Argentina/Buenos_Aires' },
 
       // Africa
       { lat: -26.2041, lon: 28.0473, tz: 'Africa/Johannesburg' },
@@ -237,44 +284,102 @@ export class LocationContextService {
    * Update current location from map center
    * Only updates if the distance moved is significant enough
    */
-  updateFromMapCenter(lat: number, lon: number): void {
-    const currentLocation = this._currentLocation.value;
+  updateFromMapCenter(
+    lat: number,
+    lon: number,
+    source: 'map' | 'home' | 'current' = 'map'
+  ): void {
+    // Geocode the coordinates to get the address
+    this.geocodingCache
+      .reverseGeocode(lat, lon)
+      .then((address) => {
+        const currentLocation = this._currentLocation.value;
 
-    // Check if the movement is significant enough to warrant an update
-    const distance = this.calculateDistance(
-      currentLocation.lat,
-      currentLocation.lon,
-      lat,
-      lon
-    );
-    if (distance < this.MIN_DISTANCE_THRESHOLD) {
-      return; // Don't update for small movements
-    }
+        // Check if the movement is significant enough to warrant an update
+        const distance = this.calculateDistance(
+          currentLocation.lat || lat,
+          currentLocation.lon || lon,
+          lat,
+          lon
+        );
+        if (distance < this.MIN_DISTANCE_THRESHOLD) {
+          return; // Don't update for small movements
+        }
 
-    this._currentLocation.next({
-      lat,
-      lon,
-      source: 'map',
-      timestamp: Date.now(),
-    });
+        this._currentLocation.next({
+          address,
+          lat,
+          lon,
+          source,
+          timestamp: Date.now(),
+        });
+      })
+      .catch((error) => {
+        console.warn('Failed to geocode map center:', error);
+      });
   }
 
   /**
-   * Update current location from home setting
+   * Update current location from address string
    */
-  updateFromHome(lat: number, lon: number): void {
-    this._currentLocation.next({
-      lat,
-      lon,
-      source: 'home',
-      timestamp: Date.now(),
+  async updateFromAddress(address: string): Promise<GeocodeResult> {
+    // Geocode the address to get coordinates
+    try {
+      const geocodeResult = await this.geocodeAddress(address);
+      this._currentLocation.next({
+        address,
+        lat: geocodeResult.lat,
+        lon: geocodeResult.lon,
+        source: 'address',
+        timestamp: Date.now(),
+      });
+      return geocodeResult;
+    } catch (error) {
+      console.warn('Failed to geocode address:', error);
+      throw error; // Re-throw so caller can handle it
+    }
+  }
+
+  /**
+   * Geocode an address string to coordinates
+   */
+  async geocodeAddress(address: string): Promise<GeocodeResult> {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      address
+    )}`;
+
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'PlaneAlert/1.0' },
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.length === 0) {
+      throw new Error('No results found for address');
+    }
+
+    const result = data[0];
+
+    return {
+      lat: parseFloat(result.lat),
+      lon: parseFloat(result.lon),
+      displayName: result.display_name,
+      addressDetails: result.address,
+    };
   }
 
   /**
    * Get timezone for location with caching and rate limiting
    */
   private updateTimezone(lat: number, lon: number): void {
+    // Skip geocoding for default locations
+    if (this._currentLocation.value.source === 'default') {
+      return;
+    }
+
     const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
     const cached = this.timezoneCache.get(cacheKey);
 
@@ -305,13 +410,13 @@ export class LocationContextService {
           hour12: false,
           hour: 'numeric',
           minute: 'numeric',
-          second: 'numeric'
+          second: 'numeric',
         });
 
         // Use the browser's built-in offset calculation for the timezone
         const tempDate = new Date();
-        const utc1 = tempDate.getTime() + (tempDate.getTimezoneOffset() * 60000);
-        const utc2 = new Date(utc1 + (0 * 3600000)); // UTC time
+        const utc1 = tempDate.getTime() + tempDate.getTimezoneOffset() * 60000;
+        const utc2 = new Date(utc1 + 0 * 3600000); // UTC time
 
         // Get the formatted time in the target timezone
         const timeInZone = new Intl.DateTimeFormat('en-CA', {
@@ -322,14 +427,20 @@ export class LocationContextService {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
-          hour12: false
+          hour12: false,
         }).format(tempDate);
 
         // Parse the formatted time back to a Date
-        const zonedTime = new Date(timeInZone.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6'));
+        const zonedTime = new Date(
+          timeInZone.replace(
+            /(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/,
+            '$1-$2-$3T$4:$5:$6'
+          )
+        );
 
         // Calculate the offset in hours
-        const offsetHours = (zonedTime.getTime() - utc2.getTime()) / (1000 * 60 * 60);
+        const offsetHours =
+          (zonedTime.getTime() - utc2.getTime()) / (1000 * 60 * 60);
 
         const timezone = {
           timezone: nearestTimezone,
@@ -370,6 +481,12 @@ export class LocationContextService {
    * Get address for location with caching and rate limiting
    */
   private updateAddress(lat: number, lon: number): void {
+    // Skip geocoding for default locations
+    if (this._currentLocation.value.source === 'default') {
+      return;
+    }
+
+    console.log('LocationContext updateAddress called with:', lat, lon);
     const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
     const cached = this.addressCache.get(cacheKey);
 
@@ -386,49 +503,33 @@ export class LocationContextService {
     }
     this.lastAddressRequest = now;
 
-    // Use Nominatim for reverse geocoding
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-
-    this.http
-      .get<any>(url)
-      .pipe(
-        timeout(5000), // 5 second timeout
-        map((response) => {
-          const addr = response.address || {};
-          const components = [
-            addr.road,
-            addr.house_number,
-            addr.suburb || addr.city_district || addr.neighbourhood,
-            addr.city || addr.town || addr.village,
-            addr.country,
-          ].filter(Boolean);
-
-          return components.length > 0
-            ? components.join(', ')
-            : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        }),
-        catchError((error) => {
-          // Specific handling for CORS and timeout errors
-          if (error.message && error.message.includes('Http failure response')) {
-            console.warn('Address lookup blocked by CORS policy. Using coordinates fallback.');
-          } else if (error.name === 'TimeoutError') {
-            console.warn('Address lookup timed out. Using coordinates fallback.');
-          } else {
-            console.warn('Address lookup failed:', error.message || error);
-          }
-          // Address lookup failed, using coordinates
-          return of(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-        }),
-        tap((address) => {
-          // Cache the result
-          this.addressCache.set(cacheKey, {
-            data: address,
-            timestamp: Date.now(),
-          });
-        })
-      )
-      .subscribe((address) => {
+    // Use GeocodingCacheService for consistent geocoding
+    this.geocodingCache
+      .reverseGeocode(lat, lon)
+      .then((address) => {
+        console.log(
+          'LocationContext setting address to:',
+          address,
+          'for coordinates:',
+          lat,
+          lon
+        );
+        // Cache the result
+        this.addressCache.set(cacheKey, {
+          data: address,
+          timestamp: Date.now(),
+        });
         this._address.next(address);
+      })
+      .catch((error) => {
+        console.warn('LocationContext geocoding failed:', error);
+        // Fallback to coordinates
+        const fallbackAddress = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        this.addressCache.set(cacheKey, {
+          data: fallbackAddress,
+          timestamp: Date.now(),
+        });
+        this._address.next(fallbackAddress);
       });
   }
   /**
@@ -454,16 +555,17 @@ export class LocationContextService {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
-          hour12: false
+          hour12: false,
         }).format(now);
 
         // Convert back to Date object
         const [datePart, timePart] = timeString.split(', ');
         const isoString = `${datePart}T${timePart}`;
         return new Date(isoString);
-
       } catch (error) {
-        console.warn('Failed to use timezone name, falling back to offset calculation');
+        console.warn(
+          'Failed to use timezone name, falling back to offset calculation'
+        );
       }
     }
 
@@ -471,7 +573,8 @@ export class LocationContextService {
     const now = new Date();
     const browserOffsetMinutes = now.getTimezoneOffset();
     const locationOffsetMinutes = timezone.utcOffset * 60;
-    const timeDifferenceMs = (locationOffsetMinutes + browserOffsetMinutes) * 60000;
+    const timeDifferenceMs =
+      (locationOffsetMinutes + browserOffsetMinutes) * 60000;
     return new Date(now.getTime() + timeDifferenceMs);
   }
 
@@ -510,16 +613,28 @@ export class LocationContextService {
   }
 
   /**
-   * Clear all caches (useful for testing or manual refresh)
+   * Set the address without geocoding
    */
-  clearCaches(): void {
-    this.timezoneCache.clear();
-    this.addressCache.clear();
+  setAddress(address: string): void {
+    this._address.next(address);
+  }
 
-    // Force refresh current location
-    const current = this._currentLocation.value;
-    this.updateTimezone(current.lat, current.lon);
-    this.updateAddress(current.lat, current.lon);
+  /**
+   * Set location directly with all components (used when we already have the address)
+   */
+  setLocation(
+    lat: number,
+    lon: number,
+    address: string,
+    source: 'map' | 'home' | 'default' | 'address' | 'current'
+  ): void {
+    this._currentLocation.next({
+      address,
+      lat,
+      lon,
+      source,
+      timestamp: Date.now(),
+    });
   }
 
   /**

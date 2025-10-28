@@ -1,4 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { timeout, map, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 interface CacheEntry {
   address: string;
@@ -16,7 +19,7 @@ export class GeocodingCacheService {
   private lastRequestTime = 0;
   private readonly MIN_REQUEST_INTERVAL = 100; // Minimum 100ms between requests
 
-  constructor(private ngZone: NgZone) {
+  constructor(private ngZone: NgZone, private http: HttpClient) {
     // Periodically purge expired entries outside Angular to avoid CD overhead
     this.ngZone.runOutsideAngular(() =>
       setInterval(() => this.clearExpiredCache(), this.CACHE_DURATION)
@@ -25,7 +28,8 @@ export class GeocodingCacheService {
 
   /**
    * Get geocoded address with caching and request deduplication
-   */ async reverseGeocode(lat: number, lon: number): Promise<string> {
+   */ public async reverseGeocode(lat: number, lon: number): Promise<string> {
+    console.log('Geocoding coordinates:', lat, lon);
     const now = Date.now();
     const key = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(
       this.COORDINATE_PRECISION
@@ -74,77 +78,88 @@ export class GeocodingCacheService {
     return fetchPromise;
   }
 
-  private async performRequest(lat: number, lon: number): Promise<string> {
+  private async performRequest(
+    lat: number,
+    lon: number,
+    retryCount = 0
+  ): Promise<string> {
+    console.log('Making geocoding API call for:', lat, lon);
+    const maxRetries = 2;
+
     try {
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
 
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
-        {
-          headers: { 'User-Agent': 'PlaneAlert/1.0' },
-          signal: controller.signal,
-        }
+      const data = await this.ngZone.runOutsideAngular(() =>
+        this.http
+          .get<any>(url)
+          .pipe(
+            timeout(8000), // Increased timeout to 8 seconds
+            map((response) => response),
+            catchError((error) => {
+              throw error;
+            })
+          )
+          .toPromise()
       );
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
-      const data = await response.json();
       const addr = data.address || {};
-      // Prioritize fine-grained locality fields
-      const primary =
-        addr.suburb ||
-        addr.city_district ||
-        addr.city ||
-        addr.town ||
-        addr.village ||
-        '';
-      const county = addr.county || '';
-      const state = addr.state || '';
-      const country = addr.country || ''; // Build best possible description (exclude Germany from display)
-      const isGermany = country === 'Germany' || country === 'Deutschland';
-      const displayCountry = isGermany ? '' : country;
+      // Build address using same logic as LocationContext for consistency
+      const components = [
+        addr.road,
+        addr.house_number,
+        addr.suburb || addr.city_district || addr.neighbourhood,
+        addr.city || addr.town || addr.village,
+        addr.country,
+      ].filter(Boolean);
 
-      if (primary) {
-        const parts = [primary, state, displayCountry].filter(Boolean);
-        return parts.length > 1
-          ? `Near ${parts.join(', ')}`
-          : `Near ${parts[0]}`;
-      }
-      if (county) {
-        const parts = [county, state, displayCountry].filter(Boolean);
-        return parts.length > 1
-          ? `Near ${parts.join(', ')}`
-          : `Near ${parts[0]}`;
-      }
-      if (state) {
-        return displayCountry
-          ? `Near ${state}, ${displayCountry}`
-          : `Near ${state}`;
-      }
-      if (displayCountry) {
-        return displayCountry;
+      if (components.length > 0) {
+        return components.join(', ');
       }
       // Fallback to the display_name or coordinates if absolutely nothing else
       return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
     } catch (error: any) {
+      // Retry logic for network/CORS issues
+      if (
+        retryCount < maxRetries &&
+        (error.message?.includes('Http failure response') ||
+          error.message?.includes('TimeoutError') ||
+          error.name === 'TimeoutError' ||
+          error.status === 0) // CORS/network error
+      ) {
+        console.warn(
+          `Geocoding attempt ${retryCount + 1} failed, retrying...`,
+          error.message
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (retryCount + 1))
+        ); // Exponential backoff
+        return this.performRequest(lat, lon, retryCount + 1);
+      }
+
       // Specific handling for CORS/network errors
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.warn('Geocoding blocked by CORS policy or network error. Using coordinates fallback.');
-      } else if (error.name === 'AbortError') {
-        console.warn('Geocoding request timed out. Using coordinates fallback.');
+      if (
+        error.message &&
+        (error.message.includes('Http failure response') ||
+          error.message.includes('TimeoutError') ||
+          error.name === 'TimeoutError' ||
+          error.status === 0)
+      ) {
+        console.warn(
+          'Geocoding request timed out or failed (likely CORS/network issue in localhost). Using coordinates fallback.'
+        );
       } else {
         console.warn('Geocoding failed:', error);
       }
-      
+
       // Fallback to formatted coordinates so UI always has something meaningful
-      return `${lat.toFixed(this.COORDINATE_PRECISION)}, ${lon.toFixed(
+      // But make it more user-friendly by adding context
+      const fallbackCoords = `${lat.toFixed(
         this.COORDINATE_PRECISION
-      )}`;
+      )}, ${lon.toFixed(this.COORDINATE_PRECISION)}`;
+
+      // Try to provide more context if we have a general location
+      // For now, just return coordinates but could be enhanced with location context
+      return fallbackCoords;
     }
   }
 

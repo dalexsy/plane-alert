@@ -22,10 +22,14 @@ import {
   PlaneLogEntry,
 } from '../components/results-overlay/results-overlay.component';
 import { CountryService } from '../services/country.service';
-import { AircraftCountryService } from '../services/aircraft-country.service';
+import { MapInitializerService } from '../services/map-initializer.service';
+import { AirportService } from '../services/airport.service';
+import { PlaneDisplayService } from '../services/plane-display.service';
+import { AstronomicalService } from '../services/astronomical.service';
 import { PlaneFinderService } from '../services/plane-finder.service';
 import { PlaneFilterService } from '../services/plane-filter.service';
 import { AircraftDbService } from '../services/aircraft-db.service';
+import { AircraftCountryService } from '../services/aircraft-country.service';
 import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
 import {
@@ -72,7 +76,27 @@ import {
 } from '../services/brightness.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
 import { WeatherOverlayService } from '../services/weather-overlay.service';
-import '../utils/plane-debug'; // Import debugging utilities for browser console
+import { PlaneLogService } from '../services/plane-log.service';
+import { FollowService } from '../services/follow.service';
+import { ClosestPlaneService } from '../services/closest-plane.service';
+import { WindService } from '../services/wind.service';
+import { WeatherLayerService } from '../services/weather-layer.service';
+import { FilterManagementService } from '../services/filter-management.service';
+import { LocationUpdateService } from '../services/location-update.service';
+import { AddressResolutionService } from '../services/address-resolution.service';
+import { UiStateService } from '../services/ui-state.service';
+import { AstronomicalDisplayService } from '../services/astronomical-display.service';
+import { BrightnessDisplayService } from '../services/brightness-display.service';
+import { WindowViewMarkerService } from '../services/window-view-marker.service';
+import { ConeDisplayService } from '../services/cone-display.service';
+import { GeocodingDisplayService } from '../services/geocoding-display.service';
+import { AirportInteractionService } from '../services/airport-interaction.service';
+import { EventHandlerService } from '../services/event-handler.service';
+import { MapUpdateService } from '../services/map-update.service';
+import { PlaneUpdateService } from '../services/plane-update.service';
+import { PlaneCenteringService } from '../services/plane-centering.service';
+import { PlaneFilteringService } from '../services/plane-filtering.service';
+import { EnvironmentalDataService } from '../services/environmental-data.service';
 
 // OpenWeatherMap tile service API key
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
@@ -117,6 +141,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   inputOverlayComponent!: InputOverlayComponent;
   @ViewChild(ResultsOverlayComponent, { static: true })
   resultsOverlayComponent!: ResultsOverlayComponent;
+  @ViewChild(WindowViewOverlayComponent, { static: true })
+  windowViewOverlayComponent!: WindowViewOverlayComponent;
 
   readonly DEFAULT_COORDS: [number, number] = [52.3667, 13.5033];
 
@@ -135,16 +161,48 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private toggling = false;
   private locationErrorShown = false;
 
-  // before: coneVisible = false; // Default to hidden
-  coneVisible = false; // Default to hidden
-  // before: cloudVisible = true; // Show cloud layer by default
-  cloudVisible = true; // Show cloud layer by default
-  // before: rainVisible = true; // Show rain layer by default
-  rainVisible = true; // Show rain layer by default
+  // UI overlay toggles - now managed by UiStateService
+  get showDateTime() {
+    return this.uiState.showDateTime;
+  }
+  get showAirportLabels() {
+    return this.uiState.showAirportLabels;
+  }
+  get showAltitudeBorders() {
+    return this.uiState.showAltitudeBorders;
+  }
+  get showWindDirection() {
+    return this.uiState.showWindDirection;
+  }
+  get showSunDirection() {
+    return this.uiState.showSunDirection;
+  }
+  get animationsEnabled() {
+    return this.uiState.animationsEnabled;
+  }
+  get showWindowView() {
+    return this.uiState.showWindowView;
+  }
+
+  // Weather layer toggles - now managed by UiStateService
+  get coneVisible() {
+    return this.uiState.coneVisible;
+  }
+  get cloudVisible() {
+    return this.uiState.cloudVisible;
+  }
+  get rainVisible() {
+    return this.uiState.rainVisible;
+  }
 
   // Opacity settings for weather layers
   cloudOpacity: number = 1;
   rainOpacity: number = 0.8;
+
+  // Plane logs for results overlay binding
+  skyPlaneLog: PlaneLogEntry[] = [];
+  airportPlaneLog: PlaneLogEntry[] = [];
+  seenPlaneLog: PlaneLogEntry[] = [];
 
   // Planes for window-view overlay
   windowViewPlanes: WindowViewPlane[] = [];
@@ -159,8 +217,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private airportData = new Map<number, { name: string; code?: string }>(); // Track clicked airports for color toggling
   clickedAirports = new Set<number>();
 
-  // Flag for airport fetching (loading) to show loading indicator
-  loadingAirports = false;
+  // Flag to distinguish programmatic map moves from user-initiated moves
+  private isProgrammaticMove = false;
   // Flag for viewport resizing (legacy) if needed
   isResizing = false;
   private resizeTimeout: any;
@@ -191,24 +249,29 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private isProcessingFollowRequest = false; // guard against recursive follow calls
   currentTime: string = '';
 
+  // Alias for template binding
+  get loadingAirports(): boolean {
+    return this.airportService.isLoading();
+  }
+
   // Replace showDateTime property initializer
-  public showDateTime = true; // Show date/time overlay by default
+  // public showDateTime = true; // Show date/time overlay by default - now in UiStateService
 
   // Toggle for airport labels tooltips
   // before: showAirportLabels: boolean = true;
-  showAirportLabels = true; // Show airport labels by default
+  // showAirportLabels = true; // Show airport labels by default - now in UiStateService
 
   // Toggle for altitude-colored tooltip borders
-  showAltitudeBorders = false; // Default to disabled
+  // showAltitudeBorders = false; // Default to disabled - now in UiStateService
 
   // Toggle for wind direction display
-  showWindDirection = true; // Default to enabled
+  // showWindDirection = true; // Default to enabled - now in UiStateService
 
   // Toggle for sun direction display
-  showSunDirection = true; // Default to enabled
+  // showSunDirection = true; // Default to enabled - now in UiStateService
 
   // Toggle for animations
-  animationsEnabled = true; // Default to enabled
+  // animationsEnabled = true; // Default to enabled - now in UiStateService
 
   private _initialScanDone = false; // Flag to prevent double scan
 
@@ -216,8 +279,43 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   locationStreet: string | null = null;
   locationDistrict: string | null = null;
 
-  // Sun angle for solar position overlay
-  public sunAngle: number = 0;
+  // Sun angle for solar position overlay - now managed by AstronomicalDisplayService
+  get sunAngle() {
+    return this.astronomicalDisplay.sunAngle;
+  }
+  get isNight() {
+    return this.astronomicalDisplay.isNight;
+  }
+  get sunEventText() {
+    return this.astronomicalDisplay.sunEventText;
+  }
+  get moonFraction() {
+    return this.astronomicalDisplay.moonFraction;
+  }
+  get moonIsWaning() {
+    return this.astronomicalDisplay.moonIsWaning;
+  }
+  get moonPhaseName() {
+    return this.astronomicalDisplay.moonPhaseName;
+  }
+  get moonTerminatorAngle() {
+    return this.astronomicalDisplay.moonTerminatorAngle;
+  }
+  get moonIcon() {
+    return this.astronomicalDisplay.moonIcon;
+  }
+  get moonIllumAngleDeg() {
+    return this.astronomicalDisplay.moonIllumAngleDeg;
+  }
+
+  // Brightness state - now managed by BrightnessDisplayService
+  get brightness() {
+    return this.brightnessDisplay.brightness;
+  }
+  get brightnessState() {
+    return this.brightnessDisplay.brightnessState;
+  }
+  private globalTooltipClickHandler!: (e: MouseEvent) => void;
   // Wind direction for wind indicator overlay
   public windAngle: number = 0; // Latest wind speed in m/s
   public windSpeed: number = 0;
@@ -225,22 +323,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Wind unit cycling
   public windUnits: string[] = ['m/s', 'knots', 'km/h', 'mph'];
   public currentWindUnitIndex: number = 0;
-  public isNight: boolean = false;
-  public brightness: number = 1;
-  public brightnessState: BrightnessState | null = null;
-  public moonFraction: number = 0;
-  public moonAngle: number = 0;
-  public moonIsWaning: boolean = false;
-  public moonIcon: string = 'dark_mode';
-  public moonPhaseName: string = '';
-  public moonIllumAngleDeg: number = 0;
-  // Label for next sun event (Sunset during day, Sunrise at night)
-  public sunEventText: string = '';
-  private sunAngleInterval: any;
-  private locationUpdateSubscription: any;
-  private globalTooltipClickHandler!: (e: MouseEvent) => void;
-  /** Terminator tilt for moon (degrees) */
-  moonTerminatorAngle: number = 0;
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
@@ -260,7 +342,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private helicopterListService: HelicopterListService,
     private helicopterIdentificationService: HelicopterIdentificationService,
     private skyColorSyncService: SkyColorSyncService,
-    private locationContextService: LocationContextService,
+    private locationContext: LocationContextService,
     private geocodingCache: GeocodingCacheService,
     private debouncedClickService: DebouncedClickService,
     private planeFollowService: PlaneFollowService,
@@ -272,24 +354,49 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private mapThemeService: MapThemeService,
     private brightnessService: BrightnessService,
     private altitudeColor: AltitudeColorService,
-    private weatherOverlayService: WeatherOverlayService
+    private weatherOverlayService: WeatherOverlayService,
+    private mapInitializerService: MapInitializerService,
+    private airportService: AirportService,
+    private planeDisplayService: PlaneDisplayService,
+    private astronomicalService: AstronomicalService,
+    private planeLogService: PlaneLogService,
+    private followService: FollowService,
+    private closestPlaneService: ClosestPlaneService,
+    private windService: WindService,
+    private weatherLayerService: WeatherLayerService,
+    private filterManagementService: FilterManagementService,
+    private locationUpdateService: LocationUpdateService,
+    private addressResolution: AddressResolutionService,
+    private uiState: UiStateService,
+    private astronomicalDisplay: AstronomicalDisplayService,
+    private brightnessDisplay: BrightnessDisplayService,
+    private windowViewMarker: WindowViewMarkerService,
+    private coneDisplay: ConeDisplayService,
+    private geocodingDisplay: GeocodingDisplayService,
+    private airportInteraction: AirportInteractionService,
+    private eventHandler: EventHandlerService,
+    private planeUpdate: PlaneUpdateService,
+    private mapUpdate: MapUpdateService,
+    private planeCentering: PlaneCenteringService,
+    private planeFiltering: PlaneFilteringService,
+    private environmentalData: EnvironmentalDataService
   ) {
-    // Initialize UI toggles from stored settings
-    this.cloudVisible = this.settings.showCloudCover;
-    this.rainVisible = this.settings.showRainCover;
-    this.coneVisible = this.settings.showViewAxes;
-    this.showDateTime = this.settings.getDateTimeOverlayVisibility();
-    this.showAirportLabels = this.settings.showAirportLabels;
-    this.showAltitudeBorders = this.settings.showAltitudeBorders;
-    this.showWindDirection = this.settings.showWindDirection;
-    this.showSunDirection = this.settings.showSunDirection;
-    this.animationsEnabled = this.settings.animationsEnabled;
-    this.currentWindUnitIndex = this.settings.windUnitIndex;
-    this.showWindowView = this.settings.showWindowView;
+    // Initialize UI toggles from stored settings - now handled by UiStateService
+    // this.cloudVisible = this.settings.showCloudCover;
+    // this.rainVisible = this.settings.showRainCover;
+    // this.coneVisible = this.settings.showViewAxes;
+    // this.showDateTime = this.settings.getDateTimeOverlayVisibility();
+    // this.showAirportLabels = this.settings.showAirportLabels;
+    // this.showAltitudeBorders = this.settings.showAltitudeBorders;
+    // this.showWindDirection = this.settings.showWindDirection;
+    // this.showSunDirection = this.settings.showSunDirection;
+    // this.animationsEnabled = this.settings.animationsEnabled;
+    // this.currentWindUnitIndex = this.settings.windUnitIndex;
+    // this.showWindowView = this.settings.showWindowView;
 
     // Initialize brightness service with current location if available
-    const currentLocation = this.settings.getCurrentLocation();
-    if (currentLocation) {
+    const currentLocation = { lat: this.settings.lat, lon: this.settings.lon };
+    if (currentLocation.lat !== null && currentLocation.lon !== null) {
       this.brightnessService.setLocation(
         currentLocation.lat,
         currentLocation.lon
@@ -372,36 +479,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Toggle display of airport labels tooltips universally (permanent on map) */
   public onToggleAirportLabels(): void {
-    this.showAirportLabels = !this.showAirportLabels;
-    // Persist preference
-    this.settings.setShowAirportLabels(this.showAirportLabels);
-    this.airportCircles.forEach((circle, id) => {
-      const data = this.airportData.get(id);
-      if (!data) return;
-      // Rebind tooltip with permanent flag toggled
-      circle.unbindTooltip();
-      circle.bindTooltip(data.name, {
-        direction: 'center',
-        className: 'airport-tooltip',
-        opacity: 0.8,
-        offset: [0, 0],
-        permanent: this.showAirportLabels,
-      });
-      // Open or close tooltip based on permanent flag
-      if (this.showAirportLabels) {
-        circle.openTooltip();
-      } else {
-        circle.closeTooltip();
-      }
-    });
+    this.uiState.toggleAirportLabels();
+    // Update existing airport tooltips to reflect the new permanent state
+    this.airportService.updateAirportLabels(this.uiState.showAirportLabels);
   }
 
   async ngAfterViewInit(): Promise<void> {
-    await this.countryService.init();
-    await this.aircraftDb.load();
-    await this.militaryPrefixService.loadPrefixes();
     this.settings.load();
-    this.showDateTime = this.settings.getDateTimeOverlayVisibility();
+    // showDateTime is now managed by UiStateService
 
     // Load clicked airports from settings
     this.clickedAirports = this.settings.getClickedAirports();
@@ -450,11 +535,28 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
 
     // Apply initial animation setting
-    this.applyAnimationSetting(this.animationsEnabled);
+    this.planeDisplayService.applyAnimationSetting(
+      this.animationsEnabled,
+      this.document
+    );
+
+    // Initialize altitude borders state
+    this.planeDisplayService.setAltitudeBordersEnabled(
+      this.uiState.showAltitudeBorders
+    );
 
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
     const radius = this.settings.radius ?? 5;
+
+    // If no current location is set but home location exists, start at home
+    const homeLoc = this.settings.getHomeLocation();
+    let startLat = lat;
+    let startLon = lon;
+    if (this.settings.lat === null && this.settings.lon === null && homeLoc) {
+      startLat = homeLoc.lat;
+      startLon = homeLoc.lon;
+    }
 
     const storedExclude = localStorage.getItem('excludeDiscount');
     if (storedExclude !== null) {
@@ -462,38 +564,172 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
 
     // Initialize map and overlays
-    this.initMap(lat, lon, radius);
-    // Apply map layer visibility based on saved preferences
-    this.toggleCloudCover(this.settings.showCloudCover);
-    this.toggleRainCover(this.settings.showRainCover);
-    this.toggleConeVisibility(this.settings.showViewAxes);
-    // Apply airport labels visibility
-    this.showAirportLabels = this.settings.showAirportLabels;
-    this.airportCircles.forEach((circle, id) => {
-      circle[this.showAirportLabels ? 'openTooltip' : 'closeTooltip']();
+    this.isProgrammaticMove = true; // Prevent moveend from updating location context during initialization
+    const { map, currentLocationMarker } =
+      this.mapInitializerService.initializeMap(
+        'map',
+        startLat,
+        startLon,
+        radius,
+        (dblLat, dblLng) => {
+          // Use the current main radius for the update
+          const currentMainRadius = this.settings.radius ?? 5;
+
+          // Set location immediately with placeholder address so forceScan uses the new coordinates
+          const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(
+            4
+          )}`;
+          this.settings.setLocationWithAddress(
+            dblLat,
+            dblLng,
+            placeholderAddress
+          );
+
+          this.updateMap(dblLat, dblLng, currentMainRadius); // This will trigger airport search
+
+          // Reverse geocode and update with real address
+          this.reverseGeocode(dblLat, dblLng).then((address) => {
+            this.locationContext.setLocation(
+              dblLat,
+              dblLng,
+              address,
+              'address'
+            );
+            this.settings.setLocationWithAddress(dblLat, dblLng, address);
+          });
+
+          this.scanService.forceScan(); // Restart the scan with new location
+        }
+      );
+    this.map = map;
+    this.currentLocationMarker = currentLocationMarker;
+
+    // Add moveend listener to update location context when user pans the map
+    this.map.on('moveend', () => {
+      if (!this.isProgrammaticMove) {
+        const center = this.map.getCenter();
+        // Location context is now updated from address changes, not map center changes
+        // this.locationContext.updateFromMapCenter(center.lat, center.lng);
+      }
+      this.isProgrammaticMove = false; // Reset flag
     });
+
+    // Subscribe to location context changes to update map when address is geocoded
+    this.locationContext.currentLocation$.subscribe((locationData) => {
+      if (
+        locationData.source === 'address' &&
+        locationData.lat !== undefined &&
+        locationData.lon !== undefined
+      ) {
+        const radius = this.settings.radius ?? 5;
+        this.updateMap(locationData.lat, locationData.lon, radius);
+      }
+    });
+
+    // Initialize services with the map
+    this.airportService.initialize(this.map);
+    this.airportService.setClickedAirports(this.clickedAirports);
+    // Apply map layer visibility based on saved preferences
+    this.weatherLayerService.toggleCloudCover(
+      this.map,
+      this.settings.showCloudCover
+    );
+    this.weatherLayerService.toggleRainCover(
+      this.map,
+      this.settings.showRainCover
+    );
+    this.toggleConeVisibility(this.uiState.coneVisible);
+    // Apply airport labels visibility - now handled by UiStateService
     // Provide the created map instance to the service
     this.mapService.setMapInstance(this.map);
     // Main radius will be drawn by updateMap to avoid duplicate initial draw
     // Force Angular to detect view changes so radius and cone components render
     this.cdr.detectChanges();
     // Initial map update to draw radius, airports, and planes
-    this.updateMap(lat, lon, radius);
+    this.updateMap(startLat, startLon, radius);
     // updateMap is called within initMap now via findAndDisplayAirports
     // this.updateMap(lat, lon, radius); // REMOVED - initMap handles initial load
 
+    // Clear geocoding cache to ensure fresh results after unifying geocoding services
+    this.geocodingCache.clearCache();
+
+    // Initialize location context with saved address or geocode the starting location
+    // Location context is the SINGLE source of truth for current address
+    const savedAddress = this.settings.currentAddress;
+
+    // CRITICAL: Check if saved address and coordinates make sense together
+    // If address and coordinates are out of sync (e.g., "New York" with Berlin coords),
+    // trust the coordinates and re-geocode
+    const needsResync =
+      savedAddress &&
+      this.settings.lat !== null &&
+      this.settings.lon !== null &&
+      this.addressLooksWrongForCoordinates(savedAddress, startLat, startLon);
+
+    if (needsResync) {
+      console.warn('Address and coordinates are out of sync! Re-geocoding...');
+      console.warn(
+        'Saved address:',
+        savedAddress,
+        'Coordinates:',
+        startLat,
+        startLon
+      );
+      // Clear the bad address and re-geocode
+      this.reverseGeocode(startLat, startLon).then((address) => {
+        console.log('Re-geocoded to fix mismatch:', address);
+        this.locationContext.setLocation(
+          startLat,
+          startLon,
+          address,
+          'default'
+        );
+        this.settings.setLocationWithAddress(startLat, startLon, address);
+      });
+    } else if (savedAddress) {
+      this.locationContext.setLocation(
+        startLat,
+        startLon,
+        savedAddress,
+        'default'
+      );
+    } else {
+      // Only reverse-geocode if we don't have a saved address
+      this.reverseGeocode(startLat, startLon).then((address) => {
+        this.locationContext.setLocation(
+          startLat,
+          startLon,
+          address,
+          'default'
+        );
+        // Save it for next session
+        this.settings.setLocationWithAddress(startLat, startLon, address);
+      });
+    }
+
     // Initialize home marker if home location exists
-    this.initHomeMarker();
+    this.homeMarker = this.mapInitializerService.initializeHomeMarker(
+      this.settings.getHomeLocation()
+    );
+
+    // Update markers visibility based on current location
+    this.mapInitializerService.updateMarkersVisibility(
+      lat,
+      lon,
+      this.settings.getHomeLocation(),
+      this.currentLocationMarker,
+      this.homeMarker
+    );
 
     // Check if we're at home location and enable cones if we are
     const homeLocation = this.settings.getHomeLocation();
     if (
       homeLocation &&
-      Math.abs(lat - homeLocation.lat) < 0.0001 &&
-      Math.abs(lon - homeLocation.lon) < 0.0001
+      Math.abs(startLat - homeLocation.lat) < 0.0001 &&
+      Math.abs(startLon - homeLocation.lon) < 0.0001
     ) {
       // We're starting at the home position, enable cones
-      this.coneVisible = true;
+      this.uiState.setConeVisibility(true);
 
       // Update the Show View Axes checkbox to match
       setTimeout(() => {
@@ -506,16 +742,37 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       }, 100); // Small delay to ensure DOM is ready
     }
 
+    // Initialize plane log service with component references
+    this.planeLogService.initialize(
+      this.resultsOverlayComponent,
+      this.windowViewOverlayComponent
+    );
+    this.planeLogService.setMapComponent(this);
+
+    // Start astronomical updates (sun/moon/sunrise/sunset calculations)
+    this.astronomicalDisplay.startAstronomicalUpdates();
+
+    // Initialize map update service
+    this.mapUpdate.setInitialScanDone(false);
+
     // Subscribe to commercial filter changes
     this.settings.excludeDiscountChanged.subscribe(() => {
       // Re-filter planes when commercial toggle changes
-      this.onExcludeDiscountChange();
+      this.filterManagementService.onExcludeDiscountChange(
+        this.planeLog,
+        this.planeHistoricalLog,
+        this.map
+      );
     });
     this.resultsOverlayComponent.clearHistoricalList.subscribe(() =>
-      this.clearSeenList()
+      this.filterManagementService.clearSeenList(
+        this.planeHistoricalLog,
+        this.resultsOverlayComponent,
+        this.cdr
+      )
     );
     this.resultsOverlayComponent.exportFilterList.subscribe(() =>
-      this.exportFilterList()
+      this.filterManagementService.exportFilterList()
     );
 
     // Subscribe to follow service state changes
@@ -575,14 +832,16 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           );
         });
         // Rebuild logs to refresh seen list
-        this.updatePlaneLog(Array.from(this.planeLog.values()));
+        this.planeHistoricalLog = this.planeLogService.updatePlaneLog(
+          Array.from(this.planeLog.values())
+        );
       }
     );
     this.scanService.start(this.settings.interval, () => {
       this.findPlanes();
     });
-    // Don't force scan here, updateMap will trigger it after airport search
-    // this.scanService.forceScan(); // REMOVED
+    // Force an initial scan on startup
+    this.scanService.forceScan();
 
     // Subscribe to radius changes: clear markers and paths outside new radius
     this.settings.radiusChanged.subscribe((newRadius) => {
@@ -595,20 +854,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       // Remove planes outside new radius and update airports
       this.removeOutOfRangePlanes(lat, lon, newRadius);
-      this.findAndDisplayAirports(lat, lon, newRadius);
+      this.airportService.findAndDisplayAirports(
+        lat,
+        lon,
+        newRadius,
+        this.showAirportLabels
+      );
     });
 
     // Initialize map panning service
     this.mapPanService.init(this.map); // Initialize sun angle overlay and kick off periodic updates
-    this.updateSunAngle();
-    // note: initial wind fetch occurs in updateMap, so no extra one here
-    this.sunAngleInterval = setInterval(() => {
-      this.updateSunAngle();
-      // Update wind direction periodically
-      const center = this.map.getCenter();
-      this.fetchWindDirection(center.lat, center.lng);
-      this.cdr.detectChanges();
-    }, 60000); // update every minute    // Subscribe to sky color changes for cloud layer synchronization
+    // Astronomical updates are now handled by AstronomicalDisplayService    // Subscribe to sky color changes for cloud layer synchronization
     this.skyColorSyncService.skyColors$.subscribe((skyColors) => {
       if (skyColors && this.cloudLayer) {
         this.applySkyColorsToCloudLayer(skyColors);
@@ -616,44 +872,85 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
 
     // Subscribe to brightness changes from BrightnessService
-    this.brightnessService.brightness$.subscribe((brightnessState) => {
-      this.ngZone.run(() => {
-        this.brightnessState = brightnessState;
-        this.brightness = brightnessState.brightness;
-        this.applyBrightnessToMap();
-        this.cdr.detectChanges();
-      });
-    });
+    // this.brightnessService.brightness$.subscribe((brightnessState) => {
+    //   this.ngZone.run(() => {
+    //     this.brightnessState = brightnessState;
+    //     this.brightness = brightnessState.brightness;
+    //     this.applyBrightnessToMap();
+    //     this.cdr.detectChanges();
+    //   });
+    // });
 
     // Initialize brightness service with current location
-    this.brightnessService.setLocation(lat, lon);
+    this.brightnessService.setLocation(startLat, startLon);
+
+    // Initialize environmental data service and subscribe to wind data
+    this.environmentalData.setLocation(startLat, startLon);
+    this.environmentalData.windData$.subscribe((windData) => {
+      if (windData) {
+        this.windSpeed = windData.speed;
+        this.windAngle = windData.direction;
+        this.windStat = windData.stat;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.scanService.stop();
     this.mapPanService.destroy();
     // Clean up airport circles
-    this.airportCircles.forEach((circle) => circle.remove());
-    this.airportCircles.clear();
+    this.airportService.destroy();
     if (this.svgPatternRetryTimeout) {
       clearTimeout(this.svgPatternRetryTimeout);
     }
-    if (this.sunAngleInterval) {
-      clearInterval(this.sunAngleInterval);
-    }
-    if (this.cloudLayer) {
-      this.cloudLayer.remove();
-    }
-    if (this.rainLayer) {
-      this.rainLayer.remove();
-    }
-    // Clean up brightness service
-    this.brightnessService.ngOnDestroy();
+    // Astronomical interval cleanup is handled by AstronomicalDisplayService
+    // Brightness service cleanup is handled by BrightnessDisplayService
     // Clean up sky overlay service
     this.skyOverlayService.destroy();
     // Clean up map theme service
     this.mapThemeService.destroy();
     window.removeEventListener('click', this.globalTooltipClickHandler);
+  }
+
+  /**
+   * Check if a saved address looks wrong for the given coordinates
+   * This detects out-of-sync issues like "New York" with Berlin coordinates
+   */
+  private addressLooksWrongForCoordinates(
+    address: string,
+    lat: number,
+    lon: number
+  ): boolean {
+    // Simple heuristic: check if address mentions a place that's clearly wrong
+    const addressLower = address.toLowerCase();
+
+    // European coordinates (roughly 35-70N, -10 to 40E)
+    const isEurope = lat > 35 && lat < 70 && lon > -10 && lon < 40;
+    // North American coordinates (roughly 25-50N, -125 to -65W)
+    const isNorthAmerica = lat > 25 && lat < 50 && lon > -125 && lon < -65;
+
+    // Check for obvious mismatches
+    if (
+      isEurope &&
+      (addressLower.includes('new york') ||
+        addressLower.includes('united states') ||
+        addressLower.includes('canada') ||
+        addressLower.includes('mexico'))
+    ) {
+      return true;
+    }
+    if (
+      isNorthAmerica &&
+      (addressLower.includes('berlin') ||
+        addressLower.includes('germany') ||
+        addressLower.includes('france') ||
+        addressLower.includes('italy'))
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -672,7 +969,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
 
     // Update visual indicators
-    this.updateFollowedStyles();
+    this.followService.updateFollowedStyles(
+      this.planeLog,
+      this.highlightedPlaneIcao
+    );
     this.cdr.detectChanges();
   }
 
@@ -715,216 +1015,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private initMap(lat: number, lon: number, radius: number): void {
-    this.map = L.map('map', {
-      zoomControl: false,
-      attributionControl: false,
-      doubleClickZoom: false,
-    }).setView([lat, lon], 12);
-
-    // Disable CD for frequent panning events, only toggle class inside Angular when needed
-    this.ngZone.runOutsideAngular(() => {
-      this.map.on('movestart', () =>
-        this.ngZone.run(() => (this.panning = true))
-      );
-      this.map.on('moveend', () =>
-        this.ngZone.run(() => (this.panning = false))
-      );
-    });
-
-    // Add SVG renderer for vector overlays (draws into overlayPane)
-    L.svg().addTo(this.map);
-
-    // Create a custom pane for followed markers and set its zIndex above markerPane
-    this.map.createPane('followedMarkerPane');
-    const followedPane = this.map.getPane('followedMarkerPane') as HTMLElement;
-    followedPane.style.zIndex = '610';
-    followedPane.style.pointerEvents = 'auto'; // Define airport striped patterns in overlayPane's SVG
-    const overlaySvg = this.map
-      .getPanes()
-      .overlayPane.querySelector('svg') as SVGSVGElement | null;
-    if (overlaySvg) {
-      ensureStripedPattern(
-        overlaySvg,
-        'airportStripedPatternCyan',
-        'cyan',
-        0.5
-      );
-      ensureStripedPattern(
-        overlaySvg,
-        'airportStripedPatternGold',
-        'gold',
-        0.5
-      );
-    }
-
-    // Initialize map themes (replaces hardcoded tile layers)
-    this.mapThemeService.initializeWithMap(this.map);
-
-    // Create a custom pane for cloud coverage above markers
-    this.map.createPane('cloudPane');
-    const cloudPane = this.map.getPane('cloudPane') as HTMLElement;
-    cloudPane.style.zIndex = '620';
-    cloudPane.style.pointerEvents = 'none';
-
-    // Create a custom pane for rain coverage above markers, below clouds
-    this.map.createPane('rainPane');
-    const rainPane = this.map.getPane('rainPane') as HTMLElement;
-    rainPane.style.zIndex = '615'; // Below cloudPane (620)
-    rainPane.style.pointerEvents = 'none';
-
-    // Cloud coverage overlay from OpenWeatherMap in the cloudPane
-    this.cloudLayer = L.tileLayer(
-      `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
-      {
-        pane: 'cloudPane',
-        className: 'cloud-layer',
-        opacity: this.cloudOpacity,
-        attribution: 'Weather data © OpenWeatherMap',
-      }
-    )
-      .addTo(this.map)
-      .on('tileerror', () => {
-        // ignore cloud tile errors in console
-      });
-
-    // Rain coverage overlay from OpenWeatherMap in the rainPane
-    this.rainLayer = L.tileLayer(
-      `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_MAP_API_KEY}`,
-      {
-        pane: 'rainPane',
-        className: 'rain-layer',
-        opacity: this.rainOpacity, // Use the rainOpacity property
-        attribution: 'Weather data © OpenWeatherMap',
-      }
-    )
-      .addTo(this.map)
-      .on('tileerror', () => {
-        // ignore rain tile errors in console
-      });
-
-    // Initialize sky overlay service after all panes are created
-    this.skyOverlayService.initialize(this.map);
-
-    // Create custom marker for current location
-    const locationIcon = L.divIcon({
-      className: 'current-location-marker',
-      html: '<span class="material-symbols-outlined">location_on</span>',
-      iconSize: [48, 48],
-      iconAnchor: [24, 24],
-    });
-
-    this.currentLocationMarker = L.marker([lat, lon], {
-      icon: locationIcon,
-    }).addTo(this.map);
-
-    // Check if we're at home location and hide the current marker if so
-    this.updateMarkersVisibility(lat, lon); // Remove direct rendering of the main radius here. The RadiusComponent handles the main radius.
-    // const mainRadiusCircle = L.circle([lat, lon], { ... }).addTo(this.map);
-
-    this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
-      const { lat, lng } = event.latlng;
-      // Use the current main radius for the update
-      const currentMainRadius = this.settings.radius ?? 5;
-      this.updateMap(lat, lng, currentMainRadius); // This will trigger airport search
-
-      // Keep the cone visible when double-clicking to a new location
-      // The cone will now show full circular bands when away from home
-      // No need to hide it or update the checkbox
-
-      this.reverseGeocode(lat, lng).then((address) => {
-        // Guard against missing input reference
-        if (this.inputOverlayComponent.addressInputRef) {
-          this.inputOverlayComponent.addressInputRef.setValue(address);
-        }
-      });
-      this.scanService.forceScan(); // Restart the scan
-    });
-
-    // NOTE: disabling auto-loading indicator on map move/zoom to avoid overriding airport loading
-    // this.map.on('movestart zoomstart', () => this.ngZone.run(() => (this.loadingAirports = true)));
-    // this.map.on('moveend zoomend', () => this.ngZone.run(() => (this.loadingAirports = false)));
-  }
-
-  private attemptAddSvgPattern(): void {
-    const overlayPane = this.map?.getPanes()?.overlayPane;
-    const svg = overlayPane?.querySelector('svg') as SVGSVGElement | null;
-
-    if (svg) {
-      // SVG is ready, add the pattern definition
-      const defs =
-        svg.querySelector('defs') ||
-        document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      const patternId = 'diagonalHatch';
-      if (!defs.querySelector(`#${patternId}`)) {
-        const pattern = document.createElementNS(
-          'http://www.w3.org/2000/svg',
-          'pattern'
-        );
-        pattern.setAttribute('id', patternId);
-        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-        pattern.setAttribute('width', '8');
-        pattern.setAttribute('height', '8');
-        pattern.innerHTML = `<path d="M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4" style="stroke:rgba(255,0,0,0.5); stroke-width:1"/>`;
-        defs.appendChild(pattern);
-
-        // Ensure defs is part of the SVG
-        if (!svg.contains(defs)) {
-          svg.insertBefore(defs, svg.firstChild);
-        }
-      }
-      // Clear any pending retry timeout if we succeeded
-      if (this.svgPatternRetryTimeout) {
-        clearTimeout(this.svgPatternRetryTimeout);
-        this.svgPatternRetryTimeout = null;
-      }
-    } else {
-      // SVG not ready, schedule a retry
-
-      // Clear existing timeout before setting a new one
-      if (this.svgPatternRetryTimeout) {
-        clearTimeout(this.svgPatternRetryTimeout);
-      }
-      this.svgPatternRetryTimeout = setTimeout(() => {
-        this.attemptAddSvgPattern();
-      }, 150); // Retry after 150ms
-    }
-  }
-
-  // Initialize home marker if home location exists
-  private initHomeMarker(): void {
-    const homeLocation = this.settings.getHomeLocation();
-    if (homeLocation) {
-      this.setHomeMarker(homeLocation.lat, homeLocation.lon);
-
-      // Check if we're at home location
-      if (this.settings.lat !== null && this.settings.lon !== null) {
-        this.updateMarkersVisibility(this.settings.lat, this.settings.lon);
-      }
-    }
-  }
-
-  // Update markers visibility based on current location
-  private updateMarkersVisibility(lat: number, lon: number): void {
-    const homeLocation = this.settings.getHomeLocation();
-    if (homeLocation) {
-      // If we're at the home location (within a small tolerance)
-      const atHome =
-        Math.abs(lat - homeLocation.lat) < 0.0001 &&
-        Math.abs(lon - homeLocation.lon) < 0.0001;
-
-      if (atHome && this.currentLocationMarker) {
-        this.currentLocationMarker.remove(); // Remove current location marker when at home
-      } else if (
-        !atHome &&
-        this.currentLocationMarker &&
-        !this.map.hasLayer(this.currentLocationMarker)
-      ) {
-        this.currentLocationMarker.addTo(this.map); // Restore current location marker when not at home
-      }
-    }
-  }
-
   // Set a marker for the home location
   private setHomeMarker(lat: number, lon: number): void {
     // Remove previous home marker if it exists
@@ -932,16 +1022,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.homeMarker.remove();
     }
 
-    // Create custom home icon
-    const homeIcon = L.divIcon({
-      className: 'home-marker',
-      html: '<span class="material-symbols-outlined">home</span>',
-      iconSize: [48, 48],
-      iconAnchor: [24, 24],
+    this.homeMarker = this.mapInitializerService.initializeHomeMarker({
+      lat,
+      lon,
     });
-
-    // Add new home marker
-    this.homeMarker = L.marker([lat, lon], { icon: homeIcon }).addTo(this.map);
   }
 
   // Set current location as home
@@ -950,23 +1034,33 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const lon = this.settings.lon;
 
     if (lat !== null && lon !== null) {
-      // Save home location to settings
-      this.settings.setHomeLocation(lat, lon);
+      // Get the current address from the location context (single source of truth)
+      const currentAddress = this.locationContext.currentLocation.address;
+
+      // Save home location to settings with the address
+      this.settings.setHomeLocation(lat, lon, currentAddress || undefined);
 
       // Set home marker on map
       this.setHomeMarker(lat, lon);
 
       // Update markers visibility
-      this.updateMarkersVisibility(lat, lon);
+      this.mapInitializerService.updateMarkersVisibility(
+        lat,
+        lon,
+        this.settings.getHomeLocation(),
+        this.currentLocationMarker,
+        this.homeMarker
+      );
     }
   }
 
   // Go to home location
   goToHome(): void {
     const homeLocation = this.settings.getHomeLocation();
+
     if (homeLocation) {
       // Show the cone when going home
-      this.coneVisible = true;
+      this.uiState.setConeVisibility(true);
 
       // Update the Show View Axes checkbox to match
       const coneCheckbox = document.getElementById(
@@ -979,68 +1073,83 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Use current radius and settings
       const radius = this.settings.radius ?? 5;
       this.updateMap(homeLocation.lat, homeLocation.lon, radius);
+
+      // Determine the address to use
+      let addressToUse = homeLocation.address;
+
+      // If home location doesn't have an address, try to get it from current location context
+      if (!addressToUse) {
+        const currentLoc = this.locationContext.currentLocation;
+        // If we're already at home coordinates, use the current address
+        if (
+          currentLoc.lat === homeLocation.lat &&
+          currentLoc.lon === homeLocation.lon
+        ) {
+          addressToUse = currentLoc.address;
+        }
+      }
+
+      if (addressToUse) {
+        this.locationContext.setLocation(
+          homeLocation.lat,
+          homeLocation.lon,
+          addressToUse,
+          'home'
+        );
+        // Save coordinates AND address together atomically
+        this.settings.setLocationWithAddress(
+          homeLocation.lat,
+          homeLocation.lon,
+          addressToUse
+        );
+      } else {
+        // As last resort, reverse geocode
+        this.locationContext.updateFromMapCenter(
+          homeLocation.lat,
+          homeLocation.lon,
+          'home'
+        );
+        this.reverseGeocode(homeLocation.lat, homeLocation.lon).then(
+          (address) => {
+            this.settings.setLocationWithAddress(
+              homeLocation.lat,
+              homeLocation.lon,
+              address
+            );
+            // Also update home location to include address
+            this.settings.setHomeLocation(
+              homeLocation.lat,
+              homeLocation.lon,
+              address
+            );
+          }
+        );
+      }
     }
   }
 
   /** Central update function */
-  updateMap(
+  async updateMap(
     lat: number,
     lon: number,
     radiusKm?: number, // This is the MAIN search radius
     zoomLevel?: number
-  ): void {
-    // Clamp radius to a maximum of 500km
-    let mainRadius = radiusKm ?? this.settings.radius ?? 5;
-    if (mainRadius > 500) {
-      mainRadius = 500;
-    }
-    this.settings.setLat(lat);
-    this.settings.setLon(lon);
-    this.settings.setRadius(mainRadius); // Set the MAIN radius
-    this.manualUpdate = true;
-    // Update view first to recalc internal transforms, keep current zoom if none provided
-    const targetZoom = zoomLevel != null ? zoomLevel : this.map.getZoom();
-    this.map.setView([lat, lon], targetZoom);
-
-    // Then draw main radius so it projects correctly
-    this.mapService.setMainRadius(lat, lon, mainRadius);
-
-    // Update current marker position (but keep it removed if at home)
-    this.currentLocationMarker.setLatLng([lat, lon]);
-
-    // Update markers visibility based on new location
-    this.updateMarkersVisibility(lat, lon); // Load planes immediately for faster UX
-    this.findPlanes(); // Only update input fields if overlay is not collapsed and refs exist
-    if (!this.inputOverlayComponent.collapsed) {
-      // Trigger change detection to update input displays with property binding
-      this.inputOverlayComponent.refreshDisplayValues();
-      // Reverse geocode current center and update address input
-      const addressInput = this.inputOverlayComponent.addressInputRef;
-      if (addressInput) {
-        this.reverseGeocode(lat, lon).then((address) => {
-          addressInput.setValue(address);
-        });
-      }
-    }
-
-    // Find airports within the new MAIN radius
-    this.findAndDisplayAirports(lat, lon, mainRadius).then(() => {
-      // Only after airports are potentially updated, remove out-of-range planes
-      // and force a plane scan.
-      this.removeOutOfRangePlanes(lat, lon, mainRadius);
-
-      // Prevent double scan on initial load: only force scan if not immediately after ngAfterViewInit
-      if (!this._initialScanDone) {
-        this._initialScanDone = true;
-      } else {
-        this.scanService.forceScan();
-      }
-    }); // fetch and update current wind direction
-    this.fetchWindDirection(lat, lon); // Update brightness service with new location
-    this.brightnessService.setLocation(lat, lon);
-
-    // Update location context for explicit location changes (not map panning)
-    this.locationContextService.updateFromMapCenter(lat, lon);
+  ): Promise<void> {
+    this.isProgrammaticMove = true;
+    await this.mapUpdate.updateMap(
+      this.map,
+      this.currentLocationMarker,
+      this.homeMarker,
+      this.inputOverlayComponent,
+      this.planeLog,
+      this.planeHistoricalLog,
+      lat,
+      lon,
+      radiusKm,
+      zoomLevel
+    );
+    // Location context is now updated from address changes, not map center changes
+    // this.locationContext.updateFromMapCenter(lat, lon);
   }
 
   /** Fetch wind direction from OpenWeatherMap and update windAngle */
@@ -1145,298 +1254,55 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
     // Update the set of active plane ICAOs after removal
     this.activePlaneIcaos = new Set(this.planeLog.keys());
-    this.updatePlaneLog(Array.from(this.planeLog.values()));
+    this.planeHistoricalLog = this.planeLogService.updatePlaneLog(
+      Array.from(this.planeLog.values())
+    );
   }
   reverseGeocode(lat: number, lon: number): Promise<string> {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
   findPlanes(): void {
-    // Check for auto-location updates if enabled
-    if (this.settings.useAutoLocation) {
-      this.checkAutoLocationUpdate();
-    }
-
     // Update last scan time in input overlay
     if (this.inputOverlayComponent) {
       this.inputOverlayComponent.lastScanTime = new Date();
     }
 
-    const previousPlaneKeys = new Set(this.planeLog.keys());
-    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-    const radius = this.settings.radius ?? 5;
-    const exclude = this.settings.excludeDiscount;
-
-    this.planeFinder
+    this.planeUpdate
       .findPlanes(
         this.map,
-        lat,
-        lon,
-        radius,
-        exclude,
-        this.planeFilter.getFilterPrefixes(),
+        this.planeLog,
+        this.planeHistoricalLog,
         this.planeNewTimestamps,
-        (origin) => this.countryService.getFlagHTML(origin),
-        this.manualUpdate,
-        () => {},
-        (icao) => {
-          const record = this.aircraftDb.lookup(icao);
-          return record
-            ? { model: record.model, ownop: record.ownop, mil: record.mil }
-            : null;
-        },
-        this.planeLog as Map<string, PlaneModel>,
-        this.highlightedPlaneIcao, // pass followed ICAO
-        this.followNearest // pass followNearest
+        this.activePlaneIcaos,
+        this.highlightedPlaneIcao,
+        this.followNearest,
+        this.cdr
       )
-      .then(({ anyNew, currentIDs, updatedLog }) => {
-        // Dynamically update favicon if special or military plane detected
-        const hasSpecial = updatedLog.some((p) =>
-          this.specialListService.isSpecial(p.icao)
-        );
-        const hasMil = updatedLog.some(
-          (p) => !!this.aircraftDb.lookup(p.icao)?.mil
-        );
-        const iconToUse = hasSpecial
-          ? 'assets/favicon/special/favicon.ico'
-          : hasMil
-          ? 'assets/favicon/military/favicon.ico'
-          : 'assets/favicon/favicon.ico';
-        this.updateFavicon(iconToUse);
-
-        const newUnfiltered = updatedLog.filter(
-          (p) => p.isNew && !p.filteredOut
-        ); // Alert on any new visible plane, but suppress only when military mute is enabled and all new planes are military
-        const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
-        // Determine if any new visible plane is a Hercules model
-        const hasHercules = newVisible.some((p) =>
-          p.model?.toLowerCase().includes('hercules')
-        );
-        // Determine if any new visible plane is an A400 model
-        const hasA400 = newVisible.some((p) =>
-          p.model?.toLowerCase().includes('a400')
-        );
-        // Determine if any other alert-worthy planes (military or special)
-        const hasAlertPlanes = newVisible.some(
-          (p) =>
-            this.aircraftDb.lookup(p.icao)?.mil ||
-            this.specialListService.isSpecial(p.icao)
-        ); // Play appropriate alert sound: Hercules and A400 priority
-        // Simple check: if military mute is enabled, don't play ANY alert sounds
-        if (!this.settings.militaryMute) {
-          if (hasHercules) {
-            playHerculesAlert();
-          } else if (hasA400) {
-            playA400Alert();
-          } else if (hasAlertPlanes) {
-            playAlertSound();
-          }
-        }
-        // Military announcement logic has been moved to AnnouncementService
-        // to prevent duplicate TTS chaos and provide better per-aircraft control
-
-        const existing = new Set(currentIDs);
-        for (const [id, plane] of this.planeLog.entries()) {
-          if (!existing.has(id)) {
-            plane.removeVisuals(this.map);
-            this.planeLog.delete(id);
-          }
+      .then(({ updatedLog, anyNew, currentIDs, faviconUrl }) => {
+        // Update favicon if it changed
+        if (faviconUrl) {
+          this.updateFavicon(faviconUrl);
         }
 
-        // Convert all planes to PlaneModel first
-        const isPlaneModel = (p: any): p is PlaneModel =>
-          p && typeof p.updateFrom === 'function';
-        const updatedPlaneModels = updatedLog.map((p) =>
-          isPlaneModel(p) ? p : new PlaneModel(p)
+        // Update component properties with the results
+        this.closestPlaneService.computeClosestPlane(
+          this.planeLog as Map<string, PlaneModel>,
+          this.highlightedPlaneIcao
         );
-
-        for (const planeModel of updatedPlaneModels) {
-          // If it's in planeLog from the previous scan, it's not new now
-          planeModel.isNew = !previousPlaneKeys.has(planeModel.icao);
-
-          // Determine military status via DB or configured prefixes
-          const dbMil = this.aircraftDb.lookup(planeModel.icao)?.mil || false;
-          const prefixMil = this.militaryPrefixService.isMilitaryCallsign(
-            planeModel.callsign
-          );
-          const isMilitary = dbMil || prefixMil;
-          // propagate to model
-          planeModel.isMilitary = isMilitary;
-          planeModel.filteredOut = !this.planeFilter.shouldIncludeCallsign(
-            planeModel.callsign,
-            exclude,
-            this.planeFilter.getFilterPrefixes(),
-            isMilitary
-          );
-
-          // Handle visuals based on filter status
-          if (planeModel.filteredOut) {
-            // Use the new helper method to remove all visuals for filtered planes
-            planeModel.removeVisuals(this.map);
-          } else {
-            // If not filtered, proceed with marker/tooltip updates if marker exists
-            if (planeModel.marker) {
-              if (planeModel.onGround) {
-                planeModel.marker.getElement()?.classList.add('grounded-plane');
-                planeModel.marker
-                  .getElement()
-                  ?.classList.remove('new-plane', 'military-plane');
-                // Ensure tooltip reflects grounded state if needed (optional, depends on styling)
-                planeModel.marker
-                  .getTooltip()
-                  ?.getElement()
-                  ?.classList.add('grounded-plane-tooltip'); // Assuming this class exists
-              } else {
-                // Not new and not on ground
-                planeModel.marker
-                  .getElement()
-                  ?.classList.remove('new-plane', 'grounded-plane');
-                planeModel.marker
-                  .getTooltip()
-                  ?.getElement()
-                  ?.classList.remove(
-                    'new-plane-tooltip',
-                    'grounded-plane-tooltip'
-                  );
-                planeModel.marker
-                  .getTooltip()
-                  ?.getElement()
-                  ?.classList.remove('new-plane-tooltip');
-                // Marker and tooltip for military override new-plane
-                if (isMilitary) {
-                  planeModel.marker
-                    .getElement()
-                    ?.classList.add('military-plane');
-                  // Always set military border for tooltip
-                  planeModel.marker
-                    .getTooltip()
-                    ?.getElement()
-                    ?.classList.add('military-plane-tooltip');
-                  // Remove new-plane-tooltip if present
-                  planeModel.marker
-                    .getTooltip()
-                    ?.getElement()
-                    ?.classList.remove('new-plane-tooltip');
-                } else {
-                  planeModel.marker
-                    .getElement()
-                    ?.classList.remove('military-plane');
-                }
-                // Tooltips handled above
-              }
-            }
-          } // --- Set tooltip classes for new planes (not grounded) ---
-          if (planeModel.marker && planeModel.marker.getTooltip()) {
-            const tooltipEl = planeModel.marker.getTooltip()?.getElement();
-            if (tooltipEl) {
-              tooltipEl.classList.toggle('new-plane-tooltip', planeModel.isNew);
-            }
-          }
-
-          // Apply altitude border styling to the plane's tooltip if enabled
-          this.applyTooltipAltitudeBorder(planeModel);
-
-          // Always update the log regardless of filter status
-          this.planeLog.set(planeModel.icao, planeModel);
-        }
-
-        // Update the set of active plane ICAOs
-        this.activePlaneIcaos = new Set(this.planeLog.keys());
-
-        // Update both the overlay and lists via updatePlaneLog
-        this.updatePlaneLog(updatedPlaneModels);
-        // Update the closest-plane-overlay with latest distance/operator/ETA info
-        this.computeClosestPlane();
-
-        // Track followed plane camera position if following is active
-        this.trackFollowedPlane();
+        const closestData = this.closestPlaneService.getClosestPlaneData();
+        this.closestPlane = closestData.closestPlane;
+        this.closestDistance = closestData.closestDistance;
+        this.closestOperator = closestData.closestOperator;
+        this.closestSecondsAway = closestData.closestSecondsAway;
+        this.closestVelocity = closestData.closestVelocity;
+        this.locationStreet = closestData.locationStreet;
+        this.locationDistrict = closestData.locationDistrict;
 
         this.manualUpdate = false;
-        // Reapply tooltip highlight after updates if a plane is followed
-        if (this.highlightedPlaneIcao) {
-          const pm = this.planeLog.get(this.highlightedPlaneIcao);
-          const tooltipEl = pm?.marker?.getTooltip()?.getElement();
-          tooltipEl?.classList.add('highlighted-tooltip');
-        }
-        this.cdr.detectChanges();
       })
       .catch((err) => {
         // Error in findPlanes would be logged here
       });
-  }
-  /** Compute and update the overlay to show the nearest plane (or tracked) */
-  private computeClosestPlane(): void {
-    const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-    const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-    // Use PlaneModel entries from planeLog
-    let candidate: PlaneModel | undefined;
-    // Show followed plane in overlay regardless of follow mode (manual, shuffle, or nearest)
-    if (this.highlightedPlaneIcao) {
-      candidate = this.planeLog.get(this.highlightedPlaneIcao) || undefined;
-    }
-    if (!candidate) {
-      let minDist = Infinity;
-      for (const plane of this.planeLog.values()) {
-        // Exclude filtered, unpositioned, or unknown devices
-        if (
-          plane.filteredOut ||
-          plane.lat == null ||
-          plane.lon == null ||
-          plane.isUnknown
-        )
-          continue;
-        const d = haversineDistance(centerLat, centerLon, plane.lat, plane.lon);
-        if (d < minDist) {
-          minDist = d;
-          candidate = plane;
-        }
-      }
-    }
-    if (!candidate) {
-      this.closestPlane = null;
-      this.closestDistance = null;
-      this.closestOperator = null;
-      this.closestSecondsAway = null;
-      this.closestVelocity = null;
-      return;
-    }
-    // Update overlay with selected candidate
-    this.closestPlane = candidate;
-    const dist = haversineDistance(
-      centerLat,
-      centerLon,
-      candidate.lat!,
-      candidate.lon!
-    );
-    this.closestDistance = Math.round(dist * 10) / 10;
-
-    this.closestOperator = candidate.operator || null;
-    // Only show ETA if velocity >= 200
-    const vel = candidate.velocity ?? null;
-    if (vel != null && vel >= 200) {
-      this.closestVelocity = vel;
-      this.closestSecondsAway = Math.round((dist * 1000) / vel);
-    } else {
-      this.closestVelocity = null;
-      this.closestSecondsAway = null;
-    } // Always update location information for the closest plane,
-    // even if we're not following it yet
-    if (candidate && candidate.lat !== null && candidate.lon !== null) {
-      this.reverseGeocode(candidate.lat, candidate.lon).then((address) => {
-        if (!address || address.trim() === '') {
-          console.log('Empty geocoding result for closest plane:', address);
-        }
-        this.locationStreet = address;
-        this.locationDistrict = address;
-        if (!this.locationDistrict || this.locationDistrict.trim() === '') {
-          console.log(
-            'locationDistrict is empty after setting:',
-            this.locationDistrict
-          );
-        }
-        this.cdr.detectChanges();
-      });
-    }
   }
 
   /** Replace favicon by updating the href of the <link rel="icon"> tag */
@@ -1460,374 +1326,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       link.href = iconUrl;
     });
   }
-  /** Update followed styles for all planes based on current follow state */
-  private updateFollowedStyles(): void {
-    for (const plane of this.planeLog.values()) {
-      const marker = plane.marker;
-      if (marker) {
-        const markerEl = marker.getElement();
-        const tooltipEl = marker.getTooltip()?.getElement();
-        // Always remove followed styles first
-        markerEl?.classList.remove('highlighted-marker');
-        if (tooltipEl) {
-          tooltipEl.classList.remove('highlighted-tooltip');
-          tooltipEl.classList.remove('followed-plane-tooltip');
-        }
-        marker.setZIndexOffset(0);
-      }
-    }
-    // Now apply followed style to any currently highlighted plane (manual, shuffle, or nearest)
-    if (this.highlightedPlaneIcao) {
-      const followed = this.planeLog.get(this.highlightedPlaneIcao);
-      if (followed && followed.marker) {
-        const markerEl = followed.marker.getElement();
-        const tooltipEl = followed.marker.getTooltip()?.getElement();
-        followed.marker.setZIndexOffset(20000);
-        markerEl?.classList.add('highlighted-marker');
-        // Add followed-plane class for cyan border unless military or special
-        if (
-          markerEl &&
-          !markerEl.classList.contains('military-plane') &&
-          !markerEl.classList.contains('special-plane')
-        ) {
-          markerEl.classList.add('followed-plane');
-        }
-        if (tooltipEl) {
-          tooltipEl.classList.add('highlighted-tooltip');
-          tooltipEl.classList.add('followed-plane-tooltip');
-        }
-      }
-    }
-  }
-
-  /** Track and pan camera to followed plane's current position */
-  private trackFollowedPlane(): void {
-    // Only track if we have a followed plane and following is active
-    if (!this.highlightedPlaneIcao || !this.map) {
-      return;
-    }
-
-    const followedPlane = this.planeLog.get(this.highlightedPlaneIcao);
-    if (
-      !followedPlane ||
-      followedPlane.lat == null ||
-      followedPlane.lon == null
-    ) {
-      return;
-    }
-
-    // Get current map center
-    const currentCenter = this.map.getCenter();
-    const followedPosition = [followedPlane.lat, followedPlane.lon] as [
-      number,
-      number
-    ];
-
-    // Calculate distance between current center and followed plane
-    const distance = haversineDistance(
-      currentCenter.lat,
-      currentCenter.lng,
-      followedPosition[0],
-      followedPosition[1]
-    );
-
-    // Only pan if the plane has moved a significant distance (>50m) from map center
-    // This prevents constant micro-adjustments and unnecessary camera movement
-    const panThresholdKm = 0.05; // 50 meters
-    if (distance > panThresholdKm) {
-      // Pan map to followed plane with smooth animation
-      this.map.panTo(followedPosition, {
-        animate: true,
-        duration: 1.5, // Slightly longer duration for smoother tracking
-        easeLinearity: 0.1, // Smooth easing
-      });
-    }
-  }
 
   // Add window view markers for cone boundaries and midpoints
   private updateWindowViewMarkers(): void {
-    // Define the azimuth ranges directly matching ConeComponent angles
-    const cones = [
-      { label: 'Balcony', start: 75, end: 190 }, // ENE to S
-      { label: 'Streetside', start: 245, end: 345 }, // SW to N
-    ];
-    // Use a fixed radius for window view markers (e.g., 10km)
-    const markerRadiusKm = 10;
-    // Get home location as the anchor
-    const home = this.homeLocationValue;
-    if (!home) return;
-    const lat = home.lat;
-    const lon = home.lon;
-    // Helper to convert azimuth (deg, 0=N) to window view x (0-100, 0=left, 100=right)
-    // 0° = North at center (50), 90° E at right (75), 270° W at left (25)
-    const azToX = (az: number) => (((az + 180) % 360) / 360) * 100;
-    // Helper to convert azimuth to compass direction
-    const azToCompass = (az: number) => {
-      const dirs = [
-        'N',
-        'NNE',
-        'NE',
-        'ENE',
-        'E',
-        'ESE',
-        'SE',
-        'SSE',
-        'S',
-        'SSW',
-        'SW',
-        'WSW',
-        'W',
-        'WNW',
-        'NW',
-        'NNW',
-      ];
-      return dirs[Math.round((az % 360) / 22.5) % 16];
-    };
-    // Helper to convert radius to y (altitude) for window view (fixed at 10km)
-    const y = (10 / 12) * 70; // 10km out of 12km max altitude (scaled down to avoid clipping)    // Build marker objects
-    const markers = cones.flatMap(({ label, start, end }) => {
-      const mid = (start + end) / 2;
-      const width = (end - start + 360) % 360;
-      return [
-        {
-          x: azToX(start),
-          y,
-          callsign: `${label} Start`,
-          altitude: -1, // negative altitude to indicate not a real plane
-          isMarker: true,
-          azimuth: start,
-          compass: azToCompass(start),
-          icao: `marker-${label}-start`, // Assign dummy icao for type safety
-          origin: '', // Empty origin for marker objects
-        },
-        {
-          x: azToX(mid),
-          y,
-          callsign: label,
-          altitude: -1,
-          isMarker: true,
-          azimuth: mid,
-          compass: azToCompass(mid),
-          icao: `marker-${label}-mid`, // Assign dummy icao for type safety
-          origin: '', // Empty origin for marker objects
-        },
-        {
-          x: azToX(end),
-          y,
-          callsign: `${label} End`,
-          altitude: -1,
-          isMarker: true,
-          azimuth: end,
-          compass: azToCompass(end),
-          icao: `marker-${label}-end`, // Assign dummy icao for type safety
-          origin: '', // Empty origin for marker objects
-        },
-      ];
-    });
-    // Merge with actual planes for overlay, preserving all real planes (including grounded) and adding markers
-    this.windowViewPlanes = [
-      // keep only real plane entries (exclude marker objects)
-      ...this.windowViewPlanes.filter((p) => !p.isMarker),
-      // then append marker entries
-      ...markers,
-    ];
-  }
-
-  private updatePlaneLog(planes: PlaneModel[]): void {
-    // Assign airport code/name for planes within airport circles
-    planes.forEach((p) => {
-      p.airportCode = undefined;
-      p.airportName = undefined;
-    });
-    // Get current center for distance calculations
-    const centerLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-    const centerLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-
-    this.airportCircles.forEach((circle, id) => {
-      const center = circle.getLatLng();
-      const radiusMeters = circle.getRadius();
-      planes.forEach((p) => {
-        if (p.lat != null && p.lon != null && p.airportCode == null) {
-          const dist =
-            haversineDistance(p.lat, p.lon, center.lat, center.lng) * 1000;
-          // allow assignment for planes within circle or within 3km outside
-          if (dist <= radiusMeters + 3000) {
-            const data = this.airportData.get(id);
-            if (data) {
-              p.airportCode = data.code || undefined;
-              p.airportName = data.name;
-              p.airportLat = center.lat;
-              p.airportLon = center.lng;
-            }
-          }
-        }
-      });
-    });
-    const visiblePlanes = planes.filter(
-      (p) => !p.filteredOut && p.lat != null && p.lon != null
+    this.windowViewPlanes = this.windowViewMarker.updateWindowViewMarkers(
+      this.windowViewPlanes,
+      this.homeLocationValue
     );
-    // Sort sky list by firstSeen for display (newest bottom)
-    visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
-    this.resultsOverlayComponent.skyPlaneLog =
-      visiblePlanes as unknown as PlaneLogEntry[];
-    // Show planes at airports (those with assigned airportCode)
-    const airportPlanes = visiblePlanes.filter((p) => p.airportCode != null);
-    this.resultsOverlayComponent.airportPlaneLog =
-      airportPlanes as unknown as PlaneLogEntry[];
-
-    // Update the window view overlay with airborne planes only
-    this.windowViewPlanes = visiblePlanes
-      // include grounded planes as well
-      .filter((p) => (p.altitude ?? 0) > 0 || p.onGround)
-      .map((plane) => {
-        const isGrounded = !!plane.onGround;
-        // Calculate azimuth (bearing) from homeLocation to plane
-        const azimuth = this.calculateAzimuth(
-          this.settings.lat ?? this.DEFAULT_COORDS[0],
-          this.settings.lon ?? this.DEFAULT_COORDS[1],
-          plane.lat,
-          plane.lon
-        ); // 0 = North, 90 = East, etc.
-        const azimuthFromSouth = (azimuth + 180) % 360;
-        const x = (azimuthFromSouth / 360) * 100; // Altitude: map 0-20000m to 0-100% (cap at 20km, consistent with window view visual scale)
-        // For grounded planes, use 0 altitude for consistency
-        const alt = isGrounded ? 0 : plane.altitude ?? 0;
-        const y = (Math.min(alt, 20000) / 20000) * 100;
-        const iconData = getIconPathForModel(plane.model, plane.callsign, alt);
-        // Calculate scale, distance
-        const distKm = haversineDistance(
-          centerLat,
-          centerLon,
-          plane.lat!,
-          plane.lon!
-        );
-        const maxRadius = this.settings.radius ?? 5; // fallback radius in km
-        // Mobile-first aircraft scaling: closer planes smaller on mobile, larger on desktop
-        let scale = 1.0; // Default scale
-        const isMobile = window.innerWidth < 600; // Mobile breakpoint
-        
-        if (distKm <= 10) {
-          // Within 10km: mobile vs desktop scaling behavior
-          const normalizedDistance = distKm / 10; // 0 to 1 within 10km
-          const exponentialCurve = Math.pow(normalizedDistance, 1.5); // Smooth exponential falloff
-          
-          if (isMobile) {
-            // Mobile: closer planes smaller (scale from 0.6 at 0km to 1.0 at 10km)
-            scale = Math.max(0.6, 0.6 + exponentialCurve * 0.4); // 0.6 to 1.0 range
-          } else {
-            // Desktop: closer planes larger (scale from 3.0 at 0km to 1.0 at 10km)
-            scale = Math.max(1.0, 3.0 - exponentialCurve * 2.0); // 3.0 to 1.0 range
-          }
-        } else {
-          // Beyond 10km: gradual scaling from 1.0 to 0.5 based on max radius
-          const beyondNormalized = Math.min(
-            (distKm - 10) / (maxRadius - 10),
-            1
-          );
-          scale = Math.max(0.5, 1.0 - beyondNormalized * 0.5); // 1.0 to 0.5 range
-        }
-        // Compute history positions for window view
-        const rawHistory = computeWindowHistoryPositions(
-          plane.positionHistory,
-          centerLat,
-          centerLon
-        );
-        const historyTrail = rawHistory.map((hp, idx, arr) => ({
-          x: hp.x,
-          y: hp.y,
-          opacity: 0.1 + (0.9 * idx) / (arr.length - 1 || 1),
-        }));
-        return {
-          x,
-          y,
-          callsign: plane.callsign || '',
-          altitude: alt,
-          lat: plane.lat!,
-          lon: plane.lon!,
-          bearing: plane.track ?? 0,
-          iconPath: iconData.path,
-          iconType: iconData.iconType,
-          isHelicopter: this.helicopterIdentificationService.isHelicopter(
-            plane.icao,
-            plane.model
-          ),
-          velocity: plane.velocity ?? 0,
-          verticalRate:
-            plane.verticalRate ??
-            calculateVerticalRateFromHistory(plane.positionHistory) ??
-            undefined,
-          // historical trail for window view
-          historyTrail,
-          scale,
-          distanceKm: distKm,
-          isNew: plane.isNew,
-          isMilitary: plane.isMilitary,
-          isSpecial: plane.isSpecial,
-          icao: plane.icao, // for type safety
-          origin: plane.origin, // Origin country for flag display
-          isGrounded,
-          operator: plane.operator, // Add operator for display
-          model: plane.model, // Add model for display
-        };
-      });
-    // Add window view markers for cone boundaries and midpoints
-    this.updateWindowViewMarkers();
-
-    // Merge into historical log
-    const mergedMap = new Map<string, PlaneModel>();
-    // Add existing historical planes first
-    for (const plane of this.planeHistoricalLog) {
-      mergedMap.set(plane.icao, plane);
-    }
-    // Add/update with current planes (including their filteredOut status)
-    for (const plane of planes) {
-      mergedMap.set(plane.icao, plane);
-    }
-    // Store the full merged list, including filtered items
-    this.planeHistoricalLog = Array.from(mergedMap.values());
-
-    // Sort the full historical log chronologically (most recent first)
-    this.planeHistoricalLog.sort((a, b) => b.firstSeen - a.firstSeen);
-    // Build seen list: sort by recency and prioritize military
-    const historyFiltered = this.planeHistoricalLog
-      .filter((p) => !p.filteredOut)
-      .sort((a, b) => b.firstSeen - a.firstSeen);
-    const militaryPlanes = historyFiltered.filter((p) => p.isMilitary);
-    const otherPlanes = historyFiltered.filter((p) => !p.isMilitary);
-    this.resultsOverlayComponent.seenPlaneLog = [
-      ...militaryPlanes,
-      ...otherPlanes,
-    ] as unknown as PlaneLogEntry[];
-
-    // Store the current followed ICAO to check if we need to find a replacement
-    const wasFollowing = this.followNearest && this.highlightedPlaneIcao;
-    const previousFollowedIcao = this.highlightedPlaneIcao;
-
-    // Only clear follow state if the followed plane is gone and not in shuffle mode
-    if (this.followNearest && this.highlightedPlaneIcao) {
-      // Check if this is a shuffle-followed plane by looking for a property on the results component
-      const isShuffleMode = this.resultsOverlayComponent.shuffleMode;
-
-      if (!this.planeLog.has(this.highlightedPlaneIcao)) {
-        if (isShuffleMode) {
-          // In shuffle mode, we need to pick a new plane instead of unfollowing
-          // Shuffle-followed plane lost, requesting new shuffle would be logged here
-          // Trigger a new shuffle via the component (will pick a new plane)
-          this.ngZone.run(() => {
-            setTimeout(() => {
-              this.resultsOverlayComponent.triggerNewShuffle();
-            }, 100);
-          });
-        } else {
-          // Normal mode - unfollow if plane is gone
-          // Followed plane lost, clearing follow state would be logged here
-          this.followNearest = false;
-          this.highlightedPlaneIcao = null;
-        }
-      }
-    }
-
-    this.updateFollowedStyles(); // <-- ensure all planes update
   }
 
   clearSeenList(): void {
@@ -1853,7 +1358,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   useCurrentLocation(): void {
     // Hide the cone when navigating to current location
-    this.coneVisible = false;
+    this.uiState.setConeVisibility(false);
 
     // Update the Show View Axes checkbox to match
     const coneCheckbox = document.getElementById(
@@ -1875,6 +1380,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             position.coords.longitude,
             currentMainRadius // Pass main radius
           ); // Triggers airport search
+          // Update location context with current source (this will reverse-geocode)
+          this.locationContext.updateFromMapCenter(
+            position.coords.latitude,
+            position.coords.longitude,
+            'current'
+          );
+
+          // Save coordinates AND address together atomically for persistence
+          this.reverseGeocode(
+            position.coords.latitude,
+            position.coords.longitude
+          ).then((address) => {
+            this.settings.setLocationWithAddress(
+              position.coords.latitude,
+              position.coords.longitude,
+              address
+            );
+          });
         },
         (error) => {
           if (!this.locationErrorShown) {
@@ -1932,171 +1455,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   resolveAndUpdateFromAddress(): void {
-    const address = this.inputOverlayComponent.addressInputRef.getValue();
-
-    // Make sure the input overlay processes any pending radius changes first
-    // This ensures the stored radius is up-to-date with the current unit
-    this.inputOverlayComponent.processRadiusChange();
-
-    // Use the stored radius (already in km) instead of reading input directly
-    const mainRadius = this.settings.radius ?? 5;
-
-    // Check if we're at home location before clearing cones
-    const homeLocation = this.settings.getHomeLocation();
-    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-
-    // Only clear cones if we're not at home
-    const atHome =
-      homeLocation &&
-      Math.abs(lat - homeLocation.lat) < 0.0001 &&
-      Math.abs(lon - homeLocation.lon) < 0.0001;
-    if (!atHome) {
-      // Keep the cone visible when navigating to a searched address (if not at home)
-      // The cone will now show full circular bands when away from home
-      // No need to hide it or update the checkbox
-    }
-
-    // Set the MAIN radius setting if valid
-    if (!isNaN(mainRadius)) {
-      this.settings.setRadius(mainRadius);
-    } else {
-      // Use the current setting if input is invalid
-      // mainRadius = this.settings.radius ?? 5; // No need, updateMap handles undefined radiusKm
-    }
-
-    // Add timeout to prevent hanging requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        address
-      )}`,
-      {
-        signal: controller.signal,
-        headers: { 'User-Agent': 'PlaneAlert/1.0' }
-      }
-    )
-      .then((res) => {
-        clearTimeout(timeoutId);
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data.length) {
-          const currentZoom = this.map.getZoom(); // Preserve current zoom level
-          // Pass the mainRadius obtained from the input (or current setting if invalid)
-          this.updateMap(
-            parseFloat(data[0].lat),
-            parseFloat(data[0].lon),
-            mainRadius, // Pass the potentially updated main radius
-            currentZoom
-          ); // Triggers airport search
-          
-          // Clear the address field after successful resolution
-          this.inputOverlayComponent.clearAddressField();
-        } else {
-          console.warn('No results found for address:', address);
-        }
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId);
-        // Specific handling for CORS/network errors
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-          console.warn('Address search blocked by CORS policy or network error:', address);
-        } else if (error.name === 'AbortError') {
-          console.warn('Address search timed out:', address);
-        } else {
-          console.warn('Address search failed:', error);
-        }
-      });
-    // Always force a scan at the end
-    this.scanService.forceScan();
+    this.addressResolution.resolveAndUpdateFromAddress(
+      this.inputOverlayComponent,
+      this.updateMap.bind(this),
+      this.map.getZoom()
+    );
   }
 
   onExcludeDiscountChange(): void {
-    const exclude = this.settings.excludeDiscount;
-    // Don't set the property again to avoid infinite loop
-    localStorage.setItem('excludeDiscount', exclude.toString());
-
-    // Reset the filteredOut flag for all planes to ensure proper re-evaluation
-    for (const plane of this.planeLog.values()) {
-      // Get military status
-      const isMilitary = this.aircraftDb.lookup(plane.icao)?.mil || false;
-
-      // If commercial filter is OFF (exclude is false), all planes should be shown
-      if (!exclude) {
-        plane.filteredOut = false;
-        if (plane.marker && !this.map.hasLayer(plane.marker)) {
-          plane.marker.addTo(this.map);
-          if (plane.path) plane.path.addTo(this.map);
-          if (plane.predictedPathArrowhead)
-            plane.predictedPathArrowhead.addTo(this.map);
-          // Re-add history trail segments if they exist
-          if (plane.historyTrailSegments) {
-            plane.historyTrailSegments.forEach((segment) =>
-              segment.addTo(this.map)
-            );
-          }
-        }
-        continue;
-      }
-
-      // If commercial filter is ON, check if this plane should be filtered
-      const isFiltered = !this.planeFilter.shouldIncludeCallsign(
-        plane.callsign,
-        exclude,
-        this.planeFilter.getFilterPrefixes(),
-        isMilitary
-      );
-
-      plane.filteredOut = isFiltered;
-
-      if (isFiltered) {
-        // Use the new helper method to remove all visuals
-        plane.removeVisuals(this.map);
-      } else if (plane.marker && !this.map.hasLayer(plane.marker)) {
-        // Only add back if not filtered
-        plane.marker.addTo(this.map);
-        // Add back path and arrowhead if they exist
-        if (plane.path) plane.path.addTo(this.map);
-        if (plane.predictedPathArrowhead)
-          plane.predictedPathArrowhead.addTo(this.map);
-        // Re-add history trail segments if they exist
-        if (plane.historyTrailSegments) {
-          plane.historyTrailSegments.forEach((segment) =>
-            segment.addTo(this.map)
-          );
-        }
-      }
-    }
-
-    // Also update the historical log using the same logic
-    for (const plane of this.planeHistoricalLog) {
-      const isMilitary = this.aircraftDb.lookup(plane.icao)?.mil || false;
-
-      // If commercial filter is OFF (exclude is false), no plane should be filtered
-      if (!exclude) {
-        plane.filteredOut = false;
-        continue;
-      }
-
-      // If commercial filter is ON, check if this plane should be filtered
-      plane.filteredOut = !this.planeFilter.shouldIncludeCallsign(
-        plane.callsign,
-        exclude,
-        this.planeFilter.getFilterPrefixes(),
-        isMilitary
-      );
-      // Note: We don't remove visuals from the historical log directly here,
-      // as they are managed by the main planeLog. We just update the flag.
-    }
-
-    this.updatePlaneLog(Array.from(this.planeLog.values()));
-    this.cdr.detectChanges();
+    this.planeFiltering.onExcludeDiscountChange(
+      this.planeLog,
+      this.planeHistoricalLog,
+      this.map
+    );
   }
   get currentLat(): number {
     return this.settings.lat ?? this.DEFAULT_COORDS[0];
@@ -2130,7 +1501,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   toggleConeVisibility(show: boolean): void {
     // Show or hide cones regardless of current map view, always anchored at home
-    this.coneVisible = show;
+    this.uiState.setConeVisibility(show);
     this.settings.setShowViewAxes(show);
   }
 
@@ -2152,28 +1523,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Toggle display of cloud coverage layer */
   toggleCloudCover(show: boolean): void {
-    this.cloudVisible = show;
-    if (this.cloudLayer) {
-      if (show) {
-        this.cloudLayer.addTo(this.map);
-      } else {
-        this.cloudLayer.remove();
-      }
-    }
-    this.settings.setShowCloudCover(show);
+    this.uiState.setCloudVisible(show);
   }
 
   /** Toggle display of rain coverage layer */
   toggleRainCover(show: boolean): void {
-    this.rainVisible = show;
-    if (this.rainLayer) {
-      if (show) {
-        this.rainLayer.addTo(this.map);
-      } else {
-        this.rainLayer.remove();
-      }
-    }
-    this.settings.setShowRainCover(show);
+    this.uiState.setRainVisible(show);
   }
 
   /** Apply sky colors from window view to cloud layer for visual synchronization */
@@ -2293,81 +1648,28 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     preserveFollowNearest = false,
     fromShuffle = false
   ): void {
-    // If clicking the already highlighted plane, unfollow it
-    if (
-      !fromShuffle &&
-      this.highlightedPlaneIcao === plane.icao &&
-      !preserveFollowNearest
-    ) {
-      this.unhighlightPlane(plane.icao);
-      this.highlightedPlaneIcao = null;
-      this.followNearest = false;
-
-      // Clear follow state
-      this.followCoordinatorService.clearAllModes();
-
-      this.updatePlaneLog(Array.from(this.planeLog.values()));
-      this.cdr.detectChanges();
-      return;
-    } // Handle manual plane following - this disables automatic modes
-    if (!fromShuffle && !preserveFollowNearest) {
-      this.followCoordinatorService.followPlaneManually(plane as PlaneLogEntry);
-    }
-
-    // When manually centering/following a plane, disable automatic nearest following
-    // and enable manual following instead
-    this.followNearest = fromShuffle; // Only true if this is from shuffle mode
-
-    const icao = plane.icao;
-
-    if (this.highlightedPlaneIcao) {
-      this.unhighlightPlane(this.highlightedPlaneIcao);
-    }
-
-    this.highlightedPlaneIcao = icao;
-    const pm = this.planeLog.get(icao);
-    if (pm?.marker && plane.lat != null && plane.lon != null) {
-      // Pan map to plane location without changing zoom with smooth animation
-      this.map.panTo([plane.lat, plane.lon], { animate: true, duration: 1.0 });
-
-      pm.marker.setZIndexOffset(20000);
-      pm.marker.openTooltip();
-      const tooltip = pm.marker.getTooltip();
-      if (tooltip) {
-        const tooltipEl = tooltip.getElement();
-        tooltipEl?.classList.add('highlighted-tooltip');
+    this.planeCentering.centerOnPlane(
+      plane,
+      preserveFollowNearest,
+      fromShuffle,
+      {
+        highlightedPlaneIcao: this.highlightedPlaneIcao,
+        followNearest: this.followNearest,
+        planeLog: this.planeLog,
+        map: this.map,
+        reverseGeocode: this.reverseGeocode.bind(this),
+        locationDistrict: this.locationDistrict,
+        closestPlane: this.closestPlane,
+        planeHistoricalLog: this.planeHistoricalLog,
+        setHighlightedPlaneIcao: (icao) => (this.highlightedPlaneIcao = icao),
+        setFollowNearest: (value) => (this.followNearest = value),
+        setClosestPlane: (plane) => (this.closestPlane = plane),
+        setLocationDistrict: (district) => (this.locationDistrict = district),
+        setPlaneHistoricalLog: (log: PlaneModel[]) =>
+          (this.planeHistoricalLog = log),
+        unhighlightPlane: this.unhighlightPlane.bind(this),
       }
-      const markerEl = pm.marker.getElement();
-      markerEl?.classList.add('highlighted-marker');
-      this.reverseGeocode(plane.lat!, plane.lon!).then((address) => {
-        // Don't update the address input field when following a plane
-        // The address field should show map center location, not plane location
-        // Guard against missing input reference
-        // if (this.inputOverlayComponent.addressInputRef) {
-        //   this.inputOverlayComponent.addressInputRef.setValue(address);
-        // } 
-        
-        // Update location overlay info using the same address result
-        if (!address || address.trim() === '') {
-          console.log('Empty geocoding result for followed plane:', address);
-        }
-        this.locationDistrict = address;
-        if (!this.locationDistrict || this.locationDistrict.trim() === '') {
-          console.log(
-            'locationDistrict is empty after setting (followed plane):',
-            this.locationDistrict
-          );
-        }
-        this.cdr.detectChanges();
-      });
-
-      // Refresh logs and overlays
-      this.closestPlane = pm;
-      this.updatePlaneLog(Array.from(this.planeLog.values()));
-      this.cdr.detectChanges();
-    } else {
-      // Could not highlight plane - marker missing or coordinates invalid would be logged here
-    }
+    );
   }
   /** Follow and center on overlay-selected nearest plane */
   public followNearestPlane(plane: any): void {
@@ -2393,266 +1695,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public onCenterAirport(coords: { lat: number; lon: number }): void {
     // Pan map to airport coordinates with smooth animation
     this.map.panTo([coords.lat, coords.lon], { animate: true, duration: 1.0 });
-  }
-
-  // New function to find and display airports
-  async findAndDisplayAirports(
-    lat: number,
-    lon: number,
-    radiusKm: number
-  ): Promise<void> {
-    if (this.airportsLoading) {
-      // findAndDisplayAirports skipped: already loading would be logged here
-      return;
-    }
-    this.airportsLoading = true;
-    // findAndDisplayAirports start would be logged here
-    this.ngZone.run(() => {
-      this.loadingAirports = true;
-      this.cdr.detectChanges();
-    });
-
-    try {
-      // Track runway radius promises to delay spinner hiding
-      const radiusPromises: Promise<void>[] = [];
-
-      const radiusMeters = radiusKm * 1000;
-      const overpassUrl = 'https://overpass-api.de/api/interpreter';
-      // Query for nodes, ways, and relations tagged as aerodromes within the radius
-      const query = `
-        [out:json][timeout:25];
-        (
-          node["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-          way["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-                   relation["aeroway"="aerodrome"](around:${radiusMeters},${lat},${lon});
-        );
-        out center;
-      `;
-
-      const response = await fetch(overpassUrl, {
-        method: 'POST',
-        body: query,
-      });
-      if (!response.ok) {
-        throw new Error(`Overpass API error: ${response.statusText}`);
-      }
-      const data = await response.json();
-
-      const foundAirportIds = new Set<number>();
-
-      for (const element of data.elements || []) {
-        if (element.type === 'node' || element.center) {
-          const airportLat = element.lat ?? element.center?.lat;
-          const airportLon = element.lon ?? element.center?.lon;
-          const airportId = element.id;
-
-          if (airportLat !== undefined && airportLon !== undefined) {
-            const name = element.tags?.['name'] || 'Unknown Airport';
-            const code = element.tags?.['iata'] || ''; // airport IATA code
-            // store metadata
-            this.airportData.set(airportId, { name, code });
-
-            foundAirportIds.add(airportId);
-
-            // Determine radius: use runway lengths if available, fallback to IATA presence
-            const defaultKm = code
-              ? MAJOR_AIRPORT_RADIUS_KM
-              : MINOR_AIRPORT_RADIUS_KM;
-            const useKm = this.airportRadiusCache.get(airportId) ?? defaultKm; // Check if circle already exists
-            if (!this.airportCircles.has(airportId)) {
-              // Determine initial color based on clicked state
-              const isClicked = this.clickedAirports.has(airportId);
-              const circleColor = isClicked ? 'gold' : 'cyan';
-              const fillPattern = isClicked
-                ? 'url(#airportStripedPatternGold)'
-                : 'url(#airportStripedPatternCyan)';
-
-              const circle = L.circle([airportLat, airportLon], {
-                radius: useKm * 1000,
-                color: circleColor,
-                weight: 2,
-                fill: true,
-                fillColor: fillPattern,
-                fillOpacity: 0.3,
-                className: 'airport-radius',
-                interactive: true,
-              }).addTo(this.map);
-              // Add click event handler to toggle color
-              circle.on('click', () => {
-                const currentlyClicked = this.clickedAirports.has(airportId);
-                if (currentlyClicked) {
-                  // Remove from clicked set and change to cyan
-                  this.clickedAirports.delete(airportId);
-                  circle.setStyle({
-                    color: 'cyan',
-                    fillColor: 'url(#airportStripedPatternCyan)',
-                  });
-                } else {
-                  // Add to clicked set and change to gold
-                  this.clickedAirports.add(airportId);
-                  circle.setStyle({
-                    color: 'gold',
-                    fillColor: 'url(#airportStripedPatternGold)',
-                  });
-                }
-                // Save clicked airports to settings
-                this.settings.setClickedAirports(this.clickedAirports);
-              });
-
-              // Always bind tooltip; use `permanent` to show/hide labels
-              circle.bindTooltip(name, {
-                direction: 'center',
-                className: 'airport-tooltip',
-                opacity: 0.8,
-                offset: [0, 0],
-                permanent: this.showAirportLabels,
-              });
-              this.airportCircles.set(airportId, circle); // Use default radius until bulk runway query updates it
-              if (!this.airportRadiusCache.has(airportId)) {
-                const defaultKm = code
-                  ? MAJOR_AIRPORT_RADIUS_KM
-                  : MINOR_AIRPORT_RADIUS_KM;
-                this.airportRadiusCache.set(airportId, defaultKm);
-              }
-            } else {
-              // Update existing circle color based on clicked state
-              const existingCircle = this.airportCircles.get(airportId);
-              if (existingCircle) {
-                const isClicked = this.clickedAirports.has(airportId);
-                const circleColor = isClicked ? 'gold' : 'cyan';
-                const fillPattern = isClicked
-                  ? 'url(#airportStripedPatternGold)'
-                  : 'url(#airportStripedPatternCyan)';
-                existingCircle.setStyle({
-                  color: circleColor,
-                  fillColor: fillPattern,
-                });
-              }
-            }
-          }
-        }
-      } // Remove circles for airports no longer in the result set
-      this.airportCircles.forEach((circle, id) => {
-        if (!foundAirportIds.has(id)) {
-          circle.remove();
-          this.airportCircles.delete(id);
-          // Remove stored airport metadata
-          this.airportData.delete(id);
-          // Remove from clicked airports set
-          this.clickedAirports.delete(id);
-        }
-      });
-
-      // Save clicked airports to settings if any were removed
-      this.settings.setClickedAirports(this.clickedAirports);
-
-      // --- Bulk fetch runway data for all airports at once ---
-
-      if (this.airportCircles.size > 0) {
-        const airportList = Array.from(this.airportCircles.entries()).map(
-          ([id, circle]) => ({
-            id,
-            lat: circle.getLatLng().lat,
-            lon: circle.getLatLng().lng,
-            hasIata: !!this.airportData.get(id)?.code,
-          })
-        );
-        // compute bbox covering all airports plus margin
-        const lats = airportList.map((a) => a.lat);
-        const lons = airportList.map((a) => a.lon);
-        const minLat = Math.min(...lats) - radiusKm / 111;
-        const maxLat = Math.max(...lats) + radiusKm / 111;
-        const minLon = Math.min(...lons) - radiusKm / 111;
-        const maxLon = Math.max(...lons) + radiusKm / 111;
-
-        const runwayQuery = `
-         
-          [out:json][timeout:25];
-          (
-            way[\"aeroway\"=\"runway\"](${minLat},${minLon},${maxLat},${maxLon});
-            node[\"aeroway\"=\"runway\"](${minLat},${minLon},${maxLat},${maxLon});
-          );
-          out geom;
-        `;
-        const runwayPromise = fetch(overpassUrl, {
-          method: 'POST',
-          body: runwayQuery,
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (!data?.elements) return;
-            const lengthsByAirport = new Map<number, number>();
-            data.elements.forEach((elem: any) => {
-              const coords = elem.geometry;
-              if (!coords || coords.length < 2) return;
-              // compute runway length between first and last point
-              const start = coords[0];
-              const end = coords[coords.length - 1];
-              const lenKm = haversineDistance(
-                start.lat,
-                start.lon,
-                end.lat,
-                end.lon
-              );
-              // find nearest airport center
-              let bestId = null;
-              let bestDist = Infinity;
-              airportList.forEach((a) => {
-                const d = haversineDistance(
-                  a.lat,
-                  a.lon,
-                  (start.lat + end.lat) / 2,
-                  (start.lon + end.lon) / 2
-                );
-                if (d < bestDist) {
-                  bestDist = d;
-                  bestId = a.id;
-                }
-              });
-              if (bestId != null) {
-                const prev = lengthsByAirport.get(bestId) || 0;
-                lengthsByAirport.set(bestId, Math.max(prev, lenKm));
-              }
-            });
-
-            // apply computed radii
-            airportList.forEach((a) => {
-              const circle = this.airportCircles.get(a.id);
-              const maxLen = lengthsByAirport.get(a.id) || 0;
-              const radius =
-                maxLen > 0
-                  ? maxLen / 2 + 0.5
-                  : a.hasIata
-                  ? MAJOR_AIRPORT_RADIUS_KM
-                  : MINOR_AIRPORT_RADIUS_KM;
-              this.airportRadiusCache.set(a.id, radius);
-              if (circle) circle.setRadius(radius * 1000);
-            });
-          })
-          .catch(() => {});
-        radiusPromises.push(runwayPromise);
-      }
-      // wait for all runway radius updates before hiding spinner
-      await Promise.all(radiusPromises);
-      // Increase opacity of all airport circles after resizing
-      this.airportCircles.forEach((circle) =>
-        circle.setStyle({ fillOpacity: 0.6 })
-      );
-      // hide loading indicator inside Angular zone
-      this.ngZone.run(() => {
-        this.loadingAirports = false;
-        this.cdr.detectChanges();
-      });
-    } catch (error) {
-      // Failed to fetch or process airport data error would be logged here
-      // Hide loading indicator on error
-      this.ngZone.run(() => {
-        this.loadingAirports = false;
-        this.cdr.detectChanges();
-      });
-    } finally {
-      this.airportsLoading = false;
-    }
   }
 
   /**
@@ -2704,7 +1746,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.isResizing = true;
     this.cdr.detectChanges();
     // Update clock visibility based on new screen size
-    this.showDateTime = this.settings.getDateTimeOverlayVisibility();
+    this.uiState.setShowDateTime(this.settings.getDateTimeOverlayVisibility());
     // Debounce end of resizing
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
@@ -2775,212 +1817,49 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   onToggleDateTimeOverlays(): void {
-    this.showDateTime = !this.showDateTime;
-    // Save the setting based on device type
-    const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
-      this.settings.setShowDateTimeOverlayMobile(this.showDateTime);
-    } else {
-      this.settings.setShowDateTimeOverlay(this.showDateTime);
-    }
+    this.uiState.toggleDateTimeOverlay();
   }
 
   /** Toggle altitude-colored borders on plane tooltips */
   onToggleAltitudeBorders(enabled: boolean): void {
-    this.showAltitudeBorders = enabled;
-
-    // Save the setting for persistence
-    this.settings.setShowAltitudeBorders(enabled);
+    this.uiState.setShowAltitudeBorders(enabled);
 
     // Update all existing tooltips with the new border style
-    this.updateTooltipAltitudeBorders();
+    this.planeDisplayService.updateTooltipAltitudeBorders(
+      Array.from(this.planeLog.values()),
+      enabled
+    );
 
     this.cdr.detectChanges();
   }
 
   /** Toggle animations on/off */
   onToggleAnimations(enabled: boolean): void {
-    this.animationsEnabled = enabled;
-
-    // Save the setting for persistence
-    this.settings.setAnimationsEnabled(enabled);
+    this.uiState.setAnimationsEnabled(enabled);
 
     // Apply animation setting to document body for CSS animation control
-    this.applyAnimationSetting(enabled);
+    this.planeDisplayService.applyAnimationSetting(enabled, this.document);
 
     this.cdr.detectChanges();
   }
 
   /** Toggle wind direction display on/off */
   onToggleWindDirection(enabled: boolean): void {
-    this.showWindDirection = enabled;
-
-    // Save the setting for persistence
-    this.settings.setShowWindDirection(enabled);
+    this.uiState.setShowWindDirection(enabled);
 
     this.cdr.detectChanges();
   }
 
   /** Toggle sun direction display on/off */
   onToggleSunDirection(enabled: boolean): void {
-    this.showSunDirection = enabled;
-
-    // Save the setting for persistence
-    this.settings.setShowSunDirection(enabled);
+    this.uiState.setShowSunDirection(enabled);
 
     this.cdr.detectChanges();
   }
 
-  /** Apply animation setting to the document for global animation control */
-  private applyAnimationSetting(enabled: boolean): void {
-    if (enabled) {
-      this.document.body.classList.remove('animations-disabled');
-    } else {
-      this.document.body.classList.add('animations-disabled');
-    }
-  }
-
-  /** Update all existing plane tooltips with altitude-colored borders based on current setting */
-  private updateTooltipAltitudeBorders(): void {
-    this.planeLog.forEach((plane) => {
-      if (plane.marker && plane.marker.getTooltip()) {
-        this.applyTooltipAltitudeBorder(plane);
-      }
-    });
-  }
-  /** Apply or remove altitude-colored border styling to a plane's tooltip */
-  private applyTooltipAltitudeBorder(plane: PlaneModel): void {
-    const tooltipEl = plane.marker?.getTooltip()?.getElement();
-    if (!tooltipEl) return;
-
-    if (
-      this.showAltitudeBorders &&
-      plane.altitude !== null &&
-      plane.altitude !== undefined
-    ) {
-      // Get altitude color from the service
-      const altitudeColor = this.altitudeColor.getFillColor(plane.altitude);
-
-      // Apply altitude-colored border to all sides
-      tooltipEl.style.borderColor = altitudeColor;
-      tooltipEl.classList.add('altitude-bordered-tooltip');
-    } else {
-      // Remove altitude border styling
-      tooltipEl.style.borderColor = '';
-      tooltipEl.classList.remove('altitude-bordered-tooltip');
-    }
-  }
-
   /** Update sun angle and related astronomical data */
   private updateSunAngle(): void {
-    const now = new Date();
-    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-
-    // Calculate sun position using SunCalc
-    const sunPos = SunCalc.getPosition(now, lat, lon);
-    const moonPos = SunCalc.getMoonPosition(now, lat, lon);
-    const moonIllum = SunCalc.getMoonIllumination(now);
-
-    // Convert azimuth from radians to degrees (0° = North, 90° = East)
-    const sunAzimuthDeg = (sunPos.azimuth * 180) / Math.PI;
-    this.sunAngle = (sunAzimuthDeg + 180) % 360; // Adjust for display
-
-    // Check if it's night (sun below horizon)
-    this.isNight = sunPos.altitude < 0;
-
-    // Calculate next sun event
-    const sunTimes = SunCalc.getTimes(now, lat, lon);
-    const currentTime = now.getTime();
-
-    if (this.isNight) {
-      // If it's night, find the next sunrise (today or tomorrow)
-      let sunriseDate = sunTimes.sunrise;
-      if (sunriseDate.getTime() <= currentTime) {
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        sunriseDate = SunCalc.getTimes(tomorrow, lat, lon).sunrise;
-      }
-      const sunrise = sunriseDate.getTime();
-      const timeUntilSunrise = Math.max(0, sunrise - currentTime);
-      const hoursUntilSunrise = Math.floor(timeUntilSunrise / (1000 * 60 * 60));
-      const minutesUntilSunrise = Math.floor(
-        (timeUntilSunrise % (1000 * 60 * 60)) / (1000 * 60)
-      );
-      this.sunEventText = `Sunrise ${hoursUntilSunrise}h ${minutesUntilSunrise}m`;
-    } else {
-      // If it's day, show time until sunset
-      const sunset = sunTimes.sunset.getTime();
-      const timeUntilSunset = Math.max(0, sunset - currentTime);
-      const hoursUntilSunset = Math.floor(timeUntilSunset / (1000 * 60 * 60));
-      const minutesUntilSunset = Math.floor(
-        (timeUntilSunset % (1000 * 60 * 60)) / (1000 * 60)
-      );
-      this.sunEventText = `Sunset ${hoursUntilSunset}h ${minutesUntilSunset}m`;
-    }
-
-    // Update moon properties for night display
-    if (this.isNight) {
-      this.moonFraction = moonIllum.fraction;
-      this.moonIsWaning = moonIllum.phase > 0.5;
-
-      // Calculate moon phase name
-      const phase = moonIllum.phase;
-      if (phase < 0.1 || phase > 0.9) {
-        this.moonPhaseName = 'New Moon';
-      } else if (phase < 0.3) {
-        this.moonPhaseName = 'Waxing Crescent';
-      } else if (phase < 0.4) {
-        this.moonPhaseName = 'First Quarter';
-      } else if (phase < 0.6) {
-        this.moonPhaseName = 'Waxing Gibbous';
-      } else if (phase < 0.7) {
-        this.moonPhaseName = 'Full Moon';
-      } else if (phase < 0.9) {
-        this.moonPhaseName = 'Waning Gibbous';
-      } else {
-        this.moonPhaseName = 'Last Quarter';
-      }
-
-      // Use moon azimuth when night
-      const moonAzimuthDeg = (moonPos.azimuth * 180) / Math.PI;
-      this.sunAngle = (moonAzimuthDeg + 180) % 360;
-      // Store terminator tilt (phase angle) for mask rotation
-      this.moonTerminatorAngle = (moonIllum.angle * 180) / Math.PI;
-    }
-  }
-
-  /** Apply brightness effects to the map container using CSS filters */
-  private applyBrightnessToMap(): void {
-    if (!this.brightnessState) {
-      return;
-    }
-
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) {
-      return;
-    }
-
-    const brightness = this.brightnessState.brightness;
-    const isDimming = this.brightnessState.isDimming;
-
-    // Create CSS filter based on brightness state
-    let filterString = `brightness(${brightness})`;
-
-    // Add additional effects during dimming
-    if (isDimming) {
-      const contrastValue = 1;
-      const saturationValue = 1;
-      filterString += ` contrast(${contrastValue}) saturate(${saturationValue})`;
-      // Add subtle blue tint during night hours
-      if (brightness < 0.3) {
-        filterString += ` hue-rotate(10deg)`;
-      }
-    }
-
-    // Apply the filter to the map container
-    mapContainer.style.filter = filterString;
-    mapContainer.style.transition = 'filter 0.5s ease-in-out';
+    this.astronomicalDisplay.updateAstronomicalData();
   }
 
   /** Calculate azimuth (bearing) from one point to another */
@@ -3016,13 +1895,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     return this.currentLon;
   }
 
-  /** New state for window view visibility */
-  showWindowView = true;
-
   /** Toggle window view overlay visibility */
   onWindowViewToggle(show: boolean) {
-    this.showWindowView = show;
-    this.settings.setShowWindowView(show);
-    this.cdr.detectChanges();
+    this.uiState.setShowWindowView(show);
   }
 }

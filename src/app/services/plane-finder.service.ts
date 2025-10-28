@@ -793,6 +793,16 @@ export class PlaneFinderService {
       };
 
       planeModel.marker.bindTooltip(tooltip, rightTooltipOptions);
+
+      // Apply altitude border styling if altitude exists
+      if (altitude != null) {
+        const tooltipEl = planeModel.marker.getTooltip()?.getElement();
+        if (tooltipEl) {
+          tooltipEl.classList.add('altitude-bordered-tooltip');
+          tooltipEl.style.borderColor =
+            this.altitudeColor.getFillColor(altitude);
+        }
+      }
     }
   }
 
@@ -860,7 +870,9 @@ export class PlaneFinderService {
       const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
       const response = await fetch(url);
       if (!response.ok) {
-        console.warn(`ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`);
+        console.warn(
+          `ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`
+        );
         throw new Error(`ADSB One API fetch error ${response.status}`);
       }
       const data = await response.json();
@@ -1225,6 +1237,16 @@ export class PlaneFinderService {
           this.settings.animationsEnabled // animations enabled setting
         );
         planeModelInstance.marker = marker; // Update marker reference on model
+
+        // Apply altitude border styling if altitude exists
+        if (altitude != null) {
+          const tooltipEl = marker.getTooltip()?.getElement();
+          if (tooltipEl) {
+            tooltipEl.classList.add('altitude-bordered-tooltip');
+            tooltipEl.style.borderColor =
+              this.altitudeColor.getFillColor(altitude);
+          }
+        }
 
         // Update Predicted and Historical Paths (pass the model instance)
         this.updatePlanePath(

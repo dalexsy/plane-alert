@@ -17,7 +17,7 @@ import { DebouncedClickService } from '../../services/debounced-click.service';
   imports: [CommonModule, IconComponent],
   templateUrl: './location-overlay.component.html',
   styleUrls: ['./location-overlay.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class LocationOverlayComponent {
   @Input()

@@ -78,7 +78,7 @@ export interface PlaneLogEntry {
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   animations: [
     trigger('listAnimation', [
       transition('* <=> *', [
@@ -113,7 +113,7 @@ export class ResultsOverlayComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewInit
 {
   constructor(
-    private cdr: ChangeDetectorRef, // ensure cdr available for change detection
+    public cdr: ChangeDetectorRef, // ensure cdr available for change detection
     public settings: SettingsService,
     public countryService: CountryService,
     public planeFilter: PlaneFilterService,
@@ -193,9 +193,7 @@ export class ResultsOverlayComponent
 
   /** Get sun direction toggle tooltip text */
   get sunDirectionTooltip(): string {
-    return this.showSunDirection
-      ? 'Hide sun direction'
-      : 'Show sun direction';
+    return this.showSunDirection ? 'Hide sun direction' : 'Show sun direction';
   }
   // Shuffle mode: pick random plane to follow every interval
   shuffleMode = false;
@@ -954,12 +952,12 @@ export class ResultsOverlayComponent
     this.otherControlsHidden = !this.otherControlsHidden;
     // Persist 'other controls' hidden state
     this.settings.setResultsOverlayControlsHidden(this.otherControlsHidden);
-    
+
     // If controls are being shown and overlay is collapsed, expand it
     if (!this.otherControlsHidden && this.collapsed) {
       this.toggleCollapsed();
     }
-    // If controls are now hidden and overlay is expanded, collapse it  
+    // If controls are now hidden and overlay is expanded, collapse it
     else if (this.otherControlsHidden && !this.collapsed) {
       this.toggleCollapsed();
     }

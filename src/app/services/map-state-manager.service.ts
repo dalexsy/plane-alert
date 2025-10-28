@@ -73,7 +73,7 @@ const initialState: MapState = {
     showRainCover: true,
     showViewAxes: false,
     showAirportLabels: true,
-    showAltitudeBorders: false,
+    showAltitudeBorders: true,
     coneVisible: false,
     cloudVisible: true,
     rainVisible: true,

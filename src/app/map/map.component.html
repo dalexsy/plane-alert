@@ -1,3 +1,39 @@
+<!-- SVG definitions for airport circle patterns -->
+<svg width="0" height="0" style="position: absolute">
+  <defs>
+    <pattern
+      id="airportStripedPatternCyan"
+      patternUnits="userSpaceOnUse"
+      width="10"
+      height="10"
+      patternTransform="rotate(45)"
+    >
+      <line
+        x1="0"
+        y1="0"
+        x2="0"
+        y2="10"
+        style="stroke: cyan; stroke-width: 5"
+      />
+    </pattern>
+    <pattern
+      id="airportStripedPatternGold"
+      patternUnits="userSpaceOnUse"
+      width="10"
+      height="10"
+      patternTransform="rotate(45)"
+    >
+      <line
+        x1="0"
+        y1="0"
+        x2="0"
+        y2="10"
+        style="stroke: gold; stroke-width: 5"
+      />
+    </pattern>
+  </defs>
+</svg>
+
 <div class="overlay-container">
   <app-closest-plane-overlay
     *ngIf="closestPlane"
@@ -46,9 +82,9 @@
 <!-- Pass the set of active ICAOs to the results overlay -->
 <app-results-overlay
   (windowViewToggle)="onWindowViewToggle($event)"
-  [skyPlaneLog]="resultsOverlayComponent.skyPlaneLog"
-  [airportPlaneLog]="resultsOverlayComponent.airportPlaneLog"
-  [seenPlaneLog]="resultsOverlayComponent.seenPlaneLog"
+  [skyPlaneLog]="skyPlaneLog"
+  [airportPlaneLog]="airportPlaneLog"
+  [seenPlaneLog]="seenPlaneLog"
   [loadingAirports]="loadingAirports"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [activePlaneIcaos]="activePlaneIcaos"

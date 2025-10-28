@@ -17,6 +17,7 @@ export class SettingsService {
   resultsOverlayCollapsedChanged = new EventEmitter<boolean>();
   private _lat: number | null = null;
   private _lon: number | null = null;
+  private _currentAddress: string | null = null;
   private _radius: number | null = 100;
   private _interval: number = 60; // default to 60 seconds
   private _excludeDiscount: boolean = false;
@@ -25,7 +26,7 @@ export class SettingsService {
   private _mapZoom: number = 8;
   private homeLocationKey = 'homeLocation';
   private seenCollapsedKey = 'seenCollapsed';
-  private _seenCollapsed: boolean = false;
+  private _seenCollapsed: boolean = true; // Collapsed by default
   private inputOverlayCollapsedKey = 'inputOverlayCollapsed';
   private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
   private militaryMuteKey = 'militaryMute';
@@ -78,8 +79,8 @@ export class SettingsService {
   private windowViewKey = 'showWindowView';
   private _showWindowView: boolean = true;
 
-  private _inputOverlayCollapsed: boolean = true; // Collapsed by default
-  private _resultsOverlayCollapsed: boolean = true; // Collapsed by default
+  private _inputOverlayCollapsed: boolean = false; // Open by default on desktop
+  private _resultsOverlayCollapsed: boolean = false; // Open by default on desktop
 
   // Key for input-overlay controls hidden
   private inputOverlayControlsKey = 'inputOverlayOtherControlsHidden';
@@ -116,14 +117,19 @@ export class SettingsService {
     const isMobile = window.innerWidth <= 768;
 
     // If no preference has been set yet, default to hidden
-    if (isMobile && localStorage.getItem(this.dateTimeOverlayMobileKey) === null) {
+    if (
+      isMobile &&
+      localStorage.getItem(this.dateTimeOverlayMobileKey) === null
+    ) {
       return false;
     }
     if (!isMobile && localStorage.getItem(this.dateTimeOverlayKey) === null) {
       return false;
     }
 
-    return isMobile ? this._showDateTimeOverlayMobile : this._showDateTimeOverlay;
+    return isMobile
+      ? this._showDateTimeOverlayMobile
+      : this._showDateTimeOverlay;
   }
 
   /** Whether the wind direction is shown */
@@ -243,6 +249,19 @@ export class SettingsService {
     localStorage.setItem('lastLon', value.toString());
   }
 
+  /**
+   * Set location (lat, lon) and address together atomically
+   * This ensures coordinates and address are always in sync
+   */
+  setLocationWithAddress(lat: number, lon: number, address: string): void {
+    this._lat = lat;
+    this._lon = lon;
+    this._currentAddress = address;
+    localStorage.setItem('lastLat', lat.toString());
+    localStorage.setItem('lastLon', lon.toString());
+    localStorage.setItem('currentAddress', address);
+  }
+
   get radius(): number | null {
     return this._radius;
   }
@@ -326,27 +345,28 @@ export class SettingsService {
     localStorage.setItem('mapZoom', value.toString());
   }
 
-  setCurrentLocation(lat: number, lon: number): void {
-    localStorage.setItem('currentLocation', JSON.stringify({ lat, lon }));
+  get currentAddress(): string | null {
+    return this._currentAddress;
   }
 
-  getCurrentLocation(): { lat: number; lon: number } | null {
-    const saved = localStorage.getItem('currentLocation');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return null;
-      }
+  setCurrentAddress(value: string | null): void {
+    this._currentAddress = value;
+    if (value) {
+      localStorage.setItem('currentAddress', value);
+    } else {
+      localStorage.removeItem('currentAddress');
     }
-    return null;
   }
 
-  setHomeLocation(lat: number, lon: number): void {
-    localStorage.setItem(this.homeLocationKey, JSON.stringify({ lat, lon }));
+  setHomeLocation(lat: number, lon: number, address?: string): void {
+    const homeData: any = { lat, lon };
+    if (address) {
+      homeData.address = address;
+    }
+    localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
   }
 
-  getHomeLocation(): { lat: number; lon: number } | null {
+  getHomeLocation(): { lat: number; lon: number; address?: string } | null {
     const saved = localStorage.getItem(this.homeLocationKey);
     if (saved) {
       try {
@@ -355,7 +375,12 @@ export class SettingsService {
         return null;
       }
     }
-    return null;
+    // Default home location: Berlin Brandenburg Airport (BER)
+    return {
+      lat: 52.3667,
+      lon: 13.5033,
+      address: 'Berlin Brandenburg Airport, Schönefeld, Germany',
+    };
   }
 
   /** Whether airport labels are permanently visible or only on hover */
@@ -505,6 +530,7 @@ export class SettingsService {
     const mapLat = parseFloat(localStorage.getItem('mapLat') || '');
     const mapLon = parseFloat(localStorage.getItem('mapLon') || '');
     const mapZoom = parseFloat(localStorage.getItem('mapZoom') || '');
+    const currentAddress = localStorage.getItem('currentAddress');
     if (!isNaN(lat)) {
       this._lat = lat;
     }
@@ -529,6 +555,9 @@ export class SettingsService {
     if (!isNaN(mapZoom)) {
       this._mapZoom = mapZoom;
     }
+    if (currentAddress) {
+      this._currentAddress = currentAddress;
+    }
     // Load seenCollapsed preference
     const seenStr = localStorage.getItem(this.seenCollapsedKey);
     if (seenStr !== null) {
@@ -549,25 +578,25 @@ export class SettingsService {
     if (dtMobileStr !== null) {
       this._showDateTimeOverlayMobile = dtMobileStr === 'true';
     }
-    
+
     // Load show/hide wind direction preference
     const windDirStr = localStorage.getItem(this.windDirectionKey);
     if (windDirStr !== null) {
       this._showWindDirection = windDirStr === 'true';
     }
-    
+
     // Load show/hide sun direction preference
     const sunDirStr = localStorage.getItem(this.sunDirectionKey);
     if (sunDirStr !== null) {
       this._showSunDirection = sunDirStr === 'true';
     }
-    
+
     // Load auto-location update preference
     const autoLocationStr = localStorage.getItem(this.useAutoLocationKey);
     if (autoLocationStr !== null) {
       this._useAutoLocation = autoLocationStr === 'true';
     }
-    
+
     // Load show/hide view axes (cones) preference
     const axesStr = localStorage.getItem(this.viewAxesKey);
     if (axesStr !== null) {
