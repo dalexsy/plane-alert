@@ -379,7 +379,7 @@ export class SettingsService {
     return {
       lat: 52.3667,
       lon: 13.5033,
-      address: 'Berlin Brandenburg Airport, Schönefeld, Germany'
+      address: 'Berlin Brandenburg Airport, Schönefeld, Germany',
     };
   }
 

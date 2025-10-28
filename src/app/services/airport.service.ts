@@ -88,7 +88,7 @@ export class AirportService {
     showLabels: boolean
   ): Promise<void> {
     // Check if location has meaningfully changed (>1km)
-    const locationChanged = 
+    const locationChanged =
       this.currentLat === null ||
       this.currentLon === null ||
       Math.abs(lat - this.currentLat) > 0.01 ||

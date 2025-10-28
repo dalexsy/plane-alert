@@ -92,8 +92,7 @@ export class PlaneLogService {
 
     // Sort sky list by firstSeen for display (newest bottom)
     visiblePlanes.sort((a, b) => a.firstSeen - b.firstSeen);
-    this.mapComponent.skyPlaneLog =
-      visiblePlanes as unknown as PlaneLogEntry[];
+    this.mapComponent.skyPlaneLog = visiblePlanes as unknown as PlaneLogEntry[];
 
     // Show planes at airports (those with assigned airportCode)
     const airportPlanes = visiblePlanes.filter((p) => p.airportCode != null);
