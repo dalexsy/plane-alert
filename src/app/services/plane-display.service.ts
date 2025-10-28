@@ -210,7 +210,8 @@ export class PlaneDisplayService {
     plane: PlaneModel,
     tooltipEl: HTMLElement | undefined
   ): void {
-    if (!tooltipEl || plane.altitude == null || !this.showAltitudeBorders) return;
+    if (!tooltipEl || plane.altitude == null || !this.showAltitudeBorders)
+      return;
 
     // Get altitude color from the service
     const altitudeColor = this.altitudeColorService.getFillColor(
@@ -227,7 +228,7 @@ export class PlaneDisplayService {
    */
   updateTooltipAltitudeBorders(planes: PlaneModel[], enabled: boolean): void {
     this.showAltitudeBorders = enabled; // Store the state
-    
+
     planes.forEach((plane) => {
       const tooltipEl = plane.marker?.getTooltip()?.getElement();
       if (!tooltipEl) return;

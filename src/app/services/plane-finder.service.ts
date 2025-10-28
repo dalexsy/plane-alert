@@ -799,7 +799,8 @@ export class PlaneFinderService {
         const tooltipEl = planeModel.marker.getTooltip()?.getElement();
         if (tooltipEl) {
           tooltipEl.classList.add('altitude-bordered-tooltip');
-          tooltipEl.style.borderColor = this.altitudeColor.getFillColor(altitude);
+          tooltipEl.style.borderColor =
+            this.altitudeColor.getFillColor(altitude);
         }
       }
     }
@@ -1242,7 +1243,8 @@ export class PlaneFinderService {
           const tooltipEl = marker.getTooltip()?.getElement();
           if (tooltipEl) {
             tooltipEl.classList.add('altitude-bordered-tooltip');
-            tooltipEl.style.borderColor = this.altitudeColor.getFillColor(altitude);
+            tooltipEl.style.borderColor =
+              this.altitudeColor.getFillColor(altitude);
           }
         }
 

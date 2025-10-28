@@ -539,7 +539,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
 
     // Initialize altitude borders state
-    this.planeDisplayService.setAltitudeBordersEnabled(this.uiState.showAltitudeBorders);
+    this.planeDisplayService.setAltitudeBordersEnabled(
+      this.uiState.showAltitudeBorders
+    );
 
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
     const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];

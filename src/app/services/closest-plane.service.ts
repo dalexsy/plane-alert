@@ -122,21 +122,24 @@ export class ClosestPlaneService {
     this.lastGeocodedLat = roundedLat;
     this.lastGeocodedLon = roundedLon;
 
-    this.geocodingCache.reverseGeocode(lat, lon).then((address) => {
-      // If geocoding returns coordinates (fallback), provide a more user-friendly message
-      if (address && /^\d+\.\d+,\s*\d+\.\d+$/.test(address.trim())) {
-        // This looks like coordinates, provide better context
+    this.geocodingCache
+      .reverseGeocode(lat, lon)
+      .then((address) => {
+        // If geocoding returns coordinates (fallback), provide a more user-friendly message
+        if (address && /^\d+\.\d+,\s*\d+\.\d+$/.test(address.trim())) {
+          // This looks like coordinates, provide better context
+          this.locationStreet = 'Location unavailable';
+          this.locationDistrict = 'Nearby area';
+        } else {
+          this.locationStreet = address;
+          this.locationDistrict = address;
+        }
+      })
+      .catch((error) => {
+        // If geocoding completely fails, provide fallback
         this.locationStreet = 'Location unavailable';
         this.locationDistrict = 'Nearby area';
-      } else {
-        this.locationStreet = address;
-        this.locationDistrict = address;
-      }
-    }).catch((error) => {
-      // If geocoding completely fails, provide fallback
-      this.locationStreet = 'Location unavailable';
-      this.locationDistrict = 'Nearby area';
-    });
+      });
   }
 
   /**

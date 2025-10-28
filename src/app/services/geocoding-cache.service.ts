@@ -78,10 +78,14 @@ export class GeocodingCacheService {
     return fetchPromise;
   }
 
-  private async performRequest(lat: number, lon: number, retryCount = 0): Promise<string> {
+  private async performRequest(
+    lat: number,
+    lon: number,
+    retryCount = 0
+  ): Promise<string> {
     console.log('Making geocoding API call for:', lat, lon);
     const maxRetries = 2;
-    
+
     try {
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
 
@@ -115,17 +119,23 @@ export class GeocodingCacheService {
       return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
     } catch (error: any) {
       // Retry logic for network/CORS issues
-      if (retryCount < maxRetries && (
-        error.message?.includes('Http failure response') ||
-        error.message?.includes('TimeoutError') ||
-        error.name === 'TimeoutError' ||
-        error.status === 0 // CORS/network error
-      )) {
-        console.warn(`Geocoding attempt ${retryCount + 1} failed, retrying...`, error.message);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+      if (
+        retryCount < maxRetries &&
+        (error.message?.includes('Http failure response') ||
+          error.message?.includes('TimeoutError') ||
+          error.name === 'TimeoutError' ||
+          error.status === 0) // CORS/network error
+      ) {
+        console.warn(
+          `Geocoding attempt ${retryCount + 1} failed, retrying...`,
+          error.message
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (retryCount + 1))
+        ); // Exponential backoff
         return this.performRequest(lat, lon, retryCount + 1);
       }
-      
+
       // Specific handling for CORS/network errors
       if (
         error.message &&
@@ -143,8 +153,10 @@ export class GeocodingCacheService {
 
       // Fallback to formatted coordinates so UI always has something meaningful
       // But make it more user-friendly by adding context
-      const fallbackCoords = `${lat.toFixed(this.COORDINATE_PRECISION)}, ${lon.toFixed(this.COORDINATE_PRECISION)}`;
-      
+      const fallbackCoords = `${lat.toFixed(
+        this.COORDINATE_PRECISION
+      )}, ${lon.toFixed(this.COORDINATE_PRECISION)}`;
+
       // Try to provide more context if we have a general location
       // For now, just return coordinates but could be enhanced with location context
       return fallbackCoords;

@@ -171,7 +171,12 @@ export class PlaneLogService {
           plane.icao,
           plane.model
         );
-        const iconData = getIconPathForModel(plane.model, plane.callsign, alt, isHelicopter);
+        const iconData = getIconPathForModel(
+          plane.model,
+          plane.callsign,
+          alt,
+          isHelicopter
+        );
         // Calculate scale, distance
         const distKm = haversineDistance(
           centerLat,
@@ -346,7 +351,7 @@ export class PlaneLogService {
       // then append marker entries
       ...markers,
     ];
-    
+
     // Update both the component directly and the map component's property for Angular binding
     if (this.windowViewOverlayComponent) {
       this.windowViewOverlayComponent.windowViewPlanes = mergedPlanes;
