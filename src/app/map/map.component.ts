@@ -574,11 +574,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         (dblLat, dblLng) => {
           // Use the current main radius for the update
           const currentMainRadius = this.settings.radius ?? 5;
-          
+
           // Set location immediately with placeholder address so forceScan uses the new coordinates
-          const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(4)}`;
-          this.settings.setLocationWithAddress(dblLat, dblLng, placeholderAddress);
-          
+          const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(
+            4
+          )}`;
+          this.settings.setLocationWithAddress(
+            dblLat,
+            dblLng,
+            placeholderAddress
+          );
+
           this.updateMap(dblLat, dblLng, currentMainRadius); // This will trigger airport search
 
           // Reverse geocode and update with real address
