@@ -194,6 +194,14 @@ export class AirportService {
                 this.toggleAirportColor(airportId);
               });
 
+              // Hover effects now handled by CSS :hover pseudo-class
+              // circle.on('mouseover', () => {
+              //   circle.setStyle({ fillOpacity: 0.7 });
+              // });
+              // circle.on('mouseout', () => {
+              //   circle.setStyle({ fillOpacity: 0.3 });
+              // });
+
               // Always bind tooltip; use `permanent` to show/hide labels
               circle.bindTooltip(name, {
                 direction: 'center',
@@ -335,7 +343,7 @@ export class AirportService {
 
       // Increase opacity of all airport circles after resizing
       this.airportCircles.forEach((circle) =>
-        circle.setStyle({ fillOpacity: 0.6 })
+        circle.setStyle({ fillOpacity: 0.3 })
       );
 
       // Hide loading indicator inside Angular zone

@@ -82,14 +82,19 @@ app-map.map-panning app-input-overlay {
   // Remove native focus ring when clicking on airport circles
   outline: none !important;
 
-  // Add subtle hover effect
-  &:hover {
-    cursor: pointer;
-    opacity: 0.8;
-  }
+  // Normal opacity (dimmed)
+  fill-opacity: 0.3;
 
-  // Ensure smooth interaction
-  transition: opacity 0.2s ease;
+  // Hover effects
+  cursor: pointer;
+
+  // Transition only for mouseout (ease-out) - not applied on hover
+  transition: fill-opacity 0.1s ease;
+}
+
+.airport-radius:hover {
+  // Hover opacity (moderately bright) - instant change, no transition
+  fill-opacity: 0.5;
 }
 
 .overlay-container {

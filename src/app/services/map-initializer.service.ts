@@ -59,13 +59,13 @@ export class MapInitializerService {
         overlaySvg,
         'airportStripedPatternCyan',
         'cyan',
-        0.5
+        1.0
       );
       ensureStripedPattern(
         overlaySvg,
         'airportStripedPatternGold',
         'gold',
-        0.5
+        1.0
       );
     }
 
