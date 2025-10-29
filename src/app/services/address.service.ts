@@ -54,7 +54,7 @@ export class AddressService {
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        `/nominatim/search?format=json&q=${encodeURIComponent(
           address
         )}`,
         {

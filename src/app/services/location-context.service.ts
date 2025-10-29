@@ -344,7 +344,7 @@ export class LocationContextService {
    * Geocode an address string to coordinates
    */
   async geocodeAddress(address: string): Promise<GeocodeResult> {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+    const url = `/nominatim/search?format=json&q=${encodeURIComponent(
       address
     )}`;
 

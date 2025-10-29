@@ -45,6 +45,7 @@
   (excludeDiscountChange)="onExcludeDiscountChange()"
   (useCurrentLocation)="useCurrentLocation()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
+  (coneConfigChange)="onConeConfig()"
   (cloudToggleChange)="toggleCloudCover($event)"
   (rainToggleChange)="toggleRainCover($event)"
   (setHome)="setCurrentAsHome()"
@@ -138,8 +139,16 @@
 <app-cone
   *ngIf="map && coneVisible"
   [map]="map"
-  [lat]="currentLat"
-  [lon]="currentLon"
+  [lat]="isAtHome && homeLocationValue ? homeLocationValue.lat : currentLat"
+  [lon]="isAtHome && homeLocationValue ? homeLocationValue.lon : currentLon"
   [distanceKm]="radiusKm"
-  [isAtHome]="isAtHome"
-></app-cone>
+  [viewCones]="isAtHome ? viewConesConfig : []">
+</app-cone>
+
+<!-- Cone Configuration Editor (temporary placement) -->
+<app-cone-config-editor
+  *ngIf="showConeConfigEditor"
+  [cones]="viewConesConfig"
+  (conesChange)="onConeConfigChange($event)"
+  (closeEditor)="onConeConfig()">
+</app-cone-config-editor>

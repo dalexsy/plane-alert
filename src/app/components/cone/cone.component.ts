@@ -10,6 +10,12 @@ import {
 import * as L from 'leaflet';
 import { AltitudeColorService } from '../../services/altitude-color.service';
 
+export interface ViewConeConfig {
+  startAngle: number;
+  endAngle: number;
+  label: string;
+}
+
 @Component({
   selector: 'app-cone',
   template: '',
@@ -22,7 +28,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
   @Input() lon!: number;
   @Input() opacity: number = 1;
   @Input() distanceKm!: number; // Maximum radius (search area)
-  @Input() isAtHome: boolean = true; // Whether the cone is at the home location
+  @Input() viewCones: ViewConeConfig[] = []; // Configuration for view cones
 
   private visualCones: L.Polygon[] = [];
   private arcElements: { path: SVGPathElement; textGroup: SVGElement }[] = [];
@@ -47,13 +53,13 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // Update opacity when it changes
     if ('opacity' in changes && this.mapInitialized) {
       this.updateOpacity();
-    } // Redraw cones if position, distance, or home status changes
+    } // Redraw cones if position, distance, or view cones change
     if (
       this.mapInitialized &&
       (changes['lat'] ||
         changes['lon'] ||
         changes['distanceKm'] ||
-        changes['isAtHome'])
+        changes['viewCones'])
     ) {
       this.debouncedDrawCones();
     }
@@ -94,6 +100,8 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // Clean up cones and arcs
     this.visualCones.forEach((cone) => this.map?.removeLayer(cone));
     this.visualCones = [];
+    
+    // Clean up SVG elements
     const svg = this.map?.getPanes().overlayPane.querySelector('svg');
     if (svg) {
       this.arcElements.forEach(({ path, textGroup }) => {
@@ -190,17 +198,18 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // 5. Assign colors based on these calculated practical altitudes
     visibilityBands.forEach((band) => {
       band.color = this.altitudeColor.getFillColor(band.practicalAltM);
-    }); // --- Drawing Logic ---
+    });
+    // --- Drawing Logic ---
     let angles: { start: number; end: number }[];
 
-    if (this.isAtHome) {
-      // At home location: show specific cone sections for Balcony and Streetside
-      angles = [
-        { start: 75, end: 190 }, // Balcony view
-        { start: 245, end: 345 }, // Streetside view
-      ];
+    if (this.viewCones && this.viewCones.length > 0) {
+      // Use configured view cones
+      angles = this.viewCones.map(cone => ({
+        start: cone.startAngle,
+        end: cone.endAngle
+      }));
     } else {
-      // Away from home: show full circular bands
+      // Fallback to full circular bands if no cones configured
       angles = [
         { start: 0, end: 360 }, // Full 360-degree view
       ];
@@ -221,13 +230,14 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
           end,
           band.innerKm,
           band.outerKm
-        ); // Style each segment - same styling for both home and away
+        );
+        // Style each segment - same styling for all cones
         segment.setStyle({
           color: bandColor,
           fillColor: bandColor,
           fillOpacity: 0.2 * this.opacity,
-          weight: this.isAtHome ? 1.5 : 0.8, // Thinner border when away from home
-          opacity: 0.6 * this.opacity, // Border opacity same as home for full rings
+          weight: 1.5, // Consistent border weight
+          opacity: 0.6 * this.opacity,
           stroke: true,
         });
         segment.addTo(this.map);
@@ -237,22 +247,17 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     }); // Prevent clipping of labels outside SVG bounds
     svg.style.overflow = 'visible';
 
-    // Draw custom text arcs for labels on the third cone ring (20km) - only when at home
-    if (this.isAtHome) {
+    // Draw custom text arcs for labels on the third cone ring (20km) - when cones are configured
+    if (this.viewCones && this.viewCones.length > 0) {
       const ringRadiusKm = distancesKm[1];
-      const labelAngles = [
-        { start: 75, end: 190 }, // Balcony view
-        { start: 245, end: 345 }, // Streetside view
-      ];
 
-      labelAngles.forEach(({ start, end }, idx) => {
-        const midStart = start - 10;
-        const midEnd = end + 10;
-        const label = idx === 0 ? 'Balcony' : 'Streetside';
+      this.viewCones.forEach((cone, idx) => {
+        const midStart = cone.startAngle - 10;
+        const midEnd = cone.endAngle + 10;
         // White text color for contrast
         this.addTextArc(
           svg,
-          label,
+          cone.label,
           this.lat,
           this.lon,
           midStart,

@@ -55,6 +55,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() resolveAndUpdate = new EventEmitter<void>();
   @Output() useCurrentLocation = new EventEmitter<void>();
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
+  @Output() coneConfigChange = new EventEmitter<void>();
   @Output() setHome = new EventEmitter<void>();
   @Output() goToHome = new EventEmitter<void>();
   @Input() showCloudCover = true;
@@ -317,6 +318,10 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.animationsEnabledChange.emit(this.animationsEnabled);
   }
 
+  onConeConfig(): void {
+    this.coneConfigChange.emit();
+  }
+
   /** Get brightness button icon based on current state */
   get brightnessIcon(): string {
     if (!this.brightnessState) return 'brightness_empty';
@@ -421,6 +426,11 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Get view axes toggle tooltip text */
   get viewAxesTooltip(): string {
     return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
+  }
+
+  /** Get cone config tooltip text */
+  get coneConfigTooltip(): string {
+    return 'Configure view cones';
   }
 
   /** Get animations toggle tooltip text */

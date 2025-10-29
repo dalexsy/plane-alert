@@ -14,10 +14,12 @@ interface CacheEntry {
 })
 export class GeocodingCacheService {
   private cache = new Map<string, CacheEntry>();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  private readonly COORDINATE_PRECISION = 3; // ~100m precision
+  private readonly CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache duration
+  private readonly COORDINATE_PRECISION = 1; // 1 decimal place = ~10km precision
   private lastRequestTime = 0;
-  private readonly MIN_REQUEST_INTERVAL = 100; // Minimum 100ms between requests
+  private readonly MIN_REQUEST_INTERVAL = 5000; // Minimum 5 seconds between requests (Nominatim requires 1 req/sec max)
+  private requestQueue: Array<() => void> = []; // Queue for rate-limited requests
+  private isProcessingQueue = false;
 
   constructor(private ngZone: NgZone, private http: HttpClient) {
     // Periodically purge expired entries outside Angular to avoid CD overhead
@@ -136,8 +138,12 @@ export class GeocodingCacheService {
         return this.performRequest(lat, lon, retryCount + 1);
       }
 
-      // Specific handling for CORS/network errors
-      if (
+      // Specific handling for rate limiting (403) and network errors
+      if (error.status === 403) {
+        console.warn(
+          'Geocoding rate limited (403). Caching will reduce future requests.'
+        );
+      } else if (
         error.message &&
         (error.message.includes('Http failure response') ||
           error.message.includes('TimeoutError') ||
@@ -145,21 +151,24 @@ export class GeocodingCacheService {
           error.status === 0)
       ) {
         console.warn(
-          'Geocoding request timed out or failed (likely CORS/network issue in localhost). Using coordinates fallback.'
+          'Geocoding request timed out or failed (network issue).'
         );
       } else {
         console.warn('Geocoding failed:', error);
       }
 
-      // Fallback to formatted coordinates so UI always has something meaningful
-      // But make it more user-friendly by adding context
-      const fallbackCoords = `${lat.toFixed(
-        this.COORDINATE_PRECISION
-      )}, ${lon.toFixed(this.COORDINATE_PRECISION)}`;
-
-      // Try to provide more context if we have a general location
-      // For now, just return coordinates but could be enhanced with location context
-      return fallbackCoords;
+      // Return a user-friendly fallback instead of coordinates
+      // This will be cached to prevent repeated failed requests
+      const nearbyAreaText = 'Nearby area';
+      
+      // Cache the fallback so we don't keep retrying
+      const cacheKey = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(this.COORDINATE_PRECISION)}`;
+      this.cache.set(cacheKey, { 
+        address: nearbyAreaText, 
+        timestamp: Date.now() 
+      });
+      
+      return nearbyAreaText;
     }
   }
 

@@ -16,6 +16,7 @@ import * as L from 'leaflet';
 import { haversineDistance, computeBearing } from '../utils/geo-utils';
 import { RadiusComponent } from '../components/radius/radius.component';
 import { ConeComponent } from '../components/cone/cone.component';
+import { ConeConfigEditorComponent } from '../components/cone-config-editor/cone-config-editor.component';
 import { InputOverlayComponent } from '../components/input-overlay/input-overlay.component';
 import {
   ResultsOverlayComponent,
@@ -30,7 +31,7 @@ import { PlaneFinderService } from '../services/plane-finder.service';
 import { PlaneFilterService } from '../services/plane-filter.service';
 import { AircraftDbService } from '../services/aircraft-db.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
-import { SettingsService } from '../services/settings.service';
+import { SettingsService, ViewConeConfig } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
 import {
   playAlertSound,
@@ -120,6 +121,7 @@ const MINOR_AIRPORT_RADIUS_KM = 1;
   imports: [
     CommonModule,
     ConeComponent,
+    ConeConfigEditorComponent,
     InputOverlayComponent,
     ResultsOverlayComponent,
     ClockComponent,
@@ -235,6 +237,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private currentFaviconUrl: string = '';
   // Set of ICAOs for planes currently active on the map
   activePlaneIcaos = new Set<string>();
+
+  // Cone configuration editor visibility
+  showConeConfigEditor = false;
+  
+  // View cones configuration (stored as property for change detection)
+  viewConesConfig: ViewConeConfig[] = [];
 
   // New properties for closest-plane overlay
   closestPlane: PlaneModel | null = null;
@@ -381,6 +389,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private planeFiltering: PlaneFilteringService,
     private environmentalData: EnvironmentalDataService
   ) {
+    // Initialize view cones configuration from settings
+    this.viewConesConfig = this.settings.viewConesConfig;
+    
     // Initialize UI toggles from stored settings - now handled by UiStateService
     // this.cloudVisible = this.settings.showCloudCover;
     // this.rainVisible = this.settings.showRainCover;
@@ -1503,6 +1514,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Show or hide cones regardless of current map view, always anchored at home
     this.uiState.setConeVisibility(show);
     this.settings.setShowViewAxes(show);
+    // Trigger change detection to update the template
+    this.cdr.detectChanges();
+  }
+
+  onConeConfigChange(cones: ViewConeConfig[]): void {
+    this.settings.setViewConesConfig(cones);
+    // Update local property to trigger change detection
+    this.viewConesConfig = [...cones];
+    // Trigger change detection to update the cone display
+    this.cdr.detectChanges();
+  }
+
+  onConeConfig(): void {
+    // Toggle cone config editor visibility
+    this.showConeConfigEditor = !this.showConeConfigEditor;
   }
 
   /** Adjust cloud layer opacity */

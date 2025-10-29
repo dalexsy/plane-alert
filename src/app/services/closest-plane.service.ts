@@ -22,7 +22,7 @@ export class ClosestPlaneService {
   // Track last geocoded position to avoid redundant API calls
   private lastGeocodedLat: number | null = null;
   private lastGeocodedLon: number | null = null;
-  private readonly GEOCODE_PRECISION = 3; // Only geocode if position changes by ~100m
+  private readonly GEOCODE_PRECISION = 1; // Only geocode if position changes by ~10km
 
   constructor(
     private settings: SettingsService,
@@ -122,14 +122,15 @@ export class ClosestPlaneService {
     this.lastGeocodedLat = roundedLat;
     this.lastGeocodedLon = roundedLon;
 
+    // Use cached geocoding with aggressive rate limiting
     this.geocodingCache
       .reverseGeocode(lat, lon)
       .then((address) => {
         // If geocoding returns coordinates (fallback), provide a more user-friendly message
         if (address && /^\d+\.\d+,\s*\d+\.\d+$/.test(address.trim())) {
           // This looks like coordinates, provide better context
-          this.locationStreet = 'Location unavailable';
-          this.locationDistrict = 'Nearby area';
+          this.locationStreet = 'Location data unavailable';
+          this.locationDistrict = null;
         } else {
           this.locationStreet = address;
           this.locationDistrict = address;
@@ -137,8 +138,8 @@ export class ClosestPlaneService {
       })
       .catch((error) => {
         // If geocoding completely fails, provide fallback
-        this.locationStreet = 'Location unavailable';
-        this.locationDistrict = 'Nearby area';
+        this.locationStreet = 'Location data unavailable';
+        this.locationDistrict = null;
       });
   }
 

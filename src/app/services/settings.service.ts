@@ -1,6 +1,12 @@
 /* src/app/services/settings.service.ts */
 import { Injectable, EventEmitter } from '@angular/core';
 
+export interface ViewConeConfig {
+  startAngle: number;
+  endAngle: number;
+  label: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -93,6 +99,13 @@ export class SettingsService {
   private _resultsOverlayOtherControlsHidden: boolean = false;
   // Event when results-overlay other controls are hidden/shown
   resultsOverlayControlsChanged = new EventEmitter<boolean>();
+
+  // Key and backing store for view cones configuration
+  private viewConesKey = 'viewConesConfig';
+  private _viewConesConfig: ViewConeConfig[] = [
+    { startAngle: 75, endAngle: 190, label: 'Balcony' },
+    { startAngle: 245, endAngle: 345, label: 'Streetside' }
+  ];
 
   /** Whether the date/time overlays are shown */
   get showDateTimeOverlay(): boolean {
@@ -497,6 +510,17 @@ export class SettingsService {
     localStorage.setItem(this.windowViewKey, value.toString());
   }
 
+  /** Get view cones configuration */
+  get viewConesConfig(): ViewConeConfig[] {
+    return [...this._viewConesConfig];
+  }
+
+  /** Set view cones configuration */
+  setViewConesConfig(config: ViewConeConfig[]): void {
+    this._viewConesConfig = [...config];
+    localStorage.setItem(this.viewConesKey, JSON.stringify(config));
+  }
+
   load(): void {
     // Load airport labels visibility preference
     const labelsStr = localStorage.getItem(this.airportLabelsKey);
@@ -655,6 +679,16 @@ export class SettingsService {
     );
     if (resultsControlsStr !== null) {
       this._resultsOverlayOtherControlsHidden = resultsControlsStr === 'true';
+    }
+
+    // Load view cones configuration
+    const conesConfigStr = localStorage.getItem(this.viewConesKey);
+    if (conesConfigStr !== null) {
+      try {
+        this._viewConesConfig = JSON.parse(conesConfigStr);
+      } catch {
+        // Keep default config if parsing fails
+      }
     }
   }
 }
