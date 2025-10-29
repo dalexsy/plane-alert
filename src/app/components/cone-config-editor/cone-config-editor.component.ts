@@ -13,7 +13,7 @@ export interface ViewConeConfig {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './cone-config-editor.component.html',
-  styleUrl: './cone-config-editor.component.scss'
+  styleUrl: './cone-config-editor.component.scss',
 })
 export class ConeConfigEditorComponent {
   @Input() cones: ViewConeConfig[] = [];
@@ -21,7 +21,10 @@ export class ConeConfigEditorComponent {
   @Output() closeEditor = new EventEmitter<void>();
 
   addCone(): void {
-    this.cones = [...this.cones, { startAngle: 0, endAngle: 90, label: 'New View' }];
+    this.cones = [
+      ...this.cones,
+      { startAngle: 0, endAngle: 90, label: 'New View' },
+    ];
     this.conesChange.emit(this.cones);
   }
 
@@ -31,11 +34,15 @@ export class ConeConfigEditorComponent {
   }
 
   updateCone(index: number, cone: ViewConeConfig): void {
-    this.cones = this.cones.map((c, i) => i === index ? cone : c);
+    this.cones = this.cones.map((c, i) => (i === index ? cone : c));
     this.conesChange.emit(this.cones);
   }
 
-  onConeChange(index: number, field: keyof ViewConeConfig, value: string | number): void {
+  onConeChange(
+    index: number,
+    field: keyof ViewConeConfig,
+    value: string | number
+  ): void {
     const updatedCone = { ...this.cones[index], [field]: value };
     this.updateCone(index, updatedCone);
   }

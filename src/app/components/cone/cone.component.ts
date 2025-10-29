@@ -100,7 +100,7 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
     // Clean up cones and arcs
     this.visualCones.forEach((cone) => this.map?.removeLayer(cone));
     this.visualCones = [];
-    
+
     // Clean up SVG elements
     const svg = this.map?.getPanes().overlayPane.querySelector('svg');
     if (svg) {
@@ -204,9 +204,9 @@ export class ConeComponent implements OnChanges, OnDestroy, OnInit {
 
     if (this.viewCones && this.viewCones.length > 0) {
       // Use configured view cones
-      angles = this.viewCones.map(cone => ({
+      angles = this.viewCones.map((cone) => ({
         start: cone.startAngle,
-        end: cone.endAngle
+        end: cone.endAngle,
       }));
     } else {
       // Fallback to full circular bands if no cones configured

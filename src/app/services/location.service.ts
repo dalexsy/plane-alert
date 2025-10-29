@@ -77,15 +77,10 @@ export class LocationService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      fetch(
-        `/nominatim/search?format=json&q=${encodeURIComponent(
-          address
-        )}`,
-        {
-          signal: controller.signal,
-          headers: { 'User-Agent': 'PlaneAlert/1.0' },
-        }
-      )
+      fetch(`/nominatim/search?format=json&q=${encodeURIComponent(address)}`, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'PlaneAlert/1.0' },
+      })
         .then((res) => {
           clearTimeout(timeoutId);
           if (!res.ok) {

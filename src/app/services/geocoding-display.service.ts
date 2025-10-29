@@ -42,9 +42,7 @@ export class GeocodingDisplayService {
   ): Promise<{ lat: number; lon: number } | null> {
     try {
       const response = await fetch(
-        `/nominatim/search?format=json&q=${encodeURIComponent(
-          address
-        )}`,
+        `/nominatim/search?format=json&q=${encodeURIComponent(address)}`,
         {
           headers: { 'User-Agent': 'PlaneAlert/1.0' },
         }

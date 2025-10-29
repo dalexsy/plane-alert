@@ -104,7 +104,7 @@ export class SettingsService {
   private viewConesKey = 'viewConesConfig';
   private _viewConesConfig: ViewConeConfig[] = [
     { startAngle: 75, endAngle: 190, label: 'Balcony' },
-    { startAngle: 245, endAngle: 345, label: 'Streetside' }
+    { startAngle: 245, endAngle: 345, label: 'Streetside' },
   ];
 
   /** Whether the date/time overlays are shown */

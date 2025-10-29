@@ -240,7 +240,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   // Cone configuration editor visibility
   showConeConfigEditor = false;
-  
+
   // View cones configuration (stored as property for change detection)
   viewConesConfig: ViewConeConfig[] = [];
 
@@ -391,7 +391,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   ) {
     // Initialize view cones configuration from settings
     this.viewConesConfig = this.settings.viewConesConfig;
-    
+
     // Initialize UI toggles from stored settings - now handled by UiStateService
     // this.cloudVisible = this.settings.showCloudCover;
     // this.rainVisible = this.settings.showRainCover;

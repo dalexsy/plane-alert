@@ -54,9 +54,7 @@ export class AddressService {
 
     try {
       const response = await fetch(
-        `/nominatim/search?format=json&q=${encodeURIComponent(
-          address
-        )}`,
+        `/nominatim/search?format=json&q=${encodeURIComponent(address)}`,
         {
           signal: controller.signal,
           headers: { 'User-Agent': 'PlaneAlert/1.0' },

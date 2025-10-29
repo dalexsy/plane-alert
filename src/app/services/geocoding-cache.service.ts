@@ -150,9 +150,7 @@ export class GeocodingCacheService {
           error.name === 'TimeoutError' ||
           error.status === 0)
       ) {
-        console.warn(
-          'Geocoding request timed out or failed (network issue).'
-        );
+        console.warn('Geocoding request timed out or failed (network issue).');
       } else {
         console.warn('Geocoding failed:', error);
       }
@@ -160,14 +158,16 @@ export class GeocodingCacheService {
       // Return a user-friendly fallback instead of coordinates
       // This will be cached to prevent repeated failed requests
       const nearbyAreaText = 'Nearby area';
-      
+
       // Cache the fallback so we don't keep retrying
-      const cacheKey = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(this.COORDINATE_PRECISION)}`;
-      this.cache.set(cacheKey, { 
-        address: nearbyAreaText, 
-        timestamp: Date.now() 
+      const cacheKey = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(
+        this.COORDINATE_PRECISION
+      )}`;
+      this.cache.set(cacheKey, {
+        address: nearbyAreaText,
+        timestamp: Date.now(),
       });
-      
+
       return nearbyAreaText;
     }
   }

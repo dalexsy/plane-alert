@@ -1,14 +1,20 @@
 <div class="cone-config-editor">
   <div class="header">
     <h3>View Cone Configuration</h3>
-    <button type="button" class="close-btn" (click)="close()" title="Close">✕</button>
+    <button type="button" class="close-btn" (click)="close()" title="Close">
+      ✕
+    </button>
   </div>
   <p class="description">
-    Configure the viewing angles and labels for your location. Each cone represents a direction you can see planes from.
+    Configure the viewing angles and labels for your location. Each cone
+    represents a direction you can see planes from.
   </p>
 
   <div class="cones-list">
-    <div class="cone-item" *ngFor="let cone of cones; let i = index; trackBy: trackByIndex">
+    <div
+      class="cone-item"
+      *ngFor="let cone of cones; let i = index; trackBy: trackByIndex"
+    >
       <div class="cone-fields">
         <div class="field-group">
           <label>Label:</label>
@@ -64,8 +70,17 @@
   </div>
 
   <div class="help-text">
-    <p><strong>Angles:</strong> 0° = North, 90° = East, 180° = South, 270° = West</p>
-    <p><strong>Tip:</strong> Most buildings have 4 sides. Consider 90° arcs for each direction.</p>
-    <p><strong>Note:</strong> Configured view cones are only shown when you're at your home location. At other locations, full 360° circular bands are displayed instead.</p>
+    <p>
+      <strong>Angles:</strong> 0° = North, 90° = East, 180° = South, 270° = West
+    </p>
+    <p>
+      <strong>Tip:</strong> Most buildings have 4 sides. Consider 90° arcs for
+      each direction.
+    </p>
+    <p>
+      <strong>Note:</strong> Configured view cones are only shown when you're at
+      your home location. At other locations, full 360° circular bands are
+      displayed instead.
+    </p>
   </div>
 </div>

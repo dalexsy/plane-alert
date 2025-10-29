@@ -142,7 +142,8 @@
   [lat]="isAtHome && homeLocationValue ? homeLocationValue.lat : currentLat"
   [lon]="isAtHome && homeLocationValue ? homeLocationValue.lon : currentLon"
   [distanceKm]="radiusKm"
-  [viewCones]="isAtHome ? viewConesConfig : []">
+  [viewCones]="isAtHome ? viewConesConfig : []"
+>
 </app-cone>
 
 <!-- Cone Configuration Editor (temporary placement) -->
@@ -150,5 +151,6 @@
   *ngIf="showConeConfigEditor"
   [cones]="viewConesConfig"
   (conesChange)="onConeConfigChange($event)"
-  (closeEditor)="onConeConfig()">
+  (closeEditor)="onConeConfig()"
+>
 </app-cone-config-editor>
