@@ -1224,7 +1224,11 @@ export class PlaneFinderService {
           customPlaneIcon,
           isMilitary,
           model,
-          this.helicopterIdentificationService.isHelicopter(id, model),
+          this.helicopterIdentificationService.isHelicopter(
+            id,
+            model,
+            operator
+          ),
           isSpecial,
           isUnknown,
           altitude,

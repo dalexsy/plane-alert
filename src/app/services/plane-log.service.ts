@@ -169,7 +169,8 @@ export class PlaneLogService {
         const y = (Math.min(alt, 20000) / 20000) * 100;
         const isHelicopter = this.helicopterIdentificationService.isHelicopter(
           plane.icao,
-          plane.model
+          plane.model,
+          plane.operator
         );
         const iconData = getIconPathForModel(
           plane.model,
@@ -234,7 +235,8 @@ export class PlaneLogService {
           iconType: iconData.iconType,
           isHelicopter: this.helicopterIdentificationService.isHelicopter(
             plane.icao,
-            plane.model
+            plane.model,
+            plane.operator
           ),
           velocity: plane.velocity ?? 0,
           verticalRate:
