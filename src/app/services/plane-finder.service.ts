@@ -1,7 +1,5 @@
-// src/app/services/plane-finder.service.ts
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
-import * as turf from '@turf/turf';
 import {
   haversineDistance,
   computeBearing,
@@ -33,6 +31,10 @@ import { MilitaryPrefixService } from './military-prefix.service';
 import { AltitudeColorService } from '../services/altitude-color.service';
 import { HelicopterIdentificationService } from './helicopter-identification.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
+import {
+  AircraftDbService,
+  AircraftRecord,
+} from '../services/aircraft-db.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -97,7 +99,8 @@ export class PlaneFinderService {
     private altitudeColor: AltitudeColorService,
     private aircraftCountryService: AircraftCountryService,
     private helicopterIdentificationService: HelicopterIdentificationService,
-    private operatorTooltipService: OperatorTooltipService
+    private operatorTooltipService: OperatorTooltipService,
+    private aircraftDb: AircraftDbService
   ) {
     // Subscribe to unit changes to update all existing tooltips
     this.settings.distanceUnitChanged.subscribe(() => {
@@ -321,17 +324,21 @@ export class PlaneFinderService {
         // Apply very light smoothing only for curved paths, skip for straight paths
         if (usesTurnRate && pathPoints.length >= 4) {
           try {
-            const line = turf.lineString(
-              pathPoints.map(([lat, lon]) => [lon, lat])
-            );
-            const spline = turf.bezierSpline(line, {
-              resolution: pathPoints.length * 2, // Less aggressive resolution
-              sharpness: 0.5, // Much less aggressive sharpness
-            });
-            pathPoints = spline.geometry.coordinates.map(([lon, lat]) => [
-              lat,
-              lon,
-            ]);
+            // Simple linear interpolation instead of complex bezier spline
+            // This reduces bundle size significantly while still providing some smoothing
+            const smoothedPoints: [number, number][] = [pathPoints[0]];
+            for (let i = 1; i < pathPoints.length - 1; i++) {
+              const prev = pathPoints[i - 1];
+              const curr = pathPoints[i];
+              const next = pathPoints[i + 1];
+
+              // Simple average smoothing
+              const smoothedLat = (prev[0] + curr[0] + next[0]) / 3;
+              const smoothedLon = (prev[1] + curr[1] + next[1]) / 3;
+              smoothedPoints.push([smoothedLat, smoothedLon]);
+            }
+            smoothedPoints.push(pathPoints[pathPoints.length - 1]);
+            pathPoints = smoothedPoints;
           } catch (e) {
             // Keep original points if smoothing fails
             console.warn('Path smoothing failed, using original points');
@@ -1040,7 +1047,26 @@ export class PlaneFinderService {
         const operator = prefixOperator ?? (dbAircraft?.ownop || '');
         const model = dbAircraft?.model || '';
         planeModelInstance.model = model;
-        planeModelInstance.operator = operator; // Log unknown countries for mapping purposes (including potentially wrong military assignments)
+        planeModelInstance.operator = operator;
+
+        // Automatically add truly unknown aircraft to database
+        if (!dbAircraft) {
+          const aircraftRecord: AircraftRecord = {
+            icao: id,
+            reg: reg || id,
+            icaotype: 'Unknown',
+            year: '',
+            manufacturer: '',
+            model: model || 'Unknown',
+            ownop: operator || 'Unknown',
+            faa_pia: false,
+            faa_ladd: false,
+            short_type: model || 'Unknown',
+            mil: isMilitary,
+          };
+          this.aircraftDb.addRecord(aircraftRecord);
+        }
+        // Log unknown countries for mapping purposes (including potentially wrong military assignments)
         if (
           (origin === 'Unknown' || (isMilitary && origin !== 'Unknown')) &&
           !this.loggedUnknownCountries.has(id)

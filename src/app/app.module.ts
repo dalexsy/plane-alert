@@ -6,13 +6,9 @@ import { ConeConfigEditorComponent } from './components/cone-config-editor/cone-
 @NgModule({
   declarations: [
     // AppComponent, // REMOVE THIS LINE
-  
-    ConeConfigEditorComponent
   ],
-  imports: [
-    BrowserModule,
-  ],
+  imports: [BrowserModule, ConeConfigEditorComponent],
   providers: [],
   // bootstrap: [AppComponent] // REMOVE THIS LINE
 })
-export class AppModule { }
+export class AppModule {}

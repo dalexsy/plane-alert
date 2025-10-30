@@ -315,9 +315,10 @@ export function createOrUpdatePlaneMarker(
     oldMarker.off('tooltipopen');
     oldMarker.off('tooltipclose');
 
-    // Add new marker listeners
+    // Add marker listeners
     oldMarker.on('mouseover', bringForwardHandler);
     oldMarker.on('mouseout', sendBackwardHandler);
+    // Removed contextmenu handler - right-click now handled by plane list items
 
     // Add new tooltip listeners via tooltipopen/close
     oldMarker.on('tooltipopen', () => {
@@ -385,6 +386,7 @@ export function createOrUpdatePlaneMarker(
     // Add marker listeners
     marker.on('mouseover', bringForwardHandler);
     marker.on('mouseout', sendBackwardHandler);
+    // Removed contextmenu handler - right-click now handled by plane list items
 
     // Add tooltip listeners via tooltipopen/close
     marker.on('tooltipopen', () => {

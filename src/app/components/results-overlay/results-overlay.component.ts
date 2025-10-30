@@ -29,6 +29,7 @@ import { MilitaryPrefixService } from '../../services/military-prefix.service';
 import { PlaneFollowService } from '../../services/plane-follow.service';
 import { AutoFollowService } from '../../services/auto-follow.service';
 import { FollowCoordinatorService } from '../../services/follow-coordinator.service';
+import { OperatorCallSignService } from '../../services/operator-call-sign.service';
 import { haversineDistance } from '../../utils/geo-utils';
 import {
   trigger,
@@ -123,7 +124,8 @@ export class ResultsOverlayComponent
     private militaryPrefixService: MilitaryPrefixService,
     private planeFollowService: PlaneFollowService,
     private autoFollowService: AutoFollowService,
-    private followCoordinatorService: FollowCoordinatorService
+    private followCoordinatorService: FollowCoordinatorService,
+    private operatorCallSignService: OperatorCallSignService
   ) {
     this.specialListService.specialListUpdated$.subscribe(() => {
       this.resultsUpdated = true;

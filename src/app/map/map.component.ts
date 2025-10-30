@@ -1,4 +1,25 @@
 // src/app/map/map.component.ts
+
+/**
+ * ⚠️  WARNING: COMPONENT SIZE LIMIT EXCEEDED ⚠️
+ *
+ * This component has grown excessively large (>2000 lines) and violates single responsibility principle.
+ * It handles too many concerns: map management, plane tracking, weather overlays, UI state,
+ * location services, astronomical calculations, and more.
+ *
+ * 🚫 DO NOT ADD ANY MORE FUNCTIONALITY TO THIS COMPONENT 🚫
+ *
+ * Instead, create separate services or components for new features:
+ * - Services: For business logic, data management, API calls
+ * - Components: For UI concerns, overlays, specialized displays
+ * - Extract existing functionality into dedicated services when refactoring
+ *
+ * Recent cleanup removed ~100 lines of context menu code that should have been
+ * in a separate component/service. Don't repeat this mistake.
+ *
+ * Refactoring priority: Break this into smaller, focused components and services.
+ */
+
 import {
   Component,
   AfterViewInit,
@@ -29,7 +50,10 @@ import { PlaneDisplayService } from '../services/plane-display.service';
 import { AstronomicalService } from '../services/astronomical.service';
 import { PlaneFinderService } from '../services/plane-finder.service';
 import { PlaneFilterService } from '../services/plane-filter.service';
-import { AircraftDbService } from '../services/aircraft-db.service';
+import {
+  AircraftDbService,
+  AircraftRecord,
+} from '../services/aircraft-db.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
 import { SettingsService, ViewConeConfig } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
@@ -468,12 +492,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       });
     }); // Add global click handler for tooltip follow
     window.addEventListener('click', this.globalTooltipClickHandler);
+
+    // Listen for plane marker right-click events
+    // Removed - right-click now handled by plane list items
   }
 
-  /** Toggle map brightness between normal and dimmed */ public toggleBrightness(): void {
-    // Toggle between automatic and manual brightness modes
-    this.brightnessService.toggleMode();
-  }
+  /** Handle right-click on plane marker to add to database */
+  // Removed - right-click now handled by plane list items
   /** Zoom in the map */
   public onZoomIn(): void {
     if (this.map) {
@@ -497,6 +522,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     this.settings.load();
+    // Load aircraft database
+    await this.aircraftDb.load();
     // showDateTime is now managed by UiStateService
 
     // Load clicked airports from settings
@@ -1053,15 +1080,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       // Set home marker on map
       this.setHomeMarker(lat, lon);
-
-      // Update markers visibility
-      this.mapInitializerService.updateMarkersVisibility(
-        lat,
-        lon,
-        this.settings.getHomeLocation(),
-        this.currentLocationMarker,
-        this.homeMarker
-      );
     }
   }
 
@@ -1924,5 +1942,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Toggle window view overlay visibility */
   onWindowViewToggle(show: boolean) {
     this.uiState.setShowWindowView(show);
+  }
+
+  /** Toggle map brightness between normal and dimmed */
+  public toggleBrightness(): void {
+    this.brightnessDisplay.toggleBrightness();
   }
 }
