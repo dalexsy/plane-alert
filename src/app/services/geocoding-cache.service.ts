@@ -20,8 +20,15 @@ export class GeocodingCacheService {
   private readonly MIN_REQUEST_INTERVAL = 5000; // Minimum 5 seconds between requests (Nominatim requires 1 req/sec max)
   private requestQueue: Array<() => void> = []; // Queue for rate-limited requests
   private isProcessingQueue = false;
+  private geocodingEnabled = true; // Can be disabled if APIs are problematic
 
   constructor(private ngZone: NgZone, private http: HttpClient) {
+    // Check if geocoding should be disabled (useful for offline development)
+    if (typeof window !== 'undefined') {
+      const disableGeocoding = localStorage.getItem('disable-geocoding');
+      this.geocodingEnabled = disableGeocoding !== 'true';
+    }
+
     // Periodically purge expired entries outside Angular to avoid CD overhead
     this.ngZone.runOutsideAngular(() =>
       setInterval(() => this.clearExpiredCache(), this.CACHE_DURATION)
@@ -32,6 +39,13 @@ export class GeocodingCacheService {
    * Get geocoded address with caching and request deduplication
    */ public async reverseGeocode(lat: number, lon: number): Promise<string> {
     console.log('Geocoding coordinates:', lat, lon);
+
+    // If geocoding is disabled, return coordinates immediately
+    if (!this.geocodingEnabled) {
+      console.log('Geocoding disabled, returning coordinates');
+      return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    }
+
     const now = Date.now();
     const key = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(
       this.COORDINATE_PRECISION
@@ -89,13 +103,14 @@ export class GeocodingCacheService {
     const maxRetries = 2;
 
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+      // Try primary geocoding service (Nominatim)
+      let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
 
-      const data = await this.ngZone.runOutsideAngular(() =>
+      let response = await this.ngZone.runOutsideAngular(() =>
         this.http
           .get<any>(url)
           .pipe(
-            timeout(8000), // Increased timeout to 8 seconds
+            timeout(5000), // Reduced timeout to 5 seconds
             map((response) => response),
             catchError((error) => {
               throw error;
@@ -104,21 +119,59 @@ export class GeocodingCacheService {
           .toPromise()
       );
 
-      const addr = data.address || {};
+      // If Nominatim fails with 504, try alternative geocoding service
+      if (!response || response.error) {
+        console.log(
+          'Nominatim failed, trying alternative geocoding service...'
+        );
+        // Fallback to a different geocoding service or simplified response
+        url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+
+        try {
+          response = await this.ngZone.runOutsideAngular(() =>
+            this.http
+              .get<any>(url)
+              .pipe(
+                timeout(3000),
+                map((response) => response),
+                catchError((error) => {
+                  throw error;
+                })
+              )
+              .toPromise()
+          );
+        } catch (fallbackError: any) {
+          console.warn(
+            'Alternative geocoding service also failed:',
+            fallbackError.message
+          );
+          // Return coordinates as fallback
+          return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        }
+      }
+
+      const addr = response.address || {};
       // Build address using same logic as LocationContext for consistency
       const components = [
-        addr.road,
+        addr.road || addr.localityInfo?.administrative?.[2]?.name,
         addr.house_number,
-        addr.suburb || addr.city_district || addr.neighbourhood,
-        addr.city || addr.town || addr.village,
-        addr.country,
+        addr.suburb || addr.city_district || addr.neighbourhood || addr.city,
+        addr.city ||
+          addr.town ||
+          addr.village ||
+          addr.localityInfo?.administrative?.[1]?.name,
+        addr.country || addr.countryName,
       ].filter(Boolean);
 
       if (components.length > 0) {
         return components.join(', ');
       }
       // Fallback to the display_name or coordinates if absolutely nothing else
-      return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      return (
+        response.display_name ||
+        response.city ||
+        `${lat.toFixed(5)}, ${lon.toFixed(5)}`
+      );
     } catch (error: any) {
       // Retry logic for network/CORS issues
       if (
@@ -189,6 +242,24 @@ export class GeocodingCacheService {
    */
   clearCache(): void {
     this.cache.clear();
+  }
+
+  /**
+   * Enable or disable geocoding (useful for offline development or API issues)
+   */
+  setGeocodingEnabled(enabled: boolean): void {
+    this.geocodingEnabled = enabled;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('disable-geocoding', (!enabled).toString());
+    }
+    console.log(`Geocoding ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Check if geocoding is currently enabled
+   */
+  isGeocodingEnabled(): boolean {
+    return this.geocodingEnabled;
   }
 
   /**

@@ -898,13 +898,26 @@ export class PlaneFinderService {
         // Use ADSB One 'r' property for registration (registration code)
         const reg: string = ac.r?.trim() || '';
 
+        // Extract aircraft model/type from ADS-B One API
+        const apiModel = ac.desc?.trim() || '';
+        const apiIcaoType = ac.t?.trim() || '';
+
         // Fetch DB record
-        const dbAircraft = getAircraftInfo(id); // Derive country using the new aircraft country service
+        const dbAircraft = getAircraftInfo(id);
+
+        // Determine military status early (needed for country detection priority)
+        const prefixIsMil =
+          this.militaryPrefixService.isMilitaryCallsign(callsign);
+        const isMilitary = prefixIsMil || dbAircraft?.mil || false;
+
+        // Derive country using the new aircraft country service
+        // For military aircraft, ICAO hex takes priority over registration
         const rawCountry = ac.ctry ?? ac.countryCode; // API provided country code
         const origin = this.aircraftCountryService.getAircraftCountry(
           reg,
           id,
-          rawCountry
+          rawCountry,
+          isMilitary
         );
 
         // Debug RAF aircraft specifically
@@ -958,10 +971,7 @@ export class PlaneFinderService {
         const isUnknown = this.unknownListService.isUnknown(id);
 
         // Define isFiltered early after getting necessary info
-        // Treat any callsign matching configured prefixes as military
-        const prefixIsMil =
-          this.militaryPrefixService.isMilitaryCallsign(callsign);
-        const isMilitary = prefixIsMil || dbAircraft?.mil || false;
+        // isMilitary already calculated above for country detection
         const wouldBeFiltered = filterPlaneByPrefix(
           callsign,
           excludeDiscount,
@@ -1042,26 +1052,36 @@ export class PlaneFinderService {
           planeModelInstance.isUnknown = isUnknown;
         } // Update PlaneModel with potentially fetched aircraft data
         // Determine operator via prefix mapping or fallback to ownop from aircraft DB
-        const prefixOperator =
-          this.operatorCallSignService.getOperatorWithLogging(callsign);
+        // Skip civilian airline lookup for military aircraft (their callsigns are words, not airline codes)
+        const prefixOperator = isMilitary
+          ? undefined
+          : this.operatorCallSignService.getOperatorWithLogging(callsign);
         const operator = prefixOperator ?? (dbAircraft?.ownop || '');
-        const model = dbAircraft?.model || '';
+        // Use API-provided model first, then database model, then helicopter fallback, then empty string
+        let model = apiModel || dbAircraft?.model || '';
+        if (!model && this.helicopterIdentificationService.isHelicopter(id, model, operator)) {
+          model = 'Helicopter';
+        }
         planeModelInstance.model = model;
         planeModelInstance.operator = operator;
 
         // Automatically add truly unknown aircraft to database
         if (!dbAircraft) {
+          let dbModel = apiModel || '';
+          if (!dbModel && this.helicopterIdentificationService.isHelicopter(id, dbModel, operator)) {
+            dbModel = 'Helicopter';
+          }
           const aircraftRecord: AircraftRecord = {
             icao: id,
             reg: reg || id,
-            icaotype: 'Unknown',
+            icaotype: apiIcaoType || '',
             year: '',
             manufacturer: '',
-            model: model || 'Unknown',
-            ownop: operator || 'Unknown',
+            model: dbModel,
+            ownop: operator || '',
             faa_pia: false,
             faa_ladd: false,
-            short_type: model || 'Unknown',
+            short_type: dbModel,
             mil: isMilitary,
           };
           this.aircraftDb.addRecord(aircraftRecord);

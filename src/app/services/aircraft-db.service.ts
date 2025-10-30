@@ -45,10 +45,6 @@ export class AircraftDbService {
       this.http
         .get('/assets/basic-ac-db2.json', { responseType: 'text' })
         .toPromise(),
-      this.http
-        .get('/assets/user-aircraft-db.json', { responseType: 'text' })
-        .toPromise()
-        .catch(() => ''), // User DB is optional, don't fail if missing
     ])
       .then((texts) => {
         const records: AircraftRecord[] = [];

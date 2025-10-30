@@ -34,8 +34,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { haversineDistance, computeBearing } from '../utils/geo-utils';
-import { RadiusComponent } from '../components/radius/radius.component';
+import { haversineDistance } from '../utils/geo-utils';
 import { ConeComponent } from '../components/cone/cone.component';
 import { ConeConfigEditorComponent } from '../components/cone-config-editor/cone-config-editor.component';
 import { InputOverlayComponent } from '../components/input-overlay/input-overlay.component';
@@ -47,97 +46,44 @@ import { CountryService } from '../services/country.service';
 import { MapInitializerService } from '../services/map-initializer.service';
 import { AirportService } from '../services/airport.service';
 import { PlaneDisplayService } from '../services/plane-display.service';
-import { AstronomicalService } from '../services/astronomical.service';
-import { PlaneFinderService } from '../services/plane-finder.service';
 import { PlaneFilterService } from '../services/plane-filter.service';
-import {
-  AircraftDbService,
-  AircraftRecord,
-} from '../services/aircraft-db.service';
-import { AircraftCountryService } from '../services/aircraft-country.service';
+import { AircraftDbService } from '../services/aircraft-db.service';
 import { SettingsService, ViewConeConfig } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
-import {
-  playAlertSound,
-  playHerculesAlert,
-  playA400Alert,
-} from '../utils/alert-sound';
 import { PlaneModel } from '../models/plane-model';
-import { ensureStripedPattern } from '../utils/svg-utils'; // remove if unused later
 import { SpecialListService } from '../services/special-list.service';
 import { MapPanService } from '../services/map-pan.service';
 import { MapService } from '../services/map.service';
-import { MilitaryPrefixService } from '../services/military-prefix.service';
 import { DOCUMENT } from '@angular/common';
 import { ClockComponent } from '../components/ui/clock.component';
 import { TemperatureComponent } from '../components/ui/temperature.component';
 import { ClosestPlaneOverlayComponent } from '../components/closest-plane-overlay/closest-plane-overlay.component';
 import { LocationOverlayComponent } from '../components/location-overlay/location-overlay.component';
-import { LocationService } from '../services/location.service';
-import SunCalc from 'suncalc';
-import { IconComponent } from '../components/ui/icon.component';
 import { WindowViewOverlayComponent } from '../components/window-view-overlay/window-view-overlay.component';
 import { AngleOverlayComponent } from '../components/angle-overlay/angle-overlay.component';
 import type { WindowViewPlane } from '../components/window-view-overlay/window-view-overlay.component';
-import { getIconPathForModel } from '../utils/plane-icons';
-import { computeWindowHistoryPositions } from '../utils/window-history-trail-utils';
-import { calculateVerticalRateFromHistory } from '../utils/vertical-rate.util';
-import { HelicopterListService } from '../services/helicopter-list.service';
-import { HelicopterIdentificationService } from '../services/helicopter-identification.service';
 import { SkyColorSyncService } from '../services/sky-color-sync.service';
 import { GeocodingCacheService } from '../services/geocoding-cache.service';
-import { DebouncedClickService } from '../services/debounced-click.service';
 import { LocationContextService } from '../services/location-context.service';
 import { PlaneFollowService } from '../services/plane-follow.service';
-import { AutoFollowService } from '../services/auto-follow.service';
 import { FollowCoordinatorService } from '../services/follow-coordinator.service';
-import { TtsService } from '../services/tts.service';
-import { OperatorCallSignService } from '../services/operator-call-sign.service';
 import { SkyOverlayService } from '../services/sky-overlay.service';
 import { MapThemeService } from '../services/map-theme.service';
-import {
-  BrightnessService,
-  BrightnessState,
-} from '../services/brightness.service';
-import { AltitudeColorService } from '../services/altitude-color.service';
-import { WeatherOverlayService } from '../services/weather-overlay.service';
+import { BrightnessService } from '../services/brightness.service';
 import { PlaneLogService } from '../services/plane-log.service';
 import { FollowService } from '../services/follow.service';
 import { ClosestPlaneService } from '../services/closest-plane.service';
-import { WindService } from '../services/wind.service';
 import { WeatherLayerService } from '../services/weather-layer.service';
 import { FilterManagementService } from '../services/filter-management.service';
-import { LocationUpdateService } from '../services/location-update.service';
 import { AddressResolutionService } from '../services/address-resolution.service';
 import { UiStateService } from '../services/ui-state.service';
 import { AstronomicalDisplayService } from '../services/astronomical-display.service';
 import { BrightnessDisplayService } from '../services/brightness-display.service';
-import { WindowViewMarkerService } from '../services/window-view-marker.service';
-import { ConeDisplayService } from '../services/cone-display.service';
-import { GeocodingDisplayService } from '../services/geocoding-display.service';
-import { AirportInteractionService } from '../services/airport-interaction.service';
-import { EventHandlerService } from '../services/event-handler.service';
 import { MapUpdateService } from '../services/map-update.service';
 import { PlaneUpdateService } from '../services/plane-update.service';
 import { PlaneCenteringService } from '../services/plane-centering.service';
 import { PlaneFilteringService } from '../services/plane-filtering.service';
 import { EnvironmentalDataService } from '../services/environmental-data.service';
-
-// OpenWeatherMap tile service API key
-const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
-
-// Interface for Overpass API airport results
-interface OverpassElement {
-  type: 'node' | 'way' | 'relation';
-  id: number;
-  lat?: number; // For nodes
-  lon?: number; // For nodes
-  center?: { lat: number; lon: number }; // For ways/relations
-  tags?: { [key: string]: string };
-}
-
-const MAJOR_AIRPORT_RADIUS_KM = 5;
-const MINOR_AIRPORT_RADIUS_KM = 1;
 
 @Component({
   selector: 'app-map',
@@ -184,7 +130,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // airportCoords: [number, number] = this.DEFAULT_COORDS; // REMOVED - No longer needed for single airport
   airportRadiusKm = 3; // Radius for individual airport circles
   manualUpdate = false;
-  private toggling = false;
   private locationErrorShown = false;
 
   // UI overlay toggles - now managed by UiStateService
@@ -236,11 +181,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // Store found airports and their circles
   airportCircles = new Map<number, L.Circle>(); // Key: Overpass element ID
   private svgPatternRetryTimeout: any = null;
-  private mainRadiusCircle?: L.Circle;
-  private coneLayers: L.Polygon[] = [];
-  // Cache computed radii (km) per airport ID to avoid repeat Overpass calls
-  private airportRadiusCache = new Map<number, number>(); // Store metadata for each airport: name and IATA code
-  private airportData = new Map<number, { name: string; code?: string }>(); // Track clicked airports for color toggling
   clickedAirports = new Set<number>();
 
   // Flag to distinguish programmatic map moves from user-initiated moves
@@ -277,7 +217,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Whether user is following the nearest overlay plane */
   followNearest = false;
 
-  private airportsLoading = false; // guard for Overpass fetches
   private isProcessingFollowRequest = false; // guard against recursive follow calls
   currentTime: string = '';
 
@@ -285,27 +224,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   get loadingAirports(): boolean {
     return this.airportService.isLoading();
   }
-
-  // Replace showDateTime property initializer
-  // public showDateTime = true; // Show date/time overlay by default - now in UiStateService
-
-  // Toggle for airport labels tooltips
-  // before: showAirportLabels: boolean = true;
-  // showAirportLabels = true; // Show airport labels by default - now in UiStateService
-
-  // Toggle for altitude-colored tooltip borders
-  // showAltitudeBorders = false; // Default to disabled - now in UiStateService
-
-  // Toggle for wind direction display
-  // showWindDirection = true; // Default to enabled - now in UiStateService
-
-  // Toggle for sun direction display
-  // showSunDirection = true; // Default to enabled - now in UiStateService
-
-  // Toggle for animations
-  // animationsEnabled = true; // Default to enabled - now in UiStateService
-
-  private _initialScanDone = false; // Flag to prevent double scan
 
   // New properties for location-overlay component
   locationStreet: string | null = null;
@@ -358,9 +276,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   constructor(
     @Inject(DOCUMENT) private document: Document,
     public countryService: CountryService,
-    private aircraftCountryService: AircraftCountryService,
     private mapService: MapService,
-    private planeFinder: PlaneFinderService,
     private planeFilter: PlaneFilterService,
     private aircraftDb: AircraftDbService,
     private settings: SettingsService,
@@ -369,44 +285,26 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private mapPanService: MapPanService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
-    private militaryPrefixService: MilitaryPrefixService,
-    private locationService: LocationService,
-    private helicopterListService: HelicopterListService,
-    private helicopterIdentificationService: HelicopterIdentificationService,
     private skyColorSyncService: SkyColorSyncService,
     private locationContext: LocationContextService,
     private geocodingCache: GeocodingCacheService,
-    private debouncedClickService: DebouncedClickService,
     private planeFollowService: PlaneFollowService,
-    private autoFollowService: AutoFollowService,
     private followCoordinatorService: FollowCoordinatorService,
-    private tts: TtsService,
-    private operatorCallSignService: OperatorCallSignService,
     private skyOverlayService: SkyOverlayService,
     private mapThemeService: MapThemeService,
     private brightnessService: BrightnessService,
-    private altitudeColor: AltitudeColorService,
-    private weatherOverlayService: WeatherOverlayService,
     private mapInitializerService: MapInitializerService,
     private airportService: AirportService,
     private planeDisplayService: PlaneDisplayService,
-    private astronomicalService: AstronomicalService,
     private planeLogService: PlaneLogService,
     private followService: FollowService,
     private closestPlaneService: ClosestPlaneService,
-    private windService: WindService,
     private weatherLayerService: WeatherLayerService,
     private filterManagementService: FilterManagementService,
-    private locationUpdateService: LocationUpdateService,
     private addressResolution: AddressResolutionService,
     private uiState: UiStateService,
     private astronomicalDisplay: AstronomicalDisplayService,
     private brightnessDisplay: BrightnessDisplayService,
-    private windowViewMarker: WindowViewMarkerService,
-    private coneDisplay: ConeDisplayService,
-    private geocodingDisplay: GeocodingDisplayService,
-    private airportInteraction: AirportInteractionService,
-    private eventHandler: EventHandlerService,
     private planeUpdate: PlaneUpdateService,
     private mapUpdate: MapUpdateService,
     private planeCentering: PlaneCenteringService,
@@ -645,7 +543,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Add moveend listener to update location context when user pans the map
     this.map.on('moveend', () => {
       if (!this.isProgrammaticMove) {
-        const center = this.map.getCenter();
         // Location context is now updated from address changes, not map center changes
         // this.locationContext.updateFromMapCenter(center.lat, center.lng);
       }
@@ -1025,12 +922,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.isProcessingFollowRequest = true;
 
     try {
-      const {
-        plane,
-        fromShuffle = false,
-        fromNearest = false,
-        fromManual = false,
-      } = followRequest;
+      const { plane, fromShuffle = false, fromNearest = false } = followRequest;
 
       if (!plane) return;
 
@@ -1181,36 +1073,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // this.locationContext.updateFromMapCenter(lat, lon);
   }
 
-  /** Fetch wind direction from OpenWeatherMap and update windAngle */
-  private fetchWindDirection(lat: number, lon: number): void {
-    fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPEN_WEATHER_MAP_API_KEY}`
-    )
-      .then((res) => {
-        if (res.status === 429) {
-          // Too Many Requests: skip update, optionally show warning
-          // Rate limit warning would be logged here
-          return null;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!data) return; // skip if rate-limited
-        // debug wind values from API
-        const speed = data.wind?.speed ?? 0;
-        this.windSpeed = speed;
-        const windFrom = data.wind?.deg ?? 0;
-        // compute stat 0-3 based on speed
-        let stat = 0;
-        if (speed >= 6) stat = 3;
-        else if (speed >= 3) stat = 2;
-        else if (speed >= 0.5) stat = 1;
-        // update both intensity stat and wind direction
-        this.windStat = stat;
-        this.windAngle = windFrom;
-        this.cdr.detectChanges();
-      });
-  }
   /** Convert wind direction in degrees to compass point (e.g. N, NE, E, etc.) */
   public getWindFromDirection(deg: number): string {
     const directions = [
@@ -1307,7 +1169,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.followNearest,
         this.cdr
       )
-      .then(({ updatedLog, anyNew, currentIDs, faviconUrl }) => {
+      .then(({ faviconUrl }) => {
         // Update favicon if it changed
         if (faviconUrl) {
           this.updateFavicon(faviconUrl);
@@ -1329,7 +1191,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
         this.manualUpdate = false;
       })
-      .catch((err) => {
+      .catch(() => {
         // Error in findPlanes would be logged here
       });
   }
@@ -1354,14 +1216,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     links.forEach((link) => {
       link.href = iconUrl;
     });
-  }
-
-  // Add window view markers for cone boundaries and midpoints
-  private updateWindowViewMarkers(): void {
-    this.windowViewPlanes = this.windowViewMarker.updateWindowViewMarkers(
-      this.windowViewPlanes,
-      this.homeLocationValue
-    );
   }
 
   clearSeenList(): void {
@@ -1428,7 +1282,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             );
           });
         },
-        (error) => {
+        () => {
           if (!this.locationErrorShown) {
             // Fallback to default coordinates
             // Use current main radius for fallback update
@@ -1449,38 +1303,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     } else {
       alert('Geolocation is not supported by your browser.');
     }
-  }
-
-  /** Check and update location automatically if setting is enabled */
-  private checkAutoLocationUpdate(): void {
-    if (!navigator.geolocation) {
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newLat = position.coords.latitude;
-        const newLon = position.coords.longitude;
-        const currentLat = this.settings.lat ?? this.DEFAULT_COORDS[0];
-        const currentLon = this.settings.lon ?? this.DEFAULT_COORDS[1];
-
-        // Check if location has changed significantly (more than ~10 meters)
-        const latDiff = Math.abs(newLat - currentLat);
-        const lonDiff = Math.abs(newLon - currentLon);
-        const hasLocationChanged = latDiff > 0.0001 || lonDiff > 0.0001;
-
-        if (hasLocationChanged) {
-          // Update to new location with current radius
-          const currentMainRadius = this.settings.radius ?? 5;
-          this.updateMap(newLat, newLon, currentMainRadius);
-        }
-      },
-      (error) => {
-        // Silently fail - don't show error messages during automatic updates
-        console.debug('Auto-location update failed:', error);
-      },
-      { enableHighAccuracy: false, timeout: 3000, maximumAge: 30000 }
-    );
   }
 
   resolveAndUpdateFromAddress(): void {
@@ -1741,49 +1563,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.map.panTo([coords.lat, coords.lon], { animate: true, duration: 1.0 });
   }
 
-  /**
-   * Fetch runway ways around an airport and compute radius as half the longest runway (in km) plus 0.5km buffer.
-   */
-  private async computeAirportRadiusKm(
-    lat: number,
-    lon: number,
-    hasIata: boolean
-  ): Promise<number> {
-    const overpassUrl = 'https://overpass-api.de/api/interpreter';
-    const query = `
-      [out:json][timeout:25];
-      way["aeroway"="runway"](around:10000,${lat},${lon});
-      out geom;
-    `;
-    try {
-      const res = await fetch(overpassUrl, { method: 'POST', body: query });
-      if (!res.ok)
-        return hasIata ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
-      const data = await res.json();
-      let maxLen = 0;
-      for (const w of data.elements || []) {
-        const coords = w.geometry as Array<{ lat: number; lon: number }>;
-        if (coords.length < 2) continue;
-        // approximate runway length by first-to-last node
-        const start = coords[0];
-        const end = coords[coords.length - 1];
-        const distKm = haversineDistance(
-          start.lat,
-          start.lon,
-          end.lat,
-          end.lon
-        );
-        maxLen = Math.max(maxLen, distKm);
-      }
-      if (maxLen > 0) {
-        return maxLen / 2 + 0.5; // half runway plus buffer
-      }
-    } catch {
-      // fallback silently
-    }
-    return hasIata ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
-  }
-
   @HostListener('window:resize')
   onWindowResize(): void {
     // Show loading indicator and inform Angular to update view
@@ -1835,31 +1614,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.scanService.forceScan();
   }
 
-  /** Update location information for the followed plane */
-  private updatePlaneLocationInfo(): void {
-    // Only fetch location when a plane is being followed
-
-    if (this.followNearest && this.highlightedPlaneIcao && this.closestPlane) {
-      const plane = this.closestPlane;
-      if (plane && plane.lat !== null && plane.lon !== null) {
-        this.reverseGeocode(plane.lat, plane.lon).then((address) => {
-          if (!address || address.trim() === '') {
-            console.log('Empty geocoding result for plane update:', address);
-          }
-          this.locationStreet = address;
-          this.locationDistrict = address;
-          if (!this.locationDistrict || this.locationDistrict.trim() === '') {
-            console.log(
-              'locationDistrict is empty after setting (plane update):',
-              this.locationDistrict
-            );
-          }
-          this.cdr.detectChanges();
-        });
-      }
-    }
-  }
-
   onToggleDateTimeOverlays(): void {
     this.uiState.toggleDateTimeOverlay();
   }
@@ -1899,22 +1653,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.uiState.setShowSunDirection(enabled);
 
     this.cdr.detectChanges();
-  }
-
-  /** Update sun angle and related astronomical data */
-  private updateSunAngle(): void {
-    this.astronomicalDisplay.updateAstronomicalData();
-  }
-
-  /** Calculate azimuth (bearing) from one point to another */
-  private calculateAzimuth(
-    fromLat: number,
-    fromLon: number,
-    toLat: number,
-    toLon: number
-  ): number {
-    // Use the existing computeBearing utility function
-    return computeBearing(fromLat, fromLon, toLat, toLon);
   }
 
   /** Get the background color for the moon (dark side) */

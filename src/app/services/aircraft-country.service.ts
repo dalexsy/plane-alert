@@ -110,15 +110,26 @@ export class AircraftCountryService {
    * @param registration Aircraft registration (tail number)
    * @param icaoHex ICAO 24-bit address in hex format
    * @param apiCountry Country code provided by API (if available)
+   * @param isMilitary Whether this is a military aircraft (affects priority)
    * @returns Detailed country detection result
    */
   getAircraftCountryDetailed(
     registration?: string,
     icaoHex?: string,
-    apiCountry?: string
+    apiCountry?: string,
+    isMilitary?: boolean
   ): CountryDetectionResult {
     // If ICAO ranges are not loaded yet, we'll use fallback for now
     // The async loading will complete eventually and cached results will be cleared
+
+    // For MILITARY aircraft: ICAO hex is more reliable than registration
+    // Military aircraft often use non-standard registrations
+    if (isMilitary && icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup) {
+      const icaoResult = this.getCountryFromIcaoHexDetailed(icaoHex);
+      if (icaoResult.countryCode !== 'Unknown') {
+        return icaoResult;
+      }
+    }
 
     // Second priority: Standard registration prefix lookup (most reliable for civilian)
     if (registration) {
@@ -128,8 +139,8 @@ export class AircraftCountryService {
       }
     }
 
-    // Fourth priority: ICAO hex lookup (enhanced with configuration)
-    if (icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup) {
+    // Fourth priority: ICAO hex lookup for civilian aircraft
+    if (icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup && !isMilitary) {
       const icaoResult = this.getCountryFromIcaoHexDetailed(icaoHex);
       if (icaoResult.countryCode !== 'Unknown') {
         return icaoResult;
@@ -166,12 +177,14 @@ export class AircraftCountryService {
   getAircraftCountry(
     registration?: string,
     icaoHex?: string,
-    apiCountry?: string
+    apiCountry?: string,
+    isMilitary?: boolean
   ): string {
     const result = this.getAircraftCountryDetailed(
       registration,
       icaoHex,
-      apiCountry
+      apiCountry,
+      isMilitary
     );
     return result.countryCode;
   }
@@ -388,12 +401,14 @@ export class AircraftCountryService {
   getAircraftInfo(
     registration?: string,
     icaoHex?: string,
-    apiCountry?: string
+    apiCountry?: string,
+    isMilitary?: boolean
   ) {
     const result = this.getAircraftCountryDetailed(
       registration,
       icaoHex,
-      apiCountry
+      apiCountry,
+      isMilitary
     );
 
     return {

@@ -35,6 +35,39 @@ ng build
 ```
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+BRUJO02
+
+## Geocoding (Address Lookup)
+
+The app uses geocoding services to convert coordinates to human-readable addresses. If you encounter 504 Gateway Timeout errors:
+
+### Quick Fix
+
+```javascript
+// In browser console, disable geocoding:
+localStorage.setItem("disable-geocoding", "true");
+location.reload();
+```
+
+### What This Does
+
+- Disables address lookup for coordinates
+- Shows coordinates (e.g., "52.3832, 13.5507") instead of addresses
+- Prevents API timeouts and network issues
+- Still allows all other functionality
+
+### Re-enable Geocoding
+
+```javascript
+localStorage.removeItem("disable-geocoding");
+location.reload();
+```
+
+### Alternative Solutions
+
+- The app automatically falls back to coordinate display if geocoding fails
+- Network issues are temporary and usually resolve themselves
+- The app caches successful geocoding results for 1 hour
 
 ## Running unit tests
 

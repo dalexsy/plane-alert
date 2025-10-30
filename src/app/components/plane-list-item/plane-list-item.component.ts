@@ -240,6 +240,13 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
       });
     }
   }
+
+  /** Check if model is generic and shouldn't link to Bing search */
+  isGenericModel(model: string): boolean {
+    const genericModels = ['Helicopter', 'Unknown', 'Aircraft'];
+    return genericModels.includes(model);
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     // Announce new plane
     if (this.plane.isNew) {

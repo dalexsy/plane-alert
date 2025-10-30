@@ -175,12 +175,17 @@
   </span>
   <!-- Model -->
   <span class="model" *ngIf="plane.model">
-    <a
-      href="https://www.bing.com/search?q={{ plane.model }}"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <span *ngIf="isGenericModel(plane.model); else specificModel">
       {{ plane.model }}
-    </a>
+    </span>
+    <ng-template #specificModel>
+      <a
+        href="https://www.bing.com/search?q={{ plane.model }}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ plane.model }}
+      </a>
+    </ng-template>
   </span>
 </span>

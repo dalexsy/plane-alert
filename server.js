@@ -49,5 +49,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`📁 File server running on http://localhost:${PORT}`);
-  console.log(`📝 Writing to: ${DB_FILE}`);
+  console.log(`📝 Aircraft DB: ${DB_FILE}`);
 });

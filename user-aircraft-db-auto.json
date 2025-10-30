@@ -1,2 +1,15 @@
-{"note": "User-added aircraft database - automatically populated", "version": "1.0", "exported": "2025-10-30T09:10:12.246Z"}
+{"note": "User-added aircraft database - automatically populated", "version": "1.0", "exported": "2025-10-30T12:06:30.311Z"}
 {"icao":"4CAD97","reg":"EI-SCG","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Scandinavian Airlines","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"504E86","reg":"ER-00004","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Unknown","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"4BCDB3","reg":"TC-SMS","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"SunExpress","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"4CAECB","reg":"EI-ILB","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Ryanair","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"~3440D6","reg":"~3440D6","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Unknown","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"348084","reg":"EC-OGY","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Air Europa","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"40823F","reg":"G-HLYM","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Jet2.com","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"4BB214","reg":"4BB214","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Turkish Airlines","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"348085","reg":"EC-OGS","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Air Europa","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"34814A","reg":"34814A","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Unknown","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"39DE4E","reg":"F-HXSO","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Transavia France","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"4BB106","reg":"TC-LHF","icaotype":"Unknown","year":"","manufacturer":"","model":"Unknown","ownop":"Turkish Airlines","faa_pia":false,"faa_ladd":false,"short_type":"Unknown","mil":false}
+{"icao":"348383","reg":"348383","icaotype":"Unknown","year":"","manufacturer":"","model":"","ownop":"Iberojet","faa_pia":false,"faa_ladd":false,"short_type":"","mil":false}
+{"icao":"3E0FED","reg":"3E0FED","icaotype":"","year":"","manufacturer":"","model":"","ownop":"DRF Luftrettung","faa_pia":false,"faa_ladd":false,"short_type":"","mil":false}
