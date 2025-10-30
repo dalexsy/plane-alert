@@ -93,7 +93,13 @@ export class AircraftDbService {
             this.userDb.set(icao, rec);
           }
         });
-        console.log(`Loaded ${this.userDb.size} user aircraft from localStorage (filtered out ${records.length - this.userDb.size} duplicates)`);
+        console.log(
+          `Loaded ${
+            this.userDb.size
+          } user aircraft from localStorage (filtered out ${
+            records.length - this.userDb.size
+          } duplicates)`
+        );
       } catch (e) {
         console.error('Error loading user aircraft data:', e);
       }
@@ -133,7 +139,9 @@ export class AircraftDbService {
       this.saveUserData();
       this.updateGlobalJson();
 
-      console.log(`✅ Added aircraft ${record.icao} to database (${this.userDb.size} total unknown aircraft)`);
+      console.log(
+        `✅ Added aircraft ${record.icao} to database (${this.userDb.size} total unknown aircraft)`
+      );
     }
   }
 
@@ -166,7 +174,7 @@ export class AircraftDbService {
     return {
       mainDb: this.db.size,
       userDb: this.userDb.size,
-      total: this.db.size + this.userDb.size
+      total: this.db.size + this.userDb.size,
     };
   }
 
@@ -209,9 +217,12 @@ export class AircraftDbService {
     }
 
     const content = this.exportUserRecordsAsJsonLines();
-    
+
     // Only attempt to save in development (when running on localhost)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    ) {
       fetch('http://localhost:3001/save-db', {
         method: 'POST',
         headers: {
@@ -219,9 +230,9 @@ export class AircraftDbService {
         },
         body: JSON.stringify({
           content: content,
-          count: this.userDb.size
-        })
-      }).catch(error => {
+          count: this.userDb.size,
+        }),
+      }).catch((error) => {
         // Silently fail if server is not running - this is optional functionality
         console.debug('File server not available:', error.message);
       });
@@ -231,7 +242,7 @@ export class AircraftDbService {
   /** Debounced version of saveToFile to prevent constant refreshes */
   private debouncedSaveToFile(): void {
     const now = Date.now();
-    
+
     // Clear any pending timeout
     if (this.saveTimeout) {
       clearTimeout(this.saveTimeout);
