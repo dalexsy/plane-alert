@@ -1059,7 +1059,10 @@ export class PlaneFinderService {
         const operator = prefixOperator ?? (dbAircraft?.ownop || '');
         // Use API-provided model first, then database model, then helicopter fallback, then empty string
         let model = apiModel || dbAircraft?.model || '';
-        if (!model && this.helicopterIdentificationService.isHelicopter(id, model, operator)) {
+        if (
+          !model &&
+          this.helicopterIdentificationService.isHelicopter(id, model, operator)
+        ) {
           model = 'Helicopter';
         }
         planeModelInstance.model = model;
@@ -1068,7 +1071,14 @@ export class PlaneFinderService {
         // Automatically add truly unknown aircraft to database
         if (!dbAircraft) {
           let dbModel = apiModel || '';
-          if (!dbModel && this.helicopterIdentificationService.isHelicopter(id, dbModel, operator)) {
+          if (
+            !dbModel &&
+            this.helicopterIdentificationService.isHelicopter(
+              id,
+              dbModel,
+              operator
+            )
+          ) {
             dbModel = 'Helicopter';
           }
           const aircraftRecord: AircraftRecord = {
