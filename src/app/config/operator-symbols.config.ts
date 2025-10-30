@@ -71,4 +71,9 @@ export const OPERATOR_SYMBOLS: OperatorSymbolConfig[] = [
     key: 'kw_air_force',
     countries: ['kw'],
   },
+  {
+    key: 'cz_air_force',
+    countries: ['cz'],
+    operators: ['czech air force'],
+  },
 ];

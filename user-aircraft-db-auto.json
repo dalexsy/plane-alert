@@ -1,2 +1,4 @@
-{"note": "User-added aircraft database - automatically populated", "version": "1.0", "exported": "2025-10-30T12:18:40.663Z"}
-{"icao":"440C31","reg":"OE-LKY","icaotype":"A319","year":"","manufacturer":"","model":"AIRBUS A-319","ownop":"easyJet Europe","faa_pia":false,"faa_ladd":false,"short_type":"AIRBUS A-319","mil":false}
+{"note": "User-added aircraft database - automatically populated", "version": "1.0", "exported": "2025-10-30T12:40:26.194Z"}
+{"icao":"4B181C","reg":"HB-JDK","icaotype":"A20N","year":"","manufacturer":"","model":"AIRBUS A-320neo","ownop":"Swiss International Air Lines","faa_pia":false,"faa_ladd":false,"short_type":"AIRBUS A-320neo","mil":false}
+{"icao":"4CAE9C","reg":"EI-IKV","icaotype":"B38M","year":"","manufacturer":"","model":"BOEING 737 MAX 8","ownop":"","faa_pia":false,"faa_ladd":false,"short_type":"BOEING 737 MAX 8","mil":false}
+{"icao":"3E0FED","reg":"3E0FED","icaotype":"","year":"","manufacturer":"","model":"Helicopter","ownop":"","faa_pia":false,"faa_ladd":false,"short_type":"Helicopter","mil":false}
