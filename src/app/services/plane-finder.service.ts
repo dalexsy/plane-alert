@@ -1043,32 +1043,9 @@ export class PlaneFinderService {
           planeModelInstance.isUnknown = isUnknown;
         } // Update PlaneModel with potentially fetched aircraft data
         // Determine operator via prefix mapping or fallback to ownop from aircraft DB
-        // For military aircraft, still try operator lookup but validate it's appropriate
         const prefixOperator =
           this.operatorCallSignService.getOperatorWithLogging(callsign);
         let operator = prefixOperator ?? (dbAircraft?.ownop || '');
-
-        // For military aircraft, if we got a civilian airline match, don't use it
-        if (isMilitary && prefixOperator) {
-          // Check if the matched operator looks like a civilian airline (not military)
-          const militaryOperators = [
-            'Air Force',
-            'Army',
-            'Navy',
-            'Military',
-            'Force',
-            'Defence',
-            'Luftwaffe',
-            'Armee',
-          ];
-          const isMilitaryOperator = militaryOperators.some((term) =>
-            prefixOperator.toLowerCase().includes(term.toLowerCase())
-          );
-          if (!isMilitaryOperator) {
-            // This looks like a civilian airline match for a military aircraft - skip it
-            operator = dbAircraft?.ownop || '';
-          }
-        }
         // Use API-provided model first, then database model, then helicopter fallback, then empty string
         let model = apiModel || dbAircraft?.model || '';
         if (

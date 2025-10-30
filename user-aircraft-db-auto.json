@@ -2,7 +2,7 @@
   {
     "note": "User-added aircraft database - automatically populated",
     "version": "1.0",
-    "exported": "2025-10-30T15:02:06.133Z"
+    "exported": "2025-10-30T15:09:11.445Z"
   },
   {
     "icao": "4B181C",
@@ -259,6 +259,32 @@
     "manufacturer": "",
     "model": "",
     "ownop": "GETRA",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "3C786C",
+    "reg": "D-ANCL",
+    "icaotype": "A20N",
+    "year": "",
+    "manufacturer": "",
+    "model": "AIRBUS A-320neo",
+    "ownop": "Condor",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "AIRBUS A-320neo",
+    "mil": false
+  },
+  {
+    "icao": "3FF9A1",
+    "reg": "3FF9A1",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "Private",
     "faa_pia": false,
     "faa_ladd": false,
     "short_type": "",

@@ -96,6 +96,7 @@ const TYPE_ICON_MAP: Record<string, PlaneIconData> = {
   B737: { path: B738_SVG, iconType: 'twin_engine' },
   B739: { path: B738_SVG, iconType: 'twin_engine' },
   A400M: { path: A400M_SVG, iconType: 'quad_engine' },
+  'KC-30M': { path: TWIN_ENGINE_SVG, iconType: 'twin_engine' },
   'PA-46': { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
   MALIBU: { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
   '172': { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
@@ -113,16 +114,6 @@ export function getIconPathForModel(
   // Check if it's a helicopter first
   if (isHelicopter) {
     return { path: HELICOPTER_SVG, iconType: 'helicopter' };
-  }
-
-  // Check for 5-character callsign under 2000m - use single engine (glider) icon
-  if (
-    callsign &&
-    altitude !== undefined &&
-    callsign.length === 5 &&
-    altitude < 2000
-  ) {
-    return { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
   }
 
   let result: PlaneIconData | undefined;
@@ -351,5 +342,18 @@ export function getIconPathForModel(
       }
     }
   }
+
+  // Check for 5-character callsign under 2000m - use single engine (glider) icon
+  // But only if we haven't already determined a specific icon
+  if (
+    !result &&
+    callsign &&
+    altitude !== undefined &&
+    callsign.length === 5 &&
+    altitude < 2000
+  ) {
+    return { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
+  }
+
   return result!;
 }
