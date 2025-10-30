@@ -564,6 +564,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Initialize services with the map
     this.airportService.initialize(this.map);
     this.airportService.setClickedAirports(this.clickedAirports);
+    
+    // Initialize weather layers
+    this.weatherLayerService.initializeLayers(this.map);
+    
     // Apply map layer visibility based on saved preferences
     this.weatherLayerService.toggleCloudCover(
       this.map,
@@ -1390,11 +1394,19 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Toggle display of cloud coverage layer */
   toggleCloudCover(show: boolean): void {
     this.uiState.setCloudVisible(show);
+    // Actually toggle the layer on the map
+    if (this.map) {
+      this.weatherLayerService.toggleCloudCover(this.map, show);
+    }
   }
 
   /** Toggle display of rain coverage layer */
   toggleRainCover(show: boolean): void {
     this.uiState.setRainVisible(show);
+    // Actually toggle the layer on the map
+    if (this.map) {
+      this.weatherLayerService.toggleRainCover(this.map, show);
+    }
   }
 
   /** Apply sky colors from window view to cloud layer for visual synchronization */

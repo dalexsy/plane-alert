@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from './settings.service';
+import { WeatherOverlayService } from './weather-overlay.service';
 
 @Injectable({
   providedIn: 'root',
@@ -19,7 +20,10 @@ export class UiStateService {
   public cloudVisible = true;
   public rainVisible = true;
 
-  constructor(private settings: SettingsService) {
+  constructor(
+    private settings: SettingsService,
+    private weatherOverlayService: WeatherOverlayService
+  ) {
     this.initializeFromSettings();
   }
 
@@ -94,12 +98,14 @@ export class UiStateService {
   public toggleCloudCover(): void {
     this.cloudVisible = !this.cloudVisible;
     this.settings.setShowCloudCover(this.cloudVisible);
+    this.weatherOverlayService.setCloudCoverVisible(this.cloudVisible);
   }
 
   // Rain layer toggle
   public toggleRainCover(): void {
     this.rainVisible = !this.rainVisible;
     this.settings.setShowRainCover(this.rainVisible);
+    this.weatherOverlayService.setRainCoverVisible(this.rainVisible);
   }
 
   // Set cone visibility directly (for programmatic control)
@@ -148,12 +154,14 @@ export class UiStateService {
   public setCloudVisible(visible: boolean): void {
     this.cloudVisible = visible;
     this.settings.setShowCloudCover(visible);
+    this.weatherOverlayService.setCloudCoverVisible(visible);
   }
 
   // Set rain visibility directly (for programmatic control)
   public setRainVisible(visible: boolean): void {
     this.rainVisible = visible;
     this.settings.setShowRainCover(visible);
+    this.weatherOverlayService.setRainCoverVisible(visible);
   }
 
   // Set window view directly (for programmatic control)

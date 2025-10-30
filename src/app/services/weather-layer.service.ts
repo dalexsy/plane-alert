@@ -51,7 +51,6 @@ export class WeatherLayerService {
         this.cloudLayer.remove();
       }
     }
-    this.settings.setShowCloudCover(show);
   }
 
   /**
@@ -65,7 +64,6 @@ export class WeatherLayerService {
         this.rainLayer.remove();
       }
     }
-    this.settings.setShowRainCover(show);
   }
 
   /**
