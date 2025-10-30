@@ -1143,6 +1143,17 @@ export class PlaneFinderService {
             altitude
           );
         } // Create/Update Marker
+
+        if (planeModelInstance.filteredOut) {
+          if (planeModelInstance.marker) {
+            planeModelInstance.removeVisuals(map);
+          }
+
+          // Ensure filtered planes stay out of the map but remain in the log
+          updatedLogModels.push(planeModelInstance);
+          return;
+        }
+
         // Get user's distance unit preference for both speed, altitude and distance conversions
         const userUnit = this.settings.distanceUnit as DistanceUnit;
 
