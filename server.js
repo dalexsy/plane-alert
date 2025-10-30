@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = 3001;
-const DB_FILE = path.join(__dirname, "user-aircraft-db-auto.json");
+const DB_FILE = path.join(__dirname, "src", "assets", "user-aircraft-db.json");
 
 const server = http.createServer((req, res) => {
   // Enable CORS for local development
@@ -30,7 +30,7 @@ const server = http.createServer((req, res) => {
         fs.writeFileSync(DB_FILE, data.content, "utf8");
 
         console.log(
-          `✅ Updated user-aircraft-db.json (${data.count} aircraft)`
+          `✅ Updated src/assets/user-aircraft-db.json (${data.count} aircraft)`
         );
 
         res.writeHead(200, { "Content-Type": "application/json" });

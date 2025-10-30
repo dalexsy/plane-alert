@@ -920,15 +920,6 @@ export class PlaneFinderService {
           isMilitary
         );
 
-        // Debug RAF aircraft specifically
-        if (id === '43C8DB' || id === '43C8C1') {
-          console.log(`🔍 DEBUG RAF Aircraft ${id}:`);
-          console.log(`  Registration: ${reg}`);
-          console.log(`  Raw Country: ${rawCountry}`);
-          console.log(`  Detected Origin: ${origin}`);
-          this.aircraftCountryService.debugIcaoAllocation(id);
-        }
-
         // Operator will be set later in model update
         const lat = ac.lat;
         const lon = ac.lon;

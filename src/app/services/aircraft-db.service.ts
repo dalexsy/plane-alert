@@ -108,7 +108,7 @@ export class AircraftDbService {
 
     // Make current database available globally for easy access
     if (typeof window !== 'undefined') {
-      (window as any).planeAlertUserDb = this.exportUserRecordsAsJsonLines();
+      (window as any).planeAlertUserDb = this.exportUserRecordsAsJsonArray();
     }
 
     // Debounce file writes to prevent constant refreshes
@@ -116,7 +116,7 @@ export class AircraftDbService {
   }
 
   private updateGlobalJson(): void {
-    this.currentUserDbJson = this.exportUserRecordsAsJsonLines();
+    this.currentUserDbJson = this.exportUserRecordsAsJsonArray();
   }
 
   lookup(icaoHex: string): AircraftRecord | undefined {
@@ -157,12 +157,16 @@ export class AircraftDbService {
     this.updateGlobalJson();
   }
 
-  /** Export user records in JSON Lines format for updating user-aircraft-db.json */
-  exportUserRecordsAsJsonLines(): string {
+  /** Export user records in JSON array format for src/assets/user-aircraft-db.json */
+  exportUserRecordsAsJsonArray(): string {
     const records = Array.from(this.userDb.values());
-    const header = `{"note": "User-added aircraft database - automatically populated", "version": "1.0", "exported": "${new Date().toISOString()}"}\n`;
-    const data = records.map((record) => JSON.stringify(record)).join('\n');
-    return header + data;
+    const header = {
+      note: 'User-added aircraft database - automatically populated',
+      version: '1.0',
+      exported: new Date().toISOString(),
+    };
+    const allRecords = [header, ...records];
+    return JSON.stringify(allRecords, null, 2);
   }
 
   /** Get statistics about the database */
@@ -177,7 +181,7 @@ export class AircraftDbService {
   /** Console method to get current user database for manual file updates */
   getCurrentUserDbForFile(): string {
     console.log('📋 Copy this content to src/assets/user-aircraft-db.json:');
-    const content = this.exportUserRecordsAsJsonLines();
+    const content = this.exportUserRecordsAsJsonArray();
     console.log(content);
     return content;
   }
@@ -185,7 +189,7 @@ export class AircraftDbService {
   /** Automatically download the updated database file */
   private downloadUpdatedDatabase(): void {
     if (typeof window !== 'undefined' && this.userDb.size > 0) {
-      const content = this.exportUserRecordsAsJsonLines();
+      const content = this.exportUserRecordsAsJsonArray();
       const blob = new Blob([content], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
 
@@ -212,7 +216,7 @@ export class AircraftDbService {
       return;
     }
 
-    const content = this.exportUserRecordsAsJsonLines();
+    const content = this.exportUserRecordsAsJsonArray();
 
     // Only attempt to save in development (when running on localhost)
     if (

@@ -73,7 +73,7 @@ import { BrightnessService } from '../services/brightness.service';
 import { PlaneLogService } from '../services/plane-log.service';
 import { FollowService } from '../services/follow.service';
 import { ClosestPlaneService } from '../services/closest-plane.service';
-import { WeatherLayerService } from '../services/weather-layer.service';
+import { WeatherOverlayService } from '../services/weather-overlay.service';
 import { FilterManagementService } from '../services/filter-management.service';
 import { AddressResolutionService } from '../services/address-resolution.service';
 import { UiStateService } from '../services/ui-state.service';
@@ -291,6 +291,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private planeFollowService: PlaneFollowService,
     private followCoordinatorService: FollowCoordinatorService,
     private skyOverlayService: SkyOverlayService,
+    private weatherOverlayService: WeatherOverlayService,
     private mapThemeService: MapThemeService,
     private brightnessService: BrightnessService,
     private mapInitializerService: MapInitializerService,
@@ -299,7 +300,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private planeLogService: PlaneLogService,
     private followService: FollowService,
     private closestPlaneService: ClosestPlaneService,
-    private weatherLayerService: WeatherLayerService,
     private filterManagementService: FilterManagementService,
     private addressResolution: AddressResolutionService,
     private uiState: UiStateService,
@@ -564,19 +564,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Initialize services with the map
     this.airportService.initialize(this.map);
     this.airportService.setClickedAirports(this.clickedAirports);
-    
-    // Initialize weather layers
-    this.weatherLayerService.initializeLayers(this.map);
-    
+
     // Apply map layer visibility based on saved preferences
-    this.weatherLayerService.toggleCloudCover(
-      this.map,
+    this.weatherOverlayService.setCloudCoverVisible(
       this.settings.showCloudCover
     );
-    this.weatherLayerService.toggleRainCover(
-      this.map,
-      this.settings.showRainCover
-    );
+    this.weatherOverlayService.setRainCoverVisible(this.settings.showRainCover);
     this.toggleConeVisibility(this.uiState.coneVisible);
     // Apply airport labels visibility - now handled by UiStateService
     // Provide the created map instance to the service
@@ -1394,19 +1387,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Toggle display of cloud coverage layer */
   toggleCloudCover(show: boolean): void {
     this.uiState.setCloudVisible(show);
-    // Actually toggle the layer on the map
-    if (this.map) {
-      this.weatherLayerService.toggleCloudCover(this.map, show);
-    }
+    // Actually toggle the layer using WeatherOverlayService
+    this.weatherOverlayService.setCloudCoverVisible(show);
   }
 
   /** Toggle display of rain coverage layer */
   toggleRainCover(show: boolean): void {
     this.uiState.setRainVisible(show);
-    // Actually toggle the layer on the map
-    if (this.map) {
-      this.weatherLayerService.toggleRainCover(this.map, show);
-    }
+    // Actually toggle the layer using WeatherOverlayService
+    this.weatherOverlayService.setRainCoverVisible(show);
   }
 
   /** Apply sky colors from window view to cloud layer for visual synchronization */

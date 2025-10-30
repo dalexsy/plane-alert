@@ -466,11 +466,93 @@ $grayscale-faded: 0.7;
   }
 }
 
-// Reduced motion support
-@media (prefers-reduced-motion: reduce) {
-  :host,
-  .airport-code,
-  .airport-name {
-    transition: none;
+// ============================================================================
+// AIRCRAFT IMAGE TOOLTIP
+// ============================================================================
+
+.aircraft-image-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: $space-sm;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  max-width: 300px;
+  min-width: 200px;
+  pointer-events: none;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(8px);
+  display: none;
+
+  // Remove the :host:hover selector - we'll control visibility via *ngIf
+  &.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  &.loading {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-xs;
+  color: #fff;
+  font-size: $font-size-small;
+
+  .material-symbols-sharp {
+    animation: spin 1s linear infinite;
+    font-size: 1.5rem;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.image-container {
+  img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin-bottom: $space-xs;
+  }
+}
+
+.image-source {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.no-image {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: $font-size-small;
+  text-align: center;
+  padding: $space-md;
+}
+
+// ============================================================================
+// RESPONSIVE DESIGN FOR TOOLTIP
+// ============================================================================
+
+@media (max-width: 768px) {
+  .aircraft-image-tooltip {
+    max-width: 250px;
+    min-width: 150px;
   }
 }
