@@ -16,6 +16,7 @@ import {
   playAlertSound,
   playHerculesAlert,
   playA400Alert,
+  playDreamlinerAlert,
 } from '../utils/alert-sound';
 import { ChangeDetectorRef } from '@angular/core';
 import * as L from 'leaflet';
@@ -167,6 +168,11 @@ export class PlaneUpdateService {
       p.model?.toLowerCase().includes('a400')
     );
 
+    // Determine if any new visible plane is a Dreamliner model
+    const hasDreamliner = newVisible.some((p) =>
+      p.model?.toLowerCase().includes('dreamliner')
+    );
+
     // Determine if any other alert-worthy planes (military or special)
     const hasAlertPlanes = newVisible.some(
       (p) =>
@@ -180,6 +186,8 @@ export class PlaneUpdateService {
         playHerculesAlert();
       } else if (hasA400) {
         playA400Alert();
+      } else if (hasDreamliner) {
+        playDreamlinerAlert();
       } else if (hasAlertPlanes) {
         playAlertSound();
       }
