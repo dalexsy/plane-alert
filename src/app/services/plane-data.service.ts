@@ -28,6 +28,7 @@ export interface ProcessedPlaneData {
   onGround: boolean;
   isMilitary: boolean;
   isSpecial: boolean;
+  isDreamliner: boolean;
   isUnknown: boolean;
   model: string;
   operator: string;
@@ -170,7 +171,6 @@ export class PlaneDataService {
     }
     const onGround = ac.ground === true || onGroundBasedOnLogic;
 
-    const isSpecial = this.specialListService.isSpecial(id);
     const isUnknown = this.unknownListService.isUnknown(id);
 
     // Check if plane should be filtered
@@ -205,6 +205,11 @@ export class PlaneDataService {
     ) {
       model = 'Helicopter';
     }
+
+    const isSpecial = this.specialListService.isSpecial(id);
+
+    // Check if this is a Dreamliner for visual highlighting
+    const isDreamliner = model && model.toLowerCase().includes('dreamliner');
 
     // Add unknown aircraft to database
     if (!dbAircraft) {
@@ -255,6 +260,7 @@ export class PlaneDataService {
       onGround,
       isMilitary,
       isSpecial,
+      isDreamliner,
       isUnknown,
       model,
       operator,
@@ -343,6 +349,7 @@ export class PlaneDataService {
       isNew,
       isFiltered,
       isSpecial,
+      isDreamliner,
       isMilitary,
       isUnknown,
     } = processedData;
@@ -372,6 +379,7 @@ export class PlaneDataService {
         track: track,
         velocity: velocity,
         isSpecial: isSpecial,
+        isDreamliner: isDreamliner,
       };
       planeModelInstance = new PlaneModel(initialPlaneData);
       planeModelInstance.isMilitary = isMilitary;
@@ -386,6 +394,7 @@ export class PlaneDataService {
       planeModelInstance.onGround = onGround;
       planeModelInstance.isNew = isNew;
       planeModelInstance.isSpecial = isSpecial;
+      planeModelInstance.isDreamliner = isDreamliner;
       planeModelInstance.isMilitary = isMilitary;
       planeModelInstance.isUnknown = isUnknown;
     }
@@ -481,5 +490,9 @@ export class PlaneDataService {
       NNW: '↖',
     };
     return arrows[cardinal] || '↑';
+  }
+
+  updateNewPlaneService(currentUpdateSet: Set<string>): void {
+    this.newPlaneService.updatePlanes(currentUpdateSet);
   }
 }

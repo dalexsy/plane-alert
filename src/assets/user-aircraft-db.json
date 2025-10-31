@@ -2,7 +2,7 @@
   {
     "note": "User-added aircraft database - automatically populated",
     "version": "1.0",
-    "exported": "2025-10-31T11:08:58.261Z"
+    "exported": "2025-10-31T11:32:14.807Z"
   },
   {
     "icao": "4B181C",
@@ -714,6 +714,32 @@
     "manufacturer": "",
     "model": "",
     "ownop": "Private",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "3D4473",
+    "reg": "3D4473",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "Condor Flugdienst",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "~2F494B",
+    "reg": "~2F494B",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
     "faa_pia": false,
     "faa_ladd": false,
     "short_type": "",

@@ -209,7 +209,7 @@ export class PlaneFinderService {
       }
 
       // Update new plane service
-      // Note: This would need to be injected or accessed differently since it's now in PlaneDataService
+      this.planeDataService.updateNewPlaneService(currentUpdateSet);
 
       return {
         anyNew,

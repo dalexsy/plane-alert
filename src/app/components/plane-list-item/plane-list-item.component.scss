@@ -381,6 +381,16 @@ $grayscale-faded: 0.7;
   }
 }
 
+// Special plane model text styling
+:host.special-plane .model {
+  color: $color-airport;
+}
+
+// Dreamliner model text styling
+:host.dreamliner-plane .model {
+  color: $color-airport;
+}
+
 // ============================================================================
 // AIRPORT TAGS
 // ============================================================================

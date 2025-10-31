@@ -98,15 +98,15 @@ export class PlaneUpdateService {
     // Update favicon based on special/military planes
     const faviconUrl = this.getFaviconUrl(updatedLog);
 
-    // Play alert sounds for new planes
-    this.playAlertsForNewPlanes(updatedLog, exclude);
-
     // Process and update plane models
     const updatedPlaneModels = this.processPlaneModels(
       updatedLog,
       previousPlaneKeys,
       exclude
     );
+
+    // Play alert sounds for new planes (after isNew flags are correctly set)
+    this.playAlertsForNewPlanes(updatedPlaneModels, exclude);
 
     // Update plane visuals and logs
     this.updatePlaneLogsAndVisuals(
@@ -158,29 +158,23 @@ export class PlaneUpdateService {
   ): void {
     const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
 
-    // Determine if any new visible plane is a Hercules model
+    // Determine what types of new planes we have
     const hasHercules = newVisible.some((p) =>
       p.model?.toLowerCase().includes('hercules')
     );
-
-    // Determine if any new visible plane is an A400 model
     const hasA400 = newVisible.some((p) =>
       p.model?.toLowerCase().includes('a400')
     );
-
-    // Determine if any new visible plane is a Dreamliner model
     const hasDreamliner = newVisible.some((p) =>
       p.model?.toLowerCase().includes('dreamliner')
     );
-
-    // Determine if any other alert-worthy planes (military or special)
     const hasAlertPlanes = newVisible.some(
       (p) =>
         this.aircraftDb.lookup(p.icao)?.mil ||
         this.specialListService.isSpecial(p.icao)
     );
 
-    // Play appropriate alert sound
+    // Play only one alert sound per scan, prioritizing specific aircraft types
     if (!this.settings.militaryMute) {
       if (hasHercules) {
         playHerculesAlert();
