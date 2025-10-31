@@ -210,7 +210,7 @@ export class AircraftDbService {
     this.downloadUpdatedDatabase();
   }
 
-  /** Save database to file via local server (development only) */
+  /** Save database to file in the repository */
   private saveToFile(): void {
     if (typeof window === 'undefined' || this.userDb.size === 0) {
       return;
@@ -218,25 +218,30 @@ export class AircraftDbService {
 
     const content = this.exportUserRecordsAsJsonArray();
 
-    // Only attempt to save in development (when running on localhost)
-    if (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
-    ) {
-      fetch('http://localhost:3001/save-db', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: content,
-          count: this.userDb.size,
-        }),
-      }).catch((error) => {
-        // Silently fail if server is not running - this is optional functionality
-        console.debug('File server not available:', error.message);
+    // Write directly to the repository file
+    fetch('/save-db', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: content,
+        count: this.userDb.size,
+      }),
+    })
+      .then((response) => {
+        if (response.ok) {
+          console.log(
+            `✅ Saved ${this.userDb.size} user aircraft to repository`
+          );
+        } else {
+          console.warn('Failed to save user database to repository');
+        }
+      })
+      .catch((error) => {
+        console.warn('Could not save to repository:', error.message);
+        console.log('User data is still saved in localStorage');
       });
-    }
   }
 
   /** Debounced version of saveToFile to prevent constant refreshes */

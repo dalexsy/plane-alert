@@ -756,10 +756,55 @@
     "significantBitmask": "FFFF00"
   },
   {
+    "startHex": "500500",
+    "finishHex": "5008FF",
+    "startDec": 5244160,
+    "finishDec": 5245183,
+    "isMilitary": false,
+    "countryISO2": "ME",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "500900",
+    "finishHex": "500CFF",
+    "startDec": 5245184,
+    "finishDec": 5246207,
+    "isMilitary": false,
+    "countryISO2": "RS",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "500D00",
+    "finishHex": "5010FF",
+    "startDec": 5246208,
+    "finishDec": 5247231,
+    "isMilitary": false,
+    "countryISO2": "BG",
+    "significantBitmask": "FFFF00"
+  },
+  {
     "startHex": "501000",
     "finishHex": "5013FF",
     "isMilitary": false,
     "countryISO2": "AL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "501400",
+    "finishHex": "5017FF",
+    "startDec": 5248000,
+    "finishDec": 5249023,
+    "isMilitary": false,
+    "countryISO2": "RO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "501800",
+    "finishHex": "501BFF",
+    "startDec": 5249024,
+    "finishDec": 5250047,
+    "isMilitary": false,
+    "countryISO2": "CZ",
     "significantBitmask": "FFFF00"
   },
   {
