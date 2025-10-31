@@ -546,6 +546,13 @@
     "significantBitmask": "FFFF00"
   },
   {
+    "startHex": "2F4000",
+    "finishHex": "2F4FFF",
+    "isMilitary": false,
+    "countryISO2": "US",
+    "significantBitmask": "FFFF00"
+  },
+  {
     "startHex": "300000",
     "finishHex": "33FFFF",
     "isMilitary": false,
