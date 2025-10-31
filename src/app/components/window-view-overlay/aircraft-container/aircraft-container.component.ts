@@ -5,6 +5,7 @@ import {
   EventEmitter,
   OnChanges,
   SimpleChanges,
+  OnDestroy,
   ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -25,7 +26,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   styleUrl: './aircraft-container.component.scss',
   encapsulation: ViewEncapsulation.None,
 })
-export class AircraftContainerComponent implements OnChanges {
+export class AircraftContainerComponent implements OnChanges, OnDestroy {
   @Input() aircraftPlanes: WindowViewPlane[] = [];
   @Input() highlightedPlaneIcao: string | null = null;
   @Input() showAltitudeBorders: boolean = false;
@@ -53,6 +54,11 @@ export class AircraftContainerComponent implements OnChanges {
     if (changes['showAltitudeBorders'] || changes['aircraftPlanes']) {
       this.clearCaches();
     }
+  }
+
+  ngOnDestroy(): void {
+    // Clean up any remaining tooltips
+    this.hideOperatorTooltip();
   } /** Clear all caches - useful when settings change */
   private clearCaches(): void {
     this.altitudeBorderCache.clear();
@@ -530,6 +536,15 @@ export class AircraftContainerComponent implements OnChanges {
     return this.sanitizer.bypassSecurityTrustHtml(logoHtml);
   }
   /**
+   * Handle mouse enter for operator tooltip
+   */
+  onMouseEnter(plane: WindowViewPlane, event: MouseEvent): void {
+    if (this.shouldShowOperatorLogo(plane)) {
+      this.showOperatorTooltip(plane, event.currentTarget as HTMLElement);
+    }
+  }
+
+  /**
    * Check if plane should show operator logo tooltip
    */
   shouldShowOperatorLogo(plane: WindowViewPlane): boolean {
@@ -546,6 +561,74 @@ export class AircraftContainerComponent implements OnChanges {
 
     return this.operatorTooltipService.getSymbolConfig(planeData) !== null;
   }
+
+  /**
+   * Show operator logo tooltip for a plane
+   */
+  showOperatorTooltip(plane: WindowViewPlane, planeElement: HTMLElement): void {
+    // Remove any existing tooltip
+    this.hideOperatorTooltip();
+
+    const tooltipEl = document.createElement('div');
+    tooltipEl.className = 'operator-logo-tooltip operator-logo-tooltip-fixed';
+    tooltipEl.innerHTML = this.getOperatorLogoContent(plane).toString();
+
+    // Position the tooltip above the plane
+    const rect = planeElement.getBoundingClientRect();
+    const tooltipHeight = 70; // Estimated height
+    const tooltipWidth = 70; // Estimated width
+
+    let left = rect.left + rect.width / 2;
+    let top = rect.top - tooltipHeight;
+
+    // Keep within viewport bounds
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 8;
+
+    if (left + tooltipWidth / 2 > viewportWidth) {
+      left = viewportWidth - tooltipWidth / 2 - margin;
+    }
+    if (left - tooltipWidth / 2 < margin) {
+      left = tooltipWidth / 2 + margin;
+    }
+    if (top < margin) {
+      top = rect.bottom + margin; // Position below instead
+    }
+    if (top + tooltipHeight > viewportHeight) {
+      top = viewportHeight - tooltipHeight - margin;
+    }
+
+    tooltipEl.style.position = 'fixed';
+    tooltipEl.style.left = `${left}px`;
+    tooltipEl.style.top = `${top}px`; // Position above the plane
+    tooltipEl.style.transform = 'translateX(-50%)';
+    tooltipEl.style.zIndex = '1004';
+
+    // Append to window view overlay instead of document.body for proper layering
+    const windowViewOverlay = document.querySelector('.window-view-overlay');
+    if (windowViewOverlay) {
+      windowViewOverlay.appendChild(tooltipEl);
+    } else {
+      // Fallback to document.body if overlay not found
+      document.body.appendChild(tooltipEl);
+    }
+    this.currentOperatorTooltip = tooltipEl;
+  }
+
+  /**
+   * Hide operator logo tooltip
+   */
+  hideOperatorTooltip(): void {
+    if (this.currentOperatorTooltip) {
+      if (this.currentOperatorTooltip.parentNode) {
+        this.currentOperatorTooltip.parentNode.removeChild(this.currentOperatorTooltip);
+      }
+      this.currentOperatorTooltip = null;
+    }
+  }
+
+  private currentOperatorTooltip: HTMLElement | null = null;
 
   /** Debug function to analyze planes within 10km */
   debugClosePlanes(): void {

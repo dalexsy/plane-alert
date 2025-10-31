@@ -135,7 +135,9 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     if (!this.tooltipEl) return;
 
     const rect = this.el.nativeElement.getBoundingClientRect();
-    const tooltipRect = this.tooltipEl.getBoundingClientRect();
+    // Estimate tooltip size since we can't get accurate size before positioning
+    const estimatedTooltipWidth = 200; // Conservative estimate
+    const estimatedTooltipHeight = 40;  // Conservative estimate
 
     // Get offset from CSS variable (fallback to 4px)
     const computedStyle = getComputedStyle(this.tooltipEl);
@@ -151,12 +153,12 @@ export class TooltipDirective implements OnDestroy, OnChanges {
         top = rect.top + rect.height / 2;
         break;
       case 'left':
-        left = rect.left - tooltipRect.width - offset;
+        left = rect.left - estimatedTooltipWidth - offset;
         top = rect.top + rect.height / 2;
         break;
       case 'top':
         left = rect.left + rect.width / 2;
-        top = rect.top - tooltipRect.height - offset;
+        top = rect.top - estimatedTooltipHeight - offset;
         break;
       case 'bottom':
         left = rect.left + rect.width / 2;
@@ -169,17 +171,24 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     const viewportHeight = window.innerHeight;
     const margin = 8;
 
-    if (left + tooltipRect.width > viewportWidth) {
-      left = viewportWidth - tooltipRect.width - margin;
+    if (left + estimatedTooltipWidth > viewportWidth) {
+      left = viewportWidth - estimatedTooltipWidth - margin;
     }
     if (left < margin) {
       left = margin;
     }
-    if (top + tooltipRect.height > viewportHeight) {
-      top = viewportHeight - tooltipRect.height - margin;
+    if (top + estimatedTooltipHeight > viewportHeight) {
+      top = viewportHeight - estimatedTooltipHeight - margin;
     }
     if (top < margin) {
       top = margin;
+    }
+
+    // For vertical centering of tooltip
+    if (this.position === 'right' || this.position === 'left') {
+      top -= estimatedTooltipHeight / 2;
+    } else if (this.position === 'top' || this.position === 'bottom') {
+      left -= estimatedTooltipWidth / 2;
     }
 
     this.tooltipEl.style.left = `${left}px`;

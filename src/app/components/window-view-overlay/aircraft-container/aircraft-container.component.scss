@@ -27,7 +27,7 @@ $animation-optimization: optimizeSpeed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1001; // Bring aircraft icons above other overlay elements
+  z-index: 1003; // Bring aircraft icons above everything
   pointer-events: none;
   transform-style: preserve-3d; // Ensure 3D transforms are preserved
   perspective: 1000px; // Add perspective for better 3D depth perception
@@ -236,7 +236,7 @@ $animation-optimization: optimizeSpeed;
   white-space: nowrap;
   transform-style: preserve-3d; // Enable 3D transforms for labels
   position: relative; // Needed for 3D positioning
-  z-index: 10; // Ensure labels are always above icons
+  z-index: 10; // Ensure labels are always above everything
 
   &.followed {
     position: relative;
@@ -245,7 +245,7 @@ $animation-optimization: optimizeSpeed;
     border: 1px solid cyan;
     border-radius: 0.25rem;
     box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.49);
-    z-index: 15; // Followed planes get even higher priority
+    z-index: 11; // Followed planes get even higher priority
   } // Tooltip-style background for labels with operator/model info (close planes)
   &.has-details {
     background: rgba(0, 0, 0, 0.9);
@@ -370,10 +370,7 @@ $animation-optimization: optimizeSpeed;
 // =============================================================================
 
 .operator-logo-tooltip {
-  position: absolute;
-  bottom: calc(100% + 0.5rem); // Position above the main tooltip
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   background: rgba(0, 0, 0, 0.9);
   border-radius: 50%;
   padding: 0.375rem;
@@ -383,7 +380,7 @@ $animation-optimization: optimizeSpeed;
   outline: 1px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(0.5rem);
   pointer-events: none;
-  z-index: 11; // Above normal labels but below followed planes
+  z-index: 1004;
   width: 3.25rem;
   height: 3.25rem;
   display: flex;

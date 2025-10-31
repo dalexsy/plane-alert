@@ -35,6 +35,8 @@
           ? 'On ground'
           : ' (' + plane.altitude + 'm)'
       "
+      (mouseenter)="onMouseEnter(plane, $event)"
+      (mouseleave)="hideOperatorTooltip()"
     >
       <!-- Marker label for midpoints (Balcony/Streetside) -->
       <ng-container
@@ -112,12 +114,7 @@
             </div>
           </ng-container>
         </ng-container>
-        <!-- Operator logo tooltip above the main tooltip -->
-        <div
-          *ngIf="shouldShowOperatorLogo(plane)"
-          class="operator-logo-tooltip"
-          [innerHTML]="getOperatorLogoContent(plane)"
-        ></div>
+        <!-- Operator logo tooltip is now managed programmatically -->
         <span
           class="plane-label"
           [class]="getLabelClasses(plane)"

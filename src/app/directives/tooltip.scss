@@ -7,7 +7,7 @@ $tooltip-border-color: rgba(255, 255, 255, 0.3);
 $tooltip-padding: 0.6rem 0.75rem;
 $tooltip-border-radius: 6px;
 $tooltip-font-size: 0.75rem;
-$tooltip-z-index: 10000;
+$tooltip-z-index: 1005;
 
 .app-tooltip {
   --tooltip-offset: #{$tooltip-offset - 1px}; // Closer by default
@@ -62,9 +62,9 @@ $tooltip-z-index: 10000;
     }
   }
 
-  // Mobile-first: Hide tooltips on mobile only
+  // Mobile-first: Keep tooltips visible on mobile
   @media (max-width: 600px) {
-    display: none !important;
+    // display: none !important; // Temporarily disabled to debug
   }
 
   // Tablet adjustments (768px and up)
