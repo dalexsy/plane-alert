@@ -1,3 +1,27 @@
+<!-- SVG definitions for airport circle patterns -->
+<svg width="0" height="0" style="position: absolute">
+  <defs>
+    <pattern
+      id="airportStripedPatternCyan"
+      patternUnits="userSpaceOnUse"
+      width="5"
+      height="5"
+      patternTransform="rotate(45)"
+    >
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke: cyan; stroke-width: 5" />
+    </pattern>
+    <pattern
+      id="airportStripedPatternGold"
+      patternUnits="userSpaceOnUse"
+      width="5"
+      height="5"
+      patternTransform="rotate(45)"
+    >
+      <line x1="0" y1="0" x2="0" y2="5" style="stroke: gold; stroke-width: 5" />
+    </pattern>
+  </defs>
+</svg>
+
 <div class="overlay-container">
   <app-closest-plane-overlay
     *ngIf="closestPlane"
@@ -21,6 +45,7 @@
   (excludeDiscountChange)="onExcludeDiscountChange()"
   (useCurrentLocation)="useCurrentLocation()"
   (coneVisibilityChange)="toggleConeVisibility($event)"
+  (coneConfigChange)="onConeConfig()"
   (cloudToggleChange)="toggleCloudCover($event)"
   (rainToggleChange)="toggleRainCover($event)"
   (setHome)="setCurrentAsHome()"
@@ -46,9 +71,9 @@
 <!-- Pass the set of active ICAOs to the results overlay -->
 <app-results-overlay
   (windowViewToggle)="onWindowViewToggle($event)"
-  [skyPlaneLog]="resultsOverlayComponent.skyPlaneLog"
-  [airportPlaneLog]="resultsOverlayComponent.airportPlaneLog"
-  [seenPlaneLog]="resultsOverlayComponent.seenPlaneLog"
+  [skyPlaneLog]="skyPlaneLog"
+  [airportPlaneLog]="airportPlaneLog"
+  [seenPlaneLog]="seenPlaneLog"
   [loadingAirports]="loadingAirports"
   [highlightedPlaneIcao]="highlightedPlaneIcao"
   [activePlaneIcaos]="activePlaneIcaos"
@@ -64,7 +89,9 @@
   (centerAirport)="onCenterAirport($event)"
   (hoverPlane)="onHoverOverlayPlane($event)"
   (unhoverPlane)="onUnhoverOverlayPlane($event)"
-></app-results-overlay>
+>
+  ></app-results-overlay
+>
 
 <!-- Angle overlay above clock and temperature -->
 <div
@@ -114,8 +141,18 @@
 <app-cone
   *ngIf="map && coneVisible"
   [map]="map"
-  [lat]="currentLat"
-  [lon]="currentLon"
+  [lat]="isAtHome && homeLocationValue ? homeLocationValue.lat : currentLat"
+  [lon]="isAtHome && homeLocationValue ? homeLocationValue.lon : currentLon"
   [distanceKm]="radiusKm"
-  [isAtHome]="isAtHome"
-></app-cone>
+  [viewCones]="isAtHome ? viewConesConfig : []"
+>
+</app-cone>
+
+<!-- Cone Configuration Editor (temporary placement) -->
+<app-cone-config-editor
+  *ngIf="showConeConfigEditor"
+  [cones]="viewConesConfig"
+  (conesChange)="onConeConfigChange($event)"
+  (closeEditor)="onConeConfig()"
+>
+</app-cone-config-editor>

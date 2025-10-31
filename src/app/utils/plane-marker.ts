@@ -74,8 +74,8 @@ export function createOrUpdatePlaneMarker(
   const isCopter = isCustomHelicopter;
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter
-    ? { path: '', iconType: 'copter' as const }
-    : getIconPathForModel(model, callsign, altitude || undefined);
+    ? { path: '', iconType: 'helicopter' as const }
+    : getIconPathForModel(model, callsign, altitude || undefined, isCopter);
   // Only render inline SVG for non-helicopters that are not unknown devices
   const iconInner =
     !isCopter && !isUnknown
@@ -315,9 +315,10 @@ export function createOrUpdatePlaneMarker(
     oldMarker.off('tooltipopen');
     oldMarker.off('tooltipclose');
 
-    // Add new marker listeners
+    // Add marker listeners
     oldMarker.on('mouseover', bringForwardHandler);
     oldMarker.on('mouseout', sendBackwardHandler);
+    // Removed contextmenu handler - right-click now handled by plane list items
 
     // Add new tooltip listeners via tooltipopen/close
     oldMarker.on('tooltipopen', () => {
@@ -360,6 +361,16 @@ export function createOrUpdatePlaneMarker(
     marker.bindTooltip(tooltipContent, rightTooltipOptions);
     marker.addTo(map);
 
+    // Apply altitude border styling if altitude exists
+    if (altitude != null) {
+      const tooltipEl = marker.getTooltip()?.getElement();
+      if (tooltipEl) {
+        tooltipEl.classList.add('altitude-bordered-tooltip');
+        // We need the altitude color service to get the color
+        // For now, we'll just add the class and let the service update the color
+      }
+    }
+
     // Only create left tooltip if content is non-empty
     if (leftTooltipContent) {
       createLeftMarker(marker);
@@ -375,6 +386,7 @@ export function createOrUpdatePlaneMarker(
     // Add marker listeners
     marker.on('mouseover', bringForwardHandler);
     marker.on('mouseout', sendBackwardHandler);
+    // Removed contextmenu handler - right-click now handled by plane list items
 
     // Add tooltip listeners via tooltipopen/close
     marker.on('tooltipopen', () => {

@@ -32,3 +32,10 @@ export function playA400Alert(): void {
   const audio = new Audio('assets/alerts/iago.mp3');
   audio.play();
 }
+
+export function playDreamlinerAlert(): void {
+  const audio = new Audio(
+    'assets/alerts/will-you-getting-soft-on-board-that-luxury-liner.mp3'
+  );
+  audio.play();
+}

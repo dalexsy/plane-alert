@@ -67,10 +67,10 @@ export async function reverseGeocode(
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+      `/nominatim/reverse?format=json&lat=${lat}&lon=${lon}`,
       {
         signal: controller.signal,
-        headers: { 'User-Agent': 'PlaneAlert/1.0' }
+        headers: { 'User-Agent': 'PlaneAlert/1.0' },
       }
     );
 
@@ -84,14 +84,21 @@ export async function reverseGeocode(
     return data.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
   } catch (error: any) {
     // Specific handling for CORS/network errors
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      console.warn('Reverse geocoding blocked by CORS policy or network error. Using coordinates fallback.');
+    if (
+      error instanceof TypeError &&
+      error.message.includes('Failed to fetch')
+    ) {
+      console.warn(
+        'Reverse geocoding blocked by CORS policy or network error. Using coordinates fallback.'
+      );
     } else if (error.name === 'AbortError') {
-      console.warn('Reverse geocoding request timed out. Using coordinates fallback.');
+      console.warn(
+        'Reverse geocoding request timed out. Using coordinates fallback.'
+      );
     } else {
       console.warn('Reverse geocoding failed:', error);
     }
-    
+
     // Fallback to formatted coordinates
     return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
   }

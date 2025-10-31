@@ -26,10 +26,20 @@ $label-font-size-desktop: 1rem;
   position: relative;
   font-size: $label-font-size-mobile; // Mobile first
 
+  // Shingle roof pattern background
+  background-image: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.1) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 0.25rem 0.25rem;
+
   // Desktop font size
   @media (min-width: #{$mobile-breakpoint + 1px}) {
     font-size: $label-font-size-desktop;
   }
+
   // Chimney decorations
   &::before,
   &::after {
@@ -66,13 +76,4 @@ $label-font-size-desktop: 1rem;
   &::after {
     left: 40%;
   }
-
-  // Shingle roof pattern background
-  background-image: linear-gradient(
-      to right,
-      rgba(0, 0, 0, 0.1) 1px,
-      transparent 1px
-    ),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
-  background-size: 0.25rem 0.25rem;
 }

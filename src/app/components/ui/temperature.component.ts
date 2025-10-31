@@ -64,14 +64,18 @@ export class TemperatureComponent implements OnInit, OnDestroy {
     // Subscribe to location changes and fetch temperature accordingly
     this.locationSubscription = this.locationContext.currentLocation$.subscribe(
       (location) => {
-        this.fetchTemperature(location.lat, location.lon);
+        if (location.lat !== undefined && location.lon !== undefined) {
+          this.fetchTemperature(location.lat, location.lon);
+        }
       }
     );
 
     // Set up refresh interval (every 10 minutes)
     this.refreshInterval = window.setInterval(() => {
       const location = this.locationContext.currentLocation;
-      this.fetchTemperature(location.lat, location.lon);
+      if (location.lat !== undefined && location.lon !== undefined) {
+        this.fetchTemperature(location.lat, location.lon);
+      }
     }, 600000);
   }
 

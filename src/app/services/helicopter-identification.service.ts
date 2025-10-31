@@ -14,18 +14,24 @@ export class HelicopterIdentificationService {
   constructor(private helicopterListService: HelicopterListService) {}
 
   /**
-   * Comprehensive helicopter identification using both ICAO list and model patterns
+   * Comprehensive helicopter identification using ICAO, model patterns, and operator call signs
    * This method combines all helicopter detection logic in one place to ensure
    * consistent identification across all components
    *
    * @param icao - Aircraft ICAO code
    * @param model - Aircraft model string (optional)
+   * @param operator - Aircraft operator call sign (optional)
    * @returns true if aircraft should be treated as a helicopter
    */
-  isHelicopter(icao: string, model?: string): boolean {
+  isHelicopter(icao: string, model?: string, operator?: string): boolean {
     try {
       // First check the ICAO-based helicopter list (most authoritative)
       if (this.helicopterListService.isHelicopter(icao)) {
+        return true;
+      }
+
+      // Check operator call sign patterns (second priority)
+      if (operator && this.isHelicopterByOperator(operator)) {
         return true;
       }
 
@@ -34,7 +40,7 @@ export class HelicopterIdentificationService {
         return false;
       }
 
-      // Check model name patterns (fallback for aircraft not in ICAO list)
+      // Check model name patterns (fallback)
       return this.isHelicopterByModel(model);
     } catch (error) {
       // Error in helicopter identification
@@ -44,8 +50,48 @@ export class HelicopterIdentificationService {
   }
 
   /**
+   * Check if aircraft is a helicopter based on operator call sign patterns
+   * This is used when ICAO is not in the helicopter list
+   *
+   * @param operator - Aircraft operator call sign
+   * @returns true if operator indicates helicopter operations
+   */
+  private isHelicopterByOperator(operator: string): boolean {
+    if (!operator || typeof operator !== 'string') {
+      return false;
+    }
+
+    const operatorLower = operator.toLowerCase().trim();
+
+    // Return early for empty strings
+    if (!operatorLower) {
+      return false;
+    }
+
+    // Known helicopter operator call signs
+    const helicopterOperators = [
+      'bpo', // Bundespolizei (German Federal Police) - helicopters
+      'bpoli', // Bundespolizei variant
+      'polizei', // Police helicopters
+      'police', // Police helicopters
+      'coast guard', // Coast guard helicopters
+      'coastguard', // Coast guard helicopters
+      'rescue', // Rescue helicopters
+      'sar', // Search and Rescue
+      'air ambulance', // Air ambulance
+      'medevac', // Medical evacuation
+      'ems', // Emergency Medical Services
+    ];
+
+    // Check if any pattern matches
+    return helicopterOperators.some((pattern) =>
+      operatorLower.includes(pattern)
+    );
+  }
+
+  /**
    * Check if aircraft is a helicopter based on model name patterns
-   * This is used as a fallback when ICAO is not in the helicopter list
+   * This is used as a fallback when ICAO and operator checks fail
    *
    * @param model - Aircraft model string
    * @returns true if model indicates helicopter
@@ -134,27 +180,37 @@ export class HelicopterIdentificationService {
    *
    * @param icao - Aircraft ICAO code
    * @param model - Aircraft model string (optional)
+   * @param operator - Aircraft operator call sign (optional)
    * @returns object with identification details
    */
   getHelicopterIdentificationDetails(
     icao: string,
-    model?: string
+    model?: string,
+    operator?: string
   ): {
     isHelicopter: boolean;
     identifiedByIcao: boolean;
+    identifiedByOperator: boolean;
     identifiedByModel: boolean;
     model: string | undefined;
+    operator: string | undefined;
     icao: string;
   } {
     const identifiedByIcao = this.helicopterListService.isHelicopter(icao);
+    const identifiedByOperator = operator
+      ? this.isHelicopterByOperator(operator)
+      : false;
     const identifiedByModel = model ? this.isHelicopterByModel(model) : false;
-    const isHelicopter = identifiedByIcao || identifiedByModel;
+    const isHelicopter =
+      identifiedByIcao || identifiedByOperator || identifiedByModel;
 
     return {
       isHelicopter,
       identifiedByIcao,
+      identifiedByOperator,
       identifiedByModel,
       model,
+      operator,
       icao,
     };
   }

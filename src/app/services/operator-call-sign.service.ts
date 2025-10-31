@@ -6,7 +6,9 @@ import { HttpClient } from '@angular/common/http';
 })
 export class OperatorCallSignService {
   private operatorMap: Record<string, string> = {};
+  private userOperatorMap: Record<string, string> = {};
   private unknownCallSigns = new Set<string>();
+  private readonly USER_OPERATORS_KEY = 'plane-alert-user-operators';
 
   constructor(private http: HttpClient) {
     this.loadMappings();
@@ -16,8 +18,30 @@ export class OperatorCallSignService {
   private loadMappings(): void {
     this.http
       .get<Record<string, string>>('assets/operator-call-signs.json')
-      .subscribe((data) => (this.operatorMap = data));
+      .subscribe((data) => {
+        this.operatorMap = data;
+        this.loadUserData();
+      });
   }
+
+  private loadUserData(): void {
+    const stored = localStorage.getItem(this.USER_OPERATORS_KEY);
+    if (stored) {
+      try {
+        this.userOperatorMap = JSON.parse(stored);
+      } catch (e) {
+        console.error('Error loading user operator data:', e);
+      }
+    }
+  }
+
+  private saveUserData(): void {
+    localStorage.setItem(
+      this.USER_OPERATORS_KEY,
+      JSON.stringify(this.userOperatorMap)
+    );
+  }
+
   /**
    * Returns the operator name for a given callsign by matching the longest possible prefix, or undefined if not found.
    */
@@ -26,7 +50,16 @@ export class OperatorCallSignService {
       return undefined;
     }
     const cs = callSign.toUpperCase();
-    // Try longest map keys first
+    // Check user map first
+    const userPrefixes = Object.keys(this.userOperatorMap).sort(
+      (a, b) => b.length - a.length
+    );
+    for (const prefix of userPrefixes) {
+      if (cs.startsWith(prefix)) {
+        return this.userOperatorMap[prefix];
+      }
+    }
+    // Then check main map
     const prefixes = Object.keys(this.operatorMap).sort(
       (a, b) => b.length - a.length
     );
@@ -85,20 +118,38 @@ export class OperatorCallSignService {
    * Returns a copy of all current prefix→operator mappings.
    */
   getAllMappings(): Record<string, string> {
-    return { ...this.operatorMap };
+    return { ...this.userOperatorMap, ...this.operatorMap };
   }
 
   /**
    * Adds or updates a mapping for a 3-letter prefix.
    */
   addMapping(prefix: string, operatorName: string): void {
-    this.operatorMap[prefix.toUpperCase()] = operatorName;
+    this.userOperatorMap[prefix.toUpperCase()] = operatorName;
+    this.saveUserData();
   }
+
   /**
    * Removes a mapping by its 3-letter prefix.
    */
   removeMapping(prefix: string): void {
-    delete this.operatorMap[prefix.toUpperCase()];
+    delete this.userOperatorMap[prefix.toUpperCase()];
+    this.saveUserData();
+  }
+
+  /**
+   * Returns a copy of all user-added prefix→operator mappings.
+   */
+  getUserMappings(): Record<string, string> {
+    return { ...this.userOperatorMap };
+  }
+
+  /**
+   * Imports multiple operator mappings.
+   */
+  importMappings(mappings: Record<string, string>): void {
+    Object.assign(this.userOperatorMap, mappings);
+    this.saveUserData();
   }
 
   /**

@@ -1,0 +1,65 @@
+// src/app/components/context-menu/context-menu.component.scss
+.context-menu {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  min-width: 160px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  backdrop-filter: blur(0.5rem);
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.875rem;
+
+  &.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.15s ease;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover:not(.disabled) {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &.disabled {
+      color: rgba(255, 255, 255, 0.4);
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    .icon {
+      margin-right: 0.75rem;
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.8;
+      font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
+    }
+
+    .label {
+      flex: 1;
+      font-weight: 500;
+    }
+  }
+}

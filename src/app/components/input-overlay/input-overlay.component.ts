@@ -33,7 +33,13 @@ import { LocationContextService } from '../../services/location-context.service'
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TabComponent, InputComponent, TooltipDirective],
+  imports: [
+    CommonModule,
+    ButtonComponent,
+    TabComponent,
+    InputComponent,
+    TooltipDirective,
+  ],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
@@ -49,6 +55,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() resolveAndUpdate = new EventEmitter<void>();
   @Output() useCurrentLocation = new EventEmitter<void>();
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
+  @Output() coneConfigChange = new EventEmitter<void>();
   @Output() setHome = new EventEmitter<void>();
   @Output() goToHome = new EventEmitter<void>();
   @Input() showCloudCover = true;
@@ -122,12 +129,15 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
       this.otherControlsHidden = val;
       this.cdr.detectChanges();
     });
-    // Subscribe to address changes - only populate if field is empty and not being edited
-    // This prevents overwriting user input while still showing current location when appropriate
-    this.locationContext.address$.subscribe((address) => {
-      // Only update if user is not editing AND field is empty
-      if (!this.isUserEditingAddress && !this.currentAddress.trim()) {
-        this.currentAddress = address || '';
+    // Subscribe to location context changes to update input field when location changes programmatically
+    // Location context is the SINGLE source of truth for the current address
+    this.locationContext.currentLocation$.subscribe((locationData) => {
+      // Always update from location context unless user is actively editing
+      if (!this.isUserEditingAddress) {
+        this.currentAddress = locationData.address;
+        if (this.addressInputRef) {
+          this.addressInputRef.setValue(locationData.address);
+        }
         this.cdr.detectChanges();
       }
     });
@@ -183,7 +193,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.otherControlsHidden = !this.otherControlsHidden;
     // Persist 'other controls' hidden state
     this.settings.setInputOverlayControlsHidden(this.otherControlsHidden);
-    
+
     // If controls are being shown and overlay is collapsed, expand it
     if (!this.otherControlsHidden && this.collapsed) {
       this.toggleCollapsed();
@@ -209,7 +219,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.lastScanTime = new Date();
     // Clear the user editing flag since we're now processing the address
     this.isUserEditingAddress = false;
-    
+
     // Update now button pressed would be logged here
     this.resolveAndUpdate.emit();
   }
@@ -306,6 +316,10 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     // Toggle the internal flag and emit new state
     this.animationsEnabled = !this.animationsEnabled;
     this.animationsEnabledChange.emit(this.animationsEnabled);
+  }
+
+  onConeConfig(): void {
+    this.coneConfigChange.emit();
   }
 
   /** Get brightness button icon based on current state */
@@ -412,6 +426,11 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Get view axes toggle tooltip text */
   get viewAxesTooltip(): string {
     return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
+  }
+
+  /** Get cone config tooltip text */
+  get coneConfigTooltip(): string {
+    return 'Configure view cones';
   }
 
   /** Get animations toggle tooltip text */
@@ -579,7 +598,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   onAddressFocus(event: FocusEvent): void {
     // Set flag to indicate user is editing the address
     this.isUserEditingAddress = true;
-    
+
     // Only select all on mobile devices
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(

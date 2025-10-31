@@ -82,6 +82,16 @@
           [appTooltip]="viewAxesTooltip"
           (click)="coneVisibilityChange.emit(!showViewAxes)"
         ></app-button>
+        <!-- Cone configuration button -->
+        <app-button
+          class="cone-config"
+          icon="settings"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="coneConfigTooltip"
+          [appTooltip]="coneConfigTooltip"
+          (click)="onConeConfig()"
+        ></app-button>
         <!-- Animations toggle button -->
         <app-button
           class="toggle-animations"

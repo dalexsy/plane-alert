@@ -25,12 +25,10 @@ export class MapService {
     this.map = L.map(mapId, { doubleClickZoom: false }).setView([lat, lon], 12);
     // SVG renderer is managed by MapComponent
 
-    L.tileLayer(
-      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }
-    ).addTo(this.map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.map);
 
     const materialIcon = L.divIcon({
       html: '<span class="material-icons" style="font-size: 32px; color: #2196f3;">place</span>',
@@ -49,7 +47,7 @@ export class MapService {
       .overlayPane.querySelector('svg') as SVGSVGElement;
     // disable pointer events on all vector overlays to speed up input handling
     svg.style.pointerEvents = 'none';
-    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
+    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 1.0);
     // Base layer is already added above, no need for overlay layer
 
     this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
@@ -84,7 +82,7 @@ export class MapService {
       fill: true,
       fillColor: 'rgba(0, 0, 0, 1)',
       fillOpacity: 0.3,
-    }).addTo(this.map);    // Bring to back so other overlays render above
+    }).addTo(this.map); // Bring to back so other overlays render above
     this.mainRadiusCircle.bringToBack();
     // Insert the circle's group at the bottom of overlayPane SVG to ensure it is behind all other paths
     try {
@@ -134,17 +132,18 @@ export class MapService {
       fill: true,
       fillColor: 'url(#airportStripedPattern)',
       fillOpacity: 0.8,
-      interactive: false,    }).addTo(this.map);
+      interactive: false,
+    }).addTo(this.map);
     // ensure pattern
     const svg = this.map
       .getPanes()
       .overlayPane.querySelector('svg') as SVGSVGElement;
-    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 0.5);
+    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 1.0);
     this.airportCircles.set(id, circle);
-    
+
     // Ensure sky overlay stays behind airport circles
     this.skyOverlayService.ensureProperLayerOrder();
-    
+
     // Ensure sky overlay stays behind airport circles
     this.skyOverlayService.ensureProperLayerOrder();
   }

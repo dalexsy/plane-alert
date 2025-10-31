@@ -12,6 +12,8 @@ import {
   OnChanges,
   OnDestroy,
   SimpleChanges,
+  ElementRef,
+  Renderer2,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -31,7 +33,10 @@ import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
 import { OperatorTooltipService } from '../../services/operator-tooltip.service';
 import { OperatorSymbolConfig } from '../../config/operator-symbols.config';
-import * as L from 'leaflet';
+import {
+  AircraftImageService,
+  AircraftImage,
+} from '../../services/aircraft-image.service';
 
 @Component({
   selector: 'app-plane-list-item',
@@ -158,6 +163,13 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     );
   }
 
+  // Aircraft image hover properties
+  aircraftImage: AircraftImage | null = null;
+  showImageTooltip = false;
+  isLoadingImage = false;
+  tooltipPosition = { x: 0, y: 0 };
+  private tooltipElement: HTMLElement | null = null;
+
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
   @Output() filterPrefix = new EventEmitter<PlaneLogEntry>();
@@ -171,7 +183,10 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     public planeStyle: PlaneStyleService,
     private announcementService: AnnouncementService,
     private operatorTooltipService: OperatorTooltipService,
-    private cdr: ChangeDetectorRef
+    private aircraftImageService: AircraftImageService,
+    private cdr: ChangeDetectorRef,
+    private elementRef: ElementRef,
+    private renderer: Renderer2
   ) {
     // Subscribe to distance unit changes to trigger change detection
     this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(
@@ -183,6 +198,13 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.distanceUnitSubscription?.unsubscribe();
+    // Clean up tooltip if it's still attached to body
+    if (
+      this.tooltipElement &&
+      this.tooltipElement.parentNode === document.body
+    ) {
+      this.renderer.removeChild(document.body, this.tooltipElement);
+    }
   }
 
   // Make the whole item clickable: clicking the host emits centerPlane
@@ -240,7 +262,121 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
       });
     }
   }
+
+  /** Check if model is generic and shouldn't link to Bing search */
+  isGenericModel(model: string): boolean {
+    const genericModels = ['Helicopter', 'Unknown', 'Aircraft'];
+    return genericModels.includes(model);
+  }
+
+  /** Handle mouse enter on model name to show aircraft image */
+  onModelMouseEnter(event: MouseEvent): void {
+    if (!this.plane.model || this.isGenericModel(this.plane.model)) {
+      return;
+    }
+
+    // If we already have the image cached, just show it
+    if (this.aircraftImage) {
+      this.showImageTooltip = true;
+      this.moveTooltipToBody();
+      return;
+    }
+
+    // If we're already loading, don't start another request
+    if (this.isLoadingImage) {
+      return;
+    }
+
+    // Capture mouse position for tooltip placement
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
+
+    // Calculate tooltip position with bounds checking
+    const tooltipWidth = 300; // approximate width
+    const tooltipHeight = 200; // approximate height
+    const margin = 10;
+
+    let tooltipX = mouseX + margin;
+    let tooltipY = mouseY + margin;
+
+    // Adjust if tooltip would go off-screen
+    if (tooltipX + tooltipWidth > window.innerWidth) {
+      tooltipX = mouseX - tooltipWidth - margin;
+    }
+    if (tooltipY + tooltipHeight > window.innerHeight) {
+      tooltipY = mouseY - tooltipHeight - margin;
+    }
+
+    this.tooltipPosition.x = Math.max(0, tooltipX);
+    this.tooltipPosition.y = Math.max(0, tooltipY);
+
+    this.isLoadingImage = true;
+    this.showImageTooltip = true;
+
+    // Move tooltip to document body to escape overflow hidden containers
+    this.moveTooltipToBody();
+
+    this.aircraftImageService
+      .getAircraftImage(this.plane.model, this.plane.operator)
+      .subscribe({
+        next: (image) => {
+          this.aircraftImage = image;
+          this.isLoadingImage = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          this.aircraftImage = null;
+          this.isLoadingImage = false;
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  /** Handle mouse leave on model name to hide aircraft image */
+  onModelMouseLeave(): void {
+    this.showImageTooltip = false;
+    // Keep aircraftImage cached - don't clear it
+    this.isLoadingImage = false;
+
+    // Move tooltip back to component
+    this.moveTooltipBack();
+
+    this.cdr.detectChanges();
+  }
+
+  private moveTooltipToBody(): void {
+    if (!this.tooltipElement) {
+      // Find the tooltip element in the component
+      const tooltipEl = this.elementRef.nativeElement.querySelector(
+        '.aircraft-image-tooltip'
+      );
+      if (tooltipEl) {
+        this.tooltipElement = tooltipEl;
+        // Append to document body
+        this.renderer.appendChild(document.body, this.tooltipElement);
+      }
+    }
+  }
+
+  private moveTooltipBack(): void {
+    if (this.tooltipElement) {
+      // Move back to the component's original location
+      const modelEl = this.elementRef.nativeElement.querySelector('.model');
+      if (modelEl) {
+        this.renderer.appendChild(modelEl, this.tooltipElement);
+      }
+      this.tooltipElement = null;
+    }
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
+    // Clear cached image when plane changes
+    if (changes['plane'] && !changes['plane'].firstChange) {
+      this.aircraftImage = null;
+      this.isLoadingImage = false;
+      this.showImageTooltip = false;
+    }
+
     // Announce new plane
     if (this.plane.isNew) {
       const context = { isAirportClicked: this.hostAirportClicked };
