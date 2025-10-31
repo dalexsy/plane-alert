@@ -4,17 +4,19 @@ import { MAP_THEMES } from '../config/map-themes.config';
 import { BrightnessService, BrightnessState } from './brightness.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MapThemeService {
-  private currentTileLayer: L.TileLayer | null = null;
+  private currentTileLayers: L.TileLayer[] = [];
   private map: L.Map | null = null;
 
   constructor(private brightnessService: BrightnessService) {
     // Listen for day/night changes and switch themes automatically
-    this.brightnessService.brightness$.subscribe((brightnessState: BrightnessState) => {
-      this.updateMapTheme(brightnessState);
-    });
+    this.brightnessService.brightness$.subscribe(
+      (brightnessState: BrightnessState) => {
+        this.updateMapTheme(brightnessState);
+      }
+    );
   }
 
   /**
@@ -33,35 +35,61 @@ export class MapThemeService {
   private updateMapTheme(brightnessState: BrightnessState): void {
     if (!this.map) return;
 
-    // Remove current tile layer
-    if (this.currentTileLayer) {
-      this.map.removeLayer(this.currentTileLayer);
-    }
+    // Remove current tile layers
+    this.currentTileLayers.forEach((layer) => {
+      this.map!.removeLayer(layer);
+    });
+    this.currentTileLayers = [];
 
     // Choose theme: day or night based on sun elevation
-    // Use night theme when sun is below horizon (like after sunset)
     const isNight = brightnessState.sunElevation < 0;
     const theme = isNight ? MAP_THEMES.night : MAP_THEMES.day;
-    
-    // Create new tile layer with direct URL
-    this.currentTileLayer = L.tileLayer(theme.url, {
-      attribution: theme.attribution,
-      maxZoom: 18,
-      minZoom: 1
-    });
 
-    // Add to map
-    this.currentTileLayer.addTo(this.map);
+    if (isNight) {
+      // Night theme: single layer
+      const nightTheme = theme as { url: string; attribution: string };
+      const tileLayer = L.tileLayer(nightTheme.url, {
+        attribution: nightTheme.attribution,
+        maxZoom: 18,
+        minZoom: 1,
+      });
+      this.currentTileLayers.push(tileLayer);
+      tileLayer.addTo(this.map);
+    } else {
+      // Day theme: satellite imagery + places labels only (cleaner)
+      const dayTheme = theme as {
+        imagery: { url: string; attribution: string };
+        labels: { url: string; attribution: string };
+      };
+
+      const imageryLayer = L.tileLayer(dayTheme.imagery.url, {
+        attribution: dayTheme.imagery.attribution,
+        maxZoom: 18,
+        minZoom: 1,
+      });
+
+      const placesLayer = L.tileLayer(dayTheme.labels.url, {
+        attribution: dayTheme.labels.attribution,
+        maxZoom: 18,
+        minZoom: 1,
+      });
+
+      this.currentTileLayers.push(imageryLayer, placesLayer);
+      imageryLayer.addTo(this.map);
+      placesLayer.addTo(this.map);
+    }
   }
 
   /**
    * Cleanup when component is destroyed
    */
   destroy(): void {
-    if (this.currentTileLayer && this.map) {
-      this.map.removeLayer(this.currentTileLayer);
-    }
-    this.currentTileLayer = null;
+    this.currentTileLayers.forEach((layer) => {
+      if (this.map) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.currentTileLayers = [];
     this.map = null;
   }
 }

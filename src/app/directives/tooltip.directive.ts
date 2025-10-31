@@ -137,7 +137,7 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     const rect = this.el.nativeElement.getBoundingClientRect();
     // Estimate tooltip size since we can't get accurate size before positioning
     const estimatedTooltipWidth = 200; // Conservative estimate
-    const estimatedTooltipHeight = 40;  // Conservative estimate
+    const estimatedTooltipHeight = 40; // Conservative estimate
 
     // Get offset from CSS variable (fallback to 4px)
     const computedStyle = getComputedStyle(this.tooltipEl);

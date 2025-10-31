@@ -622,7 +622,9 @@ export class AircraftContainerComponent implements OnChanges, OnDestroy {
   hideOperatorTooltip(): void {
     if (this.currentOperatorTooltip) {
       if (this.currentOperatorTooltip.parentNode) {
-        this.currentOperatorTooltip.parentNode.removeChild(this.currentOperatorTooltip);
+        this.currentOperatorTooltip.parentNode.removeChild(
+          this.currentOperatorTooltip
+        );
       }
       this.currentOperatorTooltip = null;
     }
