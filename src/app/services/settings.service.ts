@@ -55,7 +55,7 @@ export class SettingsService {
 
   // Key and backing store for brightness mode preference
   private brightnessAutoModeKey = 'brightnessAutoMode';
-  private _brightnessAutoMode: boolean = false;
+  private _brightnessAutoMode: boolean = true; // Enable auto mode by default
   // Key and backing store for wind units preference
   private windUnitIndexKey = 'windUnitIndex';
   private _windUnitIndex: number = 0;

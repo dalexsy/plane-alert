@@ -124,10 +124,14 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     // Register with tooltip manager
     this.tooltipManager.showTooltip(this, this.tooltipEl);
 
-    // Trigger animation
+    // Trigger animation and reposition after layout
     requestAnimationFrame(() => {
       if (this.tooltipEl) {
         this.tooltipEl.classList.add('tooltip-visible');
+        // Reposition after the tooltip is visible and has its final size
+        requestAnimationFrame(() => {
+          this.positionTooltip();
+        });
       }
     });
   }
@@ -135,14 +139,16 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     if (!this.tooltipEl) return;
 
     const rect = this.el.nativeElement.getBoundingClientRect();
-    // Estimate tooltip size since we can't get accurate size before positioning
-    const estimatedTooltipWidth = 200; // Conservative estimate
-    const estimatedTooltipHeight = 40; // Conservative estimate
 
-    // Get offset from CSS variable (fallback to 4px)
+    // Get actual tooltip dimensions
+    const tooltipRect = this.tooltipEl.getBoundingClientRect();
+    const actualTooltipWidth = Math.max(tooltipRect.width || 0, 50); // Minimum width with fallback
+    const actualTooltipHeight = Math.max(tooltipRect.height || 0, 20); // Minimum height with fallback
+
+    // Get offset from CSS variable (fallback to 12px)
     const computedStyle = getComputedStyle(this.tooltipEl);
     const offsetStr = computedStyle.getPropertyValue('--tooltip-offset').trim();
-    const offset = parseInt(offsetStr) || 4;
+    const offset = parseInt(offsetStr) || 12;
 
     let left = 0;
     let top = 0;
@@ -150,18 +156,18 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     switch (this.position) {
       case 'right':
         left = rect.right + offset;
-        top = rect.top + rect.height / 2;
+        top = rect.top + rect.height / 2 - actualTooltipHeight / 2; // Center vertically on button
         break;
       case 'left':
-        left = rect.left - estimatedTooltipWidth - offset;
-        top = rect.top + rect.height / 2;
+        left = rect.left - actualTooltipWidth - offset;
+        top = rect.top + rect.height / 2 - actualTooltipHeight / 2; // Center vertically on button
         break;
       case 'top':
-        left = rect.left + rect.width / 2;
-        top = rect.top - estimatedTooltipHeight - offset;
+        left = rect.left + rect.width / 2 - actualTooltipWidth / 2;
+        top = rect.top - actualTooltipHeight - offset;
         break;
       case 'bottom':
-        left = rect.left + rect.width / 2;
+        left = rect.left + rect.width / 2 - actualTooltipWidth / 2;
         top = rect.bottom + offset;
         break;
     }
@@ -171,24 +177,18 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     const viewportHeight = window.innerHeight;
     const margin = 8;
 
-    if (left + estimatedTooltipWidth > viewportWidth) {
-      left = viewportWidth - estimatedTooltipWidth - margin;
-    }
+    // Adjust horizontal position if tooltip would go off-screen
     if (left < margin) {
       left = margin;
-    }
-    if (top + estimatedTooltipHeight > viewportHeight) {
-      top = viewportHeight - estimatedTooltipHeight - margin;
-    }
-    if (top < margin) {
-      top = margin;
+    } else if (left + actualTooltipWidth > viewportWidth - margin) {
+      left = viewportWidth - actualTooltipWidth - margin;
     }
 
-    // For vertical centering of tooltip
-    if (this.position === 'right' || this.position === 'left') {
-      top -= estimatedTooltipHeight / 2;
-    } else if (this.position === 'top' || this.position === 'bottom') {
-      left -= estimatedTooltipWidth / 2;
+    // Adjust vertical position if tooltip would go off-screen
+    if (top < margin) {
+      top = margin;
+    } else if (top + actualTooltipHeight > viewportHeight - margin) {
+      top = viewportHeight - actualTooltipHeight - margin;
     }
 
     this.tooltipEl.style.left = `${left}px`;

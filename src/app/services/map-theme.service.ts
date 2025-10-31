@@ -42,7 +42,9 @@ export class MapThemeService {
     this.currentTileLayers = [];
 
     // Choose theme: day or night based on sun elevation
-    const isNight = brightnessState.sunElevation < 0;
+    // Use civil twilight (-6°) as the threshold for day/night switching
+    // This provides a more natural transition that matches when people consider it "night"
+    const isNight = brightnessState.sunElevation < -6;
     const theme = isNight ? MAP_THEMES.night : MAP_THEMES.day;
 
     if (isNight) {

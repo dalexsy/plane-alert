@@ -1,7 +1,7 @@
 // Tooltip styles for the custom tooltip directive
 
 // SCSS Variables for easy customization
-$tooltip-offset: 6px;
+$tooltip-offset: 12px; // Increased from 6px to ensure no overlap
 $tooltip-background: rgba(0, 0, 0, 0.7);
 $tooltip-border-color: rgba(255, 255, 255, 0.3);
 $tooltip-padding: 0.6rem 0.75rem;
@@ -34,21 +34,117 @@ $tooltip-z-index: 1005;
     opacity: 1;
   }
 
-  // Positioning variants - no transforms needed since positioning is handled in TypeScript
+  // Positioning variants with arrow pointers
   &.tooltip-right {
-    transform: translateY(-50%);
-  }
+    // Positioning handled in JavaScript
 
-  &.tooltip-top {
-    transform: translateX(-50%);
-  }
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%) translateX(-100%);
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-right-color: $tooltip-background;
+    }
 
-  &.tooltip-bottom {
-    transform: translateX(-50%);
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%) translateX(-100%);
+      width: 0;
+      height: 0;
+      border: 7px solid transparent;
+      border-right-color: $tooltip-border-color;
+    }
   }
 
   &.tooltip-left {
-    transform: translateY(-50%);
+    // Positioning handled in JavaScript
+
+    &::before {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%) translateX(100%);
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-left-color: $tooltip-background;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%) translateX(100%);
+      width: 0;
+      height: 0;
+      border: 7px solid transparent;
+      border-left-color: $tooltip-border-color;
+    }
+  }
+
+  &.tooltip-top {
+    // Positioning handled in JavaScript
+
+    &::before {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-top-color: $tooltip-background;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 0;
+      height: 0;
+      border: 7px solid transparent;
+      border-top-color: $tooltip-border-color;
+    }
+  }
+
+  &.tooltip-bottom {
+    // Positioning handled in JavaScript
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-bottom-color: $tooltip-background;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      width: 0;
+      height: 0;
+      border: 7px solid transparent;
+      border-bottom-color: $tooltip-border-color;
+    }
   }
 
   // Left-side variant with different styling
@@ -56,10 +152,7 @@ $tooltip-z-index: 1005;
     background: rgba(0, 0, 20, 0.8);
     border-color: rgba(100, 150, 255, 0.5);
     backdrop-filter: blur(0.3rem);
-
-    &.tooltip-left {
-      transform: translateY(-50%);
-    }
+    // Positioning handled in JavaScript
   }
 
   // Mobile-first: Keep tooltips visible on mobile

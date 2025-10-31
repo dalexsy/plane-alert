@@ -816,6 +816,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Initialize brightness service with current location
     this.brightnessService.setLocation(startLat, startLon);
 
+    // Initialize map theme service with the map
+    this.mapThemeService.initializeWithMap(this.map);
+
     // Initialize environmental data service and subscribe to wind data
     this.environmentalData.setLocation(startLat, startLon);
     this.environmentalData.windData$.subscribe((windData) => {
@@ -1066,6 +1069,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       radiusKm,
       zoomLevel
     );
+    // Update brightness service with new location for day/night theme switching
+    this.brightnessService.setLocation(lat, lon);
     // Location context is now updated from address changes, not map center changes
     // this.locationContext.updateFromMapCenter(lat, lon);
   }
