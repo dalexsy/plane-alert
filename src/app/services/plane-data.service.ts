@@ -209,10 +209,7 @@ export class PlaneDataService {
     const isSpecial = this.specialListService.isSpecial(id);
 
     // Check if this is an A380 for visual highlighting
-    const isA380 =
-      model &&
-      (model.toLowerCase().includes('a380') ||
-        model.toLowerCase().includes('a388'));
+    const isA380 = model && /a\s*-?\s*380/i.test(model);
 
     // Add unknown aircraft to database
     if (!dbAircraft) {
