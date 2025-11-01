@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { PlaneModel, PositionHistory } from '../models/plane-model';
+import { AltitudeColorService } from './altitude-color.service';
 
 // Helper function for Catmull-Rom interpolation
 function catmullRomPoint(
@@ -39,6 +40,8 @@ export class PathCalculationService {
     { timestamp: number; points: [number, number][] }
   >();
   private readonly PATH_CACHE_DURATION = 250; // ms
+
+  constructor(private altitudeColorService: AltitudeColorService) {}
 
   updatePlanePath(
     map: L.Map,
@@ -566,10 +569,7 @@ export class PathCalculationService {
   }
 
   private getAltitudeColor(altitude: number): string {
-    // This should be injected from AltitudeColorService, but for now using a simple implementation
-    if (altitude < 1000) return '#00ff00';
-    if (altitude < 5000) return '#ffff00';
-    if (altitude < 10000) return '#ff8000';
-    return '#ff0000';
+    // Altitude is already in meters from the plane data service
+    return this.altitudeColorService.getFillColor(altitude);
   }
 }

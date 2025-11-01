@@ -272,6 +272,25 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     return genericModels.includes(model);
   }
 
+  /** Construct Bing search query for aircraft model */
+  get bingSearchQuery(): string {
+    if (!this.plane.model) return '';
+
+    // Create search query similar to aircraft image service
+    let searchQuery = `"${this.plane.model}" aircraft airplane`;
+    if (this.plane.operator && this.plane.operator.trim()) {
+      // Add operator to search for more specific results
+      const operatorShort = this.plane.operator.split(' ')[0]; // Take first word
+      searchQuery += ` "${operatorShort}"`;
+    }
+
+    // Add terms to avoid non-aircraft results
+    searchQuery +=
+      ' -cartoon -drawing -model -toy -lego -illustration -diagram';
+
+    return encodeURIComponent(searchQuery);
+  }
+
   /** Handle mouse enter on model name to show aircraft image */
   onModelMouseEnter(event: MouseEvent): void {
     if (!this.plane.model || this.isGenericModel(this.plane.model)) {
