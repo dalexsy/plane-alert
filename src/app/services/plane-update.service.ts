@@ -165,8 +165,10 @@ export class PlaneUpdateService {
     const hasA400 = newVisible.some((p) =>
       p.model?.toLowerCase().includes('a400')
     );
-    const hasA380 = newVisible.some((p) =>
-      p.model?.toLowerCase().includes('a380') || p.model?.toLowerCase().includes('a388')
+    const hasA380 = newVisible.some(
+      (p) =>
+        p.model?.toLowerCase().includes('a380') ||
+        p.model?.toLowerCase().includes('a388')
     );
     const hasAlertPlanes = newVisible.some(
       (p) =>
