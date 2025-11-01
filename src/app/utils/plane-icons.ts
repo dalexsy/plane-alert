@@ -116,6 +116,11 @@ export function getIconPathForModel(
     return { path: HELICOPTER_SVG, iconType: 'helicopter' };
   }
 
+  // Check for 5-letter callsign with no numbers - use single engine (Cessna) icon
+  if (callsign && callsign.length === 5 && /^[A-Z]{5}$/.test(callsign)) {
+    return { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
+  }
+
   let result: PlaneIconData | undefined;
   const typeCode = model.trim().toUpperCase();
   if (TYPE_ICON_MAP[typeCode]) {
@@ -341,18 +346,6 @@ export function getIconPathForModel(
         result = { path: TWIN_ENGINE_SVG, iconType: 'twin_engine' };
       }
     }
-  }
-
-  // Check for 5-character callsign under 2000m - use single engine (glider) icon
-  // But only if we haven't already determined a specific icon
-  if (
-    !result &&
-    callsign &&
-    altitude !== undefined &&
-    callsign.length === 5 &&
-    altitude < 2000
-  ) {
-    return { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' };
   }
 
   return result!;

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { map, catchError, switchMap } from 'rxjs/operators';
+import { map, catchError, switchMap, shareReplay } from 'rxjs/operators';
 
 export interface AircraftImage {
   url: string;
@@ -67,7 +67,8 @@ export class AircraftImageService {
           // Primary search failed, try fallback
           return fallbackRequest;
         }
-      })
+      }),
+      shareReplay(1)
     );
 
     // Cache the observable
