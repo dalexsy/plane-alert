@@ -2,7 +2,7 @@
   {
     "note": "User-added aircraft database - automatically populated",
     "version": "1.0",
-    "exported": "2025-11-01T11:32:58.271Z"
+    "exported": "2025-11-01T14:40:51.229Z"
   },
   {
     "icao": "4B181C",
@@ -1393,6 +1393,110 @@
     "faa_pia": false,
     "faa_ladd": false,
     "short_type": "BOEING 737 MAX 8",
+    "mil": false
+  },
+  {
+    "icao": "8966CE",
+    "reg": "A6-XWG",
+    "icaotype": "A35K",
+    "year": "",
+    "manufacturer": "",
+    "model": "AIRBUS A-350-1000",
+    "ownop": "Etihad Airways",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "AIRBUS A-350-1000",
+    "mil": false
+  },
+  {
+    "icao": "744829",
+    "reg": "JY-RAI",
+    "icaotype": "A20N",
+    "year": "",
+    "manufacturer": "",
+    "model": "AIRBUS A-320neo",
+    "ownop": "Royal Jordanian",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "AIRBUS A-320neo",
+    "mil": false
+  },
+  {
+    "icao": "4BB106",
+    "reg": "TC-LHF",
+    "icaotype": "A359",
+    "year": "",
+    "manufacturer": "",
+    "model": "AIRBUS A-350-900",
+    "ownop": "Turkish Airlines",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "AIRBUS A-350-900",
+    "mil": false
+  },
+  {
+    "icao": "ADD08D",
+    "reg": "N99CS",
+    "icaotype": "S22T",
+    "year": "",
+    "manufacturer": "",
+    "model": "CIRRUS SR-22T Turbo",
+    "ownop": "Shree Airlines",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "CIRRUS SR-22T Turbo",
+    "mil": false
+  },
+  {
+    "icao": "3FFA00",
+    "reg": "3FFA00",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "Private",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "4BB1A4",
+    "reg": "TC-LMD",
+    "icaotype": "B789",
+    "year": "",
+    "manufacturer": "",
+    "model": "BOEING 787-9 Dreamliner",
+    "ownop": "Turkish Airlines",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "BOEING 787-9 Dreamliner",
+    "mil": false
+  },
+  {
+    "icao": "4CAECC",
+    "reg": "EI-ILC",
+    "icaotype": "B38M",
+    "year": "",
+    "manufacturer": "",
+    "model": "BOEING 737 MAX 8",
+    "ownop": "Ryanair",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "BOEING 737 MAX 8",
+    "mil": false
+  },
+  {
+    "icao": "4B991A",
+    "reg": "TC-FHZ",
+    "icaotype": "A320",
+    "year": "",
+    "manufacturer": "",
+    "model": "AIRBUS A-320",
+    "ownop": "Freebird Airlines",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "AIRBUS A-320",
     "mil": false
   }
 ]

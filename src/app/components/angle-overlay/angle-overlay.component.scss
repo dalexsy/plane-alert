@@ -12,7 +12,7 @@
   height: 100%;
 
   span {
-    font-size: 4rem !important;
+    font-size: 5rem !important;
     font-variation-settings: "FILL" 0, "wght" 140, "GRAD" 0, "opsz" 20 !important;
     position: relative;
   }
@@ -122,6 +122,9 @@
 
 // Wind overlay styling
 :host .wind-angle-overlay {
+  width: 4.5rem;
+  height: 4.5rem;
+
   .wind-info {
     @extend %overlay-info;
   }
