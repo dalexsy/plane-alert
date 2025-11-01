@@ -18,7 +18,7 @@ export function playA400Alert(): void {
   playAudio('assets/alerts/iago.mp3');
 }
 
-export function playDreamlinerAlert(): void {
+export function playA380Alert(): void {
   playAudio(
     'assets/alerts/will-you-getting-soft-on-board-that-luxury-liner.mp3'
   );

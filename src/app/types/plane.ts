@@ -22,6 +22,6 @@ export interface Plane {
   velocity?: number | null;
   /** Indicates special plane category */
   isSpecial?: boolean;
-  /** Indicates if this is a Dreamliner for visual highlighting */
-  isDreamliner?: boolean;
+  /** Indicates if this is an A380 for visual highlighting */
+  isA380?: boolean;
 }

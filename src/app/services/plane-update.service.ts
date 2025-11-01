@@ -16,7 +16,7 @@ import {
   playAlertSound,
   playHerculesAlert,
   playA400Alert,
-  playDreamlinerAlert,
+  playA380Alert,
 } from '../utils/alert-sound';
 import { ChangeDetectorRef } from '@angular/core';
 import * as L from 'leaflet';
@@ -165,8 +165,8 @@ export class PlaneUpdateService {
     const hasA400 = newVisible.some((p) =>
       p.model?.toLowerCase().includes('a400')
     );
-    const hasDreamliner = newVisible.some((p) =>
-      p.model?.toLowerCase().includes('dreamliner')
+    const hasA380 = newVisible.some((p) =>
+      p.model?.toLowerCase().includes('a380') || p.model?.toLowerCase().includes('a388')
     );
     const hasAlertPlanes = newVisible.some(
       (p) =>
@@ -180,8 +180,8 @@ export class PlaneUpdateService {
         playHerculesAlert();
       } else if (hasA400) {
         playA400Alert();
-      } else if (hasDreamliner) {
-        playDreamlinerAlert();
+      } else if (hasA380) {
+        playA380Alert();
       } else if (hasAlertPlanes) {
         playAlertSound();
       }

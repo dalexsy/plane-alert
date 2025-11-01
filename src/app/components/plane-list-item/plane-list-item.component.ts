@@ -79,8 +79,8 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
   @HostBinding('class.special-plane') get hostSpecial() {
     return this.plane?.isSpecial === true;
   }
-  @HostBinding('class.dreamliner-plane') get hostDreamliner() {
-    return this.plane?.isDreamliner === true;
+  @HostBinding('class.a380-plane') get hostA380() {
+    return this.plane?.isA380 === true;
   }
   @HostBinding('class.new-plane') get hostNew() {
     return this.plane?.isNew === true;

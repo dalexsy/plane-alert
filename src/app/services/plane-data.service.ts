@@ -28,7 +28,7 @@ export interface ProcessedPlaneData {
   onGround: boolean;
   isMilitary: boolean;
   isSpecial: boolean;
-  isDreamliner: boolean;
+  isA380: boolean;
   isUnknown: boolean;
   model: string;
   operator: string;
@@ -208,8 +208,8 @@ export class PlaneDataService {
 
     const isSpecial = this.specialListService.isSpecial(id);
 
-    // Check if this is a Dreamliner for visual highlighting
-    const isDreamliner = model && model.toLowerCase().includes('dreamliner');
+    // Check if this is an A380 for visual highlighting
+    const isA380 = model && (model.toLowerCase().includes('a380') || model.toLowerCase().includes('a388'));
 
     // Add unknown aircraft to database
     if (!dbAircraft) {
@@ -260,7 +260,7 @@ export class PlaneDataService {
       onGround,
       isMilitary,
       isSpecial,
-      isDreamliner,
+      isA380,
       isUnknown,
       model,
       operator,
@@ -349,7 +349,7 @@ export class PlaneDataService {
       isNew,
       isFiltered,
       isSpecial,
-      isDreamliner,
+      isA380,
       isMilitary,
       isUnknown,
     } = processedData;
@@ -379,7 +379,7 @@ export class PlaneDataService {
         track: track,
         velocity: velocity,
         isSpecial: isSpecial,
-        isDreamliner: isDreamliner,
+        isA380: isA380,
       };
       planeModelInstance = new PlaneModel(initialPlaneData);
       planeModelInstance.isMilitary = isMilitary;
@@ -394,7 +394,7 @@ export class PlaneDataService {
       planeModelInstance.onGround = onGround;
       planeModelInstance.isNew = isNew;
       planeModelInstance.isSpecial = isSpecial;
-      planeModelInstance.isDreamliner = isDreamliner;
+      planeModelInstance.isA380 = isA380;
       planeModelInstance.isMilitary = isMilitary;
       planeModelInstance.isUnknown = isUnknown;
     }

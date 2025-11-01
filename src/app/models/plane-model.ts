@@ -33,7 +33,7 @@ export class PlaneModel implements Plane {
   filteredOut!: boolean;
   onGround?: boolean;
   isSpecial?: boolean;
-  isDreamliner?: boolean;
+  isA380?: boolean;
   isMilitary?: boolean;
   isUnknown?: boolean;
   /** Distance from home in km, for closest-plane overlay */
