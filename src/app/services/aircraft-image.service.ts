@@ -85,11 +85,11 @@ export class AircraftImageService {
     useAviationSites: boolean
   ): Observable<AircraftImage | null> {
     // Create specific search query for aircraft model
-    let searchQuery = `"${model}" aircraft airplane photo`;
+    let searchQuery = `${model} aircraft airplane photo`;
     if (operator && operator.trim()) {
       // Add operator to search for more specific results
       const operatorShort = operator.split(' ')[0]; // Take first word (e.g., "Swiss" from "Swiss International Air Lines")
-      searchQuery += ` "${operatorShort}"`;
+      searchQuery += ` ${operatorShort}`;
     }
 
     if (useAviationSites) {

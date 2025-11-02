@@ -1,0 +1,12 @@
+<div class="fall-leaves-container" *ngIf="isAutumn && animationsEnabled">
+  <div
+    *ngFor="let leaf of leaves"
+    class="falling-leaf"
+    [ngClass]="leaf.colorClass"
+    [style.left.%]="leaf.x"
+    [style.top.%]="leaf.y"
+    [style.transform]="
+      'rotate(' + leaf.rotation + 'deg) scale(' + leaf.scale + ')'
+    "
+  ></div>
+</div>

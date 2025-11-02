@@ -1,0 +1,95 @@
+.fall-leaves-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.falling-leaf {
+  position: absolute;
+  width: 20px;
+  height: 30px;
+  transform-origin: center;
+  opacity: 0.8;
+
+  // Leaf shape using clip-path
+  clip-path: polygon(
+    50% 0%,
+    70% 10%,
+    90% 30%,
+    95% 50%,
+    90% 70%,
+    70% 90%,
+    50% 100%,
+    30% 90%,
+    10% 70%,
+    5% 50%,
+    10% 30%,
+    30% 10%
+  );
+
+  // Color variations
+  &.leaf-red {
+    background: linear-gradient(135deg, #8b4513, #dc143c);
+  }
+
+  &.leaf-orange {
+    background: linear-gradient(135deg, #8b4513, #ff4500);
+  }
+
+  &.leaf-yellow {
+    background: linear-gradient(135deg, #8b4513, #ffd700);
+  }
+
+  &.leaf-brown {
+    background: linear-gradient(135deg, #654321, #8b4513);
+  }
+
+  &.leaf-gold {
+    background: linear-gradient(135deg, #8b4513, #ffa500);
+  }
+
+  &.leaf-crimson {
+    background: linear-gradient(135deg, #8b4513, #b22222);
+  }
+
+  &.leaf-amber {
+    background: linear-gradient(135deg, #8b4513, #ffbf00);
+  }
+
+  &.leaf-maroon {
+    background: linear-gradient(135deg, #654321, #800000);
+  }
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes sway {
+  0% {
+    transform: rotate(-2deg) scale(0.3);
+  }
+  50% {
+    transform: rotate(2deg) scale(0.3);
+  }
+  100% {
+    transform: rotate(-2deg) scale(0.3);
+  }
+}

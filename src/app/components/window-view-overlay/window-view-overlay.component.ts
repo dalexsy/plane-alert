@@ -45,6 +45,7 @@ import {
 } from './dim-overlay/dim-overlay.component';
 import { AircraftContainerComponent } from './aircraft-container/aircraft-container.component';
 import { SwallowAnimationComponent } from './swallow-animation/swallow-animation.component';
+import { FallLeavesAnimationComponent } from './fall-leaves-animation/fall-leaves-animation.component';
 import { StormPressureService } from '../../services/storm-pressure.service';
 
 export interface WindowViewPlane {
@@ -125,6 +126,7 @@ export interface WindowViewPlane {
     DimOverlayComponent,
     AircraftContainerComponent,
     SwallowAnimationComponent,
+    FallLeavesAnimationComponent,
   ],
   templateUrl: './window-view-overlay.component.html',
   styleUrls: ['./window-view-overlay.component.scss'],
@@ -160,6 +162,8 @@ export class WindowViewOverlayComponent
   public skyTopColor: string = 'rgb(25, 25, 112)'; // Default midnight blue
   /** Prevent multiple simultaneous weather updates */
   private isUpdatingWeather: boolean = false;
+  /** Current wind speed from weather API for dynamic animations */
+  public currentWindSpeed: number = 0;
 
   // Storm pressure monitoring for swallow animations
   public stormDropIntensity: number = 0;
@@ -193,6 +197,7 @@ export class WindowViewOverlayComponent
   @Input() isAtHome: boolean = false;
   @Input() showAltitudeBorders: boolean = false;
   @Input() animationsEnabled: boolean = true;
+  @Input() windStat: number = 0; // Wind intensity level 0-3
 
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
 
@@ -384,41 +389,47 @@ export class WindowViewOverlayComponent
 
     this.isUpdatingWeather = true;
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${this.observerLat}&lon=${this.observerLon}&appid=${this.OPEN_WEATHER_MAP_API_KEY}`;
-    this.http.get<any>(url).pipe(
-      timeout(10000), // 10 second timeout for weather API
-      catchError((error) => {
-        console.warn('Weather API failed:', error.message || error);
-        return of(null); // Return null on error
-      })
-    ).subscribe(
-      (data) => {
-        if (data?.weather && data.weather.length) {
-          this.weatherCondition = data.weather[0].main;
-          this.weatherDescription = data.weather[0].description;
-        } else {
+    this.http
+      .get<any>(url)
+      .pipe(
+        timeout(10000), // 10 second timeout for weather API
+        catchError((error) => {
+          console.warn('Weather API failed:', error.message || error);
+          return of(null); // Return null on error
+        })
+      )
+      .subscribe(
+        (data) => {
+          if (data?.weather && data.weather.length) {
+            this.weatherCondition = data.weather[0].main;
+            this.weatherDescription = data.weather[0].description;
+          } else {
+            this.weatherCondition = null;
+            this.weatherDescription = null;
+          }
+
+          // Extract wind speed for dynamic animations
+          this.currentWindSpeed = data?.wind?.speed || 0;
+
+          // Update rain service with weather and wind data
+          this.updateRainSystem(data);
+
+          this.updateSkyBackground();
+          this.setCompassBackground();
+          this.isUpdatingWeather = false;
+        },
+        () => {
           this.weatherCondition = null;
           this.weatherDescription = null;
+
+          // Stop rain if weather fetch fails
+          this.rainService.stopRain();
+
+          this.updateSkyBackground();
+          this.setCompassBackground();
+          this.isUpdatingWeather = false;
         }
-
-        // Update rain service with weather and wind data
-        this.updateRainSystem(data);
-
-        this.updateSkyBackground();
-        this.setCompassBackground();
-        this.isUpdatingWeather = false;
-      },
-      () => {
-        this.weatherCondition = null;
-        this.weatherDescription = null;
-
-        // Stop rain if weather fetch fails
-        this.rainService.stopRain();
-
-        this.updateSkyBackground();
-        this.setCompassBackground();
-        this.isUpdatingWeather = false;
-      }
-    );
+      );
   }
   /** Update rain system based on weather API data */
   private updateRainSystem(weatherData: any): void {

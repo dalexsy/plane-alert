@@ -45,6 +45,10 @@ export class AircraftDbService {
       this.http
         .get('/assets/basic-ac-db2.json', { responseType: 'text' })
         .toPromise(),
+      this.http
+        .get('/assets/user-aircraft-db.json', { responseType: 'text' })
+        .toPromise()
+        .catch(() => ''), // User DB is optional, don't fail if missing
     ])
       .then((texts) => {
         const records: AircraftRecord[] = [];
@@ -53,19 +57,36 @@ export class AircraftDbService {
             // Empty response from database file
             return;
           }
-          text
-            .split(/\r?\n/)
-            .filter((line) => line.trim().length > 0)
-            .forEach((line) => {
-              try {
-                const record = JSON.parse(line);
-                // Skip metadata records
-                if (record.note || record.version) return;
-                records.push(record);
-              } catch (e) {
-                // Error parsing line
+          if (idx === 2) {
+            // Handle user-aircraft-db.json (JSON array format)
+            try {
+              const jsonData = JSON.parse(text);
+              if (Array.isArray(jsonData)) {
+                // Skip the header record if it exists
+                jsonData.forEach((record) => {
+                  if (record.note || record.version) return;
+                  records.push(record);
+                });
               }
-            });
+            } catch (e) {
+              console.warn('Error parsing user-aircraft-db.json:', e);
+            }
+          } else {
+            // Handle basic-ac-db files (JSON Lines format)
+            text
+              .split(/\r?\n/)
+              .filter((line) => line.trim().length > 0)
+              .forEach((line) => {
+                try {
+                  const record = JSON.parse(line);
+                  // Skip metadata records
+                  if (record.note || record.version) return;
+                  records.push(record);
+                } catch (e) {
+                  // Error parsing line
+                }
+              });
+          }
         });
         records.forEach((rec) => this.db.set(rec.icao.toLowerCase(), rec));
         console.log(`✅ Loaded ${this.db.size} aircraft from main database`);

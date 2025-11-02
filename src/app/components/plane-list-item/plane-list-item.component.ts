@@ -277,11 +277,11 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     if (!this.plane.model) return '';
 
     // Create search query similar to aircraft image service
-    let searchQuery = `"${this.plane.model}" aircraft airplane`;
+    let searchQuery = `${this.plane.model} aircraft airplane`;
     if (this.plane.operator && this.plane.operator.trim()) {
       // Add operator to search for more specific results
       const operatorShort = this.plane.operator.split(' ')[0]; // Take first word
-      searchQuery += ` "${operatorShort}"`;
+      searchQuery += ` ${operatorShort}`;
     }
 
     // Add terms to avoid non-aircraft results

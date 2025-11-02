@@ -1,0 +1,159 @@
+// =============================================================================
+// Fall Leaves Animation Component - Seasonal Autumn Effect
+// =============================================================================
+
+// Define scalable size variables for leaves
+$leaf-scale: 0.3 !default;
+$leaf-width: 1.5rem * $leaf-scale;
+$leaf-height: 2rem * $leaf-scale;
+$fall-duration: 25s;
+$sway-duration: 4s;
+$rotation-duration: 6s;
+
+// Container for the falling leaves
+.fall-leaves-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: -1rem;
+  height: 11rem;
+  pointer-events: none;
+  z-index: 300; // Below swallows but above other overlays
+  overflow: hidden;
+}
+
+.leaf {
+  position: absolute;
+  will-change: transform, opacity;
+  color: #d2691e; // Default brown color
+
+  .leaf-shape {
+    width: $leaf-width;
+    height: $leaf-height;
+    position: relative;
+
+    // Basic leaf shape using CSS
+    &::before {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: currentColor;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    }
+  }
+}
+
+// Different leaf colors for variety
+.leaf.red {
+  color: #dc143c;
+}
+.leaf.orange {
+  color: #ff8c00;
+}
+.leaf.yellow {
+  color: #daa520;
+}
+.leaf.brown {
+  color: #8b4513;
+}
+.leaf.crimson {
+  color: #b22222;
+}
+.leaf.golden {
+  color: #ffd700;
+}
+.leaf.sienna {
+  color: #a0522d;
+}
+.leaf.maroon {
+  color: #800000;
+}
+
+// Animation keyframes for falling motion
+@keyframes fall {
+  0% {
+    transform: translateY(-10rem) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(10rem) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+// Swaying motion for wind effect (removed horizontal movement)
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(1deg);
+  }
+}
+
+// Rotation animation
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Combine animations with dynamic scaling
+.leaf {
+  animation: fall $fall-duration linear infinite,
+    sway $sway-duration ease-in-out infinite,
+    rotate $rotation-duration linear infinite;
+  animation-delay: var(--fall-delay, 0s), var(--sway-delay, 0s),
+    var(--rotate-delay, 0s);
+  transform: scale(calc(var(--base-scale, 1) * var(--dynamic-scale, 1)));
+}
+
+// Different sizes for visual variety (base sizes, dynamic scaling applied via transform)
+.leaf.small {
+  --base-scale: 0.6;
+}
+
+.leaf.medium {
+  --base-scale: 0.8;
+}
+
+.leaf.large {
+  --base-scale: 1.2;
+}
+
+// Atmospheric lighting effects based on time of day
+.window-view-overlay.daytime .leaf {
+  opacity: 0.8;
+}
+
+.window-view-overlay:not(.daytime) .leaf {
+  opacity: 0.6;
+  filter: brightness(0.8);
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .leaf {
+    color: #000;
+    filter: none;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .leaf {
+    animation: none;
+  }
+}
