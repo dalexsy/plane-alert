@@ -51,9 +51,9 @@
             >
               <defs>
                 <mask [attr.id]="'moon-phase-mask-' + plane.icao">
-                  <rect width="22" height="22" fill="white" />
+                  <rect width="22" height="22" fill="black" />
                   <circle
-                    [attr.cx]="11 - (2 * (plane.moonFraction || 0) - 1) * 10"
+                    [attr.cx]="11 - (2 * (plane.moonFraction || 0) - 1) * 1"
                     cy="11"
                     r="10"
                     fill="black"
@@ -61,9 +61,9 @@
                 </mask>
                 <!-- Inverted mask for dark side -->
                 <mask [attr.id]="'moon-phase-mask-dark-' + plane.icao">
-                  <rect width="22" height="22" fill="black" />
+                  <rect width="22" height="22" fill="white" />
                   <circle
-                    [attr.cx]="11 - (2 * (plane.moonFraction || 0) - 1) * 10"
+                    [attr.cx]="11 - (2 * (plane.moonFraction || 0) - 1) * 1"
                     cy="11"
                     r="10"
                     fill="white"

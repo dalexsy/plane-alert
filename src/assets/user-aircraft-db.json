@@ -2,19 +2,19 @@
   {
     "note": "User-added aircraft database - automatically populated",
     "version": "1.0",
-    "exported": "2025-11-02T17:21:30.037Z"
+    "exported": "2025-11-02T18:03:26.371Z"
   },
   {
-    "icao": "505A18",
-    "reg": "OM-PEX",
-    "icaotype": "B738",
+    "icao": "683320",
+    "reg": "683320",
+    "icaotype": "",
     "year": "",
     "manufacturer": "",
-    "model": "BOEING 737-800",
-    "ownop": "Corendon Airlines",
+    "model": "",
+    "ownop": "Bahamasair",
     "faa_pia": false,
     "faa_ladd": false,
-    "short_type": "BOEING 737-800",
+    "short_type": "",
     "mil": false
   }
 ]

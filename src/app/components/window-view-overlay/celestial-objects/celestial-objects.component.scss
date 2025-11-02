@@ -87,12 +87,12 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
   .moon-glow {
     fill: rgba(220, 220, 220, 0.08);
   }
-  .moon-lit {
+  .moon-dark {
     fill: #d4d4d4;
     stroke: rgba(220, 220, 220, 0.4);
   }
 
-  .moon-dark {
+  .moon-lit {
     fill: #000; // pure black for nighttime dark side
   }
 
