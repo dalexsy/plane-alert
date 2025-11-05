@@ -31,6 +31,7 @@ import { EnvironmentalDataService } from '../services/environmental-data.service
 import { MapStateManagerService } from '../services/map-state-manager.service';
 import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
+import { LocationUpdateService } from '../services/location-update.service';
 
 // Event types
 interface PlaneSelectionEvent {
@@ -90,7 +91,8 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     private mapStateManager: MapStateManagerService,
     private settings: SettingsService,
     private scanService: ScanService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private locationUpdateService: LocationUpdateService
   ) {}
   ngOnInit(): void {
     // Initialize observables after dependency injection is complete
@@ -116,6 +118,7 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.initializeMap();
     this.setupDataRefresh();
+    this.startAutoLocationTracking();
   }
 
   ngOnDestroy(): void {
@@ -123,6 +126,7 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroy$.complete();
     this.mapInfrastructure.destroy();
     this.scanService.stop();
+    this.locationUpdateService.stopAutoLocationUpdates();
   }
   /**
    * Handle plane selection from overlays (placeholder)
@@ -463,6 +467,22 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.mapStateManager.setHomeLocation(
       state.view.center.lat,
       state.view.center.lon
+    );
+  }
+
+  /**
+   * Start automatic location tracking (updates every 5 minutes)
+   */
+  private startAutoLocationTracking(): void {
+    // Only start if geolocation is available and user has set a location
+    if (!navigator.geolocation || !this.settings.getHomeLocation()) {
+      return;
+    }
+
+    this.locationUpdateService.startAutoLocationUpdates(
+      (lat: number, lon: number, radius: number) => {
+        this.onLocationChanged({ lat, lon, radius });
+      }
     );
   }
 

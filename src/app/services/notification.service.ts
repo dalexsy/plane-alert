@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from './settings.service';
+import { CountryService } from './country.service';
 import {
   DistanceUnit,
   convertFromKm,
   getDistanceUnitShortLabel,
   formatDistance,
 } from '../utils/units.util';
+import { getArrowForDirection } from '../utils/geo-utils';
 
 export type NotificationState =
   | 'unsupported'
@@ -28,7 +30,10 @@ export interface NotificationStatusInfo {
   providedIn: 'root',
 })
 export class NotificationService {
-  constructor(private settings: SettingsService) {}
+  constructor(
+    private settings: SettingsService,
+    private countryService: CountryService
+  ) {}
 
   /**
    * Request permission for browser notifications
@@ -188,6 +193,7 @@ export class NotificationService {
     operator?: string;
     direction?: string;
     distanceKm?: number;
+    origin?: string; // country code
   }): string {
     const unitPreference =
       this.settings.distanceUnit === 'miles'
@@ -196,28 +202,35 @@ export class NotificationService {
 
     const direction = planeInfo.direction?.trim();
     const distanceKm = planeInfo.distanceKm;
-    let lookSegment: string;
 
-    if (distanceKm !== undefined) {
+    // Get callsign
+    const callsign = this.resolveCallsign(planeInfo.callsign, planeInfo.icao);
+
+    // Get full country name
+    const countryCode =
+      planeInfo.origin || this.extractCountryCode(planeInfo.operator);
+    const countryName = countryCode
+      ? this.countryService.getCountryName(countryCode) || countryCode
+      : 'unknown country';
+
+    // Build distance + direction part
+    let locationPart: string;
+    if (distanceKm !== undefined && direction) {
       const converted = convertFromKm(distanceKm, unitPreference);
       const formattedDistance = formatDistance(converted);
       const unitLabel = getDistanceUnitShortLabel(unitPreference);
-      const distanceText = `${formattedDistance} ${unitLabel}`;
-      lookSegment = direction
-        ? `Look ${distanceText} ${direction}.`
-        : `Look ${distanceText}.`;
+      const arrow = getArrowForDirection(direction);
+      // Format: W ← 10km - [callsign] from [country]
+      locationPart = `${direction} ${arrow} ${formattedDistance}${unitLabel}`;
     } else if (direction) {
-      lookSegment = `Look ${direction}.`;
+      const arrow = getArrowForDirection(direction);
+      locationPart = `${direction} ${arrow}`;
     } else {
-      lookSegment = 'Look around.';
+      locationPart = 'nearby';
     }
 
-    const callSign = this.resolveCallsign(planeInfo.callsign, planeInfo.icao);
-    const country = this.extractCountry(planeInfo.operator);
-    const callsign = this.resolveCallsign(planeInfo.callsign, planeInfo.icao);
-    const fromSegment = `${callsign} from ${country}.`;
-
-    return `${lookSegment} ${fromSegment}`.replace(/\s+/g, ' ').trim();
+    // Format: W ← 10km - [callsign] from [full country name]
+    return `${locationPart} - ${callsign} from ${countryName}`;
   }
 
   private resolveCallsign(callsign: string | undefined, icao: string): string {
@@ -226,6 +239,46 @@ export class NotificationService {
       return primary;
     }
     return icao;
+  }
+
+  /**
+   * Extract country code from operator string
+   * Tries to parse country name and convert to code
+   */
+  private extractCountryCode(operator?: string): string | null {
+    if (!operator) {
+      return null;
+    }
+
+    let candidate = operator.trim();
+
+    // Extract from parentheses if present
+    const parenMatch = candidate.match(/\(([^)]+)\)/);
+    if (parenMatch && parenMatch[1].trim().length > 2) {
+      candidate = parenMatch[1].trim();
+    }
+
+    // Take first part before dash
+    if (candidate.includes(' - ')) {
+      candidate = candidate.split(' - ')[0].trim();
+    }
+
+    // Take last part after comma
+    if (candidate.includes(',')) {
+      const parts = candidate
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (parts.length) {
+        candidate = parts[parts.length - 1];
+      }
+    }
+
+    candidate = candidate.replace(/\s+/g, ' ').trim();
+
+    // Try to get country code from the extracted string
+    const code = this.countryService.getCountryCode(candidate);
+    return code || null;
   }
 
   private extractCountry(operator?: string): string {

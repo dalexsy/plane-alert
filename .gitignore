@@ -9,6 +9,8 @@
 # Node
 /node_modules
 functions/node_modules
+shared/node_modules
+shared/dist
 npm-debug.log
 yarn-error.log
 functions/lib

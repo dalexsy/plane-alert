@@ -1,0 +1,41 @@
+{
+  "name": "@plane-alert/shared",
+  "version": "1.0.0",
+  "description": "Shared aircraft detection and classification logic for Plane Alert",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types && npm run copy:data",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "copy:data": "node -e \"require('fs').cpSync('data', 'dist/data', {recursive: true})\"",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "aircraft",
+    "aviation",
+    "icao",
+    "military",
+    "adsb"
+  ],
+  "author": "Plane Alert",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "rimraf": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "data"
+  ]
+}

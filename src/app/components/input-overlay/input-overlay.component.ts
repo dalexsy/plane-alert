@@ -29,6 +29,7 @@ import {
   formatDistance,
 } from '../../utils/units.util';
 import { LocationContextService } from '../../services/location-context.service';
+import { LocationUpdateService } from '../../services/location-update.service';
 
 @Component({
   selector: 'app-input-overlay',
@@ -113,7 +114,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     public settings: SettingsService,
     private cdr: ChangeDetectorRef,
     private scanService: ScanService,
-    private locationContext: LocationContextService // Inject the service
+    private locationContext: LocationContextService, // Inject the service
+    public locationUpdateService: LocationUpdateService
   ) {}
   ngOnInit(): void {
     // Initialize collapsed state from settings
@@ -463,6 +465,33 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
       return 'No scans yet';
     }
     return this.lastScanTime.toLocaleTimeString();
+  }
+
+  /** Check if auto-location is enabled */
+  get isAutoLocationEnabled(): boolean {
+    return this.locationUpdateService.isAutoUpdateRunning();
+  }
+
+  /** Get formatted last location update text */
+  get lastLocationUpdateText(): string {
+    const lastUpdate = this.locationUpdateService.lastUpdateTime;
+    if (!lastUpdate) {
+      return 'Active';
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - lastUpdate.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) {
+      return 'Just now';
+    } else if (diffMinutes === 1) {
+      return '1 min ago';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes} mins ago`;
+    } else {
+      return lastUpdate.toLocaleTimeString();
+    }
   }
 
   /** Get brightness status text for custom tooltip */

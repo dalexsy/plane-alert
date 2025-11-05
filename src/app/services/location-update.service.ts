@@ -1,11 +1,19 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from './settings.service';
+import { FirebaseMessagingService } from './firebase-messaging.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class LocationUpdateService {
-  constructor(private settings: SettingsService) {}
+  private autoUpdateInterval: any = null;
+  private isAutoUpdateEnabled = false;
+  lastUpdateTime: Date | null = null;
+
+  constructor(
+    private settings: SettingsService,
+    private firebaseMessaging: FirebaseMessagingService
+  ) {}
 
   /**
    * Check and update location automatically if setting is enabled
@@ -30,9 +38,16 @@ export class LocationUpdateService {
       const hasLocationChanged = latDiff > 0.0001 || lonDiff > 0.0001;
 
       if (hasLocationChanged) {
-        // Update to new location with current radius
+        console.log('📍 Location changed, updating:', { newLat, newLon });
+
+        // Update frontend
         const currentMainRadius = this.settings.radius ?? 5;
         updateMapCallback(newLat, newLon, currentMainRadius);
+
+        // Update backend (Firebase)
+        await this.firebaseMessaging.updateHomeLocation(newLat, newLon);
+
+        this.lastUpdateTime = new Date();
       }
     } catch (error) {
       // Silently fail - don't show error messages during automatic updates
@@ -97,5 +112,47 @@ export class LocationUpdateService {
         maximumAge: 30000,
       });
     });
+  }
+
+  /**
+   * Start automatic location updates every 5 minutes
+   */
+  startAutoLocationUpdates(
+    updateMapCallback: (lat: number, lon: number, radius: number) => void
+  ): void {
+    if (this.isAutoUpdateEnabled) {
+      return; // Already running
+    }
+
+    console.log('🔄 Starting automatic location updates (every 5 minutes)');
+    this.isAutoUpdateEnabled = true;
+    this.lastUpdateTime = new Date();
+
+    // Run immediately
+    this.checkAutoLocationUpdate(updateMapCallback);
+
+    // Then every 5 minutes
+    this.autoUpdateInterval = setInterval(() => {
+      this.checkAutoLocationUpdate(updateMapCallback);
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  /**
+   * Stop automatic location updates
+   */
+  stopAutoLocationUpdates(): void {
+    if (this.autoUpdateInterval) {
+      console.log('⏸️ Stopping automatic location updates');
+      clearInterval(this.autoUpdateInterval);
+      this.autoUpdateInterval = null;
+      this.isAutoUpdateEnabled = false;
+    }
+  }
+
+  /**
+   * Check if auto-updates are currently running
+   */
+  isAutoUpdateRunning(): boolean {
+    return this.isAutoUpdateEnabled;
   }
 }

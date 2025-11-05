@@ -146,6 +146,13 @@
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.8rem;
   }
+
+  .location-tracking-status {
+    text-align: center;
+    color: rgba(100, 255, 100, 0.8);
+    font-size: 0.8rem;
+    margin-top: 5px;
+  }
   &.collapsed {
     // When collapsed, overlay should only be as wide as needed for the tab
     width: 0;

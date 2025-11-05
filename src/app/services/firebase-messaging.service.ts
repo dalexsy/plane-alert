@@ -58,4 +58,38 @@ export class FirebaseMessagingService {
   getStoredUserKey(): string | null {
     return localStorage.getItem('plane-alert-pushover-key');
   }
+
+  /**
+   * Update home location in backend (silent update, no need for full re-registration)
+   */
+  async updateHomeLocation(lat: number, lon: number): Promise<boolean> {
+    const userKey = this.getStoredUserKey();
+    if (!userKey) {
+      // Not registered yet, skip
+      return false;
+    }
+
+    const radius = this.settings.radius ?? 100;
+    const payload = {
+      pushoverUserKey: userKey,
+      platform: navigator.userAgent,
+      distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
+      radiusKm: typeof radius === 'number' ? radius : 100,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      home: { lat, lon },
+    };
+
+    try {
+      await firstValueFrom(
+        this.http.post(pushRegistrationEndpoint, payload, {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      console.log('✅ Updated backend location:', { lat, lon });
+      return true;
+    } catch (error) {
+      console.warn('Failed to update backend location:', error);
+      return false;
+    }
+  }
 }

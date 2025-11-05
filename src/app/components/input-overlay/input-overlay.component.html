@@ -258,5 +258,8 @@
     <div class="last-scan-time" *ngIf="lastScanTime">
       Last scan: {{ lastScanTimeText }}
     </div>
+    <div class="location-tracking-status" *ngIf="isAutoLocationEnabled">
+      🔄 Auto-location: {{ lastLocationUpdateText }}
+    </div>
   </form>
 </div>

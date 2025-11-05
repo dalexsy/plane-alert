@@ -7,24 +7,18 @@ const functions = require('firebase-functions');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const admin = require('firebase-admin');
 import fetch from 'node-fetch';
-import * as countries from 'i18n-iso-countries';
-import enLocale from 'i18n-iso-countries/langs/en.json';
-
-// Initialize i18n-iso-countries with English locale
-countries.registerLocale(enLocale);
 
 // Import shared library functions
 import {
   type AdsBPlane,
   looksMilitary,
-  isMilitaryCallsign,
   normalizeCallsign,
   getAircraftCountry,
   haversineDistanceKm,
   computeBearing,
   bearingToCardinal,
   formatDistance,
-} from './shared';
+} from '@plane-alert/shared';
 
 admin.initializeApp();
 
@@ -63,6 +57,118 @@ function clampRadius(radiusKm?: number | null): number {
     return DEFAULT_RADIUS_KM;
   }
   return Math.min(Math.max(radiusKm, MIN_RADIUS_KM), MAX_RADIUS_KM);
+}
+
+function toRadians(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function toDegrees(rad: number): number {
+  return (rad * 180) / Math.PI;
+}
+
+function haversineDistanceKm(
+  home: HomeLocation,
+  lat: number,
+  lon: number
+): number {
+  const R = 6371; // km
+  const dLat = toRadians(lat - home.lat);
+  const dLon = toRadians(lon - home.lon);
+  const lat1 = toRadians(home.lat);
+  const lat2 = toRadians(lat);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function computeBearing(home: HomeLocation, lat: number, lon: number): number {
+  const lat1 = toRadians(home.lat);
+  const lat2 = toRadians(lat);
+  const dLon = toRadians(lon - home.lon);
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+
+  return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function bearingToCardinal(bearing: number): string {
+  const dirs = [
+    'N',
+    'NNE',
+    'NE',
+    'ENE',
+    'E',
+    'ESE',
+    'SE',
+    'SSE',
+    'S',
+    'SSW',
+    'SW',
+    'WSW',
+    'W',
+    'WNW',
+    'NW',
+    'NNW',
+  ];
+  const index = Math.round(bearing / 22.5) % dirs.length;
+  return dirs[index];
+}
+
+function normalizeCallsign(value?: string | null): string {
+  if (!value) {
+    return '';
+  }
+  return value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+}
+
+function getCountryFromIcao(hex: string): string | null {
+  const hexNum = parseInt(hex, 16);
+
+  for (const range of icaoCountryRanges as any[]) {
+    const start = parseInt(range.startHex, 16);
+    const finish = parseInt(range.finishHex, 16);
+
+    if (hexNum >= start && hexNum <= finish) {
+      return range.countryISO2;
+    }
+  }
+
+  return null;
+}
+
+function looksMilitary(plane: AdsBPlane): boolean {
+  // Check mil flag OR dbFlags (dbFlags: 1 indicates military aircraft in database)
+  // Reject if NEITHER flag indicates military
+  if (!(plane.mil === true || plane.dbFlags === 1)) {
+    return false;
+  }
+
+  // Skip boring aircraft types (trainers, transports, business jets)
+  const aircraftType = plane.t || plane.type || '';
+  if (BORING_AIRCRAFT_TYPES.includes(aircraftType.toUpperCase())) {
+    return false;
+  }
+
+  return true;
+}
+
+function formatDistance(
+  km: number,
+  unit: 'km' | 'miles'
+): { value: number; unit: string } {
+  if (unit === 'miles') {
+    const miles = km * 0.621371192;
+    return { value: Math.round(miles * 10) / 10, unit: 'mi' };
+  }
+  return { value: Math.round(km * 10) / 10, unit: 'km' };
 }
 
 function pruneOldNotifications(
@@ -108,43 +214,6 @@ async function fetchAircraft(
   return payload.ac ?? [];
 }
 
-/**
- * Get directional arrow for cardinal direction (matches frontend)
- */
-function getArrowForDirection(cardinal: string): string {
-  const arrows: { [key: string]: string } = {
-    N: '↑',
-    NNE: '↗',
-    NE: '↗',
-    ENE: '↗',
-    E: '→',
-    ESE: '↘',
-    SE: '↘',
-    SSE: '↘',
-    S: '↓',
-    SSW: '↙',
-    SW: '↙',
-    WSW: '↙',
-    W: '←',
-    WNW: '↖',
-    NW: '↖',
-    NNW: '↖',
-  };
-  return arrows[cardinal] || '↑';
-}
-
-/**
- * Get full country name from country code
- */
-function getCountryName(countryCode: string): string {
-  const name = countries.getName(countryCode, 'en');
-  return name || countryCode;
-}
-
-/**
- * Build notification body matching frontend format
- * Format: W ← 10km - [callsign] from [full country name]
- */
 function buildNotificationBody(
   plane: AdsBPlane,
   distance: { value: number; unit: string },
@@ -153,28 +222,17 @@ function buildNotificationBody(
   const callsign =
     normalizeCallsign(plane.flight || plane.callsign) ||
     plane.hex.toUpperCase();
+  const country = getCountryFromIcao(plane.hex);
 
-  // Use shared library to get country
-  const countryResult = getAircraftCountry(
-    plane.r, // registration
-    plane.hex, // ICAO hex
-    undefined, // API country (not provided by ADS-B)
-    true // isMilitary (we only call this for military aircraft)
-  );
+  // Format: [callsign] at [direction] [distance] from [country]
+  // Example: "GAF013 at W 45.2 km from DE"
+  let message = `${callsign} at ${direction} ${distance.value} ${distance.unit}`;
 
-  // Get arrow for direction
-  const arrow = getArrowForDirection(direction);
+  if (country) {
+    message += ` from ${country}`;
+  }
 
-  // Get full country name
-  const countryCode =
-    countryResult.countryCode !== 'Unknown' ? countryResult.countryCode : null;
-  const countryName = countryCode
-    ? getCountryName(countryCode)
-    : 'unknown country';
-
-  // Format: W ← 10km - [callsign] from [full country name]
-  // Example: "W ← 45.2 km - GAF013 from Germany"
-  return `${direction} ${arrow} ${distance.value}${distance.unit} - ${callsign} from ${countryName}`;
+  return message;
 }
 
 async function notifyForDevice(
@@ -212,37 +270,10 @@ async function notifyForDevice(
   let boringCount = 0;
   let recentlyNotifiedCount = 0;
 
-  // Debug: Log a few sample aircraft to see what data we're getting
-  if (aircraft.length > 0) {
-    functions.logger.info('Sample aircraft data', {
-      docId,
-      sample: aircraft.slice(0, 5).map((p) => ({
-        hex: p.hex,
-        flight: p.flight,
-        r: p.r,
-        t: p.t,
-        mil: p.mil,
-        dbFlags: p.dbFlags,
-        desc: p.desc,
-      })),
-    });
-  }
-
   for (const plane of aircraft) {
-    // Only use API flags for military detection (callsign matching is flawed)
     if (!looksMilitary(plane)) {
-      if (plane.mil === true || plane.dbFlags === 1) {
+      if (plane.mil === true) {
         boringCount++;
-        // Log boring aircraft that have military flags but are filtered
-        functions.logger.info('Boring military aircraft filtered', {
-          docId,
-          hex: plane.hex,
-          type: plane.t,
-          desc: plane.desc,
-          callsign: plane.flight,
-          mil: plane.mil,
-          dbFlags: plane.dbFlags,
-        });
       }
       continue;
     }
@@ -250,30 +281,11 @@ async function notifyForDevice(
     militaryCount++;
 
     if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
-      functions.logger.info('Military aircraft missing coordinates', {
-        docId,
-        hex: plane.hex,
-        type: plane.t,
-        callsign: plane.flight,
-      });
       continue;
     }
 
-    const distanceKm = haversineDistanceKm(
-      data.home.lat,
-      data.home.lon,
-      plane.lat,
-      plane.lon
-    );
+    const distanceKm = haversineDistanceKm(data.home, plane.lat, plane.lon);
     if (distanceKm > radiusKm) {
-      functions.logger.info('Military aircraft outside radius', {
-        docId,
-        hex: plane.hex,
-        type: plane.t,
-        callsign: plane.flight,
-        distanceKm: Math.round(distanceKm * 10) / 10,
-        radiusKm,
-      });
       continue;
     }
 
@@ -290,12 +302,7 @@ async function notifyForDevice(
       continue;
     }
 
-    const bearing = computeBearing(
-      data.home.lat,
-      data.home.lon,
-      plane.lat,
-      plane.lon
-    );
+    const bearing = computeBearing(data.home, plane.lat, plane.lon);
     const direction = bearingToCardinal(bearing);
     const distance = formatDistance(
       distanceKm,
@@ -303,38 +310,8 @@ async function notifyForDevice(
     );
     const body = buildNotificationBody(plane, distance, direction);
 
-    // Build title with aircraft description (full name) if available
-    // Fallback order: desc -> type code (t) -> callsign -> registration -> generic
-    // Note: plane.type is the ADS-B message type (like "adsb_icao"), not aircraft type
-    let aircraftName = plane.desc || plane.t || '';
-
-    if (!aircraftName) {
-      // If no type info, use callsign or registration
-      const callsign = normalizeCallsign(plane.flight || plane.callsign);
-      const registration = plane.r;
-      aircraftName = callsign || registration || 'Military Aircraft';
-    }
-
-    // Custom emojis for specific aircraft types
-    let title = aircraftName;
-    if (
-      aircraftName.toUpperCase().includes('A400') ||
-      aircraftName.toUpperCase().includes('A-400')
-    ) {
-      title = '🦜 ' + title; // Parrot for A400M
-    } else if (
-      aircraftName.toUpperCase().includes('E-3') ||
-      aircraftName.toUpperCase().includes('SENTRY')
-    ) {
-      title = '🛸 ' + title; // UFO for Sentry
-    }
-
-    if (title === '') {
-      title = 'Military Plane Alert';
-    }
-
     messages.push({
-      title: title,
+      title: 'Military Plane Alert',
       message: body,
       url: 'https://plane-alert.surge.sh/',
       url_title: 'View on Map',
