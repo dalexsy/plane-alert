@@ -8,7 +8,7 @@ import { WeatherOverlayService } from './weather-overlay.service';
 export class UiStateService {
   // UI overlay toggles
   public showDateTime = true;
-  public showAirportLabels = true;
+  public showAirportLabels = false;
   public showAltitudeBorders = false;
   public showWindDirection = true;
   public showSunDirection = true;

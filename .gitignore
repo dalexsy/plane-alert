@@ -8,8 +8,10 @@
 
 # Node
 /node_modules
+functions/node_modules
 npm-debug.log
 yarn-error.log
+functions/lib
 
 # IDEs and editors
 .idea/
@@ -40,3 +42,10 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+.vercel
+
+# Environment secrets
+.env
+.env.local
+functions/.env
+functions/.env.local

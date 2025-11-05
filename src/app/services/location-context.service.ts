@@ -344,12 +344,17 @@ export class LocationContextService {
    * Geocode an address string to coordinates
    */
   async geocodeAddress(address: string): Promise<GeocodeResult> {
-    const url = `/nominatim/search?format=json&q=${encodeURIComponent(
+    // Use Nominatim (OpenStreetMap) - free, no API key required
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
       address
-    )}`;
+    )}&format=json&limit=1`;
 
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'PlaneAlert/1.0' },
+      headers: {
+        Accept: 'application/json',
+        // Nominatim requires a User-Agent header
+        'User-Agent': 'PlaneAlert/1.0',
+      },
     });
 
     if (!response.ok) {

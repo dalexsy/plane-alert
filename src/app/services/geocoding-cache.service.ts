@@ -1,12 +1,44 @@
 import { Injectable, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { timeout, map, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { timeout } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 
 interface CacheEntry {
   address: string;
   timestamp: number;
   promise?: Promise<string>;
+}
+
+interface ReverseGeocodeResponse {
+  locality?: string;
+  city?: string;
+  principalSubdivision?: string;
+  countryName?: string;
+  country?: string;
+  localityInfo?: {
+    informative?: Array<{ name?: string | null }>;
+    administrative?: Array<{ name?: string | null }>;
+  };
+  address?: {
+    road?: string | null;
+    house_number?: string | null;
+    pedestrian?: string | null;
+    path?: string | null;
+    neighbourhood?: string | null;
+    suburb?: string | null;
+    city_district?: string | null;
+    city?: string | null;
+    town?: string | null;
+    village?: string | null;
+    municipality?: string | null;
+    hamlet?: string | null;
+    borough?: string | null;
+    region?: string | null;
+    state?: string | null;
+    postcode?: string | null;
+    country?: string | null;
+  };
+  continent?: string;
 }
 
 @Injectable({
@@ -103,76 +135,45 @@ export class GeocodingCacheService {
     const maxRetries = 2;
 
     try {
-      // Try primary geocoding service (Nominatim)
-      let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-
-      let response = await this.ngZone.runOutsideAngular(() =>
-        this.http
-          .get<any>(url)
-          .pipe(
-            timeout(5000), // Reduced timeout to 5 seconds
-            map((response) => response),
-            catchError((error) => {
-              throw error;
-            })
-          )
-          .toPromise()
+      const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+      const response = await this.ngZone.runOutsideAngular(() =>
+        firstValueFrom(
+          this.http
+            .get<ReverseGeocodeResponse>(url)
+            .pipe(timeout(5000))
+        )
       );
 
-      // If Nominatim fails with 504, try alternative geocoding service
-      if (!response || response.error) {
-        console.log(
-          'Nominatim failed, trying alternative geocoding service...'
-        );
-        // Fallback to a different geocoding service or simplified response
-        url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
-
-        try {
-          response = await this.ngZone.runOutsideAngular(() =>
-            this.http
-              .get<any>(url)
-              .pipe(
-                timeout(3000),
-                map((response) => response),
-                catchError((error) => {
-                  throw error;
-                })
-              )
-              .toPromise()
-          );
-        } catch (fallbackError: any) {
-          console.warn(
-            'Alternative geocoding service also failed:',
-            fallbackError.message
-          );
-          // Return coordinates as fallback
-          return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        }
+      const formatted = this.buildAddressString(response);
+      if (
+        formatted?.toLowerCase().includes('europe') ||
+        formatted?.toLowerCase().includes('berlin, berlin')
+      ) {
+        console.log('Geocoding format debug', {
+          formatted,
+          locality: response.locality,
+          city: response.city,
+          principalSubdivision: response.principalSubdivision,
+          country: response.countryName || response.country,
+          informative: response.localityInfo?.informative,
+          administrative: response.localityInfo?.administrative,
+          address: response.address,
+        });
+      }
+      if (formatted) {
+        return formatted;
       }
 
-      const addr = response.address || {};
-      // Build address using same logic as LocationContext for consistency
-      const components = [
-        addr.road || addr.localityInfo?.administrative?.[2]?.name,
-        addr.house_number,
-        addr.suburb || addr.city_district || addr.neighbourhood || addr.city,
-        addr.city ||
-          addr.town ||
-          addr.village ||
-          addr.localityInfo?.administrative?.[1]?.name,
-        addr.country || addr.countryName,
-      ].filter(Boolean);
-
-      if (components.length > 0) {
-        return components.join(', ');
-      }
-      // Fallback to the display_name or coordinates if absolutely nothing else
       return (
-        response.display_name ||
+        response.locality ||
         response.city ||
-        `${lat.toFixed(5)}, ${lon.toFixed(5)}`
+        response.principalSubdivision ||
+        `${lat.toFixed(4)}, ${lon.toFixed(4)}`
       );
     } catch (error: any) {
+      if (error?.message?.toLowerCase().includes('europe')) {
+        console.log('Geocoding fallback triggered', { error, lat, lon });
+      }
       // Retry logic for network/CORS issues
       if (
         retryCount < maxRetries &&
@@ -210,19 +211,214 @@ export class GeocodingCacheService {
 
       // Return a user-friendly fallback instead of coordinates
       // This will be cached to prevent repeated failed requests
-      const nearbyAreaText = 'Nearby area';
-
-      // Cache the fallback so we don't keep retrying
+      const fallback = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
       const cacheKey = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(
         this.COORDINATE_PRECISION
       )}`;
       this.cache.set(cacheKey, {
-        address: nearbyAreaText,
+        address: fallback,
         timestamp: Date.now(),
       });
 
-      return nearbyAreaText;
+      return fallback;
     }
+  }
+
+  private buildAddressString(response: ReverseGeocodeResponse): string | null {
+    const parts: string[] = [];
+    const seen = new Set<string>();
+
+    const genericTerms = new Set([
+      'nearby area',
+      'unnamed road',
+      'unknown',
+      'general',
+      'world',
+      'earth',
+      'continent',
+    ]);
+
+    const normalizeKey = (value: string) =>
+      value
+        .trim()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const isGeneric = (candidate: string) => {
+      const trimmed = candidate.trim();
+      if (!trimmed) {
+        return true;
+      }
+
+      const normalized = normalizeKey(trimmed);
+
+      if (genericTerms.has(normalized)) {
+        return true;
+      }
+
+      if (normalized === response.continent?.toLowerCase()) {
+        return true;
+      }
+
+      const continentTokens = ['europe', 'asia', 'africa', 'australia', 'oceania', 'antarctica'];
+      if (continentTokens.some((token) => normalized === token || normalized.startsWith(`${token}/`))) {
+        return true;
+      }
+
+      if (normalized.endsWith(' continent') || normalized.endsWith(' region')) {
+        return true;
+      }
+
+      return false;
+    };
+
+    const addPart = (raw?: string | null) => {
+      if (!raw) {
+        return;
+      }
+      const trimmed = raw.trim();
+      if (!trimmed || isGeneric(trimmed)) {
+        return;
+      }
+      const key = normalizeKey(trimmed);
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      parts.push(trimmed);
+    };
+
+    const address = response.address || {};
+    const administrative = response.localityInfo?.administrative ?? [];
+
+    const getAdministrativeFromEnd = (offset: number): string | undefined => {
+      if (!administrative.length) {
+        return undefined;
+      }
+      const index = administrative.length - 1 - offset;
+      if (index < 0 || index >= administrative.length) {
+        return undefined;
+      }
+      const name = administrative[index]?.name?.trim();
+      if (!name || isGeneric(name)) {
+        return undefined;
+      }
+      return name;
+    };
+
+    const pickFirstValid = (
+      candidates: Array<string | null | undefined>
+    ): string | undefined => {
+      for (const candidate of candidates) {
+        if (!candidate) {
+          continue;
+        }
+        const trimmed = candidate.trim();
+        if (!trimmed || isGeneric(trimmed)) {
+          continue;
+        }
+        return trimmed;
+      }
+      return undefined;
+    };
+
+    const road = pickFirstValid([
+      address.road,
+      address.pedestrian,
+      address.path,
+      address.neighbourhood,
+      address.hamlet,
+    ]);
+
+    const houseNumber = address.house_number?.trim();
+    if (road) {
+      addPart(houseNumber ? `${road} ${houseNumber}` : road);
+    } else if (houseNumber) {
+      addPart(houseNumber);
+    }
+
+    let locality = pickFirstValid([
+      address.city,
+      address.town,
+      address.village,
+      address.municipality,
+      response.city,
+      response.locality,
+      getAdministrativeFromEnd(0),
+    ]);
+
+    let subLocality = pickFirstValid([
+      address.suburb,
+      address.city_district,
+      address.borough,
+      address.neighbourhood,
+      getAdministrativeFromEnd(locality ? 1 : 0),
+    ]);
+
+    if (locality && subLocality) {
+      const localityKey = normalizeKey(locality);
+      const subLocalityKey = normalizeKey(subLocality);
+      if (localityKey === subLocalityKey) {
+        subLocality = undefined;
+      }
+    }
+
+    addPart(subLocality);
+    addPart(locality);
+
+    const state = pickFirstValid([
+      address.state,
+      address.region,
+      response.principalSubdivision,
+      getAdministrativeFromEnd(locality ? 1 : 0),
+      getAdministrativeFromEnd(1),
+    ]);
+    addPart(state);
+
+    const country = pickFirstValid([
+      address.country,
+      response.countryName,
+      response.country,
+      getAdministrativeFromEnd(administrative.length - 1),
+    ]);
+    addPart(country);
+
+    if (!parts.length) {
+      addPart(address.postcode);
+    }
+
+    const finalParts: string[] = [];
+    const finalSeen = new Set<string>();
+
+    for (const part of parts) {
+      const key = normalizeKey(part);
+      if (!part || isGeneric(part) || finalSeen.has(key)) {
+        continue;
+      }
+      finalSeen.add(key);
+      finalParts.push(part);
+    }
+
+    if (
+      finalParts.some((part) => part.toLowerCase().includes('europe')) ||
+      finalParts.filter((part) => normalizeKey(part).includes('berlin')).length > 1
+    ) {
+      console.log('Geocoding parts debug', {
+        parts,
+        finalParts,
+        locality,
+        subLocality,
+        state,
+        country,
+        road,
+        houseNumber,
+        administrative,
+        response,
+      });
+    }
+
+    return finalParts.length > 0 ? finalParts.join(', ') : null;
   }
 
   /**

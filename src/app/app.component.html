@@ -1,1 +1,24 @@
 <app-map></app-map>
+
+<!-- Notification status indicator -->
+<div *ngIf="showNotificationStatus" class="notification-status">
+  <div class="status-header">
+    <span class="status-icon">{{ notificationStatusIcon }}</span>
+    <span class="status-text">{{ notificationStatusText }}</span>
+  </div>
+  <div class="status-details" *ngIf="notificationStatusDetails">
+    {{ notificationStatusDetails }}
+  </div>
+  <button
+    *ngIf="showNotificationButton"
+    class="enable-notification-btn"
+    (click)="requestNotificationPermission()">
+    Enable Notifications
+  </button>
+  <button
+    *ngIf="showTestNotification"
+    class="test-notification-btn"
+    (click)="sendTestNotification()">
+    Test Notification
+  </button>
+</div>

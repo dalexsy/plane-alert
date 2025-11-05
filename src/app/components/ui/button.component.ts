@@ -55,9 +55,11 @@ export class ButtonComponent implements OnChanges {
   }
 
   onClick(event: MouseEvent): void {
-    // Stop event propagation FIRST to prevent any parent handlers
-    event.preventDefault();
-    event.stopPropagation();
+    // Don't prevent default for submit buttons - let them submit the form
+    if (this.nativeType !== 'submit') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     // Only emit if not disabled
     if (!this.disabled) {
       this.click.emit(event);

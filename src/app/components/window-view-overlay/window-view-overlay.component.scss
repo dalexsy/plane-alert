@@ -12,7 +12,7 @@
 $overlay-height-mobile: 4rem;
 $overlay-height-desktop: 10rem;
 $overlay-bottom-spacing: 0.5rem;
-$overlay-z-index: 1002;
+$overlay-z-index: 800;
 $overlay-perspective: 800rem;
 
 // Responsive Breakpoints
@@ -64,7 +64,7 @@ $text-shadow-color: #000;
 
 // After definition of .window-view-overlay, add higher z-index for aircraft tooltips above everything
 .window-view-overlay .planes-container {
-  z-index: 1002; // Ensure planes container is on top
+  z-index: $overlay-z-index + 1; // Ensure planes container is on top
 }
 
 // Hide the window view overlay when this class is applied

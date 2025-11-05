@@ -237,6 +237,19 @@ export class AircraftDbService {
       return;
     }
 
+    const hostname = window.location.hostname;
+    const isLocalHost =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0';
+
+    if (!isLocalHost) {
+      console.log(
+        'Skipping /save-db call because app is not running on the local dev server.'
+      );
+      return;
+    }
+
     const content = this.exportUserRecordsAsJsonArray();
 
     // Write directly to the repository file

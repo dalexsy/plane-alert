@@ -151,15 +151,13 @@
     <div class="form-group">
       <app-input
         #addressInput
-        type="textarea"
+        type="text"
         label="Address"
         placeholder="Enter address to search"
         [value]="currentAddress"
         (inputChange)="onAddressChange($event)"
-        (enterPressed)="onResolveAndUpdate()"
         (focusEvent)="onAddressFocus($event)"
         (blurEvent)="onAddressBlur()"
-        [rows]="2"
         autocomplete="off"
       ></app-input>
     </div>
@@ -236,9 +234,7 @@
         [text]="scanButtonText"
         type="primary"
         [nativeType]="'submit'"
-        (click)="onResolveAndUpdate($event)"
       >
-        <!-- Add explicit click handler and closing bracket -->
       </app-button>
       <app-button
         id="useLocationButton"

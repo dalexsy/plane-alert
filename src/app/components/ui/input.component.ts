@@ -117,11 +117,13 @@ export class InputComponent implements OnInit, ControlValueAccessor {
       event.key === 'Enter' &&
       !(event.shiftKey || event.ctrlKey || event.metaKey)
     ) {
-      // Prevent newline in textarea, treat as submit
+      // For textarea, prevent new line and emit event
       if (this.type === 'textarea') {
         event.preventDefault();
+        this.enterPressed.emit(event);
       }
-      this.enterPressed.emit(event);
+      // For text/number inputs, let the form handle it naturally (don't preventDefault)
+      // This allows form submission to work properly
     }
   }
 

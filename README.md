@@ -51,10 +51,6 @@ location.reload();
 
 ### What This Does
 
-- Disables address lookup for coordinates
-- Shows coordinates (e.g., "52.3832, 13.5507") instead of addresses
-- Prevents API timeouts and network issues
-- Still allows all other functionality
 
 ### Re-enable Geocoding
 
@@ -65,9 +61,27 @@ location.reload();
 
 ### Alternative Solutions
 
-- The app automatically falls back to coordinate display if geocoding fails
-- Network issues are temporary and usually resolve themselves
-- The app caches successful geocoding results for 1 hour
+
+## Background notifications (Firebase Cloud Functions)
+
+This repo now contains a minimal Firebase Functions project in the `functions/` folder. It stores device push tokens in Firestore and pings the ADS-B feed every few minutes to send background alerts.
+
+1. Install the Firebase CLI if you have not already:
+	```bash
+	npm install -g firebase-tools
+	```
+2. Configure the functions project:
+	```bash
+	cd functions
+	npm install
+	```
+3. Make sure the active Firebase project is `plane-alert-800ff` (or update the IDs in `src/app/config/firebase.config.ts` if you renamed it). Cloud Scheduler triggers require the Blaze plan.
+4. Deploy the functions:
+	```bash
+	firebase deploy --only functions
+	```
+
+Once deployed, the web app automatically POSTs each browser's FCM token, home location, radius, and distance units to the HTTPS endpoint. The scheduled function polls ADS-B data, filters for likely military flights, and pushes notifications even when the PWA is closed. Tokens are removed automatically if Firebase reports them as invalid.
 
 ## Running unit tests
 

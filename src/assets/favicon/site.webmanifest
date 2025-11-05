@@ -1,6 +1,7 @@
 {
-  "name": "",
-  "short_name": "",
+  "name": "PlaneAlert",
+  "short_name": "PlaneAlert",
+  "description": "Real-time aircraft tracking and alerts",
   "icons": [
     {
       "src": "android-chrome-192x192.png",
@@ -15,5 +16,7 @@
   ],
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
 }

@@ -1,0 +1,667 @@
+// Load environment variables from .env file
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const functions = require('firebase-functions');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const admin = require('firebase-admin');
+import fetch from 'node-fetch';
+import icaoCountryRanges from './icao-country-ranges.json';
+
+admin.initializeApp();
+
+const db = admin.firestore();
+const DEVICE_COLLECTION = 'deviceTokens';
+const DEFAULT_RADIUS_KM = 100;
+const MIN_RADIUS_KM = 10;
+const MAX_RADIUS_KM = 200;
+const MAX_NOTIFICATIONS_PER_DEVICE = 2;
+const RECENT_NOTIFICATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const PUSHOVER_API_TOKEN = process.env.PUSHOVER_API_TOKEN;
+
+interface HomeLocation {
+  lat: number;
+  lon: number;
+  address?: string;
+}
+
+interface DeviceRegistration {
+  pushoverUserKey: string;
+  platform?: string;
+  distanceUnit?: 'km' | 'miles';
+  radiusKm?: number;
+  timezone?: string;
+  home?: HomeLocation;
+  lastNotified?: Record<string, number>;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+interface AdsBPlane {
+  hex: string;
+  flight?: string;
+  callsign?: string;
+  desc?: string;
+  t?: string;
+  mil?: boolean;
+  dbFlags?: number;
+  category?: string;
+  lat: number;
+  lon: number;
+  gs?: number;
+  track?: number;
+  alt_baro?: number | string;
+  alt_geom?: number;
+  baro_rate?: number;
+  gnd?: boolean;
+  opicao?: string;
+  type?: string;
+  squawk?: string;
+  r?: string;
+}
+
+const MIL_CALLSIGN_PREFIXES = [
+  'AEB',
+  'AII',
+  'AM',
+  'AMX',
+  'ARMY',
+  'BAF',
+  'BAH',
+  'BKK',
+  'BLK',
+  'CNV',
+  'CTM',
+  'DLH',
+  'EAG',
+  'FAG',
+  'FAF',
+  'FNY',
+  'GAF',
+  'HAF',
+  'KAF',
+  'LAGR',
+  'LNX',
+  'MAF',
+  'MAM',
+  'MFG',
+  'NAF',
+  'NAVY',
+  'PAT',
+  'QID',
+  'RCH',
+  'RFF',
+  'RRR',
+  'SEN',
+  'SPAR',
+  'T.2',
+  'TUAF',
+  'USAF',
+  'USCG',
+  'VEN',
+  'VV',
+  'WCO',
+];
+
+const MIL_OPERATOR_KEYWORDS = [
+  'air force',
+  'luchtmacht',
+  'armée',
+  'armée de l\'air',
+  'armée de l\'air',
+  'navy',
+  'marine',
+  'heer',
+  'luftwaffe',
+  'armée de terre',
+  'army',
+  'military',
+  'marines',
+  'gov',
+  'government',
+];
+
+// Boring aircraft types to skip (trainers, transports, business jets used by military)
+const BORING_AIRCRAFT_TYPES = [
+  'BE20', // Beechcraft King Air (trainer/transport)
+  'BE30', // Beechcraft Super King Air
+  'BE35', // Beechcraft Bonanza
+  'BE36', // Beechcraft Bonanza
+  'BE40', // Beechcraft T-1 Jayhawk (trainer)
+  'BE45', // Beechcraft T-6 Texan II (trainer)
+  'BE9L', // Beechcraft King Air
+  'BE9T', // Beechcraft King Air
+  'C172', // Cessna 172 (basic trainer)
+  'C182', // Cessna 182
+  'C208', // Cessna Caravan (utility)
+  'C25A', // Cessna Citation (business jet)
+  'C25B', // Cessna Citation
+  'C25C', // Cessna Citation
+  'C501', // Cessna Citation
+  'C510', // Cessna Citation Mustang
+  'C525', // Cessna CitationJet
+  'C550', // Cessna Citation II
+  'C551', // Cessna Citation II/SP
+  'C560', // Cessna Citation V
+  'C56X', // Cessna Citation Excel
+  'C650', // Cessna Citation III/VI/VII
+  'C680', // Cessna Citation Sovereign
+  'C750', // Cessna Citation X
+  'CL30', // Bombardier Challenger 300
+  'CL35', // Bombardier Challenger 350
+  'CL60', // Bombardier Challenger 600/601/604/605
+  'DHC6', // De Havilland Twin Otter (utility)
+  'DHC8', // De Havilland Dash 8 (transport)
+  'E50P', // Embraer Phenom 100
+  'E55P', // Embraer Phenom 300
+  'FA7X', // Dassault Falcon 7X
+  'FA10', // Dassault Falcon 10
+  'FA20', // Dassault Falcon 20
+  'FA50', // Dassault Falcon 50
+  'FA2T', // Dassault Falcon 2000
+  'GL5T', // Gulfstream V
+  'GLEX', // Bombardier Global Express
+  'GLF4', // Gulfstream IV
+  'GLF5', // Gulfstream V
+  'GLF6', // Gulfstream G650
+  'GLHF', // Gulfstream 100/150
+  'LJ24', // Learjet 24
+  'LJ25', // Learjet 25
+  'LJ31', // Learjet 31
+  'LJ35', // Learjet 35/36 (used as trainers)
+  'LJ40', // Learjet 40
+  'LJ45', // Learjet 45
+  'LJ55', // Learjet 55
+  'LJ60', // Learjet 60
+  'P28A', // Piper PA-28 Cherokee (basic trainer)
+  'PC12', // Pilatus PC-12 (utility)
+  'PC21', // Pilatus PC-21 (trainer)
+  'PC6',  // Pilatus Porter (utility)
+  'PC9',  // Pilatus PC-9 (trainer)
+  'SF50', // Cirrus SF50 Vision Jet
+  'T134', // Tupolev Tu-134 (old transport)
+  'T154', // Tupolev Tu-154 (old transport)
+];
+
+const ORIGIN_HEADER = 'PlaneAlertCloudFunction/1.0 (+https://plane-alert.surge.sh)';
+
+function clampRadius(radiusKm?: number | null): number {
+  if (typeof radiusKm !== 'number' || Number.isNaN(radiusKm)) {
+    return DEFAULT_RADIUS_KM;
+  }
+  return Math.min(Math.max(radiusKm, MIN_RADIUS_KM), MAX_RADIUS_KM);
+}
+
+function toRadians(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function toDegrees(rad: number): number {
+  return (rad * 180) / Math.PI;
+}
+
+function haversineDistanceKm(
+  home: HomeLocation,
+  lat: number,
+  lon: number
+): number {
+  const R = 6371; // km
+  const dLat = toRadians(lat - home.lat);
+  const dLon = toRadians(lon - home.lon);
+  const lat1 = toRadians(home.lat);
+  const lat2 = toRadians(lat);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function computeBearing(home: HomeLocation, lat: number, lon: number): number {
+  const lat1 = toRadians(home.lat);
+  const lat2 = toRadians(lat);
+  const dLon = toRadians(lon - home.lon);
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+
+  return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function bearingToCardinal(bearing: number): string {
+  const dirs = [
+    'N',
+    'NNE',
+    'NE',
+    'ENE',
+    'E',
+    'ESE',
+    'SE',
+    'SSE',
+    'S',
+    'SSW',
+    'SW',
+    'WSW',
+    'W',
+    'WNW',
+    'NW',
+    'NNW',
+  ];
+  const index = Math.round(bearing / 22.5) % dirs.length;
+  return dirs[index];
+}
+
+function normalizeCallsign(value?: string | null): string {
+  if (!value) {
+    return '';
+  }
+  return value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+}
+
+function getCountryFromIcao(hex: string): string | null {
+  const hexNum = parseInt(hex, 16);
+  
+  for (const range of icaoCountryRanges as any[]) {
+    const start = parseInt(range.startHex, 16);
+    const finish = parseInt(range.finishHex, 16);
+    
+    if (hexNum >= start && hexNum <= finish) {
+      return range.countryISO2;
+    }
+  }
+  
+  return null;
+}
+
+function looksMilitary(plane: AdsBPlane): boolean {
+  // Check mil flag OR dbFlags (dbFlags: 1 indicates military aircraft in database)
+  // Reject if NEITHER flag indicates military
+  if (!(plane.mil === true || plane.dbFlags === 1)) {
+    return false;
+  }
+
+  // Skip boring aircraft types (trainers, transports, business jets)
+  const aircraftType = plane.t || plane.type || '';
+  if (BORING_AIRCRAFT_TYPES.includes(aircraftType.toUpperCase())) {
+    return false;
+  }
+
+  return true;
+}
+
+function formatDistance(
+  km: number,
+  unit: 'km' | 'miles'
+): { value: number; unit: string } {
+  if (unit === 'miles') {
+    const miles = km * 0.621371192;
+    return { value: Math.round(miles * 10) / 10, unit: 'mi' };
+  }
+  return { value: Math.round(km * 10) / 10, unit: 'km' };
+}
+
+function pruneOldNotifications(map: Record<string, number>): Record<string, number> {
+  const cutoff = Date.now() - RECENT_NOTIFICATION_TTL_MS;
+  const next: Record<string, number> = {};
+  for (const [icao, timestamp] of Object.entries(map)) {
+    if (timestamp >= cutoff) {
+      next[icao] = timestamp;
+    }
+  }
+  return next;
+}
+
+async function fetchAircraft(
+  home: HomeLocation,
+  radiusKm: number
+): Promise<AdsBPlane[]> {
+  const radiusNm = radiusKm / 1.852;
+  const url = `https://api.adsb.one/v2/point/${home.lat}/${home.lon}/${radiusNm.toFixed(2)}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': ORIGIN_HEADER,
+      'Accept': 'application/json',
+    },
+    timeout: 5000,
+  } as any);
+
+  if (!response.ok) {
+    functions.logger.warn('ADS-B API error', response.status, response.statusText);
+    return [];
+  }
+
+  const payload = (await response.json()) as { ac?: AdsBPlane[] };
+  return payload.ac ?? [];
+}
+
+function buildNotificationBody(
+  plane: AdsBPlane,
+  distance: { value: number; unit: string },
+  direction: string
+): string {
+  const callsign = normalizeCallsign(plane.flight || plane.callsign) || plane.hex.toUpperCase();
+  const country = getCountryFromIcao(plane.hex);
+  
+  // Format: [callsign] at [direction] [distance] from [country]
+  // Example: "GAF013 at W 45.2 km from DE"
+  let message = `${callsign} at ${direction} ${distance.value} ${distance.unit}`;
+  
+  if (country) {
+    message += ` from ${country}`;
+  }
+  
+  return message;
+}
+
+async function notifyForDevice(device: any, data: DeviceRegistration, docId: string): Promise<void> {
+  if (!data.pushoverUserKey || !data.home) {
+    return;
+  }
+
+  functions.logger.info('Processing device', {
+    docId,
+    userKey: data.pushoverUserKey.slice(0, 8),
+    radiusKm: data.radiusKm,
+  });
+
+  const radiusKm = clampRadius(data.radiusKm);
+  const aircraft = await fetchAircraft(data.home, radiusKm);
+  
+  functions.logger.info('Fetched aircraft', {
+    docId,
+    totalAircraft: aircraft.length,
+  });
+  
+  if (!aircraft.length) {
+    return;
+  }
+
+  const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
+  const messages: Array<Record<string, any>> = [];
+  const now = Date.now();
+
+  let militaryCount = 0;
+  let boringCount = 0;
+  let recentlyNotifiedCount = 0;
+
+  for (const plane of aircraft) {
+    if (!looksMilitary(plane)) {
+      if (plane.mil === true) {
+        boringCount++;
+      }
+      continue;
+    }
+
+    militaryCount++;
+
+    if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
+      continue;
+    }
+
+    const distanceKm = haversineDistanceKm(data.home, plane.lat, plane.lon);
+    if (distanceKm > radiusKm) {
+      continue;
+    }
+
+    const icao = plane.hex?.toUpperCase();
+    if (!icao) {
+      continue;
+    }
+
+    if (lastNotified[icao] && now - lastNotified[icao] < RECENT_NOTIFICATION_TTL_MS) {
+      recentlyNotifiedCount++;
+      continue;
+    }
+
+    const bearing = computeBearing(data.home, plane.lat, plane.lon);
+    const direction = bearingToCardinal(bearing);
+    const distance = formatDistance(distanceKm, data.distanceUnit === 'miles' ? 'miles' : 'km');
+    const body = buildNotificationBody(plane, distance, direction);
+
+    messages.push({
+      title: 'Military Plane Alert',
+      message: body,
+      url: 'https://plane-alert.surge.sh/',
+      url_title: 'View on Map',
+    });
+
+    lastNotified[icao] = now;
+
+    if (messages.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
+      break;
+    }
+  }
+
+  functions.logger.info('Aircraft filtering results', {
+    docId,
+    totalAircraft: aircraft.length,
+    militaryCount,
+    boringCount,
+    recentlyNotifiedCount,
+    messagesToSend: messages.length,
+  });
+
+  if (!messages.length) {
+    await device.set({ lastNotified }, { merge: true });
+    return;
+  }
+
+  // Send via Pushover API
+  for (const msg of messages) {
+    try {
+      functions.logger.info('Sending Pushover notification', {
+        docId,
+        userKey: data.pushoverUserKey.slice(0, 8),
+        message: msg.message,
+      });
+
+      const response = await fetch('https://api.pushover.net/1/messages.json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          token: PUSHOVER_API_TOKEN || '',
+          user: data.pushoverUserKey,
+          title: msg.title,
+          message: msg.message,
+          url: msg.url || '',
+          url_title: msg.url_title || '',
+          priority: '1', // High priority
+          sound: 'intermission',
+        }),
+      } as any);
+
+      const result: any = await response.json();
+      
+      if (response.ok && result.status === 1) {
+        functions.logger.info('Sent Pushover notification', {
+          userKey: data.pushoverUserKey.slice(0, 8),
+          message: msg.message,
+        });
+      } else {
+        functions.logger.error('Pushover API error', {
+          userKey: data.pushoverUserKey.slice(0, 8),
+          error: result,
+        });
+      }
+    } catch (error: any) {
+      functions.logger.error('Failed to send Pushover notification', {
+        docId,
+        userKey: data.pushoverUserKey.slice(0, 8),
+        error: error?.message,
+      });
+    }
+  }
+
+  await device.set(
+    {
+      lastNotified,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+export const registerDevice = functions.https.onRequest(async (req: any, res: any) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const {
+      pushoverUserKey,
+      platform,
+      distanceUnit,
+      radiusKm,
+      timezone,
+      home,
+    } = req.body as {
+      pushoverUserKey?: string;
+      platform?: string;
+      distanceUnit?: 'km' | 'miles';
+      radiusKm?: number;
+      timezone?: string;
+      home?: HomeLocation;
+    };
+
+    if (!pushoverUserKey || typeof pushoverUserKey !== 'string') {
+      res.status(400).json({ error: 'pushoverUserKey is required' });
+      return;
+    }
+
+    if (!home || typeof home.lat !== 'number' || typeof home.lon !== 'number') {
+      res.status(400).json({ error: 'home location with lat/lon is required' });
+      return;
+    }
+
+    const doc: DeviceRegistration = {
+      pushoverUserKey,
+      platform,
+      distanceUnit: distanceUnit === 'miles' ? 'miles' : 'km',
+      radiusKm: clampRadius(radiusKm),
+      timezone,
+      home,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp() as any,
+    };
+
+    await db.collection(DEVICE_COLLECTION).doc(pushoverUserKey).set(
+      {
+        ...doc,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    res.status(200).json({ success: true });
+  } catch (error: any) {
+    functions.logger.error('registerDevice failed', error);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+export const debugListTokens = functions.https.onRequest(async (req: any, res: any) => {
+  const secret = process.env.DEBUG_TOKEN_SECRET || functions.config().debug?.token_secret;
+  if (!secret || req.query.secret !== secret) {
+    res.status(403).json({ error: 'forbidden' });
+    return;
+  }
+
+  const snapshot = await db.collection(DEVICE_COLLECTION).get();
+  const tokens = snapshot.docs.map((doc: any) => ({
+    id: doc.id,
+    data: doc.data(),
+  }));
+
+  res.json({ count: tokens.length, tokens });
+});
+
+export const debugSendToken = functions.https.onRequest(async (req: any, res: any) => {
+  const secret = process.env.DEBUG_TOKEN_SECRET || functions.config().debug?.token_secret;
+  if (!secret || req.query.secret !== secret) {
+    res.status(403).json({ error: 'forbidden' });
+    return;
+  }
+
+  const userKey = req.query.userKey as string | undefined;
+  if (!userKey) {
+    res.status(400).json({ error: 'userKey query param required' });
+    return;
+  }
+
+  const snapshot = await db.collection(DEVICE_COLLECTION).doc(userKey).get();
+  if (!snapshot.exists) {
+    res.status(404).json({ error: 'user not found' });
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.pushover.net/1/messages.json', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        token: PUSHOVER_API_TOKEN || '',
+        user: userKey,
+        title: 'Plane Alert Debug',
+        message: 'Test notification from debug endpoint',
+        priority: '1',
+      }),
+    } as any);
+
+    const result: any = await response.json();
+    
+    if (response.ok && result.status === 1) {
+      res.json({ success: true, request: result.request });
+    } else {
+      res.status(500).json({ error: result });
+    }
+  } catch (error: any) {
+    functions.logger.error('debugSendToken failed', {
+      userKey,
+      error,
+    });
+    res.status(500).json({ error: error?.message ?? 'send failed' });
+  }
+});
+
+export const processPlanes = functions.pubsub
+  .schedule('every 3 minutes')
+  .timeZone('Etc/UTC')
+  .onRun(async () => {
+    const snapshot = await db.collection(DEVICE_COLLECTION).get();
+    if (snapshot.empty) {
+      functions.logger.info('No registered devices.');
+      return;
+    }
+
+    const tasks = snapshot.docs.map((doc: any) =>
+      notifyForDevice(doc.ref, doc.data() as DeviceRegistration, doc.id).catch(
+        (error) =>
+          functions.logger.error('notifyForDevice failed', {
+            docId: doc.id,
+            error,
+          })
+      )
+    );
+
+    await Promise.all(tasks);
+  });

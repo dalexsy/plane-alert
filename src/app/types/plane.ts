@@ -14,6 +14,7 @@ export interface Plane {
   isNew: boolean;
   lat?: number;
   lon?: number;
+  distanceKm?: number;
   marker?: L.Marker;
   path?: L.Polyline;
   filteredOut?: boolean;

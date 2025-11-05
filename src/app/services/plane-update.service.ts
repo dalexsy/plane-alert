@@ -12,6 +12,7 @@ import { LocationUpdateService } from './location-update.service';
 import { PlaneModel } from '../models/plane-model';
 import { CountryService } from './country.service';
 import { SpecialListService } from './special-list.service';
+import { NotificationService } from './notification.service';
 import {
   playAlertSound,
   playHerculesAlert,
@@ -36,7 +37,8 @@ export class PlaneUpdateService {
     private followService: FollowService,
     private locationUpdateService: LocationUpdateService,
     private countryService: CountryService,
-    private specialListService: SpecialListService
+    private specialListService: SpecialListService,
+    private notificationService: NotificationService
   ) {}
 
   /**
@@ -172,6 +174,11 @@ export class PlaneUpdateService {
         this.specialListService.isSpecial(p.icao)
     );
 
+    // Get military planes for notifications
+    const militaryPlanes = newVisible.filter(
+      (p) => this.aircraftDb.lookup(p.icao)?.mil
+    );
+
     // Play only one alert sound per scan, prioritizing specific aircraft types
     if (!this.settings.militaryMute) {
       if (hasHercules) {
@@ -184,6 +191,22 @@ export class PlaneUpdateService {
         playAlertSound();
       }
     }
+
+    // Show notifications for military planes
+    militaryPlanes.forEach((plane) => {
+      const record = this.aircraftDb.lookup(plane.icao);
+      const modelLabel = plane.model?.trim() || record?.model || undefined;
+      this.notificationService.showMilitaryPlaneNotification({
+        icao: plane.icao,
+        callsign: plane.callsign,
+        model: modelLabel,
+        operator: record?.ownop,
+        altitude: plane.altitude || undefined,
+        speed: plane.velocity || undefined,
+        direction: plane.cardinal,
+        distanceKm: plane.distanceKm
+      });
+    });
   }
 
   private processPlaneModels(

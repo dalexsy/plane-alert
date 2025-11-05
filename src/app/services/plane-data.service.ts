@@ -35,6 +35,7 @@ export interface ProcessedPlaneData {
   isNew: boolean;
   isFiltered: boolean;
   verticalRate: number | null;
+  distanceKm: number;
 }
 
 @Injectable({
@@ -267,6 +268,7 @@ export class PlaneDataService {
       isNew,
       isFiltered,
       verticalRate: ac.baro_rate ?? null,
+      distanceKm: dist,
     };
   }
 
@@ -372,6 +374,7 @@ export class PlaneDataService {
         isNew: isNew,
         lat: lat,
         lon: lon,
+        distanceKm: processedData.distanceKm,
         marker: undefined,
         path: undefined,
         filteredOut: isFiltered,
@@ -402,6 +405,7 @@ export class PlaneDataService {
     // Update model properties
     planeModelInstance.model = processedData.model;
     planeModelInstance.operator = processedData.operator;
+  planeModelInstance.distanceKm = processedData.distanceKm;
 
     // Calculate derived properties
     const bearing = this.computeBearing(centerLat, centerLon, lat, lon);

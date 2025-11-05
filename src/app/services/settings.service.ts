@@ -12,6 +12,12 @@ export interface ViewConeConfig {
 })
 export class SettingsService {
   constructor() {
+    // Set mobile-specific defaults
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    if (isMobile) {
+      this._inputOverlayCollapsed = true; // Collapsed by default on mobile
+      this._resultsOverlayCollapsed = true; // Collapsed by default on mobile
+    }
     this.load();
   }
 
@@ -51,7 +57,7 @@ export class SettingsService {
   private viewAxesKey = 'showViewAxes';
   private _showViewAxes: boolean = false; // Key and backing store for airport labels visibility
   private airportLabelsKey = 'showAirportLabels';
-  private _showAirportLabels: boolean = true;
+  private _showAirportLabels: boolean = false;
 
   // Key and backing store for brightness mode preference
   private brightnessAutoModeKey = 'brightnessAutoMode';
