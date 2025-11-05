@@ -405,7 +405,7 @@ export class PlaneDataService {
     // Update model properties
     planeModelInstance.model = processedData.model;
     planeModelInstance.operator = processedData.operator;
-  planeModelInstance.distanceKm = processedData.distanceKm;
+    planeModelInstance.distanceKm = processedData.distanceKm;
 
     // Calculate derived properties
     const bearing = this.computeBearing(centerLat, centerLon, lat, lon);

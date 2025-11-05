@@ -151,9 +151,7 @@ export class NotificationService {
     }
 
     const label =
-      planeInfo.model?.trim() ||
-      planeInfo.callsign?.trim() ||
-      planeInfo.icao;
+      planeInfo.model?.trim() || planeInfo.callsign?.trim() || planeInfo.icao;
     const title = `${label || 'Plane'} peeped!`;
     const body = this.buildNotificationBody(planeInfo);
     const options: NotificationOptions = {
@@ -247,7 +245,10 @@ export class NotificationService {
     }
 
     if (candidate.includes(',')) {
-      const parts = candidate.split(',').map((part) => part.trim()).filter(Boolean);
+      const parts = candidate
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
       if (parts.length) {
         candidate = parts[parts.length - 1];
       }
@@ -257,7 +258,6 @@ export class NotificationService {
 
     return candidate.length > 1 ? candidate : operator.trim();
   }
-
 
   private spawnWindowNotification(
     title: string,

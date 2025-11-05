@@ -51,7 +51,6 @@ location.reload();
 
 ### What This Does
 
-
 ### Re-enable Geocoding
 
 ```javascript
@@ -61,25 +60,24 @@ location.reload();
 
 ### Alternative Solutions
 
-
 ## Background notifications (Firebase Cloud Functions)
 
 This repo now contains a minimal Firebase Functions project in the `functions/` folder. It stores device push tokens in Firestore and pings the ADS-B feed every few minutes to send background alerts.
 
 1. Install the Firebase CLI if you have not already:
-	```bash
-	npm install -g firebase-tools
-	```
+   ```bash
+   npm install -g firebase-tools
+   ```
 2. Configure the functions project:
-	```bash
-	cd functions
-	npm install
-	```
+   ```bash
+   cd functions
+   npm install
+   ```
 3. Make sure the active Firebase project is `plane-alert-800ff` (or update the IDs in `src/app/config/firebase.config.ts` if you renamed it). Cloud Scheduler triggers require the Blaze plan.
 4. Deploy the functions:
-	```bash
-	firebase deploy --only functions
-	```
+   ```bash
+   firebase deploy --only functions
+   ```
 
 Once deployed, the web app automatically POSTs each browser's FCM token, home location, radius, and distance units to the HTTPS endpoint. The scheduled function polls ADS-B data, filters for likely military flights, and pushes notifications even when the PWA is closed. Tokens are removed automatically if Firebase reports them as invalid.
 

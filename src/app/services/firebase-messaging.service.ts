@@ -8,10 +8,7 @@ import { SettingsService } from './settings.service';
   providedIn: 'root',
 })
 export class FirebaseMessagingService {
-  constructor(
-    private http: HttpClient,
-    private settings: SettingsService
-  ) {}
+  constructor(private http: HttpClient, private settings: SettingsService) {}
 
   /**
    * Register Pushover user key with backend
@@ -24,7 +21,9 @@ export class FirebaseMessagingService {
 
     const home = this.settings.getHomeLocation();
     if (!home) {
-      console.warn('Home location unavailable; cannot register push notifications.');
+      console.warn(
+        'Home location unavailable; cannot register push notifications.'
+      );
       return false;
     }
 

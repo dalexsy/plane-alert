@@ -24,7 +24,7 @@ export type InputSize = 'small' | 'medium' | 'large';
       <label *ngIf="label" [for]="inputId" class="input-label">
         {{ label }}
       </label>
-      
+
       <textarea
         *ngIf="type === 'textarea'"
         #inputElement
@@ -40,7 +40,7 @@ export type InputSize = 'small' | 'medium' | 'large';
         (keydown)="onKeydown($event)"
         class="input-field textarea"
       ></textarea>
-      
+
       <input
         *ngIf="type !== 'textarea'"
         #inputElement
@@ -76,14 +76,16 @@ export class InputComponent implements OnInit, ControlValueAccessor {
   @Input() rows: number = 2; // For textarea
   @Input() autocomplete: string = 'off';
   @Input() value: string = ''; // Add value input
-  
+
   @Output() inputChange = new EventEmitter<string>();
   @Output() focusEvent = new EventEmitter<FocusEvent>();
   @Output() blurEvent = new EventEmitter<FocusEvent>();
   @Output() keydownEvent = new EventEmitter<KeyboardEvent>();
   @Output() enterPressed = new EventEmitter<KeyboardEvent>();
 
-  @ViewChild('inputElement') inputElementRef!: ElementRef<HTMLInputElement | HTMLTextAreaElement>;
+  @ViewChild('inputElement') inputElementRef!: ElementRef<
+    HTMLInputElement | HTMLTextAreaElement
+  >;
 
   inputId: string = '';
 

@@ -40,12 +40,13 @@ export class AppComponent implements OnInit {
     try {
       const status: NotificationStatusInfo =
         await this.notificationService.evaluateStatus();
-  this.notificationStatusIcon = status.icon;
-  this.notificationStatusText = status.label;
-  this.notificationStatusDetails = `${status.details} (permission: ${Notification.permission})`;
-  this.showNotificationStatus = status.state !== 'granted';
-  this.showNotificationButton = this.showNotificationStatus && status.canRequest;
-  this.showTestNotification = this.showNotificationStatus && status.canTest;
+      this.notificationStatusIcon = status.icon;
+      this.notificationStatusText = status.label;
+      this.notificationStatusDetails = `${status.details} (permission: ${Notification.permission})`;
+      this.showNotificationStatus = status.state !== 'granted';
+      this.showNotificationButton =
+        this.showNotificationStatus && status.canRequest;
+      this.showTestNotification = this.showNotificationStatus && status.canTest;
 
       if (status.state === 'granted') {
         await this.ensurePushoverRegistration();
@@ -73,16 +74,20 @@ export class AppComponent implements OnInit {
     // Prompt for Pushover user key
     const userKey = prompt(
       'Enter your Pushover User Key to enable notifications.\n\n' +
-      'Find it at: https://pushover.net/\n' +
-      '(You need the Pushover app installed)'
+        'Find it at: https://pushover.net/\n' +
+        '(You need the Pushover app installed)'
     );
 
     if (userKey && userKey.trim()) {
       const success = await this.firebaseMessaging.registerDevice(userKey);
       if (success) {
-        alert('✅ Notifications enabled! You\'ll receive alerts for military planes.');
+        alert(
+          "✅ Notifications enabled! You'll receive alerts for military planes."
+        );
       } else {
-        alert('❌ Failed to enable notifications. Check the console for details.');
+        alert(
+          '❌ Failed to enable notifications. Check the console for details.'
+        );
       }
     }
   }
@@ -102,7 +107,7 @@ export class AppComponent implements OnInit {
           altitude: 10000,
           speed: 500,
           direction: 'NW',
-          distanceKm: 4.2
+          distanceKm: 4.2,
         });
       }, 1500);
       return;
@@ -131,7 +136,7 @@ export class AppComponent implements OnInit {
         altitude: 10000,
         speed: 500,
         direction: 'NW',
-        distanceKm: 4.2
+        distanceKm: 4.2,
       });
       alert('Test notification sent! Check your notifications.');
     } else {

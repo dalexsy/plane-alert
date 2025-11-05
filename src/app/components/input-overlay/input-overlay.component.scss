@@ -100,8 +100,8 @@
   }
 
   // Keep styles for the remaining hardcoded inputs (radius and interval)
-  input[type='text'],
-  input[type='number'] {
+  input[type="text"],
+  input[type="number"] {
     width: 100%;
     padding: 6px; // Reduced padding on mobile
     box-sizing: border-box;
@@ -110,7 +110,7 @@
     padding-left: 0.75rem; // Reduced left padding on mobile
     background: rgba(255, 255, 255, 0.18);
     color: white;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "JetBrains Mono", monospace;
 
     @media (min-width: 601px) {
       padding: 8px; // Original padding on desktop
@@ -123,7 +123,7 @@
       -webkit-appearance: none;
       margin: 0;
     } // Firefox
-    &[type='number'] {
+    &[type="number"] {
       -moz-appearance: textfield;
       appearance: textfield;
     }
@@ -206,8 +206,8 @@
   }
 
   // Mobile-specific: style only overlay inputs for mobile only
-  .options-overlay input[type='text'],
-  .options-overlay input[type='number'] {
+  .options-overlay input[type="text"],
+  .options-overlay input[type="number"] {
     padding: 0.5rem;
     font-size: 1rem;
     text-align: right;

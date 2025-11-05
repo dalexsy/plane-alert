@@ -138,9 +138,7 @@ export class GeocodingCacheService {
       const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
       const response = await this.ngZone.runOutsideAngular(() =>
         firstValueFrom(
-          this.http
-            .get<ReverseGeocodeResponse>(url)
-            .pipe(timeout(5000))
+          this.http.get<ReverseGeocodeResponse>(url).pipe(timeout(5000))
         )
       );
 
@@ -261,8 +259,19 @@ export class GeocodingCacheService {
         return true;
       }
 
-      const continentTokens = ['europe', 'asia', 'africa', 'australia', 'oceania', 'antarctica'];
-      if (continentTokens.some((token) => normalized === token || normalized.startsWith(`${token}/`))) {
+      const continentTokens = [
+        'europe',
+        'asia',
+        'africa',
+        'australia',
+        'oceania',
+        'antarctica',
+      ];
+      if (
+        continentTokens.some(
+          (token) => normalized === token || normalized.startsWith(`${token}/`)
+        )
+      ) {
         return true;
       }
 
@@ -402,7 +411,8 @@ export class GeocodingCacheService {
 
     if (
       finalParts.some((part) => part.toLowerCase().includes('europe')) ||
-      finalParts.filter((part) => normalizeKey(part).includes('berlin')).length > 1
+      finalParts.filter((part) => normalizeKey(part).includes('berlin'))
+        .length > 1
     ) {
       console.log('Geocoding parts debug', {
         parts,

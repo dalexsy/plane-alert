@@ -12,13 +12,15 @@
   <button
     *ngIf="showNotificationButton"
     class="enable-notification-btn"
-    (click)="requestNotificationPermission()">
+    (click)="requestNotificationPermission()"
+  >
     Enable Notifications
   </button>
   <button
     *ngIf="showTestNotification"
     class="test-notification-btn"
-    (click)="sendTestNotification()">
+    (click)="sendTestNotification()"
+  >
     Test Notification
   </button>
 </div>

@@ -204,7 +204,7 @@ export class PlaneUpdateService {
         altitude: plane.altitude || undefined,
         speed: plane.velocity || undefined,
         direction: plane.cardinal,
-        distanceKm: plane.distanceKm
+        distanceKm: plane.distanceKm,
       });
     });
   }
