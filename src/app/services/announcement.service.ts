@@ -248,8 +248,8 @@ export class AnnouncementService {
     const model = plane.model?.toLowerCase().trim();
     if (!model) return false;
 
-    // Check for special aircraft models
-    const specialModels = ['hercules', 'a400'];
+    // Check for special aircraft models (handle variants with/without hyphens)
+    const specialModels = ['hercules', 'a400', 'a-400'];
     return specialModels.some((specialModel) => model.includes(specialModel));
   }
 

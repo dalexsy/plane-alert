@@ -116,7 +116,7 @@ app-map.map-panning app-input-overlay {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: calc(100% - 28rem);
+  width: 100%;
   left: 0;
   top: 0;
   padding: 0 1rem;
@@ -124,6 +124,7 @@ app-map.map-panning app-input-overlay {
   z-index: 1000;
   pointer-events: none;
   justify-content: flex-end;
+  transition: padding-left 0.3s ease;
 
   // When window view is visible, adjust height to account for overlays
   &:not(.window-view-hidden) {
@@ -134,8 +135,8 @@ app-map.map-panning app-input-overlay {
     bottom: 0.5rem;
   }
 
-  &.collapsed {
-    width: 100%;
+  &.left-bar-visible {
+    padding-left: 4rem;
   }
 
   > app-angle-overlay {
@@ -152,10 +153,4 @@ app-map.map-panning app-input-overlay {
   width: 100%;
   gap: 1rem;
   justify-content: space-between;
-  transition: padding-left 0.3s ease;
-  
-  // Shift right when sidebar is expanded (info-wrapper NOT collapsed)
-  .info-wrapper:not(.collapsed) & {
-    padding-left: 2rem;
-  }
 }

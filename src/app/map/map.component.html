@@ -98,7 +98,7 @@
   class="info-wrapper"
   [class.dateTimeHidden]="!showDateTime"
   [class.window-view-hidden]="!showWindowView"
-  [class.collapsed]="resultsOverlayComponent.collapsed"
+  [class.left-bar-visible]="!inputOverlayComponent.otherControlsHidden"
 >
   <app-angle-overlay
     [sunAngle]="sunAngle"

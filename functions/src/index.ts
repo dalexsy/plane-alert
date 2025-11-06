@@ -135,14 +135,14 @@ function getCountryFlagEmoji(countryCode: string): string {
   if (!countryCode || countryCode === 'Unknown' || countryCode.length !== 2) {
     return '🏳️'; // White flag for unknown
   }
-  
+
   // Convert country code to regional indicator symbols
   // A = U+1F1E6, so offset each letter by 0x1F1E6 - 0x41
   const codePoints = countryCode
     .toUpperCase()
     .split('')
     .map((char) => 0x1f1e6 - 65 + char.charCodeAt(0));
-  
+
   return String.fromCodePoint(...codePoints);
 }
 
@@ -157,51 +157,53 @@ function getOperatorFromCallsign(callsign: string): string | null {
   // Operator callsign mappings (matches operator-call-signs.json from frontend)
   // This is a simplified version - in production you'd load the full JSON
   const operatorMap: Record<string, string> = {
-    'GAF': 'Luftwaffe',
-    'SHADO': 'Luftwaffe',
-    'HUKR': 'Royal Air Force',
-    'RRR': 'Royal Air Force',
-    'ASCOT': 'Royal Air Force',
-    'TARTN': 'Royal Air Force',
-    'RCH': 'US Air Force',
-    'REACH': 'US Air Force',
-    'CNV': 'US Air Force',
-    'CONVOY': 'US Air Force',
-    'EVAC': 'US Air Force',
-    'SPAR': 'US Air Force',
-    'BOXER': 'US Air Force',
-    'SENTRY': 'US Air Force',
-    'DUKE': 'US Army',
-    'ARMY': 'US Army',
-    'MARINE': 'US Marine Corps',
-    'NAVY': 'US Navy',
-    'COAST': 'US Coast Guard',
-    'FF': 'French Air Force',
-    'CTM': 'French Air Force',
-    'FAF': 'French Air Force',
-    'EIDER': 'Royal Canadian Air Force',
-    'CFC': 'Royal Canadian Air Force',
-    'IAM': 'Italian Air Force',
-    'MM': 'Italian Air Force',
-    'NAF': 'Norwegian Armed Forces',
-    'RSAF': 'Republic of Singapore Air Force',
+    GAF: 'Luftwaffe',
+    SHADO: 'Luftwaffe',
+    HUKR: 'Royal Air Force',
+    RRR: 'Royal Air Force',
+    ASCOT: 'Royal Air Force',
+    TARTN: 'Royal Air Force',
+    RCH: 'US Air Force',
+    REACH: 'US Air Force',
+    CNV: 'US Air Force',
+    CONVOY: 'US Air Force',
+    EVAC: 'US Air Force',
+    SPAR: 'US Air Force',
+    BOXER: 'US Air Force',
+    SENTRY: 'US Air Force',
+    DUKE: 'US Army',
+    ARMY: 'US Army',
+    MARINE: 'US Marine Corps',
+    NAVY: 'US Navy',
+    COAST: 'US Coast Guard',
+    FF: 'French Air Force',
+    CTM: 'French Air Force',
+    FAF: 'French Air Force',
+    EIDER: 'Royal Canadian Air Force',
+    CFC: 'Royal Canadian Air Force',
+    IAM: 'Italian Air Force',
+    MM: 'Italian Air Force',
+    NAF: 'Norwegian Armed Forces',
+    RSAF: 'Republic of Singapore Air Force',
   };
 
   const normalized = callsign.trim().toUpperCase();
-  
+
   // Try exact match first
   if (operatorMap[normalized]) {
     return operatorMap[normalized];
   }
-  
+
   // Try prefix match (sorted by length, longest first)
-  const sortedPrefixes = Object.keys(operatorMap).sort((a, b) => b.length - a.length);
+  const sortedPrefixes = Object.keys(operatorMap).sort(
+    (a, b) => b.length - a.length
+  );
   for (const prefix of sortedPrefixes) {
     if (normalized.startsWith(prefix)) {
       return operatorMap[prefix];
     }
   }
-  
+
   return null;
 }
 
@@ -233,7 +235,7 @@ function buildNotificationBody(
   const countryCode =
     countryResult.countryCode !== 'Unknown' ? countryResult.countryCode : null;
   const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
-  
+
   // Get operator from callsign
   const operator = getOperatorFromCallsign(callsign);
 

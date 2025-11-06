@@ -274,71 +274,132 @@ export class AircraftContainerComponent implements OnChanges, OnDestroy {
       return ''; // No rotation needed if no chemtrail is shown
     }
 
-    // ALWAYS recalculate - no caching to ensure fresh updates every scan interval
+    // Calculate perspective-corrected trail angle
+    return this.getPerspectiveTrailRotation(plane);
+  }
 
-    // Use the EXACT same movement calculation as the plane icon, then rotate 180° opposite
-    const iconRotation = this.getIconRotation(plane);
-    // Extract the angle from the icon rotation string (e.g., "rotateZ(45.0deg)" -> 45.0)
-    const match = iconRotation.match(/rotateZ\((-?\d+(?:\.\d+)?)deg\)/);
-    if (match) {
-      const iconAngle = parseFloat(match[1]);
-      // Rotate chemtrail 90° from the plane icon direction
-      const chemtrailAngle = (iconAngle + 90) % 360;
-      return `rotate(${chemtrailAngle.toFixed(1)}deg)`;
+  /**
+   * Calculate trail rotation with proper perspective correction
+   * Trails should converge toward vanishing points based on viewing angle
+   */
+  private getPerspectiveTrailRotation(plane: WindowViewPlane): string {
+    // First, try to get actual movement direction from history trail
+    if (plane.historyTrail && plane.historyTrail.length >= 2) {
+      let current = plane.historyTrail[plane.historyTrail.length - 1];
+      let previous: any = null;
+
+      // Find valid previous position
+      for (let i = plane.historyTrail.length - 2; i >= 0; i--) {
+        const candidate = plane.historyTrail[i];
+        if (candidate.y > 0.1 && candidate.x >= 0 && candidate.x <= 100) {
+          previous = candidate;
+          break;
+        }
+      }
+
+      if (previous && current.y > 0.1 && current.x >= 0 && current.x <= 100) {
+        let deltaX = current.x - previous.x;
+        let deltaY = current.y - previous.y;
+
+        // Handle wrap-around
+        if (deltaX > 50) {
+          deltaX -= 100;
+        } else if (deltaX < -50) {
+          deltaX += 100;
+        }
+
+        // Check for significant movement
+        if (Math.abs(deltaX) > 0.05 || Math.abs(deltaY) > 0.05) {
+          // Calculate movement angle in screen space
+          let movementAngle = Math.atan2(-deltaY, deltaX) * (180 / Math.PI);
+          movementAngle = ((movementAngle % 360) + 360) % 360;
+
+          // Apply perspective correction based on plane position
+          const perspectiveAngle = this.applyPerspectiveCorrection(
+            movementAngle,
+            plane.x,
+            plane.y
+          );
+
+          // Trail points opposite to movement direction (add 180°)
+          const trailAngle = (perspectiveAngle + 180) % 360;
+          return `rotate(${trailAngle.toFixed(1)}deg)`;
+        }
+      }
     }
 
-    // Improved fallback: Use bearing data if available (most planes have this even when new)
+    // Fallback: Use bearing data if available
     if (plane.bearing !== undefined && plane.bearing !== null) {
-      // Convert compass bearing to chemtrail rotation
-      // Bearing 0° = North, 90° = East, 180° = South, 270° = West
-      // For chemtrail, we want it to point opposite to the direction of travel
-      let trailRotation = (plane.bearing + 180) % 360;
-      return `rotate(${trailRotation.toFixed(1)}deg)`;
+      // Convert compass bearing to screen angle
+      // North (0°) points up, East (90°) points right
+      const bearingAngle = (90 - plane.bearing + 360) % 360;
+
+      const perspectiveAngle = this.applyPerspectiveCorrection(
+        bearingAngle,
+        plane.x,
+        plane.y
+      );
+
+      // Trail points opposite to movement
+      const trailAngle = (perspectiveAngle + 180) % 360;
+      return `rotate(${trailAngle.toFixed(1)}deg)`;
     }
 
-    // Secondary fallback: Use simple movement direction if available
-    if (plane.movementDirection) {
-      const rotationMap: { [key: string]: number } = {
-        left: 90, // Trail points right when plane moves left
-        right: 270, // Trail points left when plane moves right
-        up: 180, // Trail points down when plane moves up
-        down: 0, // Trail points up when plane moves down
-      };
-      const rotation = rotationMap[plane.movementDirection] || 180;
-      return `rotate(${rotation}deg)`;
-    }
-
-    // Final fallback: Trail points down (assuming plane moving up)
+    // Final fallback: horizontal trail
     return 'rotate(180deg)';
   }
 
-  /** Fallback method for chemtrail rotation when trail data is unavailable */
-  private getChemtrailFallback(plane: WindowViewPlane): string {
-    // Fallback method: Use compass bearing for immediate directional chemtrails
-    // This provides correct rotation for new planes before history trail data accumulates
-    if (plane.bearing !== undefined && plane.bearing !== null) {
-      // Convert compass bearing to chemtrail rotation
-      // Bearing 0° = North, 90° = East, 180° = South, 270° = West
-      // For chemtrail, we want it to point opposite to the direction of travel
-      let trailRotation = (plane.bearing + 180) % 360;
-      return `rotate(${trailRotation.toFixed(1)}deg)`;
+  /**
+   * Apply perspective correction to angle based on plane position
+   * Trails converge toward vanishing points at horizon edges
+   */
+  private applyPerspectiveCorrection(
+    movementAngle: number,
+    planeX: number,
+    planeY: number
+  ): number {
+    // Determine which vanishing point to use based on plane's azimuth (x position)
+    // x = 0-100 represents 360° panorama
+    // 0/100 = behind viewer, 25 = left, 50 = front, 75 = right
+
+    // Calculate distance from horizon (y=0)
+    // Higher planes need less correction
+    const altitudeFactor = Math.max(0, Math.min(1, planeY / 50)); // 0 at horizon, 1 at zenith
+    const perspectiveStrength = (1 - altitudeFactor) * 0.5; // Stronger near horizon
+
+    // Calculate angular position in 360° view
+    const azimuth = (planeX * 3.6) % 360; // Convert 0-100 to 0-360°
+
+    // Determine vanishing point angles
+    // Left vanishing point at 270° (x=75), Right at 90° (x=25), Center at 0/180°
+    let vanishingPointAngle: number;
+
+    if (azimuth < 45 || azimuth > 315) {
+      // Front hemisphere - vanishing point at center
+      vanishingPointAngle = 0;
+    } else if (azimuth >= 45 && azimuth < 135) {
+      // Right hemisphere - vanishing point at 90°
+      vanishingPointAngle = 90;
+    } else if (azimuth >= 135 && azimuth < 225) {
+      // Back hemisphere - vanishing point at 180°
+      vanishingPointAngle = 180;
+    } else {
+      // Left hemisphere - vanishing point at 270°
+      vanishingPointAngle = 270;
     }
 
-    // Secondary fallback: Use simple movement direction if available
-    if (plane.movementDirection) {
-      const rotationMap: { [key: string]: number } = {
-        left: 90, // Trail points right when plane moves left
-        right: 270, // Trail points left when plane moves right
-        up: 180, // Trail points down when plane moves up
-        down: 0, // Trail points up when plane moves down
-      };
-      const rotation = rotationMap[plane.movementDirection] || 180;
-      return `rotate(${rotation}deg)`;
-    }
+    // Calculate angle toward vanishing point
+    const toVanishingPoint = vanishingPointAngle;
 
-    // Final fallback: Trail points down (plane moving up)
-    return 'rotate(180deg)';
-  } /** Get altitude-colored border style for window view tooltips */
+    // Blend movement angle with vanishing point angle based on perspective strength
+    const correctedAngle =
+      movementAngle * (1 - perspectiveStrength) +
+      toVanishingPoint * perspectiveStrength;
+
+    return ((correctedAngle % 360) + 360) % 360;
+  }
+
+  /** Get altitude-colored border style for window view tooltips */
   getAltitudeBorderStyle(plane: WindowViewPlane): { [key: string]: string } {
     // Quick return if altitude borders are disabled
     if (!this.showAltitudeBorders || !plane.altitude) {
