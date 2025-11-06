@@ -64,6 +64,19 @@ location.reload();
 
 This repo now contains a minimal Firebase Functions project in the `functions/` folder. It stores device push tokens in Firestore and pings the ADS-B feed every few minutes to send background alerts.
 
+### Setup for New Devices
+
+**Quick Setup URL**: Open `https://plane-alert.surge.sh/?setup=pushover` on any device to be prompted for your Pushover User Key.
+
+1. Sign up at [Pushover.net](https://pushover.net) (free)
+2. Find your User Key on your dashboard
+3. Visit `https://plane-alert.surge.sh/?setup=pushover` on your device
+4. Enter your User Key when prompted
+5. Set your home location in the app
+6. You'll receive push notifications for aircraft near your location!
+
+### Cloud Function Deployment
+
 1. Install the Firebase CLI if you have not already:
    ```bash
    npm install -g firebase-tools
@@ -80,6 +93,13 @@ This repo now contains a minimal Firebase Functions project in the `functions/` 
    ```
 
 Once deployed, the web app automatically POSTs each browser's FCM token, home location, radius, and distance units to the HTTPS endpoint. The scheduled function polls ADS-B data, filters for likely military flights, and pushes notifications even when the PWA is closed. Tokens are removed automatically if Firebase reports them as invalid.
+
+### Notification Features
+
+- **Follow Aircraft**: Click "View on Map" in push notifications to automatically center and follow the aircraft
+- **Military & Special Aircraft**: Automatic detection of military callsigns and special ICAO codes
+- **Customizable Alerts**: Set your own home location and radius
+- **Cross-Platform**: Works on Android, iOS, and Desktop via Pushover
 
 ## Running unit tests
 

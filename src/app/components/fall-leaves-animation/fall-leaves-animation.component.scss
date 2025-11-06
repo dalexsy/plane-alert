@@ -33,35 +33,15 @@
 
   // Color variations
   &.leaf-red {
-    background: linear-gradient(135deg, #8b4513, #dc143c);
+    background-color: #dc143c;
   }
 
   &.leaf-orange {
-    background: linear-gradient(135deg, #8b4513, #ff4500);
+    background-color: #ff8c00;
   }
 
   &.leaf-yellow {
-    background: linear-gradient(135deg, #8b4513, #ffd700);
-  }
-
-  &.leaf-brown {
-    background: linear-gradient(135deg, #654321, #8b4513);
-  }
-
-  &.leaf-gold {
-    background: linear-gradient(135deg, #8b4513, #ffa500);
-  }
-
-  &.leaf-crimson {
-    background: linear-gradient(135deg, #8b4513, #b22222);
-  }
-
-  &.leaf-amber {
-    background: linear-gradient(135deg, #8b4513, #ffbf00);
-  }
-
-  &.leaf-maroon {
-    background: linear-gradient(135deg, #654321, #800000);
+    background-color: #daa520;
   }
 }
 

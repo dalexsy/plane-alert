@@ -29,6 +29,7 @@ import { MilitaryPrefixService } from '../../services/military-prefix.service';
 import { PlaneFollowService } from '../../services/plane-follow.service';
 import { AutoFollowService } from '../../services/auto-follow.service';
 import { FollowCoordinatorService } from '../../services/follow-coordinator.service';
+import { UrlParameterService } from '../../services/url-parameter.service';
 import { OperatorCallSignService } from '../../services/operator-call-sign.service';
 import { haversineDistance } from '../../utils/geo-utils';
 import {
@@ -126,7 +127,8 @@ export class ResultsOverlayComponent
     private planeFollowService: PlaneFollowService,
     private autoFollowService: AutoFollowService,
     private followCoordinatorService: FollowCoordinatorService,
-    private operatorCallSignService: OperatorCallSignService
+    private operatorCallSignService: OperatorCallSignService,
+    private urlParameterService: UrlParameterService
   ) {
     this.specialListService.specialListUpdated$.subscribe(() => {
       this.resultsUpdated = true;
@@ -965,5 +967,10 @@ export class ResultsOverlayComponent
       this.toggleCollapsed();
     }
     this.cdr.markForCheck();
+  }
+
+  /** Setup Pushover push notifications */
+  onSetupPushover(): void {
+    this.urlParameterService.triggerPushoverSetup();
   }
 }

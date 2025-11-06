@@ -32,6 +32,7 @@ import { MapStateManagerService } from '../services/map-state-manager.service';
 import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
 import { LocationUpdateService } from '../services/location-update.service';
+import { UrlParameterService } from '../services/url-parameter.service';
 
 // Event types
 interface PlaneSelectionEvent {
@@ -92,7 +93,8 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     private settings: SettingsService,
     private scanService: ScanService,
     private cdr: ChangeDetectorRef,
-    private locationUpdateService: LocationUpdateService
+    private locationUpdateService: LocationUpdateService,
+    private urlParameterService: UrlParameterService
   ) {}
   ngOnInit(): void {
     // Initialize observables after dependency injection is complete
@@ -115,7 +117,7 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.setupStateSubscriptions();
 
     // Check for ICAO in URL query parameters (from push notifications)
-    this.checkUrlForIcao();
+    this.urlParameterService.checkUrlParameters();
   }
 
   ngAfterViewInit(): void {
@@ -492,18 +494,6 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Check URL for ICAO parameter and follow the plane if found
    */
-  private checkUrlForIcao(): void {
-    const urlParams = new URLSearchParams(window.location.search);
-    const icao = urlParams.get('icao');
-
-    if (icao) {
-      // Wait a bit for the map to initialize and planes to load
-      setTimeout(() => {
-        this.centerOnPlane(icao);
-      }, 2000);
-    }
-  }
-
   /**
    * Go to home location
    */

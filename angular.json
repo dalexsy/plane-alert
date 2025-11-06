@@ -74,7 +74,7 @@
           "options": {
             "proxyConfig": "proxy.conf.json",
             "ssl": false,
-            "poll": 2000
+            "poll": 5000
           },
           "configurations": {
             "production": {

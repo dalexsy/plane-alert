@@ -420,7 +420,7 @@ async function notifyForDevice(
     messages.push({
       title: title,
       message: body,
-      url: `https://plane-alert.surge.sh/?icao=${icao}`,
+      url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
       url_title: 'View on Map',
     });
 
@@ -469,7 +469,7 @@ async function notifyForDevice(
           url_title: msg.url_title || '',
           priority: '1', // High priority
           sound: 'intermission',
-          icon: 'https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png',
+          icon: `https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png?v=${Date.now()}`,
         }),
       } as any);
 

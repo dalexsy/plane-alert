@@ -69,16 +69,8 @@ export class FallLeavesAnimationComponent
 
   private initializeLeaves(): void {
     this.leaves = [];
-    const colorClasses = [
-      'leaf-red',
-      'leaf-orange',
-      'leaf-yellow',
-      'leaf-brown',
-      'leaf-gold',
-      'leaf-crimson',
-      'leaf-amber',
-      'leaf-maroon',
-    ];
+    // Force rebuild to pick up SCSS changes
+    const colorClasses = ['leaf-red', 'leaf-orange', 'leaf-yellow'];
 
     for (let i = 0; i < this.leafCount; i++) {
       this.leaves.push({

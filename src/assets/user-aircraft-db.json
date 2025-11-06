@@ -2,19 +2,32 @@
   {
     "note": "User-added aircraft database - automatically populated",
     "version": "1.0",
-    "exported": "2025-11-03T15:35:55.649Z"
+    "exported": "2025-11-06T12:42:44.830Z"
   },
   {
-    "icao": "06A2FA",
-    "reg": "A7-BHW",
-    "icaotype": "B789",
+    "icao": "3E82A1",
+    "reg": "3E82A1",
+    "icaotype": "",
     "year": "",
     "manufacturer": "",
-    "model": "BOEING 787-9 Dreamliner",
-    "ownop": "Qatar Airways",
+    "model": "",
+    "ownop": "",
     "faa_pia": false,
     "faa_ladd": false,
-    "short_type": "BOEING 787-9 Dreamliner",
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "3D45FA",
+    "reg": "3D45FA",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
     "mil": false
   }
 ]

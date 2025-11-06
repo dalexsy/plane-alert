@@ -118,6 +118,17 @@
           <span class="military-badge">{{ militaryCount }}</span>
         </div>
         <!-- end .military-toggle-wrapper -->
+        <!-- Pushover registration button -->
+        <app-button
+          class="setup-pushover"
+          icon="notifications_active"
+          type="tertiary"
+          size="medium"
+          ariaLabel="Setup push notifications"
+          appTooltip="Setup push notifications"
+          tooltipPosition="left"
+          (click)="onSetupPushover()"
+        ></app-button>
         <!-- Window view overlay toggle button -->
         <app-button
           class="window-view-toggle"

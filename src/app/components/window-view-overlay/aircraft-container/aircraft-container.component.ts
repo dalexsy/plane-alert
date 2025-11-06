@@ -365,7 +365,7 @@ export class AircraftContainerComponent implements OnChanges, OnDestroy {
     // Calculate distance from horizon (y=0)
     // Higher planes need less correction
     const altitudeFactor = Math.max(0, Math.min(1, planeY / 50)); // 0 at horizon, 1 at zenith
-    const perspectiveStrength = (1 - altitudeFactor) * 0.5; // Stronger near horizon
+    const perspectiveStrength = (1 - altitudeFactor) * 0.15; // Much weaker correction to preserve actual angles
 
     // Calculate angular position in 360° view
     const azimuth = (planeX * 3.6) % 360; // Convert 0-100 to 0-360°
