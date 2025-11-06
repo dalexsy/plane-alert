@@ -166,7 +166,7 @@ export class TtsService {
   test(): void {
     this.speak('Testing text to speech', 'en-US');
   }
-  
+
   /** Clear the spoken keys cache (useful for testing) */
   clearSpokenKeys(): void {
     this.spokenKeys.clear();
@@ -180,7 +180,7 @@ export class TtsService {
     this.speechQueue.length = 0;
     this.isCurrentlySpeaking = false;
   }
-  
+
   /** Get current spoken keys (for debugging) */
   getSpokenKeys(): string[] {
     return Array.from(this.spokenKeys);

@@ -56,7 +56,10 @@ export class OperatorCallSignService {
       (a, b) => b.length - a.length
     );
     for (const prefix of userPrefixes) {
-      if (cs === prefix || (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))) {
+      if (
+        cs === prefix ||
+        (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))
+      ) {
         return this.userOperatorMap[prefix];
       }
     }
@@ -65,7 +68,10 @@ export class OperatorCallSignService {
       (a, b) => b.length - a.length
     );
     for (const prefix of prefixes) {
-      if (cs === prefix || (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))) {
+      if (
+        cs === prefix ||
+        (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))
+      ) {
         return this.operatorMap[prefix];
       }
     }
@@ -87,7 +93,10 @@ export class OperatorCallSignService {
     );
     let foundPrefix: string | undefined;
     for (const prefix of prefixes) {
-      if (cs === prefix || (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))) {
+      if (
+        cs === prefix ||
+        (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))
+      ) {
         foundPrefix = prefix;
         break;
       }

@@ -995,43 +995,30 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       const radius = this.settings.radius ?? 5;
       this.updateMap(homeLocation.lat, homeLocation.lon, radius);
 
-      // Determine the address to use
-      let addressToUse = homeLocation.address;
-
-      // If home location doesn't have an address, try to get it from current location context
-      if (!addressToUse) {
-        const currentLoc = this.locationContext.currentLocation;
-        // If we're already at home coordinates, use the current address
-        if (
-          currentLoc.lat === homeLocation.lat &&
-          currentLoc.lon === homeLocation.lon
-        ) {
-          addressToUse = currentLoc.address;
-        }
-      }
-
-      if (addressToUse) {
+      // If home location has a saved address, ALWAYS use it (don't re-geocode)
+      if (homeLocation.address) {
         this.locationContext.setLocation(
           homeLocation.lat,
           homeLocation.lon,
-          addressToUse,
+          homeLocation.address,
           'home'
         );
         // Save coordinates AND address together atomically
         this.settings.setLocationWithAddress(
           homeLocation.lat,
           homeLocation.lon,
-          addressToUse
+          homeLocation.address
         );
       } else {
-        // As last resort, reverse geocode
-        this.locationContext.updateFromMapCenter(
-          homeLocation.lat,
-          homeLocation.lon,
-          'home'
-        );
+        // Only reverse geocode if we don't have a saved address
         this.reverseGeocode(homeLocation.lat, homeLocation.lon).then(
           (address) => {
+            this.locationContext.setLocation(
+              homeLocation.lat,
+              homeLocation.lon,
+              address,
+              'home'
+            );
             this.settings.setLocationWithAddress(
               homeLocation.lat,
               homeLocation.lon,
@@ -1152,22 +1139,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
   }
   reverseGeocode(lat: number, lon: number): Promise<string> {
-    return this.geocodingCache.reverseGeocode(lat, lon).then((address) => {
-      if (!address) return address;
-
-      // For German addresses, simplify to just city (first 1-2 components)
-      // Example: "Schonefeld, Berlin, Brandenburg, Germany" -> "Schonefeld, Berlin"
-      if (address.endsWith(', Germany')) {
-        const parts = address.split(', ');
-        // Remove 'Germany' from end
-        parts.pop();
-        // Keep max 2 components (city + region/state)
-        const simplified = parts.slice(0, 2).join(', ');
-        return simplified;
-      }
-      
-      return address;
-    });
+    return this.geocodingCache.reverseGeocode(lat, lon);
   }
   findPlanes(): void {
     // Update last scan time in input overlay

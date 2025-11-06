@@ -242,7 +242,7 @@ export class SettingsService {
   setMilitaryMute(value: boolean): void {
     this._militaryMute = value;
     localStorage.setItem(this.militaryMuteKey, value.toString());
-    
+
     // Cancel all ongoing TTS when muting
     if (value && typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();

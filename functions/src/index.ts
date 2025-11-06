@@ -7,11 +7,6 @@ const functions = require('firebase-functions');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const admin = require('firebase-admin');
 import fetch from 'node-fetch';
-import * as countries from 'i18n-iso-countries';
-import enLocale from 'i18n-iso-countries/langs/en.json';
-
-// Initialize i18n-iso-countries with English locale
-countries.registerLocale(enLocale);
 
 // Import shared library functions
 import {
@@ -134,16 +129,85 @@ function getArrowForDirection(cardinal: string): string {
 }
 
 /**
- * Get full country name from country code
+ * Convert country code to flag emoji
  */
-function getCountryName(countryCode: string): string {
-  const name = countries.getName(countryCode, 'en');
-  return name || countryCode;
+function getCountryFlagEmoji(countryCode: string): string {
+  if (!countryCode || countryCode === 'Unknown' || countryCode.length !== 2) {
+    return '🏳️'; // White flag for unknown
+  }
+  
+  // Convert country code to regional indicator symbols
+  // A = U+1F1E6, so offset each letter by 0x1F1E6 - 0x41
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 0x1f1e6 - 65 + char.charCodeAt(0));
+  
+  return String.fromCodePoint(...codePoints);
+}
+
+/**
+ * Get operator from callsign using same logic as frontend
+ */
+function getOperatorFromCallsign(callsign: string): string | null {
+  if (!callsign) {
+    return null;
+  }
+
+  // Operator callsign mappings (matches operator-call-signs.json from frontend)
+  // This is a simplified version - in production you'd load the full JSON
+  const operatorMap: Record<string, string> = {
+    'GAF': 'Luftwaffe',
+    'SHADO': 'Luftwaffe',
+    'HUKR': 'Royal Air Force',
+    'RRR': 'Royal Air Force',
+    'ASCOT': 'Royal Air Force',
+    'TARTN': 'Royal Air Force',
+    'RCH': 'US Air Force',
+    'REACH': 'US Air Force',
+    'CNV': 'US Air Force',
+    'CONVOY': 'US Air Force',
+    'EVAC': 'US Air Force',
+    'SPAR': 'US Air Force',
+    'BOXER': 'US Air Force',
+    'SENTRY': 'US Air Force',
+    'DUKE': 'US Army',
+    'ARMY': 'US Army',
+    'MARINE': 'US Marine Corps',
+    'NAVY': 'US Navy',
+    'COAST': 'US Coast Guard',
+    'FF': 'French Air Force',
+    'CTM': 'French Air Force',
+    'FAF': 'French Air Force',
+    'EIDER': 'Royal Canadian Air Force',
+    'CFC': 'Royal Canadian Air Force',
+    'IAM': 'Italian Air Force',
+    'MM': 'Italian Air Force',
+    'NAF': 'Norwegian Armed Forces',
+    'RSAF': 'Republic of Singapore Air Force',
+  };
+
+  const normalized = callsign.trim().toUpperCase();
+  
+  // Try exact match first
+  if (operatorMap[normalized]) {
+    return operatorMap[normalized];
+  }
+  
+  // Try prefix match (sorted by length, longest first)
+  const sortedPrefixes = Object.keys(operatorMap).sort((a, b) => b.length - a.length);
+  for (const prefix of sortedPrefixes) {
+    if (normalized.startsWith(prefix)) {
+      return operatorMap[prefix];
+    }
+  }
+  
+  return null;
 }
 
 /**
  * Build notification body matching frontend format
- * Format: W ← 10km - [callsign] from [full country name]
+ * Format: 🇩🇪 GAF013 - Luftwaffe (instead of "GAF013 from Germany")
  */
 function buildNotificationBody(
   plane: AdsBPlane,
@@ -165,16 +229,18 @@ function buildNotificationBody(
   // Get arrow for direction
   const arrow = getArrowForDirection(direction);
 
-  // Get full country name
+  // Get flag emoji
   const countryCode =
     countryResult.countryCode !== 'Unknown' ? countryResult.countryCode : null;
-  const countryName = countryCode
-    ? getCountryName(countryCode)
-    : 'unknown country';
+  const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
+  
+  // Get operator from callsign
+  const operator = getOperatorFromCallsign(callsign);
 
-  // Format: W ← 10km - [callsign] from [full country name]
-  // Example: "W ← 45.2 km - GAF013 from Germany"
-  return `${direction} ${arrow} ${distance.value}${distance.unit} - ${callsign} from ${countryName}`;
+  // Format: W ← 10km - 🇩🇪 GAF013 - Luftwaffe
+  // Example: "W ← 45.2 km - 🇩🇪 GAF013 - Luftwaffe"
+  const operatorPart = operator ? ` - ${operator}` : '';
+  return `${direction} ${arrow} ${distance.value}${distance.unit} - ${flagEmoji} ${callsign}${operatorPart}`;
 }
 
 async function notifyForDevice(
@@ -245,7 +311,7 @@ async function notifyForDevice(
 
     // Only notify for military planes or special planes
     const isMilitary = looksMilitary(plane);
-    
+
     if (!isMilitary && !isSpecialPlane) {
       if (plane.mil === true || plane.dbFlags === 1) {
         boringCount++;

@@ -11,12 +11,12 @@
     z-index: 1005; // Bring to front when hovered
     pointer-events: auto; // Enable interactions when hovering
   }
-  
+
   // Re-enable pointer events for interactive children
   > * {
     pointer-events: auto;
   }
-  
+
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
   display: flex;

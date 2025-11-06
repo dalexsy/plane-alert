@@ -134,10 +134,16 @@ export class ClosestPlaneService {
         } else {
           // Apply German address simplification
           let simplifiedAddress = address;
-          if (address && address.endsWith(', Germany')) {
+          if (address && address.includes(', Germany')) {
             const parts = address.split(', ');
-            parts.pop(); // Remove 'Germany'
-            simplifiedAddress = parts.slice(0, 2).join(', '); // Keep max 2 components
+            
+            // Filter out administrative districts (Bezirk) and keep useful names
+            const filteredParts = parts.filter(part => 
+              !part.startsWith('Bezirk ') && part !== 'Germany'
+            );
+            
+            // Keep max 2 components (e.g., "Lichtenberg, Berlin")
+            simplifiedAddress = filteredParts.slice(0, 2).join(', ');
           }
           this.locationStreet = simplifiedAddress;
           this.locationDistrict = simplifiedAddress;

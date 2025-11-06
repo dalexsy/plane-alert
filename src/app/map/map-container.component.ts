@@ -113,7 +113,7 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     );
 
     this.setupStateSubscriptions();
-    
+
     // Check for ICAO in URL query parameters (from push notifications)
     this.checkUrlForIcao();
   }
@@ -495,7 +495,7 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
   private checkUrlForIcao(): void {
     const urlParams = new URLSearchParams(window.location.search);
     const icao = urlParams.get('icao');
-    
+
     if (icao) {
       // Wait a bit for the map to initialize and planes to load
       setTimeout(() => {
