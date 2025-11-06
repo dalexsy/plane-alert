@@ -3,16 +3,23 @@
  */
 
 import type { AdsBPlane } from './types';
-import militaryAircraftDb from '../data/military-aircraft-db.json';
-
-// Type the military database
-const militaryDb: Record<string, { mil: boolean }> = militaryAircraftDb as any;
 
 /**
  * Boring aircraft types to skip (trainers, transports, business jets used by military)
  * These are not interesting for notifications even though they might be military-operated
  */
 export const BORING_AIRCRAFT_TYPES = [
+  'A319', // Airbus A319 (commercial airliner)
+  'A320', // Airbus A320 (commercial airliner)
+  'A20N', // Airbus A320neo (commercial airliner)
+  'A321', // Airbus A321 (commercial airliner)
+  'A21N', // Airbus A321neo (commercial airliner)
+  'B737', // Boeing 737 (commercial airliner)
+  'B738', // Boeing 737-800 (commercial airliner)
+  'B739', // Boeing 737-900 (commercial airliner)
+  'B37M', // Boeing 737 MAX (commercial airliner)
+  'B38M', // Boeing 737 MAX 8 (commercial airliner)
+  'B39M', // Boeing 737 MAX 9 (commercial airliner)
   'BE20', // Beechcraft King Air (trainer/transport)
   'BE30', // Beechcraft Super King Air
   'BE35', // Beechcraft Bonanza
@@ -40,6 +47,11 @@ export const BORING_AIRCRAFT_TYPES = [
   'CL30', // Bombardier Challenger 300
   'CL35', // Bombardier Challenger 350
   'CL60', // Bombardier Challenger 600/601/604/605
+  'CRJ1', // Bombardier CRJ100/200
+  'CRJ2', // Bombardier CRJ200
+  'CRJ7', // Bombardier CRJ700
+  'CRJ9', // Bombardier CRJ900
+  'CRJX', // Bombardier CRJ1000
   'DHC6', // De Havilland Twin Otter (utility)
   'DHC8', // De Havilland Dash 8 (transport)
   'E50P', // Embraer Phenom 100
@@ -86,10 +98,8 @@ export const MIL_CALLSIGN_PREFIXES = [
   'BAH',
   'BKK',
   'BLK',
-  'CEF', // Czech Air Force
   'CNV',
   'CTM',
-  'DLH',
   'EAG',
   'FAG',
   'FAF',
@@ -103,7 +113,6 @@ export const MIL_CALLSIGN_PREFIXES = [
   'MAM',
   'MFG',
   'NAF',
-  'NATO', // NATO callsigns
   'NAVY',
   'PAT',
   'QID',
@@ -155,29 +164,16 @@ export function normalizeCallsign(value?: string | null): string {
  * Determines if an aircraft looks like an interesting military aircraft
  *
  * Logic:
- * 1. Check local military aircraft database (most reliable - same as frontend)
- * 2. Check API military flags (mil=true OR dbFlags=1)
- * 3. Check callsign prefixes as last resort fallback
- * 4. Filter out boring aircraft types (trainers, business jets, etc.)
+ * 1. Must have military flag (mil=true) OR database flags (dbFlags=1)
+ * 2. Must NOT be a boring aircraft type (trainers, business jets, etc.)
  *
  * @param plane Aircraft data from ADS-B API
  * @returns true if aircraft is interesting military, false otherwise
  */
 export function looksMilitary(plane: AdsBPlane): boolean {
-  // First check: Local military database (same as frontend uses)
-  const icaoLower = plane.hex?.toLowerCase();
-  const inMilitaryDb = icaoLower && militaryDb[icaoLower]?.mil === true;
-
-  // Second check: API flags (reliable when present)
-  const hasApiMilitaryFlag = plane.mil === true || plane.dbFlags === 1;
-
-  // Third check: Military callsign (fallback for when database and API both fail)
-  const hasMilitaryCallsign = isMilitaryCallsign(
-    plane.flight || plane.callsign
-  );
-
-  // Must have database entry, API flag, OR military callsign
-  if (!(inMilitaryDb || hasApiMilitaryFlag || hasMilitaryCallsign)) {
+  // Check mil flag OR dbFlags (dbFlags: 1 indicates military aircraft in database)
+  // Reject if NEITHER flag indicates military
+  if (!(plane.mil === true || plane.dbFlags === 1)) {
     return false;
   }
 

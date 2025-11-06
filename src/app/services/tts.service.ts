@@ -165,12 +165,22 @@ export class TtsService {
   /** Test TTS functionality with a simple phrase */
   test(): void {
     this.speak('Testing text to speech', 'en-US');
-  } /** Clear the spoken keys cache (useful for testing) */
+  }
+  
+  /** Clear the spoken keys cache (useful for testing) */
   clearSpokenKeys(): void {
     this.spokenKeys.clear();
     this.speechQueue.length = 0; // Clear the queue too
     this.isCurrentlySpeaking = false;
   }
+
+  /** Cancel all ongoing and queued speech */
+  cancelAll(): void {
+    window.speechSynthesis.cancel();
+    this.speechQueue.length = 0;
+    this.isCurrentlySpeaking = false;
+  }
+  
   /** Get current spoken keys (for debugging) */
   getSpokenKeys(): string[] {
     return Array.from(this.spokenKeys);

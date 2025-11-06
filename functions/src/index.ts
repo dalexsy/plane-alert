@@ -17,7 +17,6 @@ countries.registerLocale(enLocale);
 import {
   type AdsBPlane,
   looksMilitary,
-  isMilitaryCallsign,
   normalizeCallsign,
   getAircraftCountry,
   haversineDistanceKm,
@@ -50,6 +49,7 @@ interface DeviceRegistration {
   radiusKm?: number;
   timezone?: string;
   home?: HomeLocation;
+  specialIcaos?: string[]; // Array of ICAO codes user wants to be notified about
   lastNotified?: Record<string, number>;
   createdAt?: any;
   updatedAt?: any;
@@ -208,7 +208,13 @@ async function notifyForDevice(
   const messages: Array<Record<string, any>> = [];
   const now = Date.now();
 
+  // Normalize user's special ICAOs to uppercase for comparison
+  const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
+    icao.toUpperCase()
+  );
+
   let militaryCount = 0;
+  let specialCount = 0;
   let boringCount = 0;
   let recentlyNotifiedCount = 0;
 
@@ -229,8 +235,18 @@ async function notifyForDevice(
   }
 
   for (const plane of aircraft) {
-    // Only use API flags for military detection (callsign matching is flawed)
-    if (!looksMilitary(plane)) {
+    const icao = plane.hex?.toUpperCase();
+    if (!icao) {
+      continue;
+    }
+
+    // Check if this is a special plane (user's watchlist)
+    const isSpecialPlane = specialIcaos.includes(icao);
+
+    // Only notify for military planes or special planes
+    const isMilitary = looksMilitary(plane);
+    
+    if (!isMilitary && !isSpecialPlane) {
       if (plane.mil === true || plane.dbFlags === 1) {
         boringCount++;
         // Log boring aircraft that have military flags but are filtered
@@ -247,7 +263,12 @@ async function notifyForDevice(
       continue;
     }
 
-    militaryCount++;
+    if (isMilitary) {
+      militaryCount++;
+    }
+    if (isSpecialPlane) {
+      specialCount++;
+    }
 
     if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
       functions.logger.info('Military aircraft missing coordinates', {
@@ -274,11 +295,6 @@ async function notifyForDevice(
         distanceKm: Math.round(distanceKm * 10) / 10,
         radiusKm,
       });
-      continue;
-    }
-
-    const icao = plane.hex?.toUpperCase();
-    if (!icao) {
       continue;
     }
 
@@ -336,7 +352,7 @@ async function notifyForDevice(
     messages.push({
       title: title,
       message: body,
-      url: 'https://plane-alert.surge.sh/',
+      url: `https://plane-alert.surge.sh/?icao=${icao}`,
       url_title: 'View on Map',
     });
 
@@ -351,6 +367,7 @@ async function notifyForDevice(
     docId,
     totalAircraft: aircraft.length,
     militaryCount,
+    specialCount,
     boringCount,
     recentlyNotifiedCount,
     messagesToSend: messages.length,
@@ -384,6 +401,7 @@ async function notifyForDevice(
           url_title: msg.url_title || '',
           priority: '1', // High priority
           sound: 'intermission',
+          icon: 'https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png',
         }),
       } as any);
 
@@ -442,6 +460,7 @@ export const registerDevice = functions.https.onRequest(
         radiusKm,
         timezone,
         home,
+        specialIcaos,
       } = req.body as {
         pushoverUserKey?: string;
         platform?: string;
@@ -449,6 +468,7 @@ export const registerDevice = functions.https.onRequest(
         radiusKm?: number;
         timezone?: string;
         home?: HomeLocation;
+        specialIcaos?: string[];
       };
 
       if (!pushoverUserKey || typeof pushoverUserKey !== 'string') {
@@ -474,6 +494,7 @@ export const registerDevice = functions.https.onRequest(
         radiusKm: clampRadius(radiusKm),
         timezone,
         home,
+        specialIcaos: Array.isArray(specialIcaos) ? specialIcaos : undefined,
         updatedAt: admin.firestore.FieldValue.serverTimestamp() as any,
       };
 
@@ -498,8 +519,7 @@ export const registerDevice = functions.https.onRequest(
 
 export const debugListTokens = functions.https.onRequest(
   async (req: any, res: any) => {
-    const secret =
-      process.env.DEBUG_TOKEN_SECRET || functions.config().debug?.token_secret;
+    const secret = process.env.DEBUG_TOKEN_SECRET;
     if (!secret || req.query.secret !== secret) {
       res.status(403).json({ error: 'forbidden' });
       return;
@@ -517,8 +537,7 @@ export const debugListTokens = functions.https.onRequest(
 
 export const debugSendToken = functions.https.onRequest(
   async (req: any, res: any) => {
-    const secret =
-      process.env.DEBUG_TOKEN_SECRET || functions.config().debug?.token_secret;
+    const secret = process.env.DEBUG_TOKEN_SECRET;
     if (!secret || req.query.secret !== secret) {
       res.status(403).json({ error: 'forbidden' });
       return;

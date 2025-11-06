@@ -7,7 +7,7 @@ $tooltip-border-color: rgba(255, 255, 255, 0.3);
 $tooltip-padding: 0.6rem 0.75rem;
 $tooltip-border-radius: 6px;
 $tooltip-font-size: 0.75rem;
-$tooltip-z-index: 1005;
+$tooltip-z-index: 10000;
 
 .app-tooltip {
   --tooltip-offset: #{$tooltip-offset - 1px}; // Closer by default

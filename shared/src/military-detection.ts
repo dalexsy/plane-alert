@@ -9,6 +9,17 @@ import type { AdsBPlane } from './types';
  * These are not interesting for notifications even though they might be military-operated
  */
 export const BORING_AIRCRAFT_TYPES = [
+  'A319', // Airbus A319 (commercial airliner)
+  'A320', // Airbus A320 (commercial airliner)
+  'A20N', // Airbus A320neo (commercial airliner)
+  'A321', // Airbus A321 (commercial airliner)
+  'A21N', // Airbus A321neo (commercial airliner)
+  'B737', // Boeing 737 (commercial airliner)
+  'B738', // Boeing 737-800 (commercial airliner)
+  'B739', // Boeing 737-900 (commercial airliner)
+  'B37M', // Boeing 737 MAX (commercial airliner)
+  'B38M', // Boeing 737 MAX 8 (commercial airliner)
+  'B39M', // Boeing 737 MAX 9 (commercial airliner)
   'BE20', // Beechcraft King Air (trainer/transport)
   'BE30', // Beechcraft Super King Air
   'BE35', // Beechcraft Bonanza
@@ -36,6 +47,11 @@ export const BORING_AIRCRAFT_TYPES = [
   'CL30', // Bombardier Challenger 300
   'CL35', // Bombardier Challenger 350
   'CL60', // Bombardier Challenger 600/601/604/605
+  'CRJ1', // Bombardier CRJ100/200
+  'CRJ2', // Bombardier CRJ200
+  'CRJ7', // Bombardier CRJ700
+  'CRJ9', // Bombardier CRJ900
+  'CRJX', // Bombardier CRJ1000
   'DHC6', // De Havilland Twin Otter (utility)
   'DHC8', // De Havilland Dash 8 (transport)
   'E50P', // Embraer Phenom 100
@@ -64,7 +80,6 @@ export const BORING_AIRCRAFT_TYPES = [
   'PC21', // Pilatus PC-21 (trainer)
   'PC6', // Pilatus Porter (utility)
   'PC9', // Pilatus PC-9 (trainer)
-  'SF50', // Cirrus SF50 Vision Jet
   'T134', // Tupolev Tu-134 (old transport)
   'T154', // Tupolev Tu-154 (old transport)
 ];
@@ -84,7 +99,6 @@ export const MIL_CALLSIGN_PREFIXES = [
   'BLK',
   'CNV',
   'CTM',
-  'DLH',
   'EAG',
   'FAG',
   'FAF',

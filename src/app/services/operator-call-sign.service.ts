@@ -44,6 +44,7 @@ export class OperatorCallSignService {
 
   /**
    * Returns the operator name for a given callsign by matching the longest possible prefix, or undefined if not found.
+   * Prefix must be followed by a digit or be the entire callsign to match (prevents "SHADO" from matching "SHA").
    */
   getOperator(callSign: string): string | undefined {
     if (!callSign) {
@@ -55,7 +56,7 @@ export class OperatorCallSignService {
       (a, b) => b.length - a.length
     );
     for (const prefix of userPrefixes) {
-      if (cs.startsWith(prefix)) {
+      if (cs === prefix || (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))) {
         return this.userOperatorMap[prefix];
       }
     }
@@ -64,7 +65,7 @@ export class OperatorCallSignService {
       (a, b) => b.length - a.length
     );
     for (const prefix of prefixes) {
-      if (cs.startsWith(prefix)) {
+      if (cs === prefix || (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))) {
         return this.operatorMap[prefix];
       }
     }
@@ -74,6 +75,7 @@ export class OperatorCallSignService {
   /**
    * Returns the operator name for a given callsign and logs unknown call signs.
    * Matches the longest possible prefix, but logs using the first three letters if unknown.
+   * Prefix must be followed by a digit or be the entire callsign to match (prevents "SHADO" from matching "SHA").
    */
   getOperatorWithLogging(callSign: string): string | undefined {
     if (!callSign) {
@@ -85,7 +87,7 @@ export class OperatorCallSignService {
     );
     let foundPrefix: string | undefined;
     for (const prefix of prefixes) {
-      if (cs.startsWith(prefix)) {
+      if (cs === prefix || (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))) {
         foundPrefix = prefix;
         break;
       }

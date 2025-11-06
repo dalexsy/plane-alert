@@ -1152,7 +1152,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     );
   }
   reverseGeocode(lat: number, lon: number): Promise<string> {
-    return this.geocodingCache.reverseGeocode(lat, lon);
+    return this.geocodingCache.reverseGeocode(lat, lon).then((address) => {
+      if (!address) return address;
+
+      // For German addresses, simplify to just city (first 1-2 components)
+      // Example: "Schonefeld, Berlin, Brandenburg, Germany" -> "Schonefeld, Berlin"
+      if (address.endsWith(', Germany')) {
+        const parts = address.split(', ');
+        // Remove 'Germany' from end
+        parts.pop();
+        // Keep max 2 components (city + region/state)
+        const simplified = parts.slice(0, 2).join(', ');
+        return simplified;
+      }
+      
+      return address;
+    });
   }
   findPlanes(): void {
     // Update last scan time in input overlay

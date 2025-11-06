@@ -1,5 +1,5 @@
 /* src/app/services/settings.service.ts */
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable, EventEmitter, Inject, Optional } from '@angular/core';
 
 export interface ViewConeConfig {
   startAngle: number;
@@ -61,7 +61,7 @@ export class SettingsService {
 
   // Key and backing store for brightness mode preference
   private brightnessAutoModeKey = 'brightnessAutoMode';
-  private _brightnessAutoMode: boolean = true; // Enable auto mode by default
+  private _brightnessAutoMode: boolean = false; // Disable auto mode by default
   // Key and backing store for wind units preference
   private windUnitIndexKey = 'windUnitIndex';
   private _windUnitIndex: number = 0;
@@ -242,6 +242,11 @@ export class SettingsService {
   setMilitaryMute(value: boolean): void {
     this._militaryMute = value;
     localStorage.setItem(this.militaryMuteKey, value.toString());
+    
+    // Cancel all ongoing TTS when muting
+    if (value && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
   }
 
   // Event emitted when exclude discount setting changes

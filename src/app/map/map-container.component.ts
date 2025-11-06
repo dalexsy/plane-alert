@@ -113,6 +113,9 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     );
 
     this.setupStateSubscriptions();
+    
+    // Check for ICAO in URL query parameters (from push notifications)
+    this.checkUrlForIcao();
   }
 
   ngAfterViewInit(): void {
@@ -484,6 +487,21 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
         this.onLocationChanged({ lat, lon, radius });
       }
     );
+  }
+
+  /**
+   * Check URL for ICAO parameter and follow the plane if found
+   */
+  private checkUrlForIcao(): void {
+    const urlParams = new URLSearchParams(window.location.search);
+    const icao = urlParams.get('icao');
+    
+    if (icao) {
+      // Wait a bit for the map to initialize and planes to load
+      setTimeout(() => {
+        this.centerOnPlane(icao);
+      }, 2000);
+    }
   }
 
   /**

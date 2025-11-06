@@ -1,8 +1,8 @@
 .notification-status {
   position: fixed;
-  top: 10px;
+  bottom: 10px; // Move to bottom to avoid conflicts with top-right controls
   right: 10px;
-  z-index: 1000;
+  z-index: 900; // Below plane list hover (1005) but above most content
   background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 12px;

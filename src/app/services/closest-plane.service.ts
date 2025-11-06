@@ -132,8 +132,15 @@ export class ClosestPlaneService {
           this.locationStreet = 'Location data unavailable';
           this.locationDistrict = null;
         } else {
-          this.locationStreet = address;
-          this.locationDistrict = address;
+          // Apply German address simplification
+          let simplifiedAddress = address;
+          if (address && address.endsWith(', Germany')) {
+            const parts = address.split(', ');
+            parts.pop(); // Remove 'Germany'
+            simplifiedAddress = parts.slice(0, 2).join(', '); // Keep max 2 components
+          }
+          this.locationStreet = simplifiedAddress;
+          this.locationDistrict = simplifiedAddress;
         }
       })
       .catch((error) => {

@@ -17,12 +17,6 @@ import { FirebaseMessagingService } from './services/firebase-messaging.service'
 })
 export class AppComponent implements OnInit {
   title = 'plane-alert';
-  showNotificationButton = false;
-  showNotificationStatus = false;
-  notificationStatusIcon = '❓';
-  notificationStatusText = 'Checking notifications...';
-  notificationStatusDetails = '';
-  showTestNotification = false;
 
   constructor(
     private noonRefreshService: NoonRefreshService,
@@ -40,26 +34,13 @@ export class AppComponent implements OnInit {
     try {
       const status: NotificationStatusInfo =
         await this.notificationService.evaluateStatus();
-      this.notificationStatusIcon = status.icon;
-      this.notificationStatusText = status.label;
-      this.notificationStatusDetails = `${status.details} (permission: ${Notification.permission})`;
-      this.showNotificationStatus = status.state !== 'granted';
-      this.showNotificationButton =
-        this.showNotificationStatus && status.canRequest;
-      this.showTestNotification = this.showNotificationStatus && status.canTest;
 
+      // Silently register if granted, no UI needed
       if (status.state === 'granted') {
         await this.ensurePushoverRegistration();
       }
     } catch (error) {
       console.warn('Notification status check failed:', error);
-      this.notificationStatusIcon = '⚠️';
-      this.notificationStatusText = 'Notification status unknown';
-      this.notificationStatusDetails =
-        'Unable to determine notification support. Check the browser console for details.';
-      this.showNotificationStatus = true;
-      this.showNotificationButton = false;
-      this.showTestNotification = false;
     }
   }
 
