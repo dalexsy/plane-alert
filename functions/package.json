@@ -17,7 +17,7 @@
     "@plane-alert/shared": "file:../shared",
     "dotenv": "^16.4.5",
     "firebase-admin": "^12.6.0",
-    "firebase-functions": "^5.0.1",
+    "firebase-functions": "^6.6.0",
     "i18n-iso-countries": "^7.14.0",
     "node-fetch": "^3.3.2"
   },

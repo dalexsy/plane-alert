@@ -2,10 +2,10 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const functions = require('firebase-functions');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const admin = require('firebase-admin');
+import { onRequest } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { logger } from 'firebase-functions/v2';
+import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 
 // Import shared library functions
@@ -29,6 +29,13 @@ const MIN_RADIUS_KM = 10;
 const MAX_RADIUS_KM = 200;
 const MAX_NOTIFICATIONS_PER_DEVICE = 2;
 const RECENT_NOTIFICATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+// Special aircraft ICAO codes (Air Force One, etc.)
+const SPECIAL_ICAOS = ['a13435', 'adfdf8', 'adfdf9']; // Add more as needed
+
+function isSpecialAircraft(icao: string): boolean {
+  return SPECIAL_ICAOS.includes(icao.toLowerCase());
+}
 const PUSHOVER_API_TOKEN = process.env.PUSHOVER_API_TOKEN;
 
 interface HomeLocation {
@@ -51,7 +58,7 @@ interface DeviceRegistration {
 }
 
 const ORIGIN_HEADER =
-  'PlaneAlertCloudFunction/1.0 (+https://plane-alert.surge.sh)';
+  'PlaneAlertCloudFunction/1.0 (+functions.https://plane-alert.surge.sh)';
 
 function clampRadius(radiusKm?: number | null): number {
   if (typeof radiusKm !== 'number' || Number.isNaN(radiusKm)) {
@@ -78,7 +85,7 @@ async function fetchAircraft(
   radiusKm: number
 ): Promise<AdsBPlane[]> {
   const radiusNm = radiusKm / 1.852;
-  const url = `https://api.adsb.one/v2/point/${home.lat}/${
+  const url = `functions.https://api.adsb.one/v2/point/${home.lat}/${
     home.lon
   }/${radiusNm.toFixed(2)}`;
 
@@ -91,7 +98,7 @@ async function fetchAircraft(
   } as any);
 
   if (!response.ok) {
-    functions.logger.warn(
+    logger.warn(
       'ADS-B API error',
       response.status,
       response.statusText
@@ -254,7 +261,7 @@ async function notifyForDevice(
     return;
   }
 
-  functions.logger.info('Processing device', {
+  logger.info('Processing device', {
     docId,
     userKey: data.pushoverUserKey.slice(0, 8),
     radiusKm: data.radiusKm,
@@ -263,7 +270,7 @@ async function notifyForDevice(
   const radiusKm = clampRadius(data.radiusKm);
   const aircraft = await fetchAircraft(data.home, radiusKm);
 
-  functions.logger.info('Fetched aircraft', {
+  logger.info('Fetched aircraft', {
     docId,
     totalAircraft: aircraft.length,
   });
@@ -288,7 +295,7 @@ async function notifyForDevice(
 
   // Debug: Log a few sample aircraft to see what data we're getting
   if (aircraft.length > 0) {
-    functions.logger.info('Sample aircraft data', {
+    logger.info('Sample aircraft data', {
       docId,
       sample: aircraft.slice(0, 5).map((p) => ({
         hex: p.hex,
@@ -318,7 +325,7 @@ async function notifyForDevice(
       if (plane.mil === true || plane.dbFlags === 1) {
         boringCount++;
         // Log boring aircraft that have military flags but are filtered
-        functions.logger.info('Boring military aircraft filtered', {
+        logger.info('Boring military aircraft filtered', {
           docId,
           hex: plane.hex,
           type: plane.t,
@@ -339,7 +346,7 @@ async function notifyForDevice(
     }
 
     if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
-      functions.logger.info('Military aircraft missing coordinates', {
+      logger.info('Military aircraft missing coordinates', {
         docId,
         hex: plane.hex,
         type: plane.t,
@@ -355,7 +362,7 @@ async function notifyForDevice(
       plane.lon
     );
     if (distanceKm > radiusKm) {
-      functions.logger.info('Military aircraft outside radius', {
+      logger.info('Military aircraft outside radius', {
         docId,
         hex: plane.hex,
         type: plane.t,
@@ -399,6 +406,11 @@ async function notifyForDevice(
       aircraftName = callsign || registration || 'Military Aircraft';
     }
 
+    // Use special icon for special aircraft (Air Force One, etc.), otherwise military icon
+    const icaoUpper = icao.toUpperCase();
+    const iconPath = isSpecialAircraft(icaoUpper) ? 'favicon/special' : 'favicon/military';
+    const iconUrl = `functions.https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
+
     // Custom emojis for specific aircraft types
     let title = aircraftName;
     if (
@@ -420,8 +432,9 @@ async function notifyForDevice(
     messages.push({
       title: title,
       message: body,
-      url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
+      url: `functions.https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
       url_title: 'View on Map',
+      icon: iconUrl,
     });
 
     lastNotified[icao] = now;
@@ -431,7 +444,7 @@ async function notifyForDevice(
     }
   }
 
-  functions.logger.info('Aircraft filtering results', {
+  logger.info('Aircraft filtering results', {
     docId,
     totalAircraft: aircraft.length,
     militaryCount,
@@ -449,13 +462,13 @@ async function notifyForDevice(
   // Send via Pushover API
   for (const msg of messages) {
     try {
-      functions.logger.info('Sending Pushover notification', {
+      logger.info('Sending Pushover notification', {
         docId,
         userKey: data.pushoverUserKey.slice(0, 8),
         message: msg.message,
       });
 
-      const response = await fetch('https://api.pushover.net/1/messages.json', {
+      const response = await fetch('functions.https://api.pushover.net/1/messages.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -469,25 +482,25 @@ async function notifyForDevice(
           url_title: msg.url_title || '',
           priority: '1', // High priority
           sound: 'intermission',
-          icon: `https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png?v=${Date.now()}`,
+          icon: msg.icon || '',
         }),
       } as any);
 
       const result: any = await response.json();
 
       if (response.ok && result.status === 1) {
-        functions.logger.info('Sent Pushover notification', {
+        logger.info('Sent Pushover notification', {
           userKey: data.pushoverUserKey.slice(0, 8),
           message: msg.message,
         });
       } else {
-        functions.logger.error('Pushover API error', {
+        logger.error('Pushover API error', {
           userKey: data.pushoverUserKey.slice(0, 8),
           error: result,
         });
       }
     } catch (error: any) {
-      functions.logger.error('Failed to send Pushover notification', {
+      logger.error('Failed to send Pushover notification', {
         docId,
         userKey: data.pushoverUserKey.slice(0, 8),
         error: error?.message,
@@ -504,8 +517,8 @@ async function notifyForDevice(
   );
 }
 
-export const registerDevice = functions.https.onRequest(
-  async (req: any, res: any) => {
+export const registerDevice = onRequest(
+  async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -579,13 +592,13 @@ export const registerDevice = functions.https.onRequest(
 
       res.status(200).json({ success: true });
     } catch (error: any) {
-      functions.logger.error('registerDevice failed', error);
+      logger.error('registerDevice failed', error);
       res.status(500).json({ error: 'Internal error' });
     }
   }
 );
 
-export const debugListTokens = functions.https.onRequest(
+export const debugListTokens = onRequest(
   async (req: any, res: any) => {
     const secret = process.env.DEBUG_TOKEN_SECRET;
     if (!secret || req.query.secret !== secret) {
@@ -603,7 +616,7 @@ export const debugListTokens = functions.https.onRequest(
   }
 );
 
-export const debugSendToken = functions.https.onRequest(
+export const debugSendToken = onRequest(
   async (req: any, res: any) => {
     const secret = process.env.DEBUG_TOKEN_SECRET;
     if (!secret || req.query.secret !== secret) {
@@ -624,7 +637,7 @@ export const debugSendToken = functions.https.onRequest(
     }
 
     try {
-      const response = await fetch('https://api.pushover.net/1/messages.json', {
+      const response = await fetch('functions.https://api.pushover.net/1/messages.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -646,7 +659,7 @@ export const debugSendToken = functions.https.onRequest(
         res.status(500).json({ error: result });
       }
     } catch (error: any) {
-      functions.logger.error('debugSendToken failed', {
+      logger.error('debugSendToken failed', {
         userKey,
         error,
       });
@@ -655,20 +668,22 @@ export const debugSendToken = functions.https.onRequest(
   }
 );
 
-export const processPlanes = functions.pubsub
-  .schedule('every 3 minutes')
-  .timeZone('Etc/UTC')
-  .onRun(async () => {
+export const processPlanes = onSchedule(
+  {
+    schedule: 'every 3 minutes',
+    timeZone: 'Etc/UTC',
+  },
+  async () => {
     const snapshot = await db.collection(DEVICE_COLLECTION).get();
     if (snapshot.empty) {
-      functions.logger.info('No registered devices.');
+      logger.info('No registered devices.');
       return;
     }
 
     const tasks = snapshot.docs.map((doc: any) =>
       notifyForDevice(doc.ref, doc.data() as DeviceRegistration, doc.id).catch(
         (error) =>
-          functions.logger.error('notifyForDevice failed', {
+          logger.error('notifyForDevice failed', {
             docId: doc.id,
             error,
           })
@@ -676,4 +691,9 @@ export const processPlanes = functions.pubsub
     );
 
     await Promise.all(tasks);
-  });
+  }
+);
+
+
+
+
