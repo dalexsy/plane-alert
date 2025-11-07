@@ -203,6 +203,8 @@ export class PlaneUpdateService {
         speed: plane.velocity || undefined,
         direction: plane.cardinal,
         distanceKm: plane.distanceKm,
+        origin: plane.origin,
+        verticalRate: plane.verticalRate || undefined,
       });
     });
   }

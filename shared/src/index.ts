@@ -42,3 +42,11 @@ export {
   bearingToCardinal,
   formatDistance,
 } from './geo-utils';
+
+// Export notification formatting
+export {
+  formatNotificationBody,
+  getArrowForDirection,
+  getCountryFlagEmoji,
+} from './notification-formatter';
+export type { NotificationData } from './notification-formatter';

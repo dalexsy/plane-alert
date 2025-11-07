@@ -7,7 +7,10 @@ import {
   getDistanceUnitShortLabel,
   formatDistance,
 } from '../utils/units.util';
-import { getArrowForDirection } from '../utils/geo-utils';
+import {
+  formatNotificationBody,
+  getCountryFlagEmoji,
+} from '@plane-alert/shared';
 
 export type NotificationState =
   | 'unsupported'
@@ -150,6 +153,8 @@ export class NotificationService {
     speed?: number;
     direction?: string;
     distanceKm?: number;
+    origin?: string;
+    verticalRate?: number;
   }): void {
     if (Notification.permission !== 'granted') {
       return;
@@ -157,7 +162,21 @@ export class NotificationService {
 
     const label =
       planeInfo.model?.trim() || planeInfo.callsign?.trim() || planeInfo.icao;
-    const title = `${label || 'Plane'} peeped!`;
+    
+    // Add emoji prefix for specific aircraft types
+    let title = label || 'Military Plane Alert';
+    if (
+      label.toUpperCase().includes('A400') ||
+      label.toUpperCase().includes('A-400')
+    ) {
+      title = '🦜 ' + title; // Parrot for A400M
+    } else if (
+      label.toUpperCase().includes('E-3') ||
+      label.toUpperCase().includes('SENTRY')
+    ) {
+      title = '🛸 ' + title; // UFO for Sentry
+    }
+    
     const body = this.buildNotificationBody(planeInfo);
     const options: NotificationOptions = {
       body,
@@ -193,44 +212,66 @@ export class NotificationService {
     operator?: string;
     direction?: string;
     distanceKm?: number;
-    origin?: string; // country code
+    origin?: string;
+    speed?: number;
+    altitude?: number;
+    verticalRate?: number;
   }): string {
     const unitPreference =
       this.settings.distanceUnit === 'miles'
         ? DistanceUnit.MILES
         : DistanceUnit.KILOMETERS;
 
-    const direction = planeInfo.direction?.trim();
-    const distanceKm = planeInfo.distanceKm;
-
-    // Get callsign
     const callsign = this.resolveCallsign(planeInfo.callsign, planeInfo.icao);
 
-    // Get full country name
+    // Get country code and flag emoji
     const countryCode =
       planeInfo.origin || this.extractCountryCode(planeInfo.operator);
-    const countryName = countryCode
-      ? this.countryService.getCountryName(countryCode) || countryCode
-      : 'unknown country';
+    const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
 
-    // Build distance + direction part
-    let locationPart: string;
-    if (distanceKm !== undefined && direction) {
-      const converted = convertFromKm(distanceKm, unitPreference);
-      const formattedDistance = formatDistance(converted);
-      const unitLabel = getDistanceUnitShortLabel(unitPreference);
-      const arrow = getArrowForDirection(direction);
-      // Format: W ← 10km - [callsign] from [country]
-      locationPart = `${direction} ${arrow} ${formattedDistance}${unitLabel}`;
-    } else if (direction) {
-      const arrow = getArrowForDirection(direction);
-      locationPart = `${direction} ${arrow}`;
+    // Format speed
+    let speed: number | undefined;
+    let speedUnit: 'mph' | 'km/h';
+    if (planeInfo.speed && planeInfo.speed > 0) {
+      if (unitPreference === DistanceUnit.MILES) {
+        speed = Math.round(planeInfo.speed);
+        speedUnit = 'mph';
+      } else {
+        speed = Math.round(planeInfo.speed);
+        speedUnit = 'km/h';
+      }
     } else {
-      locationPart = 'nearby';
+      speedUnit = unitPreference === DistanceUnit.MILES ? 'mph' : 'km/h';
     }
 
-    // Format: W ← 10km - [callsign] from [full country name]
-    return `${locationPart} - ${callsign} from ${countryName}`;
+    // Format altitude
+    let altitude: number | undefined;
+    let altitudeUnit: 'ft' | 'm';
+    if (planeInfo.altitude && planeInfo.altitude > 0) {
+      if (unitPreference === DistanceUnit.MILES) {
+        altitude = Math.round(planeInfo.altitude);
+        altitudeUnit = 'ft';
+      } else {
+        altitude = Math.round(planeInfo.altitude);
+        altitudeUnit = 'm';
+      }
+    } else {
+      altitudeUnit = unitPreference === DistanceUnit.MILES ? 'ft' : 'm';
+    }
+
+    // Use shared formatter - single source of truth!
+    return formatNotificationBody({
+      callsign,
+      icao: planeInfo.icao,
+      direction: planeInfo.direction,
+      flagEmoji,
+      operator: planeInfo.operator,
+      speed,
+      speedUnit,
+      altitude,
+      altitudeUnit,
+      verticalRate: planeInfo.verticalRate,
+    });
   }
 
   private resolveCallsign(callsign: string | undefined, icao: string): string {

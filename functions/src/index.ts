@@ -18,6 +18,9 @@ import {
   computeBearing,
   bearingToCardinal,
   formatDistance,
+  formatNotificationBody,
+  getCountryFlagEmoji,
+  getArrowForDirection,
 } from './shared';
 
 admin.initializeApp();
@@ -52,13 +55,14 @@ interface DeviceRegistration {
   timezone?: string;
   home?: HomeLocation;
   specialIcaos?: string[]; // Array of ICAO codes user wants to be notified about
+  ignoredTypes?: string[]; // Array of aircraft type codes to ignore (e.g., ['C130', 'A400'])
   lastNotified?: Record<string, number>;
   createdAt?: any;
   updatedAt?: any;
 }
 
 const ORIGIN_HEADER =
-  'PlaneAlertCloudFunction/1.0 (+functions.https://plane-alert.surge.sh)';
+  'PlaneAlertCloudFunction/1.0 (+https://plane-alert.surge.sh)';
 
 function clampRadius(radiusKm?: number | null): number {
   if (typeof radiusKm !== 'number' || Number.isNaN(radiusKm)) {
@@ -85,7 +89,7 @@ async function fetchAircraft(
   radiusKm: number
 ): Promise<AdsBPlane[]> {
   const radiusNm = radiusKm / 1.852;
-  const url = `functions.https://api.adsb.one/v2/point/${home.lat}/${
+  const url = `https://api.adsb.one/v2/point/${home.lat}/${
     home.lon
   }/${radiusNm.toFixed(2)}`;
 
@@ -98,11 +102,7 @@ async function fetchAircraft(
   } as any);
 
   if (!response.ok) {
-    logger.warn(
-      'ADS-B API error',
-      response.status,
-      response.statusText
-    );
+    logger.warn('ADS-B API error', response.status, response.statusText);
     return [];
   }
 
@@ -113,46 +113,6 @@ async function fetchAircraft(
 /**
  * Get directional arrow for cardinal direction (matches frontend)
  */
-function getArrowForDirection(cardinal: string): string {
-  const arrows: { [key: string]: string } = {
-    N: '↑',
-    NNE: '↗',
-    NE: '↗',
-    ENE: '↗',
-    E: '→',
-    ESE: '↘',
-    SE: '↘',
-    SSE: '↘',
-    S: '↓',
-    SSW: '↙',
-    SW: '↙',
-    WSW: '↙',
-    W: '←',
-    WNW: '↖',
-    NW: '↖',
-    NNW: '↖',
-  };
-  return arrows[cardinal] || '↑';
-}
-
-/**
- * Convert country code to flag emoji
- */
-function getCountryFlagEmoji(countryCode: string): string {
-  if (!countryCode || countryCode === 'Unknown' || countryCode.length !== 2) {
-    return '🏳️'; // White flag for unknown
-  }
-
-  // Convert country code to regional indicator symbols
-  // A = U+1F1E6, so offset each letter by 0x1F1E6 - 0x41
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map((char) => 0x1f1e6 - 65 + char.charCodeAt(0));
-
-  return String.fromCodePoint(...codePoints);
-}
-
 /**
  * Get operator from callsign using same logic as frontend
  */
@@ -215,13 +175,17 @@ function getOperatorFromCallsign(callsign: string): string | null {
 }
 
 /**
- * Build notification body matching frontend format
- * Format: 🇩🇪 GAF013 - Luftwaffe (instead of "GAF013 from Germany")
+ * Build notification body matching frontend tooltip format
+ * Format: W ← • 🇩🇪 GAF013 • Luftwaffe • 450 km/h • 3,500 ft ↗
+ */
+/**
+ * Build notification body using shared formatter
  */
 function buildNotificationBody(
   plane: AdsBPlane,
   distance: { value: number; unit: string },
-  direction: string
+  direction: string,
+  distanceUnit: 'km' | 'miles'
 ): string {
   const callsign =
     normalizeCallsign(plane.flight || plane.callsign) ||
@@ -235,9 +199,6 @@ function buildNotificationBody(
     true // isMilitary (we only call this for military aircraft)
   );
 
-  // Get arrow for direction
-  const arrow = getArrowForDirection(direction);
-
   // Get flag emoji
   const countryCode =
     countryResult.countryCode !== 'Unknown' ? countryResult.countryCode : null;
@@ -246,10 +207,54 @@ function buildNotificationBody(
   // Get operator from callsign
   const operator = getOperatorFromCallsign(callsign);
 
-  // Format: W ← 10km - 🇩🇪 GAF013 - Luftwaffe
-  // Example: "W ← 45.2 km - 🇩🇪 GAF013 - Luftwaffe"
-  const operatorPart = operator ? ` - ${operator}` : '';
-  return `${direction} ${arrow} ${distance.value}${distance.unit} - ${flagEmoji} ${callsign}${operatorPart}`;
+  // Format speed (gs is in knots, convert to km/h or mph)
+  let speed: number | undefined;
+  let speedUnit: 'mph' | 'km/h';
+  if (plane.gs && plane.gs > 0) {
+    if (distanceUnit === 'miles') {
+      speed = Math.round(plane.gs * 1.15078); // knots to mph
+      speedUnit = 'mph';
+    } else {
+      speed = Math.round(plane.gs * 1.852); // knots to km/h
+      speedUnit = 'km/h';
+    }
+  } else {
+    speedUnit = distanceUnit === 'miles' ? 'mph' : 'km/h';
+  }
+
+  // Format altitude
+  let altitude: number | undefined;
+  let altitudeUnit: 'ft' | 'm';
+  const altitudeFeet = typeof plane.alt_baro === 'number' ? plane.alt_baro : 
+                       typeof plane.alt_geom === 'number' ? plane.alt_geom : null;
+  
+  if (altitudeFeet !== null && altitudeFeet > 0) {
+    if (distanceUnit === 'miles') {
+      // Imperial: feet
+      altitude = altitudeFeet;
+      altitudeUnit = 'ft';
+    } else {
+      // Metric: meters
+      altitude = Math.round(altitudeFeet * 0.3048);
+      altitudeUnit = 'm';
+    }
+  } else {
+    altitudeUnit = distanceUnit === 'miles' ? 'ft' : 'm';
+  }
+
+  // Use shared formatter - single source of truth!
+  return formatNotificationBody({
+    callsign,
+    icao: plane.hex,
+    direction,
+    flagEmoji,
+    operator: operator || undefined,
+    speed,
+    speedUnit,
+    altitude,
+    altitudeUnit,
+    verticalRate: plane.baro_rate || undefined,
+  });
 }
 
 async function notifyForDevice(
@@ -257,23 +262,24 @@ async function notifyForDevice(
   data: DeviceRegistration,
   docId: string
 ): Promise<void> {
-  if (!data.pushoverUserKey || !data.home) {
-    return;
-  }
+  try {
+    if (!data.pushoverUserKey || !data.home) {
+      return;
+    }
 
-  logger.info('Processing device', {
-    docId,
-    userKey: data.pushoverUserKey.slice(0, 8),
-    radiusKm: data.radiusKm,
-  });
+    logger.info('Processing device', {
+      docId,
+      userKey: data.pushoverUserKey.slice(0, 8),
+      radiusKm: data.radiusKm,
+    });
 
-  const radiusKm = clampRadius(data.radiusKm);
-  const aircraft = await fetchAircraft(data.home, radiusKm);
+    const radiusKm = clampRadius(data.radiusKm);
+    const aircraft = await fetchAircraft(data.home, radiusKm);
 
-  logger.info('Fetched aircraft', {
-    docId,
-    totalAircraft: aircraft.length,
-  });
+    logger.info('Fetched aircraft', {
+      docId,
+      totalAircraft: aircraft.length,
+    });
 
   if (!aircraft.length) {
     return;
@@ -338,6 +344,22 @@ async function notifyForDevice(
       continue;
     }
 
+    // Check if aircraft type is in ignored list
+    const aircraftType = (plane.t || plane.desc || '').toUpperCase();
+    const ignoredTypes = data.ignoredTypes || [];
+    const isIgnored = ignoredTypes.some((ignoredType) => {
+      const upperIgnored = ignoredType.toUpperCase();
+      return (
+        aircraftType.includes(upperIgnored) ||
+        (plane.desc && plane.desc.toUpperCase().includes(upperIgnored))
+      );
+    });
+
+    if (isIgnored && !isSpecialPlane) {
+      // Don't notify for ignored types (unless it's a special plane)
+      continue;
+    }
+
     if (isMilitary) {
       militaryCount++;
     }
@@ -392,7 +414,12 @@ async function notifyForDevice(
       distanceKm,
       data.distanceUnit === 'miles' ? 'miles' : 'km'
     );
-    const body = buildNotificationBody(plane, distance, direction);
+    const body = buildNotificationBody(
+      plane, 
+      distance, 
+      direction, 
+      data.distanceUnit === 'miles' ? 'miles' : 'km'
+    );
 
     // Build title with aircraft description (full name) if available
     // Fallback order: desc -> type code (t) -> callsign -> registration -> generic
@@ -408,8 +435,10 @@ async function notifyForDevice(
 
     // Use special icon for special aircraft (Air Force One, etc.), otherwise military icon
     const icaoUpper = icao.toUpperCase();
-    const iconPath = isSpecialAircraft(icaoUpper) ? 'favicon/special' : 'favicon/military';
-    const iconUrl = `functions.https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
+    const iconPath = isSpecialAircraft(icaoUpper)
+      ? 'favicon/special'
+      : 'favicon/military';
+    const iconUrl = `https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
 
     // Custom emojis for specific aircraft types
     let title = aircraftName;
@@ -432,7 +461,7 @@ async function notifyForDevice(
     messages.push({
       title: title,
       message: body,
-      url: `functions.https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
+      url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
       url_title: 'View on Map',
       icon: iconUrl,
     });
@@ -447,9 +476,10 @@ async function notifyForDevice(
   logger.info('Aircraft filtering results', {
     docId,
     totalAircraft: aircraft.length,
-    militaryCount,
+    militaryFlagged: militaryCount + boringCount, // Total with military flags
+    interestingMilitary: militaryCount, // Passed all filters
+    boringMilitary: boringCount, // Filtered as boring types
     specialCount,
-    boringCount,
     recentlyNotifiedCount,
     messagesToSend: messages.length,
   });
@@ -468,23 +498,26 @@ async function notifyForDevice(
         message: msg.message,
       });
 
-      const response = await fetch('functions.https://api.pushover.net/1/messages.json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          token: PUSHOVER_API_TOKEN || '',
-          user: data.pushoverUserKey,
-          title: msg.title,
-          message: msg.message,
-          url: msg.url || '',
-          url_title: msg.url_title || '',
-          priority: '1', // High priority
-          sound: 'intermission',
-          icon: msg.icon || '',
-        }),
-      } as any);
+      const response = await fetch(
+        'https://api.pushover.net/1/messages.json',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            token: PUSHOVER_API_TOKEN || '',
+            user: data.pushoverUserKey,
+            title: msg.title,
+            message: msg.message,
+            url: msg.url || '',
+            url_title: msg.url_title || '',
+            priority: '1', // High priority
+            sound: 'intermission',
+            icon: msg.icon || '',
+          }),
+        } as any
+      );
 
       const result: any = await response.json();
 
@@ -515,129 +548,128 @@ async function notifyForDevice(
     },
     { merge: true }
   );
+  } catch (error: any) {
+    logger.error('notifyForDevice exception', {
+      docId,
+      error: error?.message,
+      stack: error?.stack,
+    });
+    throw error;
+  }
 }
 
-export const registerDevice = onRequest(
-  async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
+export const registerDevice = onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
-
-    if (req.method !== 'POST') {
-      res.status(405).json({ error: 'Method not allowed' });
-      return;
-    }
-
-    try {
-      const {
-        pushoverUserKey,
-        platform,
-        distanceUnit,
-        radiusKm,
-        timezone,
-        home,
-        specialIcaos,
-      } = req.body as {
-        pushoverUserKey?: string;
-        platform?: string;
-        distanceUnit?: 'km' | 'miles';
-        radiusKm?: number;
-        timezone?: string;
-        home?: HomeLocation;
-        specialIcaos?: string[];
-      };
-
-      if (!pushoverUserKey || typeof pushoverUserKey !== 'string') {
-        res.status(400).json({ error: 'pushoverUserKey is required' });
-        return;
-      }
-
-      if (
-        !home ||
-        typeof home.lat !== 'number' ||
-        typeof home.lon !== 'number'
-      ) {
-        res
-          .status(400)
-          .json({ error: 'home location with lat/lon is required' });
-        return;
-      }
-
-      const doc: DeviceRegistration = {
-        pushoverUserKey,
-        platform,
-        distanceUnit: distanceUnit === 'miles' ? 'miles' : 'km',
-        radiusKm: clampRadius(radiusKm),
-        timezone,
-        home,
-        specialIcaos: Array.isArray(specialIcaos) ? specialIcaos : undefined,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp() as any,
-      };
-
-      await db
-        .collection(DEVICE_COLLECTION)
-        .doc(pushoverUserKey)
-        .set(
-          {
-            ...doc,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
-
-      res.status(200).json({ success: true });
-    } catch (error: any) {
-      logger.error('registerDevice failed', error);
-      res.status(500).json({ error: 'Internal error' });
-    }
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
   }
-);
 
-export const debugListTokens = onRequest(
-  async (req: any, res: any) => {
-    const secret = process.env.DEBUG_TOKEN_SECRET;
-    if (!secret || req.query.secret !== secret) {
-      res.status(403).json({ error: 'forbidden' });
-      return;
-    }
-
-    const snapshot = await db.collection(DEVICE_COLLECTION).get();
-    const tokens = snapshot.docs.map((doc: any) => ({
-      id: doc.id,
-      data: doc.data(),
-    }));
-
-    res.json({ count: tokens.length, tokens });
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
   }
-);
 
-export const debugSendToken = onRequest(
-  async (req: any, res: any) => {
-    const secret = process.env.DEBUG_TOKEN_SECRET;
-    if (!secret || req.query.secret !== secret) {
-      res.status(403).json({ error: 'forbidden' });
+  try {
+    const {
+      pushoverUserKey,
+      platform,
+      distanceUnit,
+      radiusKm,
+      timezone,
+      home,
+      specialIcaos,
+    } = req.body as {
+      pushoverUserKey?: string;
+      platform?: string;
+      distanceUnit?: 'km' | 'miles';
+      radiusKm?: number;
+      timezone?: string;
+      home?: HomeLocation;
+      specialIcaos?: string[];
+    };
+
+    if (!pushoverUserKey || typeof pushoverUserKey !== 'string') {
+      res.status(400).json({ error: 'pushoverUserKey is required' });
       return;
     }
 
-    const userKey = req.query.userKey as string | undefined;
-    if (!userKey) {
-      res.status(400).json({ error: 'userKey query param required' });
+    if (!home || typeof home.lat !== 'number' || typeof home.lon !== 'number') {
+      res.status(400).json({ error: 'home location with lat/lon is required' });
       return;
     }
 
-    const snapshot = await db.collection(DEVICE_COLLECTION).doc(userKey).get();
-    if (!snapshot.exists) {
-      res.status(404).json({ error: 'user not found' });
-      return;
-    }
+    const doc: DeviceRegistration = {
+      pushoverUserKey,
+      platform,
+      distanceUnit: distanceUnit === 'miles' ? 'miles' : 'km',
+      radiusKm: clampRadius(radiusKm),
+      timezone,
+      home,
+      specialIcaos: Array.isArray(specialIcaos) ? specialIcaos : [],
+      updatedAt: admin.firestore.FieldValue.serverTimestamp() as any,
+    };
 
-    try {
-      const response = await fetch('functions.https://api.pushover.net/1/messages.json', {
+    await db
+      .collection(DEVICE_COLLECTION)
+      .doc(pushoverUserKey)
+      .set(
+        {
+          ...doc,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+    res.status(200).json({ success: true });
+  } catch (error: any) {
+    logger.error('registerDevice failed', error);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+export const debugListTokens = onRequest(async (req: any, res: any) => {
+  const secret = process.env.DEBUG_TOKEN_SECRET;
+  if (!secret || req.query.secret !== secret) {
+    res.status(403).json({ error: 'forbidden' });
+    return;
+  }
+
+  const snapshot = await db.collection(DEVICE_COLLECTION).get();
+  const tokens = snapshot.docs.map((doc: any) => ({
+    id: doc.id,
+    data: doc.data(),
+  }));
+
+  res.json({ count: tokens.length, tokens });
+});
+
+export const debugSendToken = onRequest(async (req: any, res: any) => {
+  const secret = process.env.DEBUG_TOKEN_SECRET;
+  if (!secret || req.query.secret !== secret) {
+    res.status(403).json({ error: 'forbidden' });
+    return;
+  }
+
+  const userKey = req.query.userKey as string | undefined;
+  if (!userKey) {
+    res.status(400).json({ error: 'userKey query param required' });
+    return;
+  }
+
+  const snapshot = await db.collection(DEVICE_COLLECTION).doc(userKey).get();
+  if (!snapshot.exists) {
+    res.status(404).json({ error: 'user not found' });
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.pushover.net/1/messages.json',
+      {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -649,24 +681,24 @@ export const debugSendToken = onRequest(
           message: 'Test notification from debug endpoint',
           priority: '1',
         }),
-      } as any);
+      } as any
+    );
 
-      const result: any = await response.json();
+    const result: any = await response.json();
 
-      if (response.ok && result.status === 1) {
-        res.json({ success: true, request: result.request });
-      } else {
-        res.status(500).json({ error: result });
-      }
-    } catch (error: any) {
-      logger.error('debugSendToken failed', {
-        userKey,
-        error,
-      });
-      res.status(500).json({ error: error?.message ?? 'send failed' });
+    if (response.ok && result.status === 1) {
+      res.json({ success: true, request: result.request });
+    } else {
+      res.status(500).json({ error: result });
     }
+  } catch (error: any) {
+    logger.error('debugSendToken failed', {
+      userKey,
+      error,
+    });
+    res.status(500).json({ error: error?.message ?? 'send failed' });
   }
-);
+});
 
 export const processPlanes = onSchedule(
   {
@@ -693,7 +725,3 @@ export const processPlanes = onSchedule(
     await Promise.all(tasks);
   }
 );
-
-
-
-

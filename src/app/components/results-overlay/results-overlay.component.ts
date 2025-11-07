@@ -41,6 +41,7 @@ import {
 } from '@angular/animations';
 import { IconComponent } from '../ui/icon.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
+import { PushoverConfigEditorComponent } from '../pushover-config-editor/pushover-config-editor.component';
 import * as L from 'leaflet';
 
 export interface PlaneLogEntry {
@@ -78,6 +79,7 @@ export interface PlaneLogEntry {
     TabComponent,
     PlaneListItemComponent,
     TooltipDirective,
+    PushoverConfigEditorComponent,
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
@@ -969,8 +971,19 @@ export class ResultsOverlayComponent
     this.cdr.markForCheck();
   }
 
-  /** Setup Pushover push notifications */
-  onSetupPushover(): void {
-    this.urlParameterService.triggerPushoverSetup();
+  /** Show Pushover config editor */
+  showPushoverConfig = false;
+
+  onConfigurePushover(): void {
+    this.showPushoverConfig = true;
+  }
+
+  closePushoverConfig(): void {
+    this.showPushoverConfig = false;
+  }
+
+  onPushoverConfigSaved(config: { ignoredTypes: string[]; radiusKm: number }): void {
+    console.log('Pushover config saved:', config);
+    this.showPushoverConfig = false;
   }
 }

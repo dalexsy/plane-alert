@@ -24,7 +24,7 @@ export interface ProcessedPlaneData {
   lon: number;
   track: number | null;
   velocity: number | null;
-  altitude: number;
+  altitude: number | null;
   onGround: boolean;
   isMilitary: boolean;
   isSpecial: boolean;
@@ -143,12 +143,26 @@ export class PlaneDataService {
     const lat = ac.lat;
     const lon = ac.lon;
     const track = ac.track;
-    const velocity = ac.gs;
+    const velocityKnots = ac.gs;
+    // Convert knots to m/s for internal use (1 knot = 0.514444 m/s)
+    const velocity = velocityKnots !== undefined && velocityKnots !== null 
+      ? velocityKnots * 0.514444 
+      : null;
 
-    // Process altitude
+    // Process altitude (API returns feet, convert to meters for internal storage)
+    // Note: alt_baro can be 'ground' string or a number in feet
     const altitudeApiValue = ac.alt_baro ?? ac.alt_geom;
-    const altitudeFeet = altitudeApiValue ?? 0;
-    const altitude = altitudeFeet * 0.3048;
+    let altitude: number | null = null;
+    
+    if (typeof altitudeApiValue === 'number') {
+      // Convert feet to meters (1 foot = 0.3048 meters)
+      altitude = altitudeApiValue * 0.3048;
+    } else if (altitudeApiValue === 'ground') {
+      altitude = 0;
+    }
+    
+    // For the heuristic check, use the original feet value
+    const altitudeFeet = typeof altitudeApiValue === 'number' ? altitudeApiValue : 0;
 
     // Determine if on ground
     let onGroundBasedOnLogic = false;

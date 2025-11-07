@@ -1,0 +1,283 @@
+// Modal overlay wrapper
+:host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  padding: 20px;
+}
+
+.pushover-config-editor {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 8px;
+  color: white;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+
+    h3 {
+      margin: 0;
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.5em;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+
+  .description {
+    color: #ccc;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+  }
+
+  .filter-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section {
+    h4 {
+      margin: 0 0 10px 0;
+      font-size: 1em;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .section-desc {
+      color: #ccc;
+      font-size: 0.85em;
+      margin-bottom: 10px;
+
+      a {
+        color: #007bff;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  .pushover-key-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-family: monospace;
+    font-size: 0.9em;
+
+    &::placeholder {
+      color: #888;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    input[type='checkbox'] {
+      cursor: pointer;
+    }
+
+    .type-label {
+      flex: 1;
+      font-size: 0.9em;
+      color: white;
+    }
+
+    .type-code {
+      font-size: 0.75em;
+      color: #ccc;
+      font-family: monospace;
+    }
+  }
+
+  textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-family: monospace;
+    font-size: 0.9em;
+    resize: vertical;
+
+    &::placeholder {
+      color: #888;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+  }
+
+  .help-text {
+    color: #ccc;
+    font-size: 0.85em;
+    margin-top: 8px;
+
+    strong {
+      color: #fff;
+    }
+  }
+
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    input[type='range'] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+      }
+
+      &::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #007bff;
+        border: none;
+        cursor: pointer;
+      }
+    }
+
+    .slider-value {
+      min-width: 80px;
+      text-align: right;
+      font-weight: bold;
+      color: white;
+    }
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    button {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &.save-btn {
+        background: #28a745;
+        color: white;
+
+        &:hover {
+          background: #218838;
+        }
+      }
+
+      &.cancel-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+      }
+    }
+  }
+
+  .status-message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 4px;
+    background: rgba(0, 123, 255, 0.2);
+    border: 1px solid rgba(0, 123, 255, 0.4);
+    color: #007bff;
+    font-size: 0.9em;
+    text-align: center;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .pushover-config-editor {
+    padding: 15px;
+
+    .checkbox-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

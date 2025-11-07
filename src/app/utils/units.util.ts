@@ -177,6 +177,14 @@ export function formatDistanceWithTenths(distance: number): string {
 }
 
 /**
+ * Convert knots to meters per second
+ */
+export function knotsToMs(knots: number): number {
+  // 1 knot = 0.514444 m/s
+  return knots * 0.514444;
+}
+
+/**
  * Convert meters per second to kilometers per hour
  */
 export function msToKmh(ms: number): number {

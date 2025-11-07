@@ -118,16 +118,16 @@
           <span class="military-badge">{{ militaryCount }}</span>
         </div>
         <!-- end .military-toggle-wrapper -->
-        <!-- Pushover registration button -->
+        <!-- Pushover configuration button -->
         <app-button
           class="setup-pushover"
           icon="notifications_active"
           type="tertiary"
           size="medium"
-          ariaLabel="Setup push notifications"
-          appTooltip="Setup push notifications"
+          ariaLabel="Configure push notifications"
+          appTooltip="Configure push notifications"
           tooltipPosition="left"
-          (click)="onSetupPushover()"
+          (click)="onConfigurePushover()"
         ></app-button>
         <!-- Window view overlay toggle button -->
         <app-button
@@ -314,3 +314,11 @@
     </div>
   </ng-container>
 </div>
+
+<!-- Pushover Config Editor -->
+<div class="pushover-config-backdrop" *ngIf="showPushoverConfig" (click)="closePushoverConfig()"></div>
+<app-pushover-config-editor
+  *ngIf="showPushoverConfig"
+  (closeEditor)="closePushoverConfig()"
+  (configSaved)="onPushoverConfigSaved($event)"
+></app-pushover-config-editor>

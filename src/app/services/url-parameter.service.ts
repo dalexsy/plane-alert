@@ -21,6 +21,7 @@ export class UrlParameterService {
   checkUrlParameters(): void {
     const urlParams = new URLSearchParams(window.location.search);
     const icao = urlParams.get('icao');
+    const follow = urlParams.get('follow');
     const setupPushover = urlParams.get('setup');
 
     if (setupPushover === 'pushover') {
@@ -31,9 +32,12 @@ export class UrlParameterService {
     }
 
     if (icao) {
+      // Check if we should follow the plane (from push notification)
+      const shouldFollow = follow === '1' || follow === 'true';
+      
       // Wait for map to initialize and planes to load
       setTimeout(() => {
-        this.followPlaneByIcao(icao);
+        this.followPlaneByIcao(icao, shouldFollow);
       }, 2000);
     }
   }
@@ -41,7 +45,7 @@ export class UrlParameterService {
   /**
    * Follow a plane by ICAO code
    */
-  private followPlaneByIcao(icao: string): void {
+  private followPlaneByIcao(icao: string, shouldFollow: boolean = false): void {
     const plane = this.planeDataOrchestrator.getPlane(icao);
     if (plane) {
       // Create a minimal plane object compatible with PlaneFollowService
@@ -55,7 +59,7 @@ export class UrlParameterService {
         velocity: plane.velocity,
       } as any;
 
-      // Use PlaneFollowService to follow the plane
+      // Always follow the plane (whether from notification or direct link)
       this.planeFollowService.followPlane(
         followPlane,
         false,
@@ -69,7 +73,7 @@ export class UrlParameterService {
       setTimeout(() => {
         const retryPlane = this.planeDataOrchestrator.getPlane(icao);
         if (retryPlane) {
-          this.followPlaneByIcao(icao);
+          this.followPlaneByIcao(icao, shouldFollow);
         }
       }, 3000);
     }
