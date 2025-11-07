@@ -982,7 +982,10 @@ export class ResultsOverlayComponent
     this.showPushoverConfig = false;
   }
 
-  onPushoverConfigSaved(config: { ignoredTypes: string[]; radiusKm: number }): void {
+  onPushoverConfigSaved(config: {
+    ignoredTypes: string[];
+    radiusKm: number;
+  }): void {
     console.log('Pushover config saved:', config);
     this.showPushoverConfig = false;
   }

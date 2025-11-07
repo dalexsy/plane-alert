@@ -69,11 +69,13 @@ export class PushoverConfigEditorComponent implements OnInit {
         this.ignoredTypes = new Set(config.ignoredTypes || []);
         this.radiusKm = config.radiusKm || 100;
         this.distanceUnit = config.distanceUnit || 'km';
-        
+
         // Populate custom ignore list (types not in common list)
         const customTypes = Array.from(this.ignoredTypes).filter(
           (type) =>
-            !this.commonMilitaryTypes.some((mt) => mt.code === type.toUpperCase())
+            !this.commonMilitaryTypes.some(
+              (mt) => mt.code === type.toUpperCase()
+            )
         );
         this.customIgnoreList = customTypes.join('\n');
       } catch (e) {
@@ -182,7 +184,10 @@ export class PushoverConfigEditorComponent implements OnInit {
       };
 
       // Save device config for future updates
-      localStorage.setItem('pushover-device-config', JSON.stringify(deviceData));
+      localStorage.setItem(
+        'pushover-device-config',
+        JSON.stringify(deviceData)
+      );
 
       const response = await fetch(
         'https://us-central1-plane-alert-800ff.cloudfunctions.net/registerDevice',

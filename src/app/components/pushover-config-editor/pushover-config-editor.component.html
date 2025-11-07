@@ -15,7 +15,9 @@
       <h4>Pushover User Key</h4>
       <p class="section-desc">
         Enter your Pushover user key to enable push notifications.
-        <a href="https://pushover.net" target="_blank" rel="noopener">Get your key here</a>
+        <a href="https://pushover.net" target="_blank" rel="noopener"
+          >Get your key here</a
+        >
       </p>
       <input
         type="text"
@@ -24,7 +26,8 @@
         class="pushover-key-input"
       />
       <p class="help-text" *ngIf="!pushoverUserKey">
-        You need a Pushover account to receive notifications. Visit pushover.net to sign up.
+        You need a Pushover account to receive notifications. Visit pushover.net
+        to sign up.
       </p>
     </div>
     <!-- Common Military Aircraft -->
@@ -64,9 +67,7 @@
     <!-- Distance Settings -->
     <div class="section">
       <h4>Alert Radius</h4>
-      <p class="section-desc">
-        Maximum distance for push notifications:
-      </p>
+      <p class="section-desc">Maximum distance for push notifications:</p>
       <div class="slider-group">
         <input
           type="range"
@@ -78,7 +79,9 @@
         />
         <div class="slider-value">
           <span *ngIf="distanceUnit === 'km'">{{ radiusKm }} km</span>
-          <span *ngIf="distanceUnit === 'miles'">{{ (radiusKm * 0.621371).toFixed(0) }} miles</span>
+          <span *ngIf="distanceUnit === 'miles'"
+            >{{ (radiusKm * 0.621371).toFixed(0) }} miles</span
+          >
         </div>
       </div>
     </div>
@@ -88,9 +91,7 @@
     <button type="button" class="save-btn" (click)="save()">
       Save Configuration
     </button>
-    <button type="button" class="cancel-btn" (click)="close()">
-      Cancel
-    </button>
+    <button type="button" class="cancel-btn" (click)="close()">Cancel</button>
   </div>
 
   <div class="status-message" *ngIf="statusMessage">

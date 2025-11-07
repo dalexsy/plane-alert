@@ -1,8 +1,20 @@
 // Test script to send a Pushover notification
-// Usage: node test-pushover.js
+// Usage: PUSHOVER_API_TOKEN=xxx PUSHOVER_USER_KEY=yyy node test-pushover.js
+// Or create a .env file with these values
 
-const PUSHOVER_API_TOKEN = "a51thwyzvw24g3afcex6hf7xdnjfi9";
-const PUSHOVER_USER_KEY = "u4h7b5hnvdgvozqd5yzm86i474fs4g";
+const PUSHOVER_API_TOKEN = process.env.PUSHOVER_API_TOKEN;
+const PUSHOVER_USER_KEY = process.env.PUSHOVER_USER_KEY;
+
+if (!PUSHOVER_API_TOKEN || !PUSHOVER_USER_KEY) {
+  console.error("❌ ERROR: Missing environment variables!");
+  console.error("Please set PUSHOVER_API_TOKEN and PUSHOVER_USER_KEY");
+  console.error("\nUsage:");
+  console.error("  PUSHOVER_API_TOKEN=xxx PUSHOVER_USER_KEY=yyy node test-pushover.js");
+  console.error("\nOr create a .env file in the root directory with:");
+  console.error("  PUSHOVER_API_TOKEN=your_token_here");
+  console.error("  PUSHOVER_USER_KEY=your_user_key_here");
+  process.exit(1);
+}
 
 async function testPushover() {
   console.log("Testing Pushover notification...");

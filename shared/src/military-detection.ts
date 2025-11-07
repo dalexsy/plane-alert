@@ -195,8 +195,8 @@ export function looksMilitary(plane: AdsBPlane): boolean {
   // Skip boring aircraft types (trainers, transports, business jets, commercial airliners)
   const aircraftType = plane.t || plane.type || '';
   const normalizedType = aircraftType.toUpperCase().replace(/[-\s]/g, ''); // Remove dashes and spaces
-  
-  if (BORING_AIRCRAFT_TYPES.some(boring => normalizedType.includes(boring))) {
+
+  if (BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
     return false;
   }
 

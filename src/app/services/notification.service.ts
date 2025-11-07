@@ -162,7 +162,7 @@ export class NotificationService {
 
     const label =
       planeInfo.model?.trim() || planeInfo.callsign?.trim() || planeInfo.icao;
-    
+
     // Add emoji prefix for specific aircraft types
     let title = label || 'Military Plane Alert';
     if (
@@ -176,8 +176,12 @@ export class NotificationService {
     ) {
       title = '🛸 ' + title; // UFO for Sentry
     }
-    
+
     const body = this.buildNotificationBody(planeInfo);
+    
+    // Build URL with ICAO and follow parameter
+    const notificationUrl = `${window.location.origin}/?icao=${planeInfo.icao}&follow=1`;
+    
     const options: NotificationOptions = {
       body,
       icon: 'assets/favicon/military/favicon.ico',
@@ -189,6 +193,7 @@ export class NotificationService {
         icao: planeInfo.icao,
         callsign: planeInfo.callsign,
         distanceKm: planeInfo.distanceKm,
+        link: notificationUrl, // Add link for service worker
       },
     };
 
@@ -359,6 +364,23 @@ export class NotificationService {
   ): void {
     try {
       const notification = new Notification(title, options);
+      
+      // Add click handler to navigate to the plane
+      notification.onclick = () => {
+        const targetUrl = options.data?.link || '/';
+        
+        // Focus window if already open, otherwise open new one
+        if (window.parent && window.parent !== window) {
+          window.parent.focus();
+          window.parent.location.href = targetUrl;
+        } else {
+          window.focus();
+          window.location.href = targetUrl;
+        }
+        
+        notification.close();
+      };
+      
       setTimeout(() => notification.close(), 5000);
     } catch (error) {
       console.warn('Window notification failed:', error);

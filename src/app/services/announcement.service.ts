@@ -4,6 +4,7 @@ import { CountryService } from './country.service';
 import { AircraftCountryService } from './aircraft-country.service';
 import { LanguageSwitchService } from './language-switch.service';
 import { SettingsService } from './settings.service';
+import { OperatorCallSignService } from './operator-call-sign.service';
 import { PlaneLogEntry } from '../components/results-overlay/results-overlay.component';
 
 export interface AnnouncementContext {
@@ -30,7 +31,8 @@ export class AnnouncementService {
     private countryService: CountryService,
     private aircraftCountryService: AircraftCountryService,
     private langSwitch: LanguageSwitchService,
-    private settings: SettingsService
+    private settings: SettingsService,
+    private operatorCallSignService: OperatorCallSignService
   ) {}
   /**
    * Handle announcements for new aircraft based on priority:
@@ -88,7 +90,12 @@ export class AnnouncementService {
     plane: PlaneLogEntry,
     baseKey: string
   ): void {
-    const operator = plane.operator?.trim();
+    // Try to get operator from database first, then fallback to callsign lookup
+    let operator = plane.operator?.trim();
+    if (!operator && plane.callsign) {
+      operator = this.operatorCallSignService.getOperatorWithLogging(plane.callsign) || undefined;
+    }
+    
     const model = plane.model?.trim();
     const originCountryName = plane.origin
       ? this.countryService.getCountryName(plane.origin)

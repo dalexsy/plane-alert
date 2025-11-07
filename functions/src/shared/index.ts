@@ -1,6 +1,6 @@
 /**
  * @plane-alert/shared
- * 
+ *
  * Shared aircraft detection and classification logic
  * for Plane Alert frontend and backend systems
  */

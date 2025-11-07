@@ -316,7 +316,11 @@
 </div>
 
 <!-- Pushover Config Editor -->
-<div class="pushover-config-backdrop" *ngIf="showPushoverConfig" (click)="closePushoverConfig()"></div>
+<div
+  class="pushover-config-backdrop"
+  *ngIf="showPushoverConfig"
+  (click)="closePushoverConfig()"
+></div>
 <app-pushover-config-editor
   *ngIf="showPushoverConfig"
   (closeEditor)="closePushoverConfig()"

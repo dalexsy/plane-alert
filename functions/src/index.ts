@@ -225,9 +225,13 @@ function buildNotificationBody(
   // Format altitude
   let altitude: number | undefined;
   let altitudeUnit: 'ft' | 'm';
-  const altitudeFeet = typeof plane.alt_baro === 'number' ? plane.alt_baro : 
-                       typeof plane.alt_geom === 'number' ? plane.alt_geom : null;
-  
+  const altitudeFeet =
+    typeof plane.alt_baro === 'number'
+      ? plane.alt_baro
+      : typeof plane.alt_geom === 'number'
+      ? plane.alt_geom
+      : null;
+
   if (altitudeFeet !== null && altitudeFeet > 0) {
     if (distanceUnit === 'miles') {
       // Imperial: feet
@@ -281,273 +285,273 @@ async function notifyForDevice(
       totalAircraft: aircraft.length,
     });
 
-  if (!aircraft.length) {
-    return;
-  }
-
-  const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
-  const messages: Array<Record<string, any>> = [];
-  const now = Date.now();
-
-  // Normalize user's special ICAOs to uppercase for comparison
-  const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
-    icao.toUpperCase()
-  );
-
-  let militaryCount = 0;
-  let specialCount = 0;
-  let boringCount = 0;
-  let recentlyNotifiedCount = 0;
-
-  // Debug: Log a few sample aircraft to see what data we're getting
-  if (aircraft.length > 0) {
-    logger.info('Sample aircraft data', {
-      docId,
-      sample: aircraft.slice(0, 5).map((p) => ({
-        hex: p.hex,
-        flight: p.flight,
-        r: p.r,
-        t: p.t,
-        mil: p.mil,
-        dbFlags: p.dbFlags,
-        desc: p.desc,
-      })),
-    });
-  }
-
-  for (const plane of aircraft) {
-    const icao = plane.hex?.toUpperCase();
-    if (!icao) {
-      continue;
+    if (!aircraft.length) {
+      return;
     }
 
-    // Check if this is a special plane (user's watchlist)
-    const isSpecialPlane = specialIcaos.includes(icao);
+    const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
+    const messages: Array<Record<string, any>> = [];
+    const now = Date.now();
 
-    // Only notify for military planes or special planes
-    const isMilitary = looksMilitary(plane);
+    // Normalize user's special ICAOs to uppercase for comparison
+    const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
+      icao.toUpperCase()
+    );
 
-    if (!isMilitary && !isSpecialPlane) {
-      if (plane.mil === true || plane.dbFlags === 1) {
-        boringCount++;
-        // Log boring aircraft that have military flags but are filtered
-        logger.info('Boring military aircraft filtered', {
+    let militaryCount = 0;
+    let specialCount = 0;
+    let boringCount = 0;
+    let recentlyNotifiedCount = 0;
+
+    // Debug: Log a few sample aircraft to see what data we're getting
+    if (aircraft.length > 0) {
+      logger.info('Sample aircraft data', {
+        docId,
+        sample: aircraft.slice(0, 5).map((p) => ({
+          hex: p.hex,
+          flight: p.flight,
+          r: p.r,
+          t: p.t,
+          mil: p.mil,
+          dbFlags: p.dbFlags,
+          desc: p.desc,
+        })),
+      });
+    }
+
+    for (const plane of aircraft) {
+      const icao = plane.hex?.toUpperCase();
+      if (!icao) {
+        continue;
+      }
+
+      // Check if this is a special plane (user's watchlist)
+      const isSpecialPlane = specialIcaos.includes(icao);
+
+      // Only notify for military planes or special planes
+      const isMilitary = looksMilitary(plane);
+
+      if (!isMilitary && !isSpecialPlane) {
+        if (plane.mil === true || plane.dbFlags === 1) {
+          boringCount++;
+          // Log boring aircraft that have military flags but are filtered
+          logger.info('Boring military aircraft filtered', {
+            docId,
+            hex: plane.hex,
+            type: plane.t,
+            desc: plane.desc,
+            callsign: plane.flight,
+            mil: plane.mil,
+            dbFlags: plane.dbFlags,
+          });
+        }
+        continue;
+      }
+
+      // Check if aircraft type is in ignored list
+      const aircraftType = (plane.t || plane.desc || '').toUpperCase();
+      const ignoredTypes = data.ignoredTypes || [];
+      const isIgnored = ignoredTypes.some((ignoredType) => {
+        const upperIgnored = ignoredType.toUpperCase();
+        return (
+          aircraftType.includes(upperIgnored) ||
+          (plane.desc && plane.desc.toUpperCase().includes(upperIgnored))
+        );
+      });
+
+      if (isIgnored && !isSpecialPlane) {
+        // Don't notify for ignored types (unless it's a special plane)
+        continue;
+      }
+
+      if (isMilitary) {
+        militaryCount++;
+      }
+      if (isSpecialPlane) {
+        specialCount++;
+      }
+
+      if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
+        logger.info('Military aircraft missing coordinates', {
           docId,
           hex: plane.hex,
           type: plane.t,
-          desc: plane.desc,
           callsign: plane.flight,
-          mil: plane.mil,
-          dbFlags: plane.dbFlags,
         });
+        continue;
       }
-      continue;
-    }
 
-    // Check if aircraft type is in ignored list
-    const aircraftType = (plane.t || plane.desc || '').toUpperCase();
-    const ignoredTypes = data.ignoredTypes || [];
-    const isIgnored = ignoredTypes.some((ignoredType) => {
-      const upperIgnored = ignoredType.toUpperCase();
-      return (
-        aircraftType.includes(upperIgnored) ||
-        (plane.desc && plane.desc.toUpperCase().includes(upperIgnored))
+      const distanceKm = haversineDistanceKm(
+        data.home.lat,
+        data.home.lon,
+        plane.lat,
+        plane.lon
       );
-    });
+      if (distanceKm > radiusKm) {
+        logger.info('Military aircraft outside radius', {
+          docId,
+          hex: plane.hex,
+          type: plane.t,
+          callsign: plane.flight,
+          distanceKm: Math.round(distanceKm * 10) / 10,
+          radiusKm,
+        });
+        continue;
+      }
 
-    if (isIgnored && !isSpecialPlane) {
-      // Don't notify for ignored types (unless it's a special plane)
-      continue;
-    }
+      if (
+        lastNotified[icao] &&
+        now - lastNotified[icao] < RECENT_NOTIFICATION_TTL_MS
+      ) {
+        recentlyNotifiedCount++;
+        continue;
+      }
 
-    if (isMilitary) {
-      militaryCount++;
-    }
-    if (isSpecialPlane) {
-      specialCount++;
-    }
-
-    if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
-      logger.info('Military aircraft missing coordinates', {
-        docId,
-        hex: plane.hex,
-        type: plane.t,
-        callsign: plane.flight,
-      });
-      continue;
-    }
-
-    const distanceKm = haversineDistanceKm(
-      data.home.lat,
-      data.home.lon,
-      plane.lat,
-      plane.lon
-    );
-    if (distanceKm > radiusKm) {
-      logger.info('Military aircraft outside radius', {
-        docId,
-        hex: plane.hex,
-        type: plane.t,
-        callsign: plane.flight,
-        distanceKm: Math.round(distanceKm * 10) / 10,
-        radiusKm,
-      });
-      continue;
-    }
-
-    if (
-      lastNotified[icao] &&
-      now - lastNotified[icao] < RECENT_NOTIFICATION_TTL_MS
-    ) {
-      recentlyNotifiedCount++;
-      continue;
-    }
-
-    const bearing = computeBearing(
-      data.home.lat,
-      data.home.lon,
-      plane.lat,
-      plane.lon
-    );
-    const direction = bearingToCardinal(bearing);
-    const distance = formatDistance(
-      distanceKm,
-      data.distanceUnit === 'miles' ? 'miles' : 'km'
-    );
-    const body = buildNotificationBody(
-      plane, 
-      distance, 
-      direction, 
-      data.distanceUnit === 'miles' ? 'miles' : 'km'
-    );
-
-    // Build title with aircraft description (full name) if available
-    // Fallback order: desc -> type code (t) -> callsign -> registration -> generic
-    // Note: plane.type is the ADS-B message type (like "adsb_icao"), not aircraft type
-    let aircraftName = plane.desc || plane.t || '';
-
-    if (!aircraftName) {
-      // If no type info, use callsign or registration
-      const callsign = normalizeCallsign(plane.flight || plane.callsign);
-      const registration = plane.r;
-      aircraftName = callsign || registration || 'Military Aircraft';
-    }
-
-    // Use special icon for special aircraft (Air Force One, etc.), otherwise military icon
-    const icaoUpper = icao.toUpperCase();
-    const iconPath = isSpecialAircraft(icaoUpper)
-      ? 'favicon/special'
-      : 'favicon/military';
-    const iconUrl = `https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
-
-    // Custom emojis for specific aircraft types
-    let title = aircraftName;
-    if (
-      aircraftName.toUpperCase().includes('A400') ||
-      aircraftName.toUpperCase().includes('A-400')
-    ) {
-      title = '🦜 ' + title; // Parrot for A400M
-    } else if (
-      aircraftName.toUpperCase().includes('E-3') ||
-      aircraftName.toUpperCase().includes('SENTRY')
-    ) {
-      title = '🛸 ' + title; // UFO for Sentry
-    }
-
-    if (title === '') {
-      title = 'Military Plane Alert';
-    }
-
-    messages.push({
-      title: title,
-      message: body,
-      url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
-      url_title: 'View on Map',
-      icon: iconUrl,
-    });
-
-    lastNotified[icao] = now;
-
-    if (messages.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
-      break;
-    }
-  }
-
-  logger.info('Aircraft filtering results', {
-    docId,
-    totalAircraft: aircraft.length,
-    militaryFlagged: militaryCount + boringCount, // Total with military flags
-    interestingMilitary: militaryCount, // Passed all filters
-    boringMilitary: boringCount, // Filtered as boring types
-    specialCount,
-    recentlyNotifiedCount,
-    messagesToSend: messages.length,
-  });
-
-  if (!messages.length) {
-    await device.set({ lastNotified }, { merge: true });
-    return;
-  }
-
-  // Send via Pushover API
-  for (const msg of messages) {
-    try {
-      logger.info('Sending Pushover notification', {
-        docId,
-        userKey: data.pushoverUserKey.slice(0, 8),
-        message: msg.message,
-      });
-
-      const response = await fetch(
-        'https://api.pushover.net/1/messages.json',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            token: PUSHOVER_API_TOKEN || '',
-            user: data.pushoverUserKey,
-            title: msg.title,
-            message: msg.message,
-            url: msg.url || '',
-            url_title: msg.url_title || '',
-            priority: '1', // High priority
-            sound: 'intermission',
-            icon: msg.icon || '',
-          }),
-        } as any
+      const bearing = computeBearing(
+        data.home.lat,
+        data.home.lon,
+        plane.lat,
+        plane.lon
+      );
+      const direction = bearingToCardinal(bearing);
+      const distance = formatDistance(
+        distanceKm,
+        data.distanceUnit === 'miles' ? 'miles' : 'km'
+      );
+      const body = buildNotificationBody(
+        plane,
+        distance,
+        direction,
+        data.distanceUnit === 'miles' ? 'miles' : 'km'
       );
 
-      const result: any = await response.json();
+      // Build title with aircraft description (full name) if available
+      // Fallback order: desc -> type code (t) -> callsign -> registration -> generic
+      // Note: plane.type is the ADS-B message type (like "adsb_icao"), not aircraft type
+      let aircraftName = plane.desc || plane.t || '';
 
-      if (response.ok && result.status === 1) {
-        logger.info('Sent Pushover notification', {
+      if (!aircraftName) {
+        // If no type info, use callsign or registration
+        const callsign = normalizeCallsign(plane.flight || plane.callsign);
+        const registration = plane.r;
+        aircraftName = callsign || registration || 'Military Aircraft';
+      }
+
+      // Use special icon for special aircraft (Air Force One, etc.), otherwise military icon
+      const icaoUpper = icao.toUpperCase();
+      const iconPath = isSpecialAircraft(icaoUpper)
+        ? 'favicon/special'
+        : 'favicon/military';
+      const iconUrl = `https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
+
+      // Custom emojis for specific aircraft types
+      let title = aircraftName;
+      if (
+        aircraftName.toUpperCase().includes('A400') ||
+        aircraftName.toUpperCase().includes('A-400')
+      ) {
+        title = '🦜 ' + title; // Parrot for A400M
+      } else if (
+        aircraftName.toUpperCase().includes('E-3') ||
+        aircraftName.toUpperCase().includes('SENTRY')
+      ) {
+        title = '🛸 ' + title; // UFO for Sentry
+      }
+
+      if (title === '') {
+        title = 'Military Plane Alert';
+      }
+
+      messages.push({
+        title: title,
+        message: body,
+        url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
+        url_title: 'View on Map',
+        icon: iconUrl,
+      });
+
+      lastNotified[icao] = now;
+
+      if (messages.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
+        break;
+      }
+    }
+
+    logger.info('Aircraft filtering results', {
+      docId,
+      totalAircraft: aircraft.length,
+      militaryFlagged: militaryCount + boringCount, // Total with military flags
+      interestingMilitary: militaryCount, // Passed all filters
+      boringMilitary: boringCount, // Filtered as boring types
+      specialCount,
+      recentlyNotifiedCount,
+      messagesToSend: messages.length,
+    });
+
+    if (!messages.length) {
+      await device.set({ lastNotified }, { merge: true });
+      return;
+    }
+
+    // Send via Pushover API
+    for (const msg of messages) {
+      try {
+        logger.info('Sending Pushover notification', {
+          docId,
           userKey: data.pushoverUserKey.slice(0, 8),
           message: msg.message,
         });
-      } else {
-        logger.error('Pushover API error', {
+
+        const response = await fetch(
+          'https://api.pushover.net/1/messages.json',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              token: PUSHOVER_API_TOKEN || '',
+              user: data.pushoverUserKey,
+              title: msg.title,
+              message: msg.message,
+              url: msg.url || '',
+              url_title: msg.url_title || '',
+              priority: '1', // High priority
+              sound: 'intermission',
+              icon: msg.icon || '',
+            }),
+          } as any
+        );
+
+        const result: any = await response.json();
+
+        if (response.ok && result.status === 1) {
+          logger.info('Sent Pushover notification', {
+            userKey: data.pushoverUserKey.slice(0, 8),
+            message: msg.message,
+          });
+        } else {
+          logger.error('Pushover API error', {
+            userKey: data.pushoverUserKey.slice(0, 8),
+            error: result,
+          });
+        }
+      } catch (error: any) {
+        logger.error('Failed to send Pushover notification', {
+          docId,
           userKey: data.pushoverUserKey.slice(0, 8),
-          error: result,
+          error: error?.message,
         });
       }
-    } catch (error: any) {
-      logger.error('Failed to send Pushover notification', {
-        docId,
-        userKey: data.pushoverUserKey.slice(0, 8),
-        error: error?.message,
-      });
     }
-  }
 
-  await device.set(
-    {
-      lastNotified,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
+    await device.set(
+      {
+        lastNotified,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
   } catch (error: any) {
     logger.error('notifyForDevice exception', {
       docId,
@@ -667,22 +671,19 @@ export const debugSendToken = onRequest(async (req: any, res: any) => {
   }
 
   try {
-    const response = await fetch(
-      'https://api.pushover.net/1/messages.json',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          token: PUSHOVER_API_TOKEN || '',
-          user: userKey,
-          title: 'Plane Alert Debug',
-          message: 'Test notification from debug endpoint',
-          priority: '1',
-        }),
-      } as any
-    );
+    const response = await fetch('https://api.pushover.net/1/messages.json', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        token: PUSHOVER_API_TOKEN || '',
+        user: userKey,
+        title: 'Plane Alert Debug',
+        message: 'Test notification from debug endpoint',
+        priority: '1',
+      }),
+    } as any);
 
     const result: any = await response.json();
 

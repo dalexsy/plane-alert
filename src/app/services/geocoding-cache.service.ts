@@ -138,29 +138,28 @@ export class GeocodingCacheService {
       // Try Nominatim first (better Unicode support, preserves umlauts)
       const nominatimUrl = `/nominatim/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=en`;
       const nominatimResponse = await this.ngZone.runOutsideAngular(() =>
-        firstValueFrom(
-          this.http.get<any>(nominatimUrl).pipe(timeout(5000))
-        )
+        firstValueFrom(this.http.get<any>(nominatimUrl).pipe(timeout(5000)))
       );
 
       // Build address from Nominatim response
       if (nominatimResponse?.address) {
         const addr = nominatimResponse.address;
         const parts: string[] = [];
-        
+
         // Add suburb/district/neighbourhood
-        const district = addr.suburb || addr.city_district || addr.neighbourhood;
+        const district =
+          addr.suburb || addr.city_district || addr.neighbourhood;
         if (district) parts.push(district);
-        
+
         // Add city/town/village
         const city = addr.city || addr.town || addr.village;
         if (city && city !== district) parts.push(city);
-        
+
         // Add state if different from city
         if (addr.state && addr.state !== city) {
           parts.push(addr.state);
         }
-        
+
         if (parts.length > 0) {
           return parts.join(', ');
         }

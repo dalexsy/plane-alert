@@ -34,7 +34,7 @@ export class UrlParameterService {
     if (icao) {
       // Check if we should follow the plane (from push notification)
       const shouldFollow = follow === '1' || follow === 'true';
-      
+
       // Wait for map to initialize and planes to load
       setTimeout(() => {
         this.followPlaneByIcao(icao, shouldFollow);
