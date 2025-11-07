@@ -178,10 +178,10 @@ export class NotificationService {
     }
 
     const body = this.buildNotificationBody(planeInfo);
-    
+
     // Build URL with ICAO and follow parameter
     const notificationUrl = `${window.location.origin}/?icao=${planeInfo.icao}&follow=1`;
-    
+
     const options: NotificationOptions = {
       body,
       icon: 'assets/favicon/military/favicon.ico',
@@ -364,11 +364,11 @@ export class NotificationService {
   ): void {
     try {
       const notification = new Notification(title, options);
-      
+
       // Add click handler to navigate to the plane
       notification.onclick = () => {
         const targetUrl = options.data?.link || '/';
-        
+
         // Focus window if already open, otherwise open new one
         if (window.parent && window.parent !== window) {
           window.parent.focus();
@@ -377,10 +377,10 @@ export class NotificationService {
           window.focus();
           window.location.href = targetUrl;
         }
-        
+
         notification.close();
       };
-      
+
       setTimeout(() => notification.close(), 5000);
     } catch (error) {
       console.warn('Window notification failed:', error);

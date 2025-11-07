@@ -9,7 +9,9 @@ if (!PUSHOVER_API_TOKEN || !PUSHOVER_USER_KEY) {
   console.error("❌ ERROR: Missing environment variables!");
   console.error("Please set PUSHOVER_API_TOKEN and PUSHOVER_USER_KEY");
   console.error("\nUsage:");
-  console.error("  PUSHOVER_API_TOKEN=xxx PUSHOVER_USER_KEY=yyy node test-pushover.js");
+  console.error(
+    "  PUSHOVER_API_TOKEN=xxx PUSHOVER_USER_KEY=yyy node test-pushover.js"
+  );
   console.error("\nOr create a .env file in the root directory with:");
   console.error("  PUSHOVER_API_TOKEN=your_token_here");
   console.error("  PUSHOVER_USER_KEY=your_user_key_here");

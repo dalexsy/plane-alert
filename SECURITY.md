@@ -20,23 +20,27 @@ const token = process.env.PUSHOVER_API_TOKEN;
 ```
 
 ### Current Backend Secrets:
+
 - `PUSHOVER_API_TOKEN` - Pushover API application token
 - `DEBUG_TOKEN_SECRET` - Secret for debug endpoints
 
 ## Frontend (Angular App)
 
 Frontend API keys are **client-side visible** (users can see them in browser). These keys should have:
+
 - Domain restrictions (only work from your domain)
 - API usage limits
 - No sensitive permissions
 
 ### Current Frontend API Keys:
+
 - **OpenWeatherMap API** - Used in multiple services for weather data
 - **Google Custom Search API** - Used for aircraft image search
 
 ### Security Notes:
 
 1. **OpenWeatherMap & Google API keys are OK to be public** because:
+
    - They're restricted to specific domains (plane-alert.surge.sh)
    - They have usage quotas/limits
    - They're read-only APIs
@@ -70,6 +74,7 @@ firebase functions:secrets:set PUSHOVER_API_TOKEN
 ## GitGuardian Alerts
 
 If you get GitGuardian alerts:
+
 - Check which file triggered it
 - Verify the secret is in `.gitignore` going forward
 - Rotate the exposed credential immediately
