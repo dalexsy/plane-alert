@@ -2,9 +2,38 @@ import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+interface BackendDeviceConfig {
+  radiusKm?: number;
+  distanceUnit?: 'km' | 'miles';
+  notifyProximity?: boolean;
+  ignoredTypes?: string[];
+  home?: {
+    lat?: number;
+    lon?: number;
+    address?: string;
+  };
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+interface BackendDeviceEntry {
+  deviceId: string;
+  deviceName: string;
+  platform?: string;
+  config: BackendDeviceConfig;
+}
+
 interface MilitaryAircraftType {
   code: string;
   name: string;
+}
+
+interface DeviceListItem {
+  name: string;
+  docId: string | null;
+  proximityEnabled: boolean;
+  militaryEnabled: boolean;
+  ignoredTypes: string[];
 }
 
 @Component({
@@ -46,148 +75,324 @@ export class PushoverConfigEditorComponent implements OnInit {
     { code: 'AH64', name: 'AH-64 Apache' },
   ];
 
-  ignoredTypes: Set<string> = new Set();
-  customIgnoreList = '';
-  radiusKm = 100;
-  distanceUnit: 'km' | 'miles' = 'km';
   statusMessage = '';
   pushoverUserKey = '';
 
+  keyValidated = false;
+  isVerifyingKey = false;
+  keyValidationError = '';
+
+  devices: DeviceListItem[] = [];
+  selectedDevice: DeviceListItem | null = null;
+  isSaving = false;
+  customIgnoreList = '';
+
   ngOnInit(): void {
     this.loadConfiguration();
+    if (this.pushoverUserKey) {
+      // Always fetch fresh data to ensure we have the latest from backend
+      console.log(
+        'Fetching device registration status for key:',
+        this.pushoverUserKey
+      );
+      void this.checkRegistrationStatus();
+    }
   }
 
-  private loadConfiguration(): void {
-    // Load Pushover user key
-    this.pushoverUserKey = localStorage.getItem('pushover-user-key') || '';
-
-    // Load from localStorage
-    const saved = localStorage.getItem('pushover-config');
-    if (saved) {
-      try {
-        const config = JSON.parse(saved);
-        this.ignoredTypes = new Set(config.ignoredTypes || []);
-        this.radiusKm = config.radiusKm || 100;
-        this.distanceUnit = config.distanceUnit || 'km';
-
-        // Populate custom ignore list (types not in common list)
-        const customTypes = Array.from(this.ignoredTypes).filter(
-          (type) =>
-            !this.commonMilitaryTypes.some(
-              (mt) => mt.code === type.toUpperCase()
-            )
-        );
-        this.customIgnoreList = customTypes.join('\n');
-      } catch (e) {
-        console.error('Failed to load pushover config:', e);
-      }
+  async onPushoverKeyChange(value: string): Promise<void> {
+    this.pushoverUserKey = value.trim();
+    this.devices = [];
+    this.selectedDevice = null;
+    this.keyValidated = false;
+    this.keyValidationError = '';
+    if (this.pushoverUserKey.length >= 30) {
+      await this.checkRegistrationStatus();
     }
+  }
 
-    // Try to get distance unit from existing device registration
-    const pushoverKey = localStorage.getItem('pushover-user-key');
-    if (pushoverKey) {
-      const deviceConfig = localStorage.getItem('pushover-device-config');
-      if (deviceConfig) {
-        try {
-          const config = JSON.parse(deviceConfig);
-          this.distanceUnit = config.distanceUnit || 'km';
-          this.radiusKm = config.radiusKm || 100;
-        } catch (e) {
-          // Ignore
-        }
-      }
-    }
+  selectDevice(device: DeviceListItem): void {
+    this.selectedDevice = device;
+    this.customIgnoreList = device.ignoredTypes
+      .filter(
+        (type) =>
+          !this.commonMilitaryTypes.some((mt) => mt.code === type.toUpperCase())
+      )
+      .join('\n');
   }
 
   isTypeIgnored(code: string): boolean {
-    return this.ignoredTypes.has(code.toUpperCase());
+    if (!this.selectedDevice) return false;
+    return this.selectedDevice.ignoredTypes.includes(code.toUpperCase());
   }
 
   toggleType(code: string): void {
+    if (!this.selectedDevice) return;
     const upperCode = code.toUpperCase();
-    if (this.ignoredTypes.has(upperCode)) {
-      this.ignoredTypes.delete(upperCode);
+    const index = this.selectedDevice.ignoredTypes.indexOf(upperCode);
+    if (index >= 0) {
+      this.selectedDevice.ignoredTypes.splice(index, 1);
     } else {
-      this.ignoredTypes.add(upperCode);
+      this.selectedDevice.ignoredTypes.push(upperCode);
     }
   }
 
   onCustomFilterChange(): void {
-    // Parse custom ignore list and add to ignoredTypes
+    if (!this.selectedDevice) return;
+
     const customTypes = this.customIgnoreList
       .split('\n')
       .map((line) => line.trim().toUpperCase())
       .filter((line) => line.length > 0);
 
-    // Remove old custom types
     const commonCodes = new Set(
       this.commonMilitaryTypes.map((mt) => mt.code.toUpperCase())
     );
-    Array.from(this.ignoredTypes).forEach((type) => {
-      if (!commonCodes.has(type)) {
-        this.ignoredTypes.delete(type);
+
+    // Keep only common types that are still checked
+    this.selectedDevice.ignoredTypes = this.selectedDevice.ignoredTypes.filter(
+      (type) => commonCodes.has(type)
+    );
+
+    // Add custom types
+    customTypes.forEach((type) => {
+      if (!this.selectedDevice!.ignoredTypes.includes(type)) {
+        this.selectedDevice!.ignoredTypes.push(type);
       }
     });
-
-    // Add new custom types
-    customTypes.forEach((type) => this.ignoredTypes.add(type));
   }
 
-  onRadiusChange(value: number): void {
-    this.radiusKm = value;
+  formatDeviceName(name: string): string {
+    if (name === 'default') {
+      return 'Default Device';
+    }
+    return name;
   }
 
-  async save(): Promise<void> {
-    // Validate Pushover key
-    if (!this.pushoverUserKey || this.pushoverUserKey.trim().length === 0) {
-      this.statusMessage = '⚠ Please enter your Pushover user key';
-      setTimeout(() => (this.statusMessage = ''), 3000);
+  async toggleProximity(device: DeviceListItem, event: Event): Promise<void> {
+    event.stopPropagation();
+    device.proximityEnabled = !device.proximityEnabled;
+    await this.saveDevice(device, true);
+  }
+
+  async toggleMilitary(device: DeviceListItem, event: Event): Promise<void> {
+    event.stopPropagation();
+    device.militaryEnabled = !device.militaryEnabled;
+    // If disabling, clear ignored types; if enabling, keep current filters
+    if (!device.militaryEnabled) {
+      device.ignoredTypes = ['*'];
+    } else if (
+      device.ignoredTypes.length === 1 &&
+      device.ignoredTypes[0] === '*'
+    ) {
+      device.ignoredTypes = [];
+    }
+    await this.saveDevice(device, true);
+  }
+
+  async saveSelectedDevice(): Promise<void> {
+    if (!this.selectedDevice) return;
+    this.onCustomFilterChange();
+    await this.saveDevice(this.selectedDevice, false);
+  }
+
+  async removeDevice(device: DeviceListItem): Promise<void> {
+    if (!device.docId) return;
+
+    if (!confirm(`Remove ${this.formatDeviceName(device.name)}?`)) {
       return;
     }
 
-    // Save Pushover key
-    localStorage.setItem('pushover-user-key', this.pushoverUserKey.trim());
-
-    // Merge custom types from textarea
-    this.onCustomFilterChange();
-
-    const config = {
-      ignoredTypes: Array.from(this.ignoredTypes),
-      radiusKm: this.radiusKm,
-      distanceUnit: this.distanceUnit,
-    };
-
-    // Save to localStorage
-    localStorage.setItem('pushover-config', JSON.stringify(config));
-
-    // Register/update device on Firebase
     try {
-      const latitude = parseFloat(localStorage.getItem('user-latitude') || '0');
-      const longitude = parseFloat(
-        localStorage.getItem('user-longitude') || '0'
+      const response = await fetch(
+        'https://us-central1-plane-alert-800ff.cloudfunctions.net/unsubscribeDevice',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: device.docId }),
+        }
       );
 
-      if (!latitude || !longitude) {
-        this.statusMessage =
-          '⚠ Please set your location first (click the crosshair button)';
-        setTimeout(() => (this.statusMessage = ''), 4000);
+      if (response.ok) {
+        this.devices = this.devices.filter((d) => d.docId !== device.docId);
+        this.statusMessage = '✓ Device removed';
+        setTimeout(() => (this.statusMessage = ''), 3000);
+      } else {
+        this.statusMessage = '⚠ Failed to remove device';
+        setTimeout(() => (this.statusMessage = ''), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to remove device:', error);
+      this.statusMessage = '⚠ Failed to connect to server';
+      setTimeout(() => (this.statusMessage = ''), 3000);
+    }
+  }
+
+  private loadConfiguration(): void {
+    this.pushoverUserKey = localStorage.getItem('pushover-user-key') || '';
+  }
+
+  private async checkRegistrationStatus(): Promise<void> {
+    if (!this.pushoverUserKey) {
+      this.devices = [];
+      return;
+    }
+
+    this.isVerifyingKey = true;
+    this.keyValidationError = '';
+
+    try {
+      const response = await fetch(
+        'https://us-central1-plane-alert-800ff.cloudfunctions.net/checkDevice',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pushoverUserKey: this.pushoverUserKey }),
+        }
+      );
+
+      if (!response.ok) {
+        this.keyValidated = false;
+        this.keyValidationError =
+          response.status >= 500
+            ? 'Server error while verifying your key. Please try again.'
+            : 'Unable to verify that key. Please check it and try again.';
         return;
       }
 
-      const deviceData = {
-        userKey: this.pushoverUserKey.trim(),
-        latitude,
-        longitude,
-        radiusKm: this.radiusKm,
-        distanceUnit: this.distanceUnit,
-        ignoredTypes: config.ignoredTypes,
-      };
+      const data = await response.json();
 
-      // Save device config for future updates
-      localStorage.setItem(
-        'pushover-device-config',
-        JSON.stringify(deviceData)
+      const backendDevices: BackendDeviceEntry[] = Array.isArray(data.devices)
+        ? data.devices
+        : [];
+
+      const availableDevices = new Set<string>();
+      if (Array.isArray(data.availableDevices)) {
+        data.availableDevices
+          .map((device: any) => String(device))
+          .filter((name: string) => name.trim().length > 0)
+          .forEach((name: string) => availableDevices.add(name.trim()));
+      }
+
+      // Build device list
+      const deviceMap = new Map<string, DeviceListItem>();
+
+      // Add registered devices from backend
+      backendDevices.forEach((entry) => {
+        const deviceName = entry.deviceName || 'default';
+        const config = entry.config ?? {};
+        const ignoredTypes = Array.isArray(config.ignoredTypes)
+          ? config.ignoredTypes
+          : [];
+        // Military is disabled if ignoredTypes contains '*'
+        const militaryDisabled =
+          ignoredTypes.length === 1 && ignoredTypes[0] === '*';
+        console.log('Loading device from backend:', deviceName, {
+          proximityEnabled: config.notifyProximity,
+          militaryEnabled: !militaryDisabled,
+          ignoredTypes,
+        });
+        deviceMap.set(deviceName, {
+          name: deviceName,
+          docId: entry.deviceId || null,
+          proximityEnabled: config.notifyProximity === true,
+          militaryEnabled: !militaryDisabled,
+          ignoredTypes: [...ignoredTypes],
+        });
+      });
+
+      // Add available devices that aren't registered yet
+      availableDevices.forEach((name) => {
+        if (!deviceMap.has(name)) {
+          deviceMap.set(name, {
+            name,
+            docId: null,
+            proximityEnabled: false,
+            militaryEnabled: true,
+            ignoredTypes: [],
+          });
+        }
+      });
+
+      this.devices = Array.from(deviceMap.values()).sort((a, b) =>
+        a.name.localeCompare(b.name)
       );
+
+      console.log(
+        'Final devices list:',
+        this.devices.map((d) => ({
+          name: d.name,
+          proximityEnabled: d.proximityEnabled,
+          militaryEnabled: d.militaryEnabled,
+          docId: d.docId,
+        }))
+      );
+
+      this.keyValidated = data.keyValid === true;
+
+      // Cache the device data
+      const cachedDevicesKey = `pushover-devices-${this.pushoverUserKey}`;
+      localStorage.setItem(
+        cachedDevicesKey,
+        JSON.stringify({
+          devices: this.devices,
+          keyValidated: this.keyValidated,
+          timestamp: Date.now(),
+        })
+      );
+
+      // Auto-select first device if none selected
+      if (this.devices.length > 0 && !this.selectedDevice) {
+        this.selectDevice(this.devices[0]);
+      }
+    } catch (error) {
+      console.error('Failed to verify registration status:', error);
+      this.keyValidated = false;
+      this.keyValidationError =
+        'Could not reach the verification service. Please check your connection and try again.';
+    } finally {
+      this.isVerifyingKey = false;
+    }
+  }
+
+  private async saveDevice(
+    device: DeviceListItem,
+    silent: boolean = false
+  ): Promise<void> {
+    if (this.isSaving) return;
+
+    const latitude = parseFloat(localStorage.getItem('user-latitude') || '0');
+    const longitude = parseFloat(localStorage.getItem('user-longitude') || '0');
+
+    if (!latitude || !longitude) {
+      if (!silent) {
+        this.statusMessage = '⚠ Please set your location first';
+        setTimeout(() => (this.statusMessage = ''), 4000);
+      }
+      return;
+    }
+
+    this.isSaving = true;
+
+    const deviceData = {
+      pushoverUserKey: this.pushoverUserKey.trim(),
+      deviceName: device.name,
+      platform: navigator?.userAgent || 'browser',
+      distanceUnit: 'km' as const,
+      radiusKm: 100,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      home: {
+        lat: latitude,
+        lon: longitude,
+      },
+      specialIcaos: [],
+      notifyProximity: device.proximityEnabled,
+      ignoredTypes: device.ignoredTypes,
+    };
+
+    console.log('Saving device:', device.name, deviceData);
+
+    try {
+      localStorage.setItem('pushover-user-key', this.pushoverUserKey.trim());
 
       const response = await fetch(
         'https://us-central1-plane-alert-800ff.cloudfunctions.net/registerDevice',
@@ -198,21 +403,46 @@ export class PushoverConfigEditorComponent implements OnInit {
         }
       );
 
-      if (response.ok) {
-        this.statusMessage = '✓ Push notifications configured successfully!';
-        setTimeout(() => (this.statusMessage = ''), 3000);
-      } else {
+      if (!response.ok) {
         const error = await response.text();
-        this.statusMessage = `⚠ Server error: ${error}`;
-        setTimeout(() => (this.statusMessage = ''), 4000);
+        if (!silent) {
+          this.statusMessage = `⚠ ${error}`;
+          setTimeout(() => (this.statusMessage = ''), 4000);
+        }
+        return;
+      }
+
+      const payload = await response.json();
+      console.log('Save response:', payload);
+
+      if (payload?.deviceId && !device.docId) {
+        device.docId = payload.deviceId;
+      }
+
+      // Update cache after successful save
+      const cachedDevicesKey = `pushover-devices-${this.pushoverUserKey}`;
+      localStorage.setItem(
+        cachedDevicesKey,
+        JSON.stringify({
+          devices: this.devices,
+          keyValidated: this.keyValidated,
+          timestamp: Date.now(),
+        })
+      );
+
+      if (!silent) {
+        this.statusMessage = '✓ Saved';
+        setTimeout(() => (this.statusMessage = ''), 2000);
       }
     } catch (error) {
-      console.error('Failed to register device:', error);
-      this.statusMessage = '⚠ Failed to connect to server';
-      setTimeout(() => (this.statusMessage = ''), 3000);
+      console.error('Failed to save device:', error);
+      if (!silent) {
+        this.statusMessage = '⚠ Failed to connect';
+        setTimeout(() => (this.statusMessage = ''), 3000);
+      }
+    } finally {
+      this.isSaving = false;
     }
-
-    this.configSaved.emit(config);
   }
 
   close(): void {

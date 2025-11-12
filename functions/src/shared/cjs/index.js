@@ -1,0 +1,45 @@
+"use strict";
+/**
+ * @plane-alert/shared
+ *
+ * Shared aircraft detection and classification logic
+ * for Plane Alert frontend and backend systems
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isMilitaryAircraft = exports.isAircraftMilitary = exports.createAircraftLookupMap = exports.getCountryFlagEmoji = exports.getArrowForDirection = exports.formatNotificationBody = exports.formatDistance = exports.bearingToCardinal = exports.computeBearing = exports.haversineDistanceKm = exports.toDegrees = exports.toRadians = exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = exports.isMilitaryOperator = exports.isMilitaryCallsign = exports.normalizeCallsign = exports.looksMilitary = exports.ICAO_LOOKUP_CONFIG = exports.isKnownCountry = exports.getRegistrationPrefixesForCountry = exports.getAircraftCountry = exports.getCountryFromRegistration = exports.getCountryFromIcaoHex = void 0;
+// Export country detection functions
+var country_detection_1 = require("./country-detection");
+Object.defineProperty(exports, "getCountryFromIcaoHex", { enumerable: true, get: function () { return country_detection_1.getCountryFromIcaoHex; } });
+Object.defineProperty(exports, "getCountryFromRegistration", { enumerable: true, get: function () { return country_detection_1.getCountryFromRegistration; } });
+Object.defineProperty(exports, "getAircraftCountry", { enumerable: true, get: function () { return country_detection_1.getAircraftCountry; } });
+Object.defineProperty(exports, "getRegistrationPrefixesForCountry", { enumerable: true, get: function () { return country_detection_1.getRegistrationPrefixesForCountry; } });
+Object.defineProperty(exports, "isKnownCountry", { enumerable: true, get: function () { return country_detection_1.isKnownCountry; } });
+Object.defineProperty(exports, "ICAO_LOOKUP_CONFIG", { enumerable: true, get: function () { return country_detection_1.ICAO_LOOKUP_CONFIG; } });
+// Export military detection functions
+var military_detection_1 = require("./military-detection");
+Object.defineProperty(exports, "looksMilitary", { enumerable: true, get: function () { return military_detection_1.looksMilitary; } });
+Object.defineProperty(exports, "normalizeCallsign", { enumerable: true, get: function () { return military_detection_1.normalizeCallsign; } });
+Object.defineProperty(exports, "isMilitaryCallsign", { enumerable: true, get: function () { return military_detection_1.isMilitaryCallsign; } });
+Object.defineProperty(exports, "isMilitaryOperator", { enumerable: true, get: function () { return military_detection_1.isMilitaryOperator; } });
+Object.defineProperty(exports, "BORING_AIRCRAFT_TYPES", { enumerable: true, get: function () { return military_detection_1.BORING_AIRCRAFT_TYPES; } });
+Object.defineProperty(exports, "MIL_CALLSIGN_PREFIXES", { enumerable: true, get: function () { return military_detection_1.MIL_CALLSIGN_PREFIXES; } });
+Object.defineProperty(exports, "MIL_OPERATOR_KEYWORDS", { enumerable: true, get: function () { return military_detection_1.MIL_OPERATOR_KEYWORDS; } });
+// Export geo utilities
+var geo_utils_1 = require("./geo-utils");
+Object.defineProperty(exports, "toRadians", { enumerable: true, get: function () { return geo_utils_1.toRadians; } });
+Object.defineProperty(exports, "toDegrees", { enumerable: true, get: function () { return geo_utils_1.toDegrees; } });
+Object.defineProperty(exports, "haversineDistanceKm", { enumerable: true, get: function () { return geo_utils_1.haversineDistanceKm; } });
+Object.defineProperty(exports, "computeBearing", { enumerable: true, get: function () { return geo_utils_1.computeBearing; } });
+Object.defineProperty(exports, "bearingToCardinal", { enumerable: true, get: function () { return geo_utils_1.bearingToCardinal; } });
+Object.defineProperty(exports, "formatDistance", { enumerable: true, get: function () { return geo_utils_1.formatDistance; } });
+// Export notification formatting
+var notification_formatter_1 = require("./notification-formatter");
+Object.defineProperty(exports, "formatNotificationBody", { enumerable: true, get: function () { return notification_formatter_1.formatNotificationBody; } });
+Object.defineProperty(exports, "getArrowForDirection", { enumerable: true, get: function () { return notification_formatter_1.getArrowForDirection; } });
+Object.defineProperty(exports, "getCountryFlagEmoji", { enumerable: true, get: function () { return notification_formatter_1.getCountryFlagEmoji; } });
+// Export aircraft database utilities
+var aircraft_db_loader_1 = require("./aircraft-db-loader");
+Object.defineProperty(exports, "createAircraftLookupMap", { enumerable: true, get: function () { return aircraft_db_loader_1.createAircraftLookupMap; } });
+Object.defineProperty(exports, "isAircraftMilitary", { enumerable: true, get: function () { return aircraft_db_loader_1.isAircraftMilitary; } });
+Object.defineProperty(exports, "isMilitaryAircraft", { enumerable: true, get: function () { return aircraft_db_loader_1.isMilitaryAircraft; } });
+//# sourceMappingURL=index.js.map

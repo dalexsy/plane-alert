@@ -44,7 +44,7 @@ $text-shadow-color: #000;
   );
   border-top: 1px solid $overlay-border-color;
   backdrop-filter: blur(0.75rem);
-  -webkit-backdrop-filter: blur(0.5rem);
+  -webkit-backdrop-filter: blur(1.5rem);
 
   // Typography
   text-shadow: -1px -1px 0 $text-shadow-color, 1px -1px 0 $text-shadow-color,

@@ -45,9 +45,15 @@ export class UrlParameterService {
   /**
    * Follow a plane by ICAO code
    */
-  private followPlaneByIcao(icao: string, shouldFollow: boolean = false): void {
+  private followPlaneByIcao(
+    icao: string,
+    shouldFollow: boolean = false,
+    retryCount: number = 0
+  ): void {
     const plane = this.planeDataOrchestrator.getPlane(icao);
     if (plane) {
+      console.log(`Following plane ${icao} from URL parameter`);
+
       // Create a minimal plane object compatible with PlaneFollowService
       const followPlane = {
         icao: plane.icao,
@@ -68,14 +74,28 @@ export class UrlParameterService {
         true // fromManual = true
       );
     } else {
-      console.log('Plane not found, will retry when data loads');
-      // Retry after planes load
-      setTimeout(() => {
-        const retryPlane = this.planeDataOrchestrator.getPlane(icao);
-        if (retryPlane) {
-          this.followPlaneByIcao(icao, shouldFollow);
-        }
-      }, 3000);
+      // Retry up to 20 times (60 seconds total) to wait for plane data to load
+      if (retryCount < 20) {
+        console.log(
+          `Plane ${icao} not found, retry ${retryCount + 1}/20 in 3 seconds...`
+        );
+        setTimeout(() => {
+          this.followPlaneByIcao(icao, shouldFollow, retryCount + 1);
+        }, 3000);
+      } else {
+        console.warn(
+          `Plane ${icao} not found after 20 retries (60 seconds). It may be out of range or landed.`
+        );
+        // Show user-friendly message
+        alert(
+          `Aircraft ${icao.toUpperCase()} not found.\n\n` +
+            `This can happen if:\n` +
+            `• The aircraft is out of range (check your radius setting)\n` +
+            `• The aircraft has landed\n` +
+            `• Your location is not set correctly\n\n` +
+            `Try increasing your search radius or checking your home location.`
+        );
+      }
     }
   }
 

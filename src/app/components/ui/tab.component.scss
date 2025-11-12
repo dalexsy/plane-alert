@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   z-index: 900;
-  background: rgba(0, 0, 0, 0.7);
+  background: #1e1e1eb3;
   border: 1px solid rgb(255 255 255 / 40%);
 }
 
@@ -33,7 +33,7 @@
   /* Keep absolute positioning and exact same values as expanded state */
   position: absolute;
 
-  background: rgba(0, 0, 0, 0.7);
+  background: #1e1e1eb3;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0.5rem; /* Keep bottom-right rounded corner */
 }

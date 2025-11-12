@@ -256,7 +256,7 @@ $animation-optimization: optimizeSpeed;
     margin-bottom: 0.3rem;
     box-shadow: 0 1px 3px rgb(0 0 0);
     outline: 1px solid rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(0.5rem);
+    backdrop-filter: blur(1.5rem);
     position: relative;
     transform-style: preserve-3d;
     z-index: 12; // Higher than normal labels
@@ -378,7 +378,7 @@ $animation-optimization: optimizeSpeed;
   color: white;
   box-shadow: 0 1px 3px rgb(0 0 0);
   outline: 1px solid rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(0.5rem);
+  backdrop-filter: blur(1.5rem);
   pointer-events: none;
   z-index: 1004;
   width: 3.25rem;

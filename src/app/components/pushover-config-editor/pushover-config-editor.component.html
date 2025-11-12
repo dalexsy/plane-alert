@@ -1,100 +1,145 @@
-<div class="pushover-config-editor">
-  <div class="header">
+﻿<div class="pushover-config-editor">
+  <div class="header-fixed">
     <h3>Push Notification Configuration</h3>
     <button type="button" class="close-btn" (click)="close()" title="Close">
       ✕
     </button>
   </div>
-  <p class="description">
-    Configure push notifications for military aircraft alerts.
-  </p>
 
-  <div class="filter-sections">
-    <!-- Pushover Setup -->
-    <div class="section">
-      <h4>Pushover User Key</h4>
-      <p class="section-desc">
-        Enter your Pushover user key to enable push notifications.
+  <div class="content-scrollable">
+    <p class="description">
+      Configure push notifications for military aircraft alerts.
+    </p>
+
+    <!-- Pushover Key Input -->
+    <div class="key-section">
+      <label for="pushover-key">Pushover User Key</label>
+      <div class="key-input-group">
+        <input
+          id="pushover-key"
+          type="text"
+          [(ngModel)]="pushoverUserKey"
+          (ngModelChange)="onPushoverKeyChange($event)"
+          placeholder="Enter your Pushover user key"
+          class="key-input"
+        />
+        <span *ngIf="keyValidated" class="status-icon" title="Key validated"
+          >✓</span
+        >
+      </div>
+      <p class="help-text">
         <a href="https://pushover.net" target="_blank" rel="noopener"
           >Get your key here</a
         >
       </p>
-      <input
-        type="text"
-        [(ngModel)]="pushoverUserKey"
-        placeholder="Enter your Pushover user key"
-        class="pushover-key-input"
-      />
-      <p class="help-text" *ngIf="!pushoverUserKey">
-        You need a Pushover account to receive notifications. Visit pushover.net
-        to sign up.
-      </p>
-    </div>
-    <!-- Common Military Aircraft -->
-    <div class="section">
-      <h4>Common Military Aircraft</h4>
-      <p class="section-desc">Select types to receive notifications for:</p>
-      <div class="checkbox-grid">
-        <label *ngFor="let type of commonMilitaryTypes" class="checkbox-item">
-          <input
-            type="checkbox"
-            [checked]="!isTypeIgnored(type.code)"
-            (change)="toggleType(type.code)"
-          />
-          <span class="type-label">{{ type.name }}</span>
-          <span class="type-code">{{ type.code }}</span>
-        </label>
+
+      <div class="key-status">
+        <span *ngIf="isVerifyingKey">Verifying...</span>
+        <span *ngIf="!isVerifyingKey && keyValidationError" class="error-text">
+          {{ keyValidationError }}
+        </span>
       </div>
     </div>
 
-    <!-- Custom Filters -->
-    <div class="section">
-      <h4>Custom Filters</h4>
-      <p class="section-desc">
-        Enter aircraft type codes to ignore (one per line, case-insensitive):
-      </p>
-      <textarea
-        [(ngModel)]="customIgnoreList"
-        (ngModelChange)="onCustomFilterChange()"
-        placeholder="e.g., C130&#10;A400&#10;KC135"
-        rows="6"
-      ></textarea>
-      <p class="help-text">
-        <strong>Examples:</strong> C130, A400, KC135, F16, BLACKHAWK
-      </p>
-    </div>
-
-    <!-- Distance Settings -->
-    <div class="section">
-      <h4>Alert Radius</h4>
-      <p class="section-desc">Maximum distance for push notifications:</p>
-      <div class="slider-group">
-        <input
-          type="range"
-          [value]="radiusKm"
-          (input)="onRadiusChange(+$any($event.target).value)"
-          min="10"
-          max="200"
-          step="5"
-        />
-        <div class="slider-value">
-          <span *ngIf="distanceUnit === 'km'">{{ radiusKm }} km</span>
-          <span *ngIf="distanceUnit === 'miles'"
-            >{{ (radiusKm * 0.621371).toFixed(0) }} miles</span
+    <!-- Device List -->
+    <div class="devices-section" *ngIf="devices.length > 0">
+      <h4>Devices</h4>
+      <div class="device-list">
+        <div
+          *ngFor="let device of devices"
+          class="device-item"
+          [class.selected]="selectedDevice === device"
+          (click)="selectDevice(device)"
+        >
+          <div class="device-info">
+            <span class="device-name">{{ formatDeviceName(device.name) }}</span>
+            <div class="device-controls">
+              <label class="toggle-label">
+                <input
+                  type="checkbox"
+                  [checked]="device.proximityEnabled"
+                  (change)="toggleProximity(device, $event)"
+                />
+                Proximity
+              </label>
+              <label class="toggle-label">
+                <input
+                  type="checkbox"
+                  [checked]="device.militaryEnabled"
+                  (change)="toggleMilitary(device, $event)"
+                />
+                Military
+              </label>
+            </div>
+          </div>
+          <button
+            *ngIf="device.docId && device.name !== 'default'"
+            type="button"
+            class="remove-btn"
+            (click)="removeDevice(device); $event.stopPropagation()"
+            title="Remove this device"
           >
+            ✕
+          </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="actions">
-    <button type="button" class="save-btn" (click)="save()">
-      Save Configuration
-    </button>
-    <button type="button" class="cancel-btn" (click)="close()">Cancel</button>
-  </div>
+    <!-- Military Aircraft Filters -->
+    <div class="filters-section" *ngIf="selectedDevice">
+      <h4>Military Aircraft Filters</h4>
+      <p
+        class="help-text"
+        *ngIf="!selectedDevice.militaryEnabled"
+        class="warning-text"
+      >
+        Military alerts are disabled for
+        {{ formatDeviceName(selectedDevice.name) }}. Enable to configure
+        filters.
+      </p>
+      <p class="help-text" *ngIf="selectedDevice.militaryEnabled">
+        Select aircraft types to ignore for
+        {{ formatDeviceName(selectedDevice.name) }}
+      </p>
 
-  <div class="status-message" *ngIf="statusMessage">
-    {{ statusMessage }}
+      <div class="filter-grid" *ngIf="selectedDevice.militaryEnabled">
+        <label *ngFor="let type of commonMilitaryTypes" class="filter-item">
+          <input
+            type="checkbox"
+            [checked]="isTypeIgnored(type.code)"
+            (change)="toggleType(type.code)"
+          />
+          <span class="type-name">{{ type.name }}</span>
+          <span class="type-code">{{ type.code }}</span>
+        </label>
+      </div>
+
+      <div class="custom-filters" *ngIf="selectedDevice.militaryEnabled">
+        <label for="custom-ignore">Custom Types (one per line):</label>
+        <textarea
+          id="custom-ignore"
+          [(ngModel)]="customIgnoreList"
+          (ngModelChange)="onCustomFilterChange()"
+          placeholder="e.g., C130&#10;A400&#10;KC135"
+          rows="4"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Fixed Footer -->
+    <div class="footer-fixed">
+      <button
+        type="button"
+        class="save-btn"
+        *ngIf="selectedDevice"
+        (click)="saveSelectedDevice()"
+        [disabled]="isSaving"
+      >
+        {{ isSaving ? "Saving..." : "Save Configuration" }}
+      </button>
+      <span *ngIf="statusMessage" class="status-inline">{{
+        statusMessage
+      }}</span>
+    </div>
   </div>
 </div>

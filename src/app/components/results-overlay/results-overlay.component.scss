@@ -6,7 +6,7 @@
   right: 45px;
   z-index: 700; // Below window-view-overlay (800) so it never covers tooltips
   pointer-events: none; // Don't block clicks to elements behind it
-  background: rgba(0, 0, 0, 0.7);
+  background: #1e1e1eb3;
   border: 1px solid rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
@@ -16,7 +16,7 @@
   overflow: visible;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
-  backdrop-filter: blur(0.5rem);
+  backdrop-filter: blur(1.5rem);
   max-height: calc(100vh - 0.5rem);
   width: calc(100vw - 3rem);
 
@@ -70,7 +70,7 @@
     display: flex;
     flex-direction: column;
     z-index: 1006; // Above hovered overlay
-    background: rgba(0, 0, 0, 0.7);
+    background: #1e1e1eb3;
     border: 1px solid rgb(255 255 255 / 40%);
 
     .shuffle-toggle.active {

@@ -50,3 +50,11 @@ export {
   getCountryFlagEmoji,
 } from './notification-formatter';
 export type { NotificationData } from './notification-formatter';
+
+// Export aircraft database utilities
+export {
+  createAircraftLookupMap,
+  isAircraftMilitary,
+  isMilitaryAircraft,
+} from './aircraft-db-loader';
+export type { AircraftDbEntry, AircraftDbMetadata } from './aircraft-db-loader';

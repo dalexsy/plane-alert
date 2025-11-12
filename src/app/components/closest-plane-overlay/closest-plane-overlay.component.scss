@@ -3,7 +3,7 @@
 }
 
 .closest-plane-overlay {
-  background: rgba(0, 0, 0, 0.7);
+  background: #1e1e1eb3;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   display: flex;
@@ -13,8 +13,8 @@
   font-family: "JetBrains Mono", monospace;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  -webkit-backdrop-filter: blur(0.5rem);
-  backdrop-filter: blur(0.5rem);
+  -webkit-backdrop-filter: blur(1.5rem);
+  backdrop-filter: blur(1.5rem);
   flex-wrap: wrap;
   text-align: center;
 

@@ -42,7 +42,7 @@ export class SettingsService {
   private inputOverlayCollapsedKey = 'inputOverlayCollapsed';
   private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
   private militaryMuteKey = 'militaryMute';
-  private _militaryMute: boolean = false;
+  private _militaryMute: boolean = true;
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = false;
   private dateTimeOverlayMobileKey = 'showDateTimeOverlayMobile';

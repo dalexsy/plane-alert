@@ -1,0 +1,111 @@
+[
+  {
+    "note": "User-added aircraft database - automatically populated",
+    "version": "1.0",
+    "exported": "2025-11-06T13:08:58.191Z"
+  },
+  {
+    "icao": "3E813F",
+    "reg": "3E813F",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": true
+  },
+  {
+    "icao": "3FFBBB",
+    "reg": "3FFBBB",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "4BCDB6",
+    "reg": "TC-SMV",
+    "icaotype": "B38M",
+    "year": "",
+    "manufacturer": "",
+    "model": "BOEING 737 MAX 8",
+    "ownop": "SunExpress",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "BOEING 737 MAX 8",
+    "mil": false
+  },
+  {
+    "icao": "4AB823",
+    "reg": "SE-NAC",
+    "icaotype": "B38M",
+    "year": "",
+    "manufacturer": "",
+    "model": "BOEING 737 MAX 8",
+    "ownop": "Norwegian Air Sweden",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "BOEING 737 MAX 8",
+    "mil": false
+  },
+  {
+    "icao": "3FB80B",
+    "reg": "3FB80B",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "3FF15C",
+    "reg": "3FF15C",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  },
+  {
+    "icao": "782282",
+    "reg": "B-227L",
+    "icaotype": "B789",
+    "year": "",
+    "manufacturer": "",
+    "model": "BOEING 787-9 Dreamliner",
+    "ownop": "China Southern Airlines",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "BOEING 787-9 Dreamliner",
+    "mil": false
+  },
+  {
+    "icao": "3FFC12",
+    "reg": "3FFC12",
+    "icaotype": "",
+    "year": "",
+    "manufacturer": "",
+    "model": "",
+    "ownop": "",
+    "faa_pia": false,
+    "faa_ladd": false,
+    "short_type": "",
+    "mil": false
+  }
+]

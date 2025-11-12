@@ -14,6 +14,8 @@ export const BORING_AIRCRAFT_TYPES = [
   'A20N', // Airbus A320neo (commercial airliner)
   'A321', // Airbus A321 (commercial airliner)
   'A21N', // Airbus A321neo (commercial airliner)
+  'A359', // Airbus A350-900 (commercial airliner)
+  'A35K', // Airbus A350-1000 (commercial airliner)
   'B737', // Boeing 737 (commercial airliner)
   'B738', // Boeing 737-800 (commercial airliner)
   'B739', // Boeing 737-900 (commercial airliner)

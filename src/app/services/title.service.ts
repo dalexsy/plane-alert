@@ -21,7 +21,7 @@ export class TitleService {
     if (model) {
       // Format: "[MIL] Boeing C-17 peeped! | Plane Alert" or "Airbus A320 peeped! | Plane Alert"
       const militaryPrefix = isMilitary ? '[MIL] ' : '';
-      const newTitle = `${militaryPrefix}${model} peeped! | ${this.baseTitle}`;
+      const newTitle = `${militaryPrefix}${model} peeped!`;
 
       // Use both methods to set the title to ensure it works
       this.titleService.setTitle(newTitle);
