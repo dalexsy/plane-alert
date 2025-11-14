@@ -52,7 +52,10 @@
           (click)="selectDevice(device)"
         >
           <div class="device-info">
-            <span class="device-name">{{ formatDeviceName(device.name) }}</span>
+            <div class="device-name-location">
+              <span class="device-name">{{ formatDeviceName(device.name) }}</span>
+              <span class="device-location">📍 {{ formatLocation(device) }}</span>
+            </div>
             <div class="device-controls">
               <label class="toggle-label">
                 <input

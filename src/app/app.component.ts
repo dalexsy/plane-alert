@@ -47,8 +47,15 @@ export class AppComponent implements OnInit {
   private async ensurePushoverRegistration() {
     const storedKey = this.firebaseMessaging.getStoredUserKey();
     if (storedKey) {
-      // Re-register with current settings
-      await this.firebaseMessaging.registerDevice(storedKey);
+      // Only re-register if user has explicitly saved a home location
+      // Don't register with the default Berlin location
+      const savedLocation = localStorage.getItem('plane-alert-home-location');
+      if (savedLocation) {
+        // Re-register with current settings
+        await this.firebaseMessaging.registerDevice(storedKey);
+      } else {
+        console.log('⏸️ Skipping auto-registration: no saved location. Double-tap map to set location.');
+      }
       return;
     }
 

@@ -5,7 +5,7 @@ import { OperatorTooltipService } from '../services/operator-tooltip.service';
 import SunCalc from 'suncalc';
 
 // Smooth lerping animation function
-function smoothLerpToPosition(
+export function smoothLerpToPosition(
   marker: L.Marker,
   startLatLng: L.LatLng,
   endLatLng: L.LatLng,
@@ -40,6 +40,67 @@ function smoothLerpToPosition(
   requestAnimationFrame(animate);
 }
 
+export function resumeMidFlightAnimation(
+  marker: L.Marker,
+  planeData: { positionHistory?: Array<{ lat: number; lon: number }> } | undefined,
+  scanInterval: number,
+  lastUpdateTimestamp: number | undefined,
+  animationsEnabled: boolean,
+  icao: string
+): boolean {
+  if (!animationsEnabled) {
+    console.debug(`Skipping resume for ${icao}: animations disabled`);
+    return false;
+  }
+  if (!planeData?.positionHistory || planeData.positionHistory.length < 2) {
+    console.debug(`Skipping resume for ${icao}: insufficient history`);
+    return false;
+  }
+  if (!lastUpdateTimestamp) {
+    console.debug(`Skipping resume for ${icao}: missing timestamp`);
+    return false;
+  }
+
+  const alreadyResumedAt = (marker as any).__paResumeTs;
+  if (alreadyResumedAt && alreadyResumedAt === lastUpdateTimestamp) {
+    console.debug(`Skipping resume for ${icao}: already resumed for snapshot`);
+    return false;
+  }
+
+  const now = Date.now();
+  const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
+  if (timeSinceUpdate < 0 || timeSinceUpdate >= scanInterval) {
+    console.debug(
+      `Skipping resume for ${icao}: elapsed ${timeSinceUpdate.toFixed(1)}s outside window`
+    );
+    return false;
+  }
+
+  const previousPos = planeData.positionHistory[planeData.positionHistory.length - 2];
+  const currentPos = planeData.positionHistory[planeData.positionHistory.length - 1];
+
+  if (!previousPos || !currentPos) {
+    return false;
+  }
+
+  const startLatLng = L.latLng(previousPos.lat, previousPos.lon);
+  const targetLatLng = L.latLng(currentPos.lat, currentPos.lon);
+  const playbackSeconds = Math.max(1, scanInterval * 0.95);
+  const durationMs = Math.max(1000, playbackSeconds * 1000);
+
+  marker.setLatLng(startLatLng);
+  smoothLerpToPosition(marker, startLatLng, targetLatLng, durationMs);
+  console.debug(
+    `✈️ Resuming animation for ${icao}: ${timeSinceUpdate.toFixed(
+      1
+    )}s elapsed, ${(durationMs / 1000).toFixed(1)}s playback`
+  );
+
+  (marker as any).__paResumeTs = lastUpdateTimestamp;
+
+  return true;
+}
+
 // --- SHADOW CALCULATION ---
 // Instead of a fixed offset, calculate the shadow direction based on the sun's azimuth and the plane's rotation.
 // The shadow should be cast in the direction opposite to the sun, relative to the plane's heading.
@@ -63,12 +124,13 @@ export function createOrUpdatePlaneMarker(
   isUnknown: boolean = false,
   altitude: number | null = null,
   followed: boolean = false,
-  scanInterval: number = 10, // Scan interval in seconds for smooth transition timing
+  scanInterval: number = 60, // Scan interval in seconds - MUST match backend collection frequency (Cloud Functions runs every 60s)
   icao: string = '', // ICAO identifier for debugging
   callsign: string = '', // Callsign for glider icon logic
   operatorTooltipService?: OperatorTooltipService, // Service for operator-specific tooltips
   planeData?: any, // Complete plane data for operator checks
-  animationsEnabled: boolean = true // Whether animations are enabled
+  animationsEnabled: boolean = true, // Whether animations are enabled
+  lastUpdateTimestamp?: number // Timestamp of the last backend update for calculating animation progress
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Use centralized helicopter identification via isCustomHelicopter parameter
   const isCopter = isCustomHelicopter;
@@ -248,23 +310,54 @@ export function createOrUpdatePlaneMarker(
   if (oldMarker) {
     // Get the current position for smooth interpolation
     const currentLatLng = oldMarker.getLatLng();
-    const newLatLng = L.latLng(lat, lon); // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
-    // Make this more sensitive to catch smaller movements
+    const newLatLng = L.latLng(lat, lon);
+    
+    // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
     const latDiff = Math.abs(currentLatLng.lat - lat);
     const lngDiff = Math.abs(currentLatLng.lng - lon);
     const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
-    if (hasPositionChanged && animationsEnabled) {
-      // Calculate animation duration: use 95% of scan interval for seamless movement
-      // This matches the window view animation timing to prevent delays/pauses
-      const animationDuration = Math.max(2, scanInterval * 0.95) * 1000; // Convert to milliseconds
-
-      // Perform smooth lerping animation for all planes with position changes
-      smoothLerpToPosition(
-        oldMarker,
-        currentLatLng,
-        newLatLng,
-        animationDuration
-      );
+    
+    // Check for mid-flight animation on initial page load
+    let shouldAnimateFromHistory = false;
+    let startPosition = currentLatLng;
+    let animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
+    
+  console.debug(`Checking ${icao}: hasHistory=${!!planeData?.positionHistory}, historyLen=${planeData?.positionHistory?.length}, hasTimestamp=${!!lastUpdateTimestamp}, animations=${animationsEnabled}`);
+    
+    if (animationsEnabled && planeData?.positionHistory && planeData.positionHistory.length >= 2 && lastUpdateTimestamp) {
+      const previousPos = planeData.positionHistory[planeData.positionHistory.length - 2];
+      const now = Date.now();
+      const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
+      
+      // Check if marker is at the current target position (just loaded, hasn't animated yet)
+      const isAtCurrentPosition = Math.abs(currentLatLng.lat - lat) < 0.00001 
+                                && Math.abs(currentLatLng.lng - lon) < 0.00001;
+      
+  console.debug(`${icao} details: isAtCurrent=${isAtCurrentPosition}, timeSince=${timeSinceUpdate.toFixed(1)}s, scanInt=${scanInterval}`);
+      
+      if (isAtCurrentPosition && timeSinceUpdate > 0 && timeSinceUpdate < scanInterval) {
+        // Start from previous position and animate for remaining time
+        shouldAnimateFromHistory = true;
+        startPosition = L.latLng(previousPos.lat, previousPos.lon);
+        animationDuration = Math.max(1, scanInterval * 0.95) * 1000;
+        oldMarker.setLatLng(startPosition);
+  console.debug(`✈️ Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(1)}s elapsed, ${(animationDuration/1000).toFixed(1)}s playback`);
+      }
+    }
+    
+    if ((hasPositionChanged || shouldAnimateFromHistory) && animationsEnabled) {
+      if (shouldAnimateFromHistory) {
+        // already logged above with ✈️ marker
+      } else if (hasPositionChanged) {
+        const deltaLat = newLatLng.lat - startPosition.lat;
+        const deltaLon = newLatLng.lng - startPosition.lng;
+        const approxMeters = Math.sqrt(deltaLat * deltaLat + deltaLon * deltaLon) * 111320; // rough conversion for debugging
+        console.debug(
+          `Animating ${icao}: Δlat=${deltaLat.toFixed(6)}, Δlon=${deltaLon.toFixed(6)}, ≈${approxMeters.toFixed(0)}m over ${(animationDuration / 1000).toFixed(1)}s`
+        );
+      }
+      // Perform smooth lerping animation
+      smoothLerpToPosition(oldMarker, startPosition, newLatLng, animationDuration);
     } else {
       // For planes that haven't moved significantly or animations are disabled, update position immediately
       oldMarker.setLatLng([lat, lon]);
@@ -357,9 +450,32 @@ export function createOrUpdatePlaneMarker(
 
     return { marker: oldMarker, isNewMarker: false };
   } else {
+    // Creating a new marker - check if we need to animate from a previous position
+    let startLatLng: L.LatLng | null = null;
+  let adjustedDuration = Math.max(2, scanInterval * 0.95) * 1000;
+    
+    if (animationsEnabled && planeData?.positionHistory && planeData.positionHistory.length >= 2 && lastUpdateTimestamp) {
+      const previousPos = planeData.positionHistory[planeData.positionHistory.length - 2];
+      const now = Date.now();
+      const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
+      
+      if (previousPos && timeSinceUpdate > 0 && timeSinceUpdate < scanInterval) {
+        startLatLng = L.latLng(previousPos.lat, previousPos.lon);
+        adjustedDuration = Math.max(1, scanInterval * 0.95) * 1000;
+  console.debug(`Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(1)}s elapsed, ${(adjustedDuration/1000).toFixed(1)}s playback`);
+      }
+    }
+    
     const marker = L.marker([lat, lon], { icon });
     marker.bindTooltip(tooltipContent, rightTooltipOptions);
     marker.addTo(map);
+    
+    // If we have a start position, begin animation from there
+    if (startLatLng && animationsEnabled) {
+      marker.setLatLng(startLatLng);
+      const targetLatLng = L.latLng(lat, lon);
+      smoothLerpToPosition(marker, startLatLng, targetLatLng, adjustedDuration);
+    }
 
     // Apply altitude border styling if altitude exists
     if (altitude != null) {

@@ -30,6 +30,10 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": [
+              "leaflet",
+              "suncalc"
+            ],
             "assets": [
               {
                 "glob": "**/*",
@@ -50,7 +54,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "905kB",
+                  "maximumWarning": "1.1MB",
                   "maximumError": "1.2MB"
                 },
                 {

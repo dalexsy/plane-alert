@@ -11,6 +11,114 @@ import { HelicopterListService } from './helicopter-list.service';
   providedIn: 'root',
 })
 export class HelicopterIdentificationService {
+  private readonly rotorcraftCategoryCodes = new Set<string>([
+    'H',
+    'H0',
+    'H1',
+    'H2',
+    'H3',
+    'H4',
+    'H5',
+    'H6',
+    'H7',
+    'H8',
+    'H9',
+    'H10',
+    'H11',
+    'H12',
+    'B6',
+    'B7',
+    'C3',
+  ]);
+
+  // ICAO aircraft type designators that unambiguously map to rotorcraft
+  private readonly rotorcraftTypeDesignators = new Set<string>([
+    'A101',
+    'A109',
+    'A119',
+    'A139',
+    'A149',
+    'A169',
+    'A189',
+    'AS32',
+    'AS33',
+    'AS35',
+    'AS50',
+    'AS55',
+    'AS65',
+    'BK17',
+    'BK27',
+    'B06',
+    'B07',
+    'B204',
+    'B205',
+    'B206',
+    'B222',
+    'B230',
+    'B212',
+    'B214',
+    'B407',
+    'B412',
+    'B429',
+    'B430',
+    'B47',
+    'B505',
+    'B609',
+    'CH47',
+    'CH53',
+    'EC20',
+    'EC25',
+    'EC30',
+    'EC35',
+    'EC45',
+    'EC55',
+    'EC75',
+    'H120',
+    'H125',
+    'H130',
+    'H135',
+    'H145',
+    'H155',
+    'H160',
+    'H175',
+    'H269',
+    'H215',
+    'H225',
+    'H500',
+    'H520',
+    'H530',
+    'H600',
+    'S269',
+    'MD902',
+    'NH90',
+    'R22',
+    'R44',
+    'R66',
+    'S300',
+    'S333',
+    'S434',
+    'S55',
+    'S58',
+    'S61',
+    'S64',
+    'S70',
+    'S76',
+    'S92',
+    'UH1',
+    'UH60',
+    'AH64',
+    'HH60',
+    'MH60',
+    'OH58',
+    'SH60',
+    'KA32',
+    'MI08',
+    'MI17',
+    'MI24',
+    'MI26',
+    'MI38',
+  ]);
+
   constructor(private helicopterListService: HelicopterListService) {}
 
   /**
@@ -23,10 +131,26 @@ export class HelicopterIdentificationService {
    * @param operator - Aircraft operator call sign (optional)
    * @returns true if aircraft should be treated as a helicopter
    */
-  isHelicopter(icao: string, model?: string, operator?: string): boolean {
+  isHelicopter(
+    icao: string,
+    model?: string,
+    operator?: string,
+    categoryCode?: string | null,
+    icaoType?: string | null
+  ): boolean {
     try {
       // First check the ICAO-based helicopter list (most authoritative)
       if (this.helicopterListService.isHelicopter(icao)) {
+        return true;
+      }
+
+      // Next, check ADS-B aircraft category codes (e.g. H1/H2 for rotorcraft)
+      if (categoryCode && this.isHelicopterByCategory(categoryCode)) {
+        return true;
+      }
+
+      // Certain ICAO type designators are rotorcraft-specific
+      if (icaoType && this.isHelicopterByTypeDesignator(icaoType)) {
         return true;
       }
 
@@ -47,6 +171,51 @@ export class HelicopterIdentificationService {
       // Fail safe - default to false if there's any error
       return false;
     }
+  }
+
+  /**
+   * Check if ADS-B category code indicates rotorcraft
+   */
+  private isHelicopterByCategory(category: string): boolean {
+    const normalized = category.trim().toUpperCase();
+    if (!normalized) {
+      return false;
+    }
+    if (this.rotorcraftCategoryCodes.has(normalized)) {
+      return true;
+    }
+
+    if (normalized.startsWith('H')) {
+      return true;
+    }
+    const rotorKeywords = ['ROTOR', 'HELI', 'COPTER'];
+    return rotorKeywords.some((pattern) => normalized.includes(pattern));
+  }
+
+  /**
+   * Check if the ICAO type designator is rotorcraft-specific.
+   * Restrictive list to avoid false positives (e.g. Hawker business jets like H25B).
+   */
+  private isHelicopterByTypeDesignator(typeDesignator: string): boolean {
+    const normalized = typeDesignator.trim().toUpperCase();
+    if (!normalized) {
+      return false;
+    }
+    if (this.rotorcraftTypeDesignators.has(normalized)) {
+      return true;
+    }
+
+    // Accept broader Airbus/Eurocopter designators that begin with EC or AS followed by digits
+    if (/^(EC|AS|BK)(\d{2}|\d{3})$/.test(normalized)) {
+      return true;
+    }
+
+    // Recognize NATO/US military helicopter prefixes (e.g., UH-, AH-, CH-)
+    if (/^(UH|AH|CH|HH|MH|OH|SH|RH)\d{1,3}$/.test(normalized)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -166,8 +335,8 @@ export class HelicopterIdentificationService {
       'md900',
       'md902',
       'black hawk',
-      'Chinook',
-      'JetRanger',
+  'chinook',
+  'jetranger',
     ];
 
     // Check if any pattern matches
@@ -186,32 +355,52 @@ export class HelicopterIdentificationService {
   getHelicopterIdentificationDetails(
     icao: string,
     model?: string,
-    operator?: string
+    operator?: string,
+    categoryCode?: string | null,
+    icaoType?: string | null
   ): {
     isHelicopter: boolean;
     identifiedByIcao: boolean;
+    identifiedByCategory: boolean;
+    identifiedByTypeDesignator: boolean;
     identifiedByOperator: boolean;
     identifiedByModel: boolean;
     model: string | undefined;
     operator: string | undefined;
     icao: string;
+    categoryCode?: string | null;
+    icaoType?: string | null;
   } {
     const identifiedByIcao = this.helicopterListService.isHelicopter(icao);
+    const identifiedByCategory = categoryCode
+      ? this.isHelicopterByCategory(categoryCode)
+      : false;
+    const identifiedByTypeDesignator = icaoType
+      ? this.isHelicopterByTypeDesignator(icaoType)
+      : false;
     const identifiedByOperator = operator
       ? this.isHelicopterByOperator(operator)
       : false;
     const identifiedByModel = model ? this.isHelicopterByModel(model) : false;
     const isHelicopter =
-      identifiedByIcao || identifiedByOperator || identifiedByModel;
+      identifiedByIcao ||
+      identifiedByCategory ||
+      identifiedByTypeDesignator ||
+      identifiedByOperator ||
+      identifiedByModel;
 
     return {
       isHelicopter,
       identifiedByIcao,
+      identifiedByCategory,
+      identifiedByTypeDesignator,
       identifiedByOperator,
       identifiedByModel,
       model,
       operator,
       icao,
+      categoryCode: categoryCode ?? null,
+      icaoType: icaoType ?? null,
     };
   }
 

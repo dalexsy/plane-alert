@@ -36,6 +36,9 @@ export class PlaneModel implements Plane {
   isA380?: boolean;
   isMilitary?: boolean;
   isUnknown?: boolean;
+  categoryCode?: string; // ADS-B category like 'A5', 'B6', 'C3'
+  icaoType?: string; // ICAO aircraft type designator (e.g., 'B738')
+  typeDescription?: string; // Text description provided by data source
   /** Distance from home in km, for closest-plane overlay */
   distanceKm?: number;
   airportName?: string; // Optional airport name assigned in MapComponent
@@ -52,8 +55,8 @@ export class PlaneModel implements Plane {
   // Maximum number of historical positions to keep
   private readonly MAX_HISTORY_SIZE = 15;
 
-  // Throttling for position history capture (20 seconds minimum interval)
-  private readonly POSITION_HISTORY_THROTTLE_MS = 20000;
+  // No throttling - backend already controls update frequency (every 60 seconds)
+  // This just tracks the last capture time for potential future use
   private lastPositionCaptureTime: number = 0;
 
   constructor(data: Plane) {
@@ -88,36 +91,31 @@ export class PlaneModel implements Plane {
     lon: number,
     track?: number | null,
     velocity?: number | null,
-    altitude?: number | null
+    altitude?: number | null,
+    timestamp?: number
   ): void {
-    const currentTime = Date.now();
+    const entryTimestamp =
+      typeof timestamp === 'number' && !Number.isNaN(timestamp)
+        ? timestamp
+        : Date.now();
 
-    // Only capture position if enough time has passed since last capture
-    // or if this is the first position ever captured
-    if (
-      this.lastPositionCaptureTime === 0 ||
-      currentTime - this.lastPositionCaptureTime >=
-        this.POSITION_HISTORY_THROTTLE_MS
-    ) {
-      // Log adding position
-      this.positionHistory.push({
-        lat,
-        lon,
-        timestamp: currentTime,
-        track,
-        velocity,
-        altitude,
-      });
+    // Always add position - backend controls update frequency
+    this.positionHistory.push({
+      lat,
+      lon,
+      timestamp: entryTimestamp,
+      track,
+      velocity,
+      altitude,
+    });
 
-      // Update the last capture time
-      this.lastPositionCaptureTime = currentTime;
+    // Update the last capture time for tracking
+    this.lastPositionCaptureTime = entryTimestamp;
 
-      // Limit the history size
-      if (this.positionHistory.length > this.MAX_HISTORY_SIZE) {
-        this.positionHistory.shift(); // Remove oldest entry
-      }
+    // Limit the history size (trim oldest entries beyond cap)
+    while (this.positionHistory.length > this.MAX_HISTORY_SIZE) {
+      this.positionHistory.shift();
     }
-    // If throttled, the position update is simply ignored for history purposes
   }
 
   // Helper to remove trail segments from map

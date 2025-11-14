@@ -40,12 +40,14 @@ export class LocationUpdateService {
       if (hasLocationChanged) {
         console.log('📍 Location changed, updating:', { newLat, newLon });
 
-        // Update frontend
+        // Update frontend map view
         const currentMainRadius = this.settings.radius ?? 5;
         updateMapCallback(newLat, newLon, currentMainRadius);
 
-        // Update backend (Firebase)
-        await this.firebaseMessaging.updateHomeLocation(newLat, newLon);
+        // Update frontend settings with placeholder address (will be geocoded)
+        const placeholderAddress = `${newLat.toFixed(4)}, ${newLon.toFixed(4)}`;
+        await this.settings.setLocationWithAddress(newLat, newLon, placeholderAddress);
+        // Note: setLocationWithAddress now also updates backend via FirebaseMessagingService
 
         this.lastUpdateTime = new Date();
       }

@@ -164,33 +164,26 @@
     <div class="form-row">
       <div class="form-group">
         <label for="searchRadius">Search Radius</label>
-        <div class="input-with-unit-group">
+        <div class="radius-slider-container">
           <input
             #searchRadiusInput
-            type="text"
+            type="range"
             autocomplete="off"
             id="searchRadius"
-            pattern="[0-9]*\.?[0-9]*"
-            inputmode="decimal"
-            [value]="displayRadiusValue"
-            (keydown.enter)="onResolveAndUpdate()"
-            (keydown)="onRadiusKeydown($event)"
-            (focus)="onRadiusFocus()"
-            (blur)="onRadiusBlur()"
-            (input)="onRadiusInput($event)"
-            (change)="onRadiusInput($event)"
-          /><app-button
-            [text]="getDistanceUnitLabel()"
-            type="secondary"
-            [size]="'small'"
-            (click)="toggleDistanceUnit()"
-            [title]="
-              'Switch to ' +
-              (settings.distanceUnit === 'km' ? 'miles' : 'kilometers')
-            "
-          ></app-button>
+            min="1"
+            max="200"
+            step="1"
+            [value]="getRadiusInKm()"
+            (input)="onRadiusSlide($event)"
+            (change)="onRadiusChange($event)"
+          />
+          <span class="radius-value"
+            >{{ currentSliderRadius }} {{ getDistanceUnitLabel() }}</span
+          >
         </div>
       </div>
+      <!-- Check Interval hidden - backend now controls updates -->
+      <!--
       <div class="form-group">
         <label for="checkInterval">Check Interval</label>
         <div class="input-with-unit-group">
@@ -215,6 +208,7 @@
           ></app-button>
         </div>
       </div>
+      -->
     </div>
     <!-- <div class="form-group">
       <label class="checkbox-inline" for="showCone">
@@ -229,6 +223,8 @@
     </div> -->
 
     <div class="button-group">
+      <!-- Removed scan button - backend handles updates automatically -->
+      <!--
       <app-button
         id="findButton"
         [text]="scanButtonText"
@@ -236,6 +232,7 @@
         [nativeType]="'submit'"
       >
       </app-button>
+      -->
       <app-button
         id="useLocationButton"
         [text]="'Use my current location'"
@@ -255,9 +252,18 @@
         (click)="onGoToHome()"
       ></app-button>
     </div>
+    <!-- Last scan time hidden - live updates from backend -->
+    <!--
     <div class="last-scan-time" *ngIf="lastScanTime">
       Last scan: {{ lastScanTimeText }}
     </div>
+    -->
+    <!-- Removed "Live updates" status - users don't need to see this -->
+    <!--
+    <div class="live-updates-status">
+      🔴 Live updates from server
+    </div>
+    -->
     <div class="location-tracking-status" *ngIf="isAutoLocationEnabled">
       🔄 Auto-location: {{ lastLocationUpdateText }}
     </div>

@@ -59,7 +59,7 @@ export class AddressResolutionService {
     );
 
     // Save coordinates AND address together atomically for persistence
-    this.settings.setLocationWithAddress(
+    await this.settings.setLocationWithAddress(
       geocodeResult.lat,
       geocodeResult.lon,
       formattedAddress

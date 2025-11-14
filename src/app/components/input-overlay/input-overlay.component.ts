@@ -74,6 +74,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() zoomOut = new EventEmitter<void>();
   /** Emit when distance unit is toggled */
   @Output() distanceUnitChanged = new EventEmitter<string>();
+  /** Emit when radius is being previewed (while sliding) */
+  @Output() radiusPreview = new EventEmitter<number | null>();
   /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
   /** Whether to show altitude-colored tooltip borders */
@@ -87,6 +89,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   private sub!: Subscription;
   private isUserEditingRadius = false;
   private isUserEditingAddress = false;
+  /** Current slider value for live preview */
+  public currentSliderRadius: number = 100;
   @HostBinding('class.collapsed')
   collapsed: boolean = true; // Default to collapsed
   public otherControlsHidden: boolean = false;
@@ -120,6 +124,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     // Initialize collapsed state from settings
     this.collapsed = this.settings.inputOverlayCollapsed;
+    // Initialize slider value
+    this.currentSliderRadius = this.getRadiusInKm();
     // Subscribe to collapsed changes
     this.settings.inputOverlayCollapsedChanged.subscribe((val: boolean) => {
       this.collapsed = val;
@@ -296,6 +302,42 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onGoToHome(): void {
     this.goToHome.emit();
+  }
+
+  /** Get radius value in km for slider */
+  getRadiusInKm(): number {
+    return Math.round(this.settings.radius ?? 100);
+  }
+
+  /** Handle radius slider input (preview while dragging) */
+  onRadiusSlide(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const radiusKm = parseInt(input.value, 10);
+
+    // Update live value for display
+    this.currentSliderRadius = radiusKm;
+
+    // Emit preview radius to show circle on map
+    this.radiusPreview.emit(radiusKm);
+
+    // Trigger change detection to update label
+    this.cdr.detectChanges();
+  }
+
+  /** Handle radius slider change (on mouse up) */
+  onRadiusChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const radiusKm = parseInt(input.value, 10);
+
+    // Update live value
+    this.currentSliderRadius = radiusKm;
+
+    // Save the radius
+    this.settings.setRadius(radiusKm);
+
+    // Clear preview and trigger update
+    this.radiusPreview.emit(null);
+    this.resolveAndUpdate.emit();
   }
 
   onShowCloudCoverChange(event: Event): void {

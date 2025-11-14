@@ -8,6 +8,8 @@ import { SettingsService } from './settings.service';
   providedIn: 'root',
 })
 export class FirebaseMessagingService {
+  private readonly deviceNameKey = 'plane-alert-device-name';
+
   constructor(private http: HttpClient, private settings: SettingsService) {}
 
   /**
@@ -28,13 +30,18 @@ export class FirebaseMessagingService {
     }
 
     const radius = this.settings.radius ?? 100;
+    const deviceName = this.getOrCreateDeviceName();
     const payload = {
       pushoverUserKey: pushoverUserKey.trim(),
       platform: navigator.userAgent,
       distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
       radiusKm: typeof radius === 'number' ? radius : 100,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      home,
+      location: home,
+      deviceName,
+      specialIcaos: [],
+      notifyProximity: false,
+      ignoredTypes: [],
     };
 
     try {
@@ -44,6 +51,11 @@ export class FirebaseMessagingService {
         })
       );
       localStorage.setItem('plane-alert-pushover-key', pushoverUserKey.trim());
+      try {
+        localStorage.setItem(this.deviceNameKey, deviceName);
+      } catch (err) {
+        console.debug('Unable to persist device name', err);
+      }
       console.log('✅ Registered Pushover user key with backend.');
       return true;
     } catch (error) {
@@ -60,9 +72,9 @@ export class FirebaseMessagingService {
   }
 
   /**
-   * Update home location in backend (silent update, no need for full re-registration)
+   * Update current location in backend for proximity notifications
    */
-  async updateHomeLocation(lat: number, lon: number): Promise<boolean> {
+  async updateCurrentLocation(lat: number, lon: number): Promise<boolean> {
     const userKey = this.getStoredUserKey();
     if (!userKey) {
       // Not registered yet, skip
@@ -70,13 +82,15 @@ export class FirebaseMessagingService {
     }
 
     const radius = this.settings.radius ?? 100;
+    const deviceName = this.getOrCreateDeviceName();
     const payload = {
       pushoverUserKey: userKey,
       platform: navigator.userAgent,
       distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
       radiusKm: typeof radius === 'number' ? radius : 100,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      home: { lat, lon },
+      location: { lat, lon },
+      deviceName,
     };
 
     try {
@@ -91,5 +105,42 @@ export class FirebaseMessagingService {
       console.warn('Failed to update backend location:', error);
       return false;
     }
+  }
+
+  private getOrCreateDeviceName(): string {
+    if (typeof window === 'undefined') {
+      return 'browser-device';
+    }
+
+    const stored = localStorage.getItem(this.deviceNameKey);
+    if (stored && stored.trim().length > 0) {
+      return stored.trim();
+    }
+
+    const generated = this.generateDefaultDeviceName();
+    try {
+      localStorage.setItem(this.deviceNameKey, generated);
+    } catch (err) {
+      console.debug('Unable to persist generated device name', err);
+    }
+    return generated;
+  }
+
+  private generateDefaultDeviceName(): string {
+    const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+    const platform =
+      ((nav as any)?.userAgentData?.platform as string | undefined) ||
+      nav?.platform ||
+      '';
+    const userAgent = nav?.userAgent || '';
+    const isMobile = /mobile|android|iphone|ipad|ipod/i.test(userAgent);
+    const base = isMobile ? 'mobile' : 'browser';
+    const raw = `${base}-${platform || 'device'}`;
+    const normalized = raw
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    return normalized || `${base}-device`;
   }
 }

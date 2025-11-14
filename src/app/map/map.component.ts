@@ -84,6 +84,9 @@ import { PlaneUpdateService } from '../services/plane-update.service';
 import { PlaneCenteringService } from '../services/plane-centering.service';
 import { PlaneFilteringService } from '../services/plane-filtering.service';
 import { EnvironmentalDataService } from '../services/environmental-data.service';
+import { PlaneVisualizationService } from '../services/plane-visualization.service';
+import { PlaneDataService } from '../services/plane-data.service';
+import { FirebaseMessagingService } from '../services/firebase-messaging.service';
 
 @Component({
   selector: 'app-map',
@@ -266,6 +269,21 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     return this.brightnessDisplay.brightnessState;
   }
   private globalTooltipClickHandler!: (e: MouseEvent) => void;
+  private visibilityChangeHandler = () => {
+    if (this.document.visibilityState === 'visible') {
+      const lastSnapshotTimestamp =
+        this.planeDataService.getLastSnapshotTimestamp();
+      console.debug('Document visible; attempting resume', {
+        lastSnapshotTimestamp,
+        planeCount: this.planeLog.size,
+      });
+      this.planeVisualizationService.resumeMidFlightAnimations(
+        Array.from(this.planeLog.values()),
+        lastSnapshotTimestamp
+      );
+      this.scanService.forceScan();
+    }
+  };
   // Wind direction for wind indicator overlay
   public windAngle: number = 0; // Latest wind speed in m/s
   public windSpeed: number = 0;
@@ -309,7 +327,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private mapUpdate: MapUpdateService,
     private planeCentering: PlaneCenteringService,
     private planeFiltering: PlaneFilteringService,
-    private environmentalData: EnvironmentalDataService
+    private environmentalData: EnvironmentalDataService,
+    private planeVisualizationService: PlaneVisualizationService,
+    private planeDataService: PlaneDataService,
+    private firebaseMessaging: FirebaseMessagingService
   ) {
     // Initialize view cones configuration from settings
     this.viewConesConfig = this.settings.viewConesConfig;
@@ -411,6 +432,23 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  /** Preview radius while slider is being dragged */
+  public onRadiusPreview(radiusKm: number | null): void {
+    if (!this.map) return;
+
+    if (radiusKm === null) {
+      // Clear preview - restore actual radius circle
+      this.mapService.setMainRadius(
+        this.currentLat,
+        this.currentLon,
+        this.settings.radius ?? 100
+      );
+    } else {
+      // Show preview radius
+      this.mapService.setMainRadius(this.currentLat, this.currentLon, radiusKm);
+    }
+  }
+
   /** Toggle display of airport labels tooltips universally (permanent on map) */
   public onToggleAirportLabels(): void {
     this.uiState.toggleAirportLabels();
@@ -507,7 +545,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         startLat,
         startLon,
         radius,
-        (dblLat, dblLng) => {
+        async (dblLat, dblLng) => {
           // Use the current main radius for the update
           const currentMainRadius = this.settings.radius ?? 5;
 
@@ -515,7 +553,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(
             4
           )}`;
-          this.settings.setLocationWithAddress(
+          await this.settings.setLocationWithAddress(
             dblLat,
             dblLng,
             placeholderAddress
@@ -524,14 +562,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.updateMap(dblLat, dblLng, currentMainRadius); // This will trigger airport search
 
           // Reverse geocode and update with real address
-          this.reverseGeocode(dblLat, dblLng).then((address) => {
+          this.reverseGeocode(dblLat, dblLng).then(async (address) => {
             this.locationContext.setLocation(
               dblLat,
               dblLng,
               address,
               'address'
             );
-            this.settings.setLocationWithAddress(dblLat, dblLng, address);
+            await this.settings.setLocationWithAddress(dblLat, dblLng, address);
           });
 
           this.scanService.forceScan(); // Restart the scan with new location
@@ -608,7 +646,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         startLon
       );
       // Clear the bad address and re-geocode
-      this.reverseGeocode(startLat, startLon).then((address) => {
+      this.reverseGeocode(startLat, startLon).then(async (address) => {
         console.log('Re-geocoded to fix mismatch:', address);
         this.locationContext.setLocation(
           startLat,
@@ -616,7 +654,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           address,
           'default'
         );
-        this.settings.setLocationWithAddress(startLat, startLon, address);
+        await this.settings.setLocationWithAddress(startLat, startLon, address);
       });
     } else if (savedAddress) {
       this.locationContext.setLocation(
@@ -627,7 +665,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       );
     } else {
       // Only reverse-geocode if we don't have a saved address
-      this.reverseGeocode(startLat, startLon).then((address) => {
+      this.reverseGeocode(startLat, startLon).then(async (address) => {
         this.locationContext.setLocation(
           startLat,
           startLon,
@@ -635,7 +673,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           'default'
         );
         // Save it for next session
-        this.settings.setLocationWithAddress(startLat, startLon, address);
+        await this.settings.setLocationWithAddress(startLat, startLon, address);
       });
     }
 
@@ -774,6 +812,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     });
     // Force an initial scan on startup
     this.scanService.forceScan();
+    this.document.addEventListener(
+      'visibilitychange',
+      this.visibilityChangeHandler
+    );
 
     // Subscribe to radius changes: clear markers and paths outside new radius
     this.settings.radiusChanged.subscribe((newRadius) => {
@@ -845,6 +887,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.skyOverlayService.destroy();
     // Clean up map theme service
     this.mapThemeService.destroy();
+    this.document.removeEventListener(
+      'visibilitychange',
+      this.visibilityChangeHandler
+    );
     window.removeEventListener('click', this.globalTooltipClickHandler);
   }
 
@@ -976,7 +1022,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   // Go to home location
-  goToHome(): void {
+  async goToHome(): Promise<void> {
     const homeLocation = this.settings.getHomeLocation();
 
     if (homeLocation) {
@@ -1004,7 +1050,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           'home'
         );
         // Save coordinates AND address together atomically
-        this.settings.setLocationWithAddress(
+        await this.settings.setLocationWithAddress(
           homeLocation.lat,
           homeLocation.lon,
           homeLocation.address
@@ -1012,14 +1058,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       } else {
         // Only reverse geocode if we don't have a saved address
         this.reverseGeocode(homeLocation.lat, homeLocation.lon).then(
-          (address) => {
+          async (address) => {
             this.locationContext.setLocation(
               homeLocation.lat,
               homeLocation.lon,
               address,
               'home'
             );
-            this.settings.setLocationWithAddress(
+            await this.settings.setLocationWithAddress(
               homeLocation.lat,
               homeLocation.lon,
               address
@@ -1263,8 +1309,8 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.reverseGeocode(
             position.coords.latitude,
             position.coords.longitude
-          ).then((address) => {
-            this.settings.setLocationWithAddress(
+          ).then(async (address) => {
+            await this.settings.setLocationWithAddress(
               position.coords.latitude,
               position.coords.longitude,
               address

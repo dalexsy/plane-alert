@@ -227,9 +227,21 @@
       flex-direction: column;
       gap: 8px;
 
-      .device-name {
-        font-weight: 500;
-        color: #fff;
+      .device-name-location {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .device-name {
+          font-weight: 500;
+          color: #fff;
+        }
+
+        .device-location {
+          font-size: 0.8em;
+          color: #999;
+          font-family: 'Courier New', monospace;
+        }
       }
 
       .device-controls {

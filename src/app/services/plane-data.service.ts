@@ -14,6 +14,7 @@ import {
   AircraftRecord,
 } from '../services/aircraft-db.service';
 import { filterPlaneByPrefix } from '../utils/plane-log';
+import { AircraftSnapshotService } from './aircraft-snapshot.service';
 
 export interface ProcessedPlaneData {
   id: string;
@@ -32,6 +33,9 @@ export interface ProcessedPlaneData {
   isUnknown: boolean;
   model: string;
   operator: string;
+  categoryCode: string | null;
+  icaoType: string | null;
+  typeDescription: string | null;
   isNew: boolean;
   isFiltered: boolean;
   verticalRate: number | null;
@@ -64,7 +68,8 @@ export class PlaneDataService {
     private militaryPrefixService: MilitaryPrefixService,
     private helicopterIdentificationService: HelicopterIdentificationService,
     private aircraftCountryService: AircraftCountryService,
-    private aircraftDb: AircraftDbService
+    private aircraftDb: AircraftDbService,
+    private aircraftSnapshot: AircraftSnapshotService
   ) {}
 
   async refreshLists(manualUpdate: boolean): Promise<void> {
@@ -74,27 +79,39 @@ export class PlaneDataService {
     await this.militaryPrefixService.loadPrefixes();
   }
 
+  /**
+   * Fetch plane data from Firestore (realtime updates from backend)
+   * Subscribes to location-based aircraft snapshots instead of hitting ADSB API directly
+   */
   async fetchPlaneData(
     centerLat: number,
     centerLon: number,
     radiusKm: number
   ): Promise<any[]> {
     try {
-      const radiusNm = radiusKm / 1.852;
-      const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
-      const response = await fetch(url);
+      // Subscribe to Firestore realtime updates for this location
+      // Wait for initial data to be loaded before returning
+      await this.aircraftSnapshot.subscribeToLocation(
+        centerLat,
+        centerLon,
+        radiusKm
+      );
 
-      if (!response.ok) {
-        console.warn(
-          `ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`
-        );
-        throw new Error(`ADSB One API fetch error ${response.status}`);
-      }
+      // Return current cached data (now populated with initial fetch)
+      const aircraft = this.aircraftSnapshot.getCurrentAircraft();
 
-      const data = await response.json();
-      return data.ac || [];
+      console.log('Fetched aircraft data from Firestore', {
+        location: `${centerLat.toFixed(2)},${centerLon.toFixed(2)}`,
+        radiusKm,
+        count: aircraft.length,
+        lastUpdate: new Date(
+          this.aircraftSnapshot.getLastUpdate()
+        ).toLocaleTimeString(),
+      });
+
+      return aircraft;
     } catch (err) {
-      console.warn('ADS-B API unavailable, using cached aircraft data:', err);
+      console.warn('Firestore aircraft data unavailable:', err);
       return [];
     }
   }
@@ -123,6 +140,16 @@ export class PlaneDataService {
     // Extract aircraft model/type from ADS-B One API
     const apiModel = ac.desc?.trim() || '';
     const apiIcaoType = ac.t?.trim() || '';
+    const rawCategory =
+      ac.category !== undefined && ac.category !== null
+        ? String(ac.category).trim()
+        : '';
+    const categoryCode = rawCategory ? rawCategory.toUpperCase() : null;
+    const rawTypeDescription =
+      ac.type !== undefined && ac.type !== null
+        ? String(ac.type).trim()
+        : '';
+    const typeDescription = rawTypeDescription || null;
 
     // Fetch DB record
     const dbAircraft = getAircraftInfo(id);
@@ -218,7 +245,13 @@ export class PlaneDataService {
 
     if (
       !model &&
-      this.helicopterIdentificationService.isHelicopter(id, model, operator)
+      this.helicopterIdentificationService.isHelicopter(
+        id,
+        model,
+        operator,
+        categoryCode,
+        apiIcaoType
+      )
     ) {
       model = 'Helicopter';
     }
@@ -233,7 +266,13 @@ export class PlaneDataService {
       let dbModel = apiModel || '';
       if (
         !dbModel &&
-        this.helicopterIdentificationService.isHelicopter(id, dbModel, operator)
+        this.helicopterIdentificationService.isHelicopter(
+          id,
+          dbModel,
+          operator,
+          categoryCode,
+          apiIcaoType
+        )
       ) {
         dbModel = 'Helicopter';
       }
@@ -282,6 +321,9 @@ export class PlaneDataService {
       model,
       operator,
       isNew,
+      categoryCode,
+      icaoType: apiIcaoType || null,
+      typeDescription,
       isFiltered,
       verticalRate: ac.baro_rate ?? null,
       distanceKm: dist,
@@ -352,7 +394,8 @@ export class PlaneDataService {
     processedData: ProcessedPlaneData,
     previousLog: Map<string, PlaneModel>,
     centerLat: number,
-    centerLon: number
+    centerLon: number,
+    snapshotTimestamp?: number
   ): { planeModel: PlaneModel; isExisting: boolean } {
     const {
       id,
@@ -372,10 +415,13 @@ export class PlaneDataService {
       isUnknown,
     } = processedData;
 
-    let planeModelInstance = previousLog.get(id);
-    const isExistingPlane = !!planeModelInstance;
+  let planeModelInstance = previousLog.get(id);
+  const isExistingPlane = !!planeModelInstance;
 
-    if (!planeModelInstance) {
+  const backendHistory = this.aircraftSnapshot.getCurrentHistory();
+  const planeHistory = backendHistory[id];
+
+  if (!planeModelInstance) {
       const firstSeen = Date.now();
       const initialPlaneData: Plane = {
         icao: id,
@@ -402,6 +448,9 @@ export class PlaneDataService {
       };
       planeModelInstance = new PlaneModel(initialPlaneData);
       planeModelInstance.isMilitary = isMilitary;
+      planeModelInstance.isUnknown = isUnknown;
+
+      // Seed position history from backend if available
       previousLog.set(id, planeModelInstance);
     } else {
       // Update existing plane
@@ -418,10 +467,23 @@ export class PlaneDataService {
       planeModelInstance.isUnknown = isUnknown;
     }
 
+    this.syncPositionHistory(
+      planeModelInstance,
+      planeHistory,
+      processedData,
+      snapshotTimestamp,
+      isExistingPlane
+    );
+
     // Update model properties
     planeModelInstance.model = processedData.model;
     planeModelInstance.operator = processedData.operator;
     planeModelInstance.distanceKm = processedData.distanceKm;
+    planeModelInstance.categoryCode =
+      processedData.categoryCode ?? undefined;
+    planeModelInstance.icaoType = processedData.icaoType ?? undefined;
+    planeModelInstance.typeDescription =
+      processedData.typeDescription ?? undefined;
 
     // Calculate derived properties
     const bearing = this.computeBearing(centerLat, centerLon, lat, lon);
@@ -434,18 +496,156 @@ export class PlaneDataService {
     planeModelInstance.altitude = altitude;
     planeModelInstance.verticalRate = processedData.verticalRate;
 
-    // Add position to history for existing planes
-    if (isExistingPlane && typeof lat === 'number' && typeof lon === 'number') {
-      planeModelInstance.addPositionToHistory(
-        lat,
-        lon,
-        track,
-        velocity,
-        altitude
-      );
+    return { planeModel: planeModelInstance, isExisting: isExistingPlane };
+  }
+
+  private syncPositionHistory(
+    planeModel: PlaneModel,
+    planeHistory: Array<{ lat: number; lon: number; timestamp: number }> | undefined,
+    processedData: ProcessedPlaneData,
+    snapshotTimestamp: number | undefined,
+    isExistingPlane: boolean
+  ): void {
+    const validHistory = Array.isArray(planeHistory)
+      ? planeHistory.filter(
+          (entry) =>
+            entry &&
+            typeof entry.lat === 'number' &&
+            typeof entry.lon === 'number' &&
+            typeof entry.timestamp === 'number'
+        )
+      : [];
+
+    if (validHistory.length > 0) {
+      const previousHistory = Array.isArray(planeModel.positionHistory)
+        ? [...planeModel.positionHistory]
+        : [];
+      const previousMap = new Map<number, PositionHistory>();
+      previousHistory.forEach((entry) => {
+        if (typeof entry?.timestamp === 'number') {
+          previousMap.set(entry.timestamp, entry);
+        }
+      });
+
+      planeModel.positionHistory = [];
+      let lastKnownAltitude =
+        typeof processedData.altitude === 'number'
+          ? processedData.altitude
+          : null;
+      const altitudeValues: number[] = [];
+      const fallbackStats = {
+        restored: 0,
+        fromPrevious: 0,
+        fromCurrent: 0,
+        missing: 0,
+      };
+
+      validHistory.forEach((entry, index) => {
+        const isLatest = index === validHistory.length - 1;
+        const existing = previousMap.get(entry.timestamp);
+
+        let altitudeSource: 'existing' | 'previous' | 'current' | 'missing' =
+          'missing';
+        let altitude: number | null | undefined = existing?.altitude;
+        if (typeof altitude === 'number') {
+          altitudeSource = 'existing';
+        } else if (typeof lastKnownAltitude === 'number') {
+          altitude = lastKnownAltitude;
+          altitudeSource = 'previous';
+        } else if (typeof processedData.altitude === 'number') {
+          altitude = processedData.altitude;
+          altitudeSource = 'current';
+        } else {
+          altitude = null;
+          altitudeSource = 'missing';
+        }
+
+        const track = existing?.track ?? (isLatest ? processedData.track : undefined);
+        const velocity = existing?.velocity ?? (isLatest ? processedData.velocity : undefined);
+
+        planeModel.addPositionToHistory(
+          entry.lat,
+          entry.lon,
+          track,
+          velocity,
+          typeof altitude === 'number'
+            ? altitude
+            : processedData.altitude ?? undefined,
+          entry.timestamp
+        );
+
+        if (typeof altitude === 'number') {
+          lastKnownAltitude = altitude;
+          altitudeValues.push(altitude);
+        }
+
+        switch (altitudeSource) {
+          case 'existing':
+            fallbackStats.restored++;
+            break;
+          case 'previous':
+            fallbackStats.fromPrevious++;
+            break;
+          case 'current':
+            fallbackStats.fromCurrent++;
+            break;
+          default:
+            fallbackStats.missing++;
+            break;
+        }
+      });
+
+      const altCount = altitudeValues.length;
+      const minAltitude =
+        altCount > 0 ? Math.min(...altitudeValues) : undefined;
+      const maxAltitude =
+        altCount > 0 ? Math.max(...altitudeValues) : undefined;
+      const shouldLog =
+        !isExistingPlane ||
+        fallbackStats.missing > 0 ||
+        altCount === 0 ||
+        (typeof maxAltitude === 'number' && maxAltitude <= 50);
+
+      if (shouldLog) {
+        console.debug('History sync', {
+          icao: processedData.id,
+          seeded: !isExistingPlane,
+          samples: validHistory.length,
+          altitudeSamples: altCount,
+          minAltitude,
+          maxAltitude,
+          fallbackStats,
+        });
+      }
+      return;
     }
 
-    return { planeModel: planeModelInstance, isExisting: isExistingPlane };
+    const fallbackTimestamp =
+      typeof snapshotTimestamp === 'number' && !Number.isNaN(snapshotTimestamp)
+        ? snapshotTimestamp
+        : Date.now();
+
+    const lastEntry =
+      planeModel.positionHistory[planeModel.positionHistory.length - 1];
+
+    const hasMatchingLastEntry =
+      !!lastEntry &&
+      Math.abs(lastEntry.lat - processedData.lat) < 0.000001 &&
+      Math.abs(lastEntry.lon - processedData.lon) < 0.000001 &&
+      lastEntry.timestamp === fallbackTimestamp;
+
+    if (hasMatchingLastEntry) {
+      return;
+    }
+
+    planeModel.addPositionToHistory(
+      processedData.lat,
+      processedData.lon,
+      processedData.track,
+      processedData.velocity,
+      processedData.altitude,
+      fallbackTimestamp
+    );
   }
 
   private computeBearing(
@@ -514,5 +714,9 @@ export class PlaneDataService {
 
   updateNewPlaneService(currentUpdateSet: Set<string>): void {
     this.newPlaneService.updatePlanes(currentUpdateSet);
+  }
+
+  getLastSnapshotTimestamp(): number {
+    return this.aircraftSnapshot.getLastUpdate();
   }
 }

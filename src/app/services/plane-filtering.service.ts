@@ -26,8 +26,7 @@ export class PlaneFilteringService {
     map: L.Map
   ): void {
     const exclude = this.settings.excludeDiscount;
-    // Don't set the property again to avoid infinite loop
-    localStorage.setItem('excludeDiscount', exclude.toString());
+    // SettingsService already persists this via its setter
 
     // Reset the filteredOut flag for all planes to ensure proper re-evaluation
     for (const plane of planeLog.values()) {

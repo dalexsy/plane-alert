@@ -34,6 +34,11 @@ interface DeviceListItem {
   proximityEnabled: boolean;
   militaryEnabled: boolean;
   ignoredTypes: string[];
+  location?: {
+    lat: number;
+    lon: number;
+    address?: string;
+  };
 }
 
 @Component({
@@ -168,6 +173,29 @@ export class PushoverConfigEditorComponent implements OnInit {
     return name;
   }
 
+  formatLocation(device: DeviceListItem): string {
+    if (!device.location?.lat || !device.location?.lon) {
+      return 'No location set';
+    }
+    
+    // If there's an address, show that primarily with coords as backup
+    if (device.location.address) {
+      // Try to extract city/region from full address
+      const parts = device.location.address.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        // Show last 2-3 parts (usually city, region, country)
+        const shortAddress = parts.slice(-3).join(', ');
+        return shortAddress;
+      }
+      return device.location.address;
+    }
+    
+    // No address, show coordinates
+    const lat = device.location.lat.toFixed(4);
+    const lon = device.location.lon.toFixed(4);
+    return `${lat}, ${lon}`;
+  }
+
   async toggleProximity(device: DeviceListItem, event: Event): Promise<void> {
     event.stopPropagation();
     device.proximityEnabled = !device.proximityEnabled;
@@ -297,6 +325,7 @@ export class PushoverConfigEditorComponent implements OnInit {
           proximityEnabled: config.notifyProximity === true,
           militaryEnabled: !militaryDisabled,
           ignoredTypes: [...ignoredTypes],
+          location: config.home || (config as any).location || undefined,
         });
       });
 

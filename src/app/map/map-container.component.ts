@@ -33,6 +33,7 @@ import { SettingsService } from '../services/settings.service';
 import { ScanService } from '../services/scan.service';
 import { LocationUpdateService } from '../services/location-update.service';
 import { UrlParameterService } from '../services/url-parameter.service';
+import { AircraftSnapshotService } from '../services/aircraft-snapshot.service';
 
 // Event types
 interface PlaneSelectionEvent {
@@ -94,7 +95,8 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
     private scanService: ScanService,
     private cdr: ChangeDetectorRef,
     private locationUpdateService: LocationUpdateService,
-    private urlParameterService: UrlParameterService
+    private urlParameterService: UrlParameterService,
+    private aircraftSnapshot: AircraftSnapshotService
   ) {}
   ngOnInit(): void {
     // Initialize observables after dependency injection is complete
@@ -316,20 +318,30 @@ export class MapContainerComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Setup automatic data refresh
+   * Set up data refresh cycle - now using Firestore realtime updates
    */
   private setupDataRefresh(): void {
-    // Start scan service
-    this.scanService.start(this.settings.interval, () => {
-      const state = this.mapStateManager.getCurrentState();
-      this.refreshPlanesForLocation(
-        state.view.center.lat,
-        state.view.center.lon,
-        state.radius
-      );
-    });
+    // Subscribe to Firestore realtime aircraft updates
+    this.aircraftSnapshot.aircraft$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((aircraft) => {
+        if (aircraft.length > 0) {
+          console.log(
+            'Received aircraft update from Firestore:',
+            aircraft.length,
+            'planes'
+          );
+          // Trigger plane data refresh with the new aircraft data
+          const state = this.mapStateManager.getCurrentState();
+          this.refreshPlanesForLocation(
+            state.view.center.lat,
+            state.view.center.lon,
+            state.radius
+          );
+        }
+      });
 
-    // Initial data load
+    // Initial data load and Firestore subscription setup
     this.refreshAllData();
   }
 

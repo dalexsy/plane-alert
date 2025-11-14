@@ -11,6 +11,7 @@ import {
 import {
   createOrUpdatePlaneMarker,
   removeLeftMarkerFromPlane,
+  resumeMidFlightAnimation,
 } from '../utils/plane-marker';
 import { AltitudeColorService } from './altitude-color.service';
 import { HelicopterIdentificationService } from './helicopter-identification.service';
@@ -41,6 +42,40 @@ export class PlaneVisualizationService {
     plane.removeHistoryTrailSegments(map);
   }
 
+  resumeMidFlightAnimations(
+    planes: Iterable<PlaneModel>,
+    lastSnapshotTimestamp: number
+  ): void {
+    if (!this.settings.animationsEnabled || !lastSnapshotTimestamp) {
+      console.debug(
+        'Skipping resume: animations disabled or missing timestamp',
+        {
+          animations: this.settings.animationsEnabled,
+          lastSnapshotTimestamp,
+        }
+      );
+      return;
+    }
+
+    for (const plane of planes) {
+      if (!plane.marker) {
+        console.debug(`Skipping resume for ${plane.icao}: no marker`);
+        continue;
+      }
+
+      resumeMidFlightAnimation(
+        plane.marker,
+        plane,
+        this.settings.interval,
+        plane.positionHistory.length > 0
+          ? plane.positionHistory[plane.positionHistory.length - 1].timestamp
+          : lastSnapshotTimestamp,
+        this.settings.animationsEnabled,
+        plane.icao
+      );
+    }
+  }
+
   createPlaneMarker(
     plane: PlaneModel,
     map: L.Map,
@@ -59,7 +94,8 @@ export class PlaneVisualizationService {
     getFlagHTML: (origin: string) => string,
     userUnit: DistanceUnit,
     centerLat: number,
-    centerLon: number
+    centerLon: number,
+    lastSnapshotTimestamp?: number
   ): L.Marker {
     // Create tooltip
     const tooltip = this.createTooltip(
@@ -95,7 +131,18 @@ export class PlaneVisualizationService {
       onGround,
       isSpecial,
       isUnknown,
+      positionHistory: plane.positionHistory,
     };
+
+    const latestHistoryTimestamp =
+      plane.positionHistory.length > 0
+        ? plane.positionHistory[plane.positionHistory.length - 1].timestamp
+        : undefined;
+
+    const animationTimestamp =
+      typeof latestHistoryTimestamp === 'number'
+        ? latestHistoryTimestamp
+        : lastSnapshotTimestamp;
 
     const { marker } = createOrUpdatePlaneMarker(
       plane.marker,
@@ -113,7 +160,9 @@ export class PlaneVisualizationService {
       this.helicopterIdentificationService.isHelicopter(
         icao,
         model,
-        plane.operator
+        plane.operator,
+        plane.categoryCode,
+        plane.icaoType
       ),
       isSpecial,
       isUnknown,
@@ -124,7 +173,8 @@ export class PlaneVisualizationService {
       callsign,
       this.operatorTooltipService,
       planeData,
-      this.settings.animationsEnabled
+      this.settings.animationsEnabled,
+      animationTimestamp
     );
 
     // Apply altitude border styling

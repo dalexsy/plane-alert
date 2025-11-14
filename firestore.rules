@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to aircraft snapshots
+    // These are updated by backend functions and read by all users
+    match /aircraft-snapshots/{document=**} {
+      allow read: if true;  // Public read for live aircraft data
+      allow write: if false; // Only backend functions can write
+    }
+    
+    // Device tokens are private - only backend can access
+    match /deviceTokens/{document=**} {
+      allow read, write: if false; // Only backend functions
+    }
+    
+    // Notification cooldowns are private - only backend can access
+    match /notification-cooldowns/{document=**} {
+      allow read, write: if false; // Only backend functions
+    }
+    
+    // Default deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -95,21 +95,13 @@ export class MapUpdateService {
         this.settings.showAirportLabels
       );
 
-      // Remove out-of-range planes and handle scan
-      this.removeOutOfRangePlanes(
-        planeLog,
-        planeHistoricalLog,
-        lat,
-        lon,
-        mainRadius
-      );
+      // Don't remove planes here - let the scan handle it after new data arrives
+      // This prevents the "0 planes" flash when changing locations
+      // The scan will filter out-of-range planes naturally when processing new data
 
-      // Prevent double scan on initial load
-      if (!this._initialScanDone) {
-        this._initialScanDone = true;
-      } else {
-        this.scanService.forceScan();
-      }
+      // Trigger scan to fetch planes for new location
+      // The scan service will handle removing out-of-range planes and adding new ones
+      this.scanService.forceScan();
     } catch (error) {
       console.warn('Airport search failed:', error);
     }

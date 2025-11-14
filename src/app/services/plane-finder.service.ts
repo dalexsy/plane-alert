@@ -103,6 +103,7 @@ export class PlaneFinderService {
         centerLon,
         radiusKm
       );
+      const snapshotTimestamp = this.planeDataService.getLastSnapshotTimestamp();
 
       const currentUpdateSet = new Set<string>();
       const updatedLogModels: PlaneModel[] = [];
@@ -132,24 +133,14 @@ export class PlaneFinderService {
         }
 
         // Create or update plane model
-        const { planeModel, isExisting } =
+        const { planeModel } =
           this.planeDataService.createOrUpdatePlaneModel(
             processedData,
             previousLog,
             centerLat,
-            centerLon
+            centerLon,
+            snapshotTimestamp
           );
-
-        // Add position to history for existing planes
-        if (isExisting) {
-          planeModel.addPositionToHistory(
-            processedData.lat,
-            processedData.lon,
-            processedData.track,
-            processedData.velocity,
-            processedData.altitude
-          );
-        }
 
         // Handle filtered planes
         if (processedData.isFiltered) {
@@ -180,7 +171,8 @@ export class PlaneFinderService {
           getFlagHTML,
           userUnit,
           centerLat,
-          centerLon
+          centerLon,
+          snapshotTimestamp
         );
         planeModel.marker = marker;
 

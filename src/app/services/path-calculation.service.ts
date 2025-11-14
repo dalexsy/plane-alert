@@ -438,6 +438,39 @@ export class PathCalculationService {
       return;
     }
 
+    const historyAltitudes = plane.positionHistory
+      .map((entry) =>
+        typeof entry?.altitude === 'number' && !Number.isNaN(entry.altitude)
+          ? entry.altitude
+          : null
+      )
+      .filter((value): value is number => value !== null);
+    const latestAltitude =
+      typeof altitude === 'number'
+        ? altitude
+        : plane.positionHistory[plane.positionHistory.length - 1]?.altitude ??
+          null;
+    const maxHistoryAltitude =
+      historyAltitudes.length > 0
+        ? Math.max(...historyAltitudes)
+        : undefined;
+    if (
+      historyAltitudes.length === 0 ||
+      (typeof maxHistoryAltitude === 'number' && maxHistoryAltitude <= 50)
+    ) {
+      console.debug('History trail altitude check', {
+        icao: plane.icao,
+        sampleCount: plane.positionHistory.length,
+        latestAltitude,
+        maxHistoryAltitude,
+        minHistoryAltitude:
+          historyAltitudes.length > 0
+            ? Math.min(...historyAltitudes)
+            : undefined,
+        recentSamples: historyAltitudes.slice(-5),
+      });
+    }
+
     const rawHistory = plane.positionHistory.map((p) => ({
       lat: p.lat,
       lon: p.lon,

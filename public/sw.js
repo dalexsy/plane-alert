@@ -18,7 +18,7 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Minimal service worker focused on runtime caching of fetched assets
-const CACHE_NAME = "plane-alert-v2";
+const CACHE_NAME = "plane-alert-v6"; // Updated to force cache refresh
 const PRECACHE_URLS = ["/", "/index.html", "/assets/favicon/favicon.ico"];
 
 self.addEventListener("install", (event) => {

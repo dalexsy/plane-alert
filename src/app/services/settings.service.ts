@@ -36,6 +36,7 @@ export class SettingsService {
   private _mapLat: number | null = null;
   private _mapLon: number | null = null;
   private _mapZoom: number = 8;
+  private locationKey = 'currentLocation'; // Unified location storage
   private homeLocationKey = 'homeLocation';
   private seenCollapsedKey = 'seenCollapsed';
   private _seenCollapsed: boolean = true; // Collapsed by default
@@ -276,14 +277,25 @@ export class SettingsService {
   /**
    * Set location (lat, lon) and address together atomically
    * This ensures coordinates and address are always in sync
+   * Also updates backend notification location
    */
-  setLocationWithAddress(lat: number, lon: number, address: string): void {
+  async setLocationWithAddress(lat: number, lon: number, address: string): Promise<void> {
     this._lat = lat;
     this._lon = lon;
     this._currentAddress = address;
     localStorage.setItem('lastLat', lat.toString());
     localStorage.setItem('lastLon', lon.toString());
     localStorage.setItem('currentAddress', address);
+    
+    // Update backend notification location
+    const firebaseMessaging = (await import('./firebase-messaging.service')).FirebaseMessagingService;
+    const injector = (await import('@angular/core')).inject;
+    try {
+      const messagingService = injector(firebaseMessaging);
+      await messagingService.updateCurrentLocation(lat, lon);
+    } catch (error) {
+      console.warn('Failed to update backend location:', error);
+    }
   }
 
   get radius(): number | null {
@@ -382,12 +394,22 @@ export class SettingsService {
     }
   }
 
-  setHomeLocation(lat: number, lon: number, address?: string): void {
+  async setHomeLocation(lat: number, lon: number, address?: string): Promise<void> {
     const homeData: any = { lat, lon };
     if (address) {
       homeData.address = address;
     }
     localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
+    
+    // Update backend notification location
+    const firebaseMessaging = (await import('./firebase-messaging.service')).FirebaseMessagingService;
+    const injector = (await import('@angular/core')).inject;
+    try {
+      const messagingService = injector(firebaseMessaging);
+      await messagingService.updateCurrentLocation(lat, lon);
+    } catch (error) {
+      console.warn('Failed to update backend home location:', error);
+    }
   }
 
   getHomeLocation(): { lat: number; lon: number; address?: string } | null {
@@ -557,26 +579,55 @@ export class SettingsService {
     if (animationsStr !== null) {
       this._animationsEnabled = animationsStr === 'true';
     }
-    const lat = parseFloat(localStorage.getItem('lastLat') || '');
-    const lon = parseFloat(localStorage.getItem('lastLon') || '');
+    // Try to load from unified location object first
+    const unifiedLocation = localStorage.getItem(this.locationKey);
+    let lat: number, lon: number, currentAddress: string | null = null;
+    
+    if (unifiedLocation) {
+      try {
+        const locationData = JSON.parse(unifiedLocation);
+        lat = parseFloat(locationData.lat);
+        lon = parseFloat(locationData.lon);
+        currentAddress = locationData.address || null;
+      } catch {
+        // Fall back to individual keys if JSON parse fails
+        lat = parseFloat(localStorage.getItem('lastLat') || '');
+        lon = parseFloat(localStorage.getItem('lastLon') || '');
+        currentAddress = localStorage.getItem('currentAddress');
+      }
+    } else {
+      // Fall back to individual keys for backwards compatibility
+      lat = parseFloat(localStorage.getItem('lastLat') || '');
+      lon = parseFloat(localStorage.getItem('lastLon') || '');
+      currentAddress = localStorage.getItem('currentAddress');
+    }
+    
     const radius = parseFloat(localStorage.getItem('lastSearchRadius') || '');
     const interval = parseFloat(localStorage.getItem('checkInterval') || '');
     const exclude = localStorage.getItem('excludeDiscount');
     const mapLat = parseFloat(localStorage.getItem('mapLat') || '');
     const mapLon = parseFloat(localStorage.getItem('mapLon') || '');
     const mapZoom = parseFloat(localStorage.getItem('mapZoom') || '');
-    const currentAddress = localStorage.getItem('currentAddress');
+    
     if (!isNaN(lat)) {
       this._lat = lat;
     }
     if (!isNaN(lon)) {
       this._lon = lon;
     }
+    if (currentAddress) {
+      this._currentAddress = currentAddress;
+    }
     if (!isNaN(radius)) {
       this._radius = radius;
     }
     if (!isNaN(interval)) {
-      this._interval = interval;
+      // Migrate old interval values: ensure minimum 60 seconds to match backend collection frequency
+      this._interval = Math.max(60, interval);
+      // Update localStorage if value was migrated
+      if (interval < 60) {
+        localStorage.setItem('checkInterval', '60');
+      }
     }
     if (exclude !== null) {
       this._excludeDiscount = exclude === 'true';
@@ -590,9 +641,7 @@ export class SettingsService {
     if (!isNaN(mapZoom)) {
       this._mapZoom = mapZoom;
     }
-    if (currentAddress) {
-      this._currentAddress = currentAddress;
-    }
+    // currentAddress is now loaded earlier with lat/lon from unified location
     // Load seenCollapsed preference
     const seenStr = localStorage.getItem(this.seenCollapsedKey);
     if (seenStr !== null) {
