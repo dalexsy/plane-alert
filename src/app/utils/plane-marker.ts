@@ -42,7 +42,9 @@ export function smoothLerpToPosition(
 
 export function resumeMidFlightAnimation(
   marker: L.Marker,
-  planeData: { positionHistory?: Array<{ lat: number; lon: number }> } | undefined,
+  planeData:
+    | { positionHistory?: Array<{ lat: number; lon: number }> }
+    | undefined,
   scanInterval: number,
   lastUpdateTimestamp: number | undefined,
   animationsEnabled: boolean,
@@ -71,13 +73,17 @@ export function resumeMidFlightAnimation(
   const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
   if (timeSinceUpdate < 0 || timeSinceUpdate >= scanInterval) {
     console.debug(
-      `Skipping resume for ${icao}: elapsed ${timeSinceUpdate.toFixed(1)}s outside window`
+      `Skipping resume for ${icao}: elapsed ${timeSinceUpdate.toFixed(
+        1
+      )}s outside window`
     );
     return false;
   }
 
-  const previousPos = planeData.positionHistory[planeData.positionHistory.length - 2];
-  const currentPos = planeData.positionHistory[planeData.positionHistory.length - 1];
+  const previousPos =
+    planeData.positionHistory[planeData.positionHistory.length - 2];
+  const currentPos =
+    planeData.positionHistory[planeData.positionHistory.length - 1];
 
   if (!previousPos || !currentPos) {
     return false;
@@ -311,53 +317,86 @@ export function createOrUpdatePlaneMarker(
     // Get the current position for smooth interpolation
     const currentLatLng = oldMarker.getLatLng();
     const newLatLng = L.latLng(lat, lon);
-    
+
     // Use a small threshold to detect meaningful position changes (about 0.1 meter precision)
     const latDiff = Math.abs(currentLatLng.lat - lat);
     const lngDiff = Math.abs(currentLatLng.lng - lon);
     const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
-    
+
     // Check for mid-flight animation on initial page load
     let shouldAnimateFromHistory = false;
     let startPosition = currentLatLng;
     let animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
-    
-  console.debug(`Checking ${icao}: hasHistory=${!!planeData?.positionHistory}, historyLen=${planeData?.positionHistory?.length}, hasTimestamp=${!!lastUpdateTimestamp}, animations=${animationsEnabled}`);
-    
-    if (animationsEnabled && planeData?.positionHistory && planeData.positionHistory.length >= 2 && lastUpdateTimestamp) {
-      const previousPos = planeData.positionHistory[planeData.positionHistory.length - 2];
+
+    console.debug(
+      `Checking ${icao}: hasHistory=${!!planeData?.positionHistory}, historyLen=${
+        planeData?.positionHistory?.length
+      }, hasTimestamp=${!!lastUpdateTimestamp}, animations=${animationsEnabled}`
+    );
+
+    if (
+      animationsEnabled &&
+      planeData?.positionHistory &&
+      planeData.positionHistory.length >= 2 &&
+      lastUpdateTimestamp
+    ) {
+      const previousPos =
+        planeData.positionHistory[planeData.positionHistory.length - 2];
       const now = Date.now();
       const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
-      
+
       // Check if marker is at the current target position (just loaded, hasn't animated yet)
-      const isAtCurrentPosition = Math.abs(currentLatLng.lat - lat) < 0.00001 
-                                && Math.abs(currentLatLng.lng - lon) < 0.00001;
-      
-  console.debug(`${icao} details: isAtCurrent=${isAtCurrentPosition}, timeSince=${timeSinceUpdate.toFixed(1)}s, scanInt=${scanInterval}`);
-      
-      if (isAtCurrentPosition && timeSinceUpdate > 0 && timeSinceUpdate < scanInterval) {
+      const isAtCurrentPosition =
+        Math.abs(currentLatLng.lat - lat) < 0.00001 &&
+        Math.abs(currentLatLng.lng - lon) < 0.00001;
+
+      console.debug(
+        `${icao} details: isAtCurrent=${isAtCurrentPosition}, timeSince=${timeSinceUpdate.toFixed(
+          1
+        )}s, scanInt=${scanInterval}`
+      );
+
+      if (
+        isAtCurrentPosition &&
+        timeSinceUpdate > 0 &&
+        timeSinceUpdate < scanInterval
+      ) {
         // Start from previous position and animate for remaining time
         shouldAnimateFromHistory = true;
         startPosition = L.latLng(previousPos.lat, previousPos.lon);
         animationDuration = Math.max(1, scanInterval * 0.95) * 1000;
         oldMarker.setLatLng(startPosition);
-  console.debug(`✈️ Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(1)}s elapsed, ${(animationDuration/1000).toFixed(1)}s playback`);
+        console.debug(
+          `✈️ Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(
+            1
+          )}s elapsed, ${(animationDuration / 1000).toFixed(1)}s playback`
+        );
       }
     }
-    
+
     if ((hasPositionChanged || shouldAnimateFromHistory) && animationsEnabled) {
       if (shouldAnimateFromHistory) {
         // already logged above with ✈️ marker
       } else if (hasPositionChanged) {
         const deltaLat = newLatLng.lat - startPosition.lat;
         const deltaLon = newLatLng.lng - startPosition.lng;
-        const approxMeters = Math.sqrt(deltaLat * deltaLat + deltaLon * deltaLon) * 111320; // rough conversion for debugging
+        const approxMeters =
+          Math.sqrt(deltaLat * deltaLat + deltaLon * deltaLon) * 111320; // rough conversion for debugging
         console.debug(
-          `Animating ${icao}: Δlat=${deltaLat.toFixed(6)}, Δlon=${deltaLon.toFixed(6)}, ≈${approxMeters.toFixed(0)}m over ${(animationDuration / 1000).toFixed(1)}s`
+          `Animating ${icao}: Δlat=${deltaLat.toFixed(
+            6
+          )}, Δlon=${deltaLon.toFixed(6)}, ≈${approxMeters.toFixed(0)}m over ${(
+            animationDuration / 1000
+          ).toFixed(1)}s`
         );
       }
       // Perform smooth lerping animation
-      smoothLerpToPosition(oldMarker, startPosition, newLatLng, animationDuration);
+      smoothLerpToPosition(
+        oldMarker,
+        startPosition,
+        newLatLng,
+        animationDuration
+      );
     } else {
       // For planes that haven't moved significantly or animations are disabled, update position immediately
       oldMarker.setLatLng([lat, lon]);
@@ -452,24 +491,38 @@ export function createOrUpdatePlaneMarker(
   } else {
     // Creating a new marker - check if we need to animate from a previous position
     let startLatLng: L.LatLng | null = null;
-  let adjustedDuration = Math.max(2, scanInterval * 0.95) * 1000;
-    
-    if (animationsEnabled && planeData?.positionHistory && planeData.positionHistory.length >= 2 && lastUpdateTimestamp) {
-      const previousPos = planeData.positionHistory[planeData.positionHistory.length - 2];
+    let adjustedDuration = Math.max(2, scanInterval * 0.95) * 1000;
+
+    if (
+      animationsEnabled &&
+      planeData?.positionHistory &&
+      planeData.positionHistory.length >= 2 &&
+      lastUpdateTimestamp
+    ) {
+      const previousPos =
+        planeData.positionHistory[planeData.positionHistory.length - 2];
       const now = Date.now();
       const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
-      
-      if (previousPos && timeSinceUpdate > 0 && timeSinceUpdate < scanInterval) {
+
+      if (
+        previousPos &&
+        timeSinceUpdate > 0 &&
+        timeSinceUpdate < scanInterval
+      ) {
         startLatLng = L.latLng(previousPos.lat, previousPos.lon);
         adjustedDuration = Math.max(1, scanInterval * 0.95) * 1000;
-  console.debug(`Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(1)}s elapsed, ${(adjustedDuration/1000).toFixed(1)}s playback`);
+        console.debug(
+          `Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(
+            1
+          )}s elapsed, ${(adjustedDuration / 1000).toFixed(1)}s playback`
+        );
       }
     }
-    
+
     const marker = L.marker([lat, lon], { icon });
     marker.bindTooltip(tooltipContent, rightTooltipOptions);
     marker.addTo(map);
-    
+
     // If we have a start position, begin animation from there
     if (startLatLng && animationsEnabled) {
       marker.setLatLng(startLatLng);

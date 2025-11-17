@@ -122,7 +122,7 @@ export class AircraftSnapshotService {
       console.error('Error fetching initial aircraft data:', error);
       // On error, try direct API fetch as fallback
       await this.fetchDirectFromAPI(roundedLat, roundedLon, radiusKm);
-    }    // Set up realtime listener for future updates
+    } // Set up realtime listener for future updates
     this.unsubscribeFn = onSnapshot(
       docRef,
       (snapshot: any) => {
@@ -165,7 +165,9 @@ export class AircraftSnapshotService {
   ): Promise<void> {
     try {
       const radiusNm = radiusKm / 1.852;
-      const url = `https://api.adsb.one/v2/point/${lat}/${lon}/${radiusNm.toFixed(2)}`;
+      const url = `https://api.adsb.one/v2/point/${lat}/${lon}/${radiusNm.toFixed(
+        2
+      )}`;
 
       console.log('Fetching aircraft directly from ADS-B One API:', {
         lat,
@@ -244,7 +246,10 @@ export class AircraftSnapshotService {
           return millis;
         }
       } catch (err) {
-        console.warn('Failed to convert Firestore timestamp, falling back to Date.now()', err);
+        console.warn(
+          'Failed to convert Firestore timestamp, falling back to Date.now()',
+          err
+        );
       }
     }
     return Date.now();

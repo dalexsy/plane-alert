@@ -1,6 +1,11 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import {
+  COMMON_MILITARY_TYPES,
+  type MilitaryAircraftType,
+} from '@plane-alert/shared';
+import { IconComponent } from '../ui/icon.component';
 
 interface BackendDeviceConfig {
   radiusKm?: number;
@@ -23,11 +28,6 @@ interface BackendDeviceEntry {
   config: BackendDeviceConfig;
 }
 
-interface MilitaryAircraftType {
-  code: string;
-  name: string;
-}
-
 interface DeviceListItem {
   name: string;
   docId: string | null;
@@ -44,7 +44,7 @@ interface DeviceListItem {
 @Component({
   selector: 'app-pushover-config-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './pushover-config-editor.component.html',
   styleUrls: ['./pushover-config-editor.component.scss'],
 })
@@ -55,30 +55,8 @@ export class PushoverConfigEditorComponent implements OnInit {
     radiusKm: number;
   }>();
 
-  commonMilitaryTypes: MilitaryAircraftType[] = [
-    { code: 'C130', name: 'C-130 Hercules' },
-    { code: 'C30J', name: 'C-130J Super Hercules' },
-    { code: 'A400', name: 'A400M Atlas' },
-    { code: 'C17', name: 'C-17 Globemaster' },
-    { code: 'KC135', name: 'KC-135 Stratotanker' },
-    { code: 'KC10', name: 'KC-10 Extender' },
-    { code: 'KC46', name: 'KC-46 Pegasus' },
-    { code: 'E3', name: 'E-3 Sentry (AWACS)' },
-    { code: 'E2', name: 'E-2 Hawkeye' },
-    { code: 'P8', name: 'P-8 Poseidon' },
-    { code: 'F16', name: 'F-16 Fighting Falcon' },
-    { code: 'F15', name: 'F-15 Eagle' },
-    { code: 'F18', name: 'F-18 Hornet' },
-    { code: 'F22', name: 'F-22 Raptor' },
-    { code: 'F35', name: 'F-35 Lightning II' },
-    { code: 'A10', name: 'A-10 Thunderbolt II' },
-    { code: 'B52', name: 'B-52 Stratofortress' },
-    { code: 'B1', name: 'B-1 Lancer' },
-    { code: 'B2', name: 'B-2 Spirit' },
-    { code: 'CH47', name: 'CH-47 Chinook' },
-    { code: 'UH60', name: 'UH-60 Black Hawk' },
-    { code: 'AH64', name: 'AH-64 Apache' },
-  ];
+  // Use shared military types from @plane-alert/shared
+  commonMilitaryTypes: readonly MilitaryAircraftType[] = COMMON_MILITARY_TYPES;
 
   statusMessage = '';
   pushoverUserKey = '';
@@ -91,6 +69,7 @@ export class PushoverConfigEditorComponent implements OnInit {
   selectedDevice: DeviceListItem | null = null;
   isSaving = false;
   customIgnoreList = '';
+  private savingDevices = new Set<string>(); // Track which devices are currently saving
 
   ngOnInit(): void {
     this.loadConfiguration();
@@ -177,11 +156,11 @@ export class PushoverConfigEditorComponent implements OnInit {
     if (!device.location?.lat || !device.location?.lon) {
       return 'No location set';
     }
-    
+
     // If there's an address, show that primarily with coords as backup
     if (device.location.address) {
       // Try to extract city/region from full address
-      const parts = device.location.address.split(',').map(p => p.trim());
+      const parts = device.location.address.split(',').map((p) => p.trim());
       if (parts.length >= 2) {
         // Show last 2-3 parts (usually city, region, country)
         const shortAddress = parts.slice(-3).join(', ');
@@ -189,22 +168,33 @@ export class PushoverConfigEditorComponent implements OnInit {
       }
       return device.location.address;
     }
-    
+
     // No address, show coordinates
     const lat = device.location.lat.toFixed(4);
     const lon = device.location.lon.toFixed(4);
     return `${lat}, ${lon}`;
   }
 
-  async toggleProximity(device: DeviceListItem, event: Event): Promise<void> {
-    event.stopPropagation();
-    device.proximityEnabled = !device.proximityEnabled;
+  async onProximityChange(device: DeviceListItem): Promise<void> {
+    // ngModel already updated the value, just save
+    console.log(
+      `Proximity changed for ${device.name}:`,
+      device.proximityEnabled
+    );
+
+    // Prevent concurrent saves for the same device
+    if (this.savingDevices.has(device.name)) {
+      console.log(`⏳ Skipping save for ${device.name} - already saving`);
+      return;
+    }
+
     await this.saveDevice(device, true);
   }
 
-  async toggleMilitary(device: DeviceListItem, event: Event): Promise<void> {
-    event.stopPropagation();
-    device.militaryEnabled = !device.militaryEnabled;
+  async onMilitaryChange(device: DeviceListItem): Promise<void> {
+    // ngModel already updated the value, handle logic and save
+    console.log(`Military changed for ${device.name}:`, device.militaryEnabled);
+
     // If disabling, clear ignored types; if enabling, keep current filters
     if (!device.militaryEnabled) {
       device.ignoredTypes = ['*'];
@@ -214,13 +204,14 @@ export class PushoverConfigEditorComponent implements OnInit {
     ) {
       device.ignoredTypes = [];
     }
-    await this.saveDevice(device, true);
-  }
 
-  async saveSelectedDevice(): Promise<void> {
-    if (!this.selectedDevice) return;
-    this.onCustomFilterChange();
-    await this.saveDevice(this.selectedDevice, false);
+    // Prevent concurrent saves for the same device
+    if (this.savingDevices.has(device.name)) {
+      console.log(`⏳ Skipping save for ${device.name} - already saving`);
+      return;
+    }
+
+    await this.saveDevice(device, true);
   }
 
   async removeDevice(device: DeviceListItem): Promise<void> {
@@ -387,7 +378,10 @@ export class PushoverConfigEditorComponent implements OnInit {
     device: DeviceListItem,
     silent: boolean = false
   ): Promise<void> {
-    if (this.isSaving) return;
+    if (this.isSaving && !silent) return; // Don't block silent saves
+
+    // Mark this device as being saved
+    this.savingDevices.add(device.name);
 
     const latitude = parseFloat(localStorage.getItem('user-latitude') || '0');
     const longitude = parseFloat(localStorage.getItem('user-longitude') || '0');
@@ -471,6 +465,8 @@ export class PushoverConfigEditorComponent implements OnInit {
       }
     } finally {
       this.isSaving = false;
+      // Remove device from saving set
+      this.savingDevices.delete(device.name);
     }
   }
 

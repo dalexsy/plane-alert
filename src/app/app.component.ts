@@ -54,7 +54,9 @@ export class AppComponent implements OnInit {
         // Re-register with current settings
         await this.firebaseMessaging.registerDevice(storedKey);
       } else {
-        console.log('⏸️ Skipping auto-registration: no saved location. Double-tap map to set location.');
+        console.log(
+          '⏸️ Skipping auto-registration: no saved location. Double-tap map to set location.'
+        );
       }
       return;
     }

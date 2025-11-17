@@ -451,9 +451,7 @@ export class PathCalculationService {
         : plane.positionHistory[plane.positionHistory.length - 1]?.altitude ??
           null;
     const maxHistoryAltitude =
-      historyAltitudes.length > 0
-        ? Math.max(...historyAltitudes)
-        : undefined;
+      historyAltitudes.length > 0 ? Math.max(...historyAltitudes) : undefined;
     if (
       historyAltitudes.length === 0 ||
       (typeof maxHistoryAltitude === 'number' && maxHistoryAltitude <= 50)

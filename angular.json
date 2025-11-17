@@ -30,10 +30,7 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "allowedCommonJsDependencies": [
-              "leaflet",
-              "suncalc"
-            ],
+            "allowedCommonJsDependencies": ["leaflet", "suncalc"],
             "assets": [
               {
                 "glob": "**/*",

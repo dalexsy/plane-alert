@@ -279,16 +279,21 @@ export class SettingsService {
    * This ensures coordinates and address are always in sync
    * Also updates backend notification location
    */
-  async setLocationWithAddress(lat: number, lon: number, address: string): Promise<void> {
+  async setLocationWithAddress(
+    lat: number,
+    lon: number,
+    address: string
+  ): Promise<void> {
     this._lat = lat;
     this._lon = lon;
     this._currentAddress = address;
     localStorage.setItem('lastLat', lat.toString());
     localStorage.setItem('lastLon', lon.toString());
     localStorage.setItem('currentAddress', address);
-    
+
     // Update backend notification location
-    const firebaseMessaging = (await import('./firebase-messaging.service')).FirebaseMessagingService;
+    const firebaseMessaging = (await import('./firebase-messaging.service'))
+      .FirebaseMessagingService;
     const injector = (await import('@angular/core')).inject;
     try {
       const messagingService = injector(firebaseMessaging);
@@ -394,15 +399,20 @@ export class SettingsService {
     }
   }
 
-  async setHomeLocation(lat: number, lon: number, address?: string): Promise<void> {
+  async setHomeLocation(
+    lat: number,
+    lon: number,
+    address?: string
+  ): Promise<void> {
     const homeData: any = { lat, lon };
     if (address) {
       homeData.address = address;
     }
     localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
-    
+
     // Update backend notification location
-    const firebaseMessaging = (await import('./firebase-messaging.service')).FirebaseMessagingService;
+    const firebaseMessaging = (await import('./firebase-messaging.service'))
+      .FirebaseMessagingService;
     const injector = (await import('@angular/core')).inject;
     try {
       const messagingService = injector(firebaseMessaging);
@@ -581,8 +591,10 @@ export class SettingsService {
     }
     // Try to load from unified location object first
     const unifiedLocation = localStorage.getItem(this.locationKey);
-    let lat: number, lon: number, currentAddress: string | null = null;
-    
+    let lat: number,
+      lon: number,
+      currentAddress: string | null = null;
+
     if (unifiedLocation) {
       try {
         const locationData = JSON.parse(unifiedLocation);
@@ -601,14 +613,14 @@ export class SettingsService {
       lon = parseFloat(localStorage.getItem('lastLon') || '');
       currentAddress = localStorage.getItem('currentAddress');
     }
-    
+
     const radius = parseFloat(localStorage.getItem('lastSearchRadius') || '');
     const interval = parseFloat(localStorage.getItem('checkInterval') || '');
     const exclude = localStorage.getItem('excludeDiscount');
     const mapLat = parseFloat(localStorage.getItem('mapLat') || '');
     const mapLon = parseFloat(localStorage.getItem('mapLon') || '');
     const mapZoom = parseFloat(localStorage.getItem('mapZoom') || '');
-    
+
     if (!isNaN(lat)) {
       this._lat = lat;
     }

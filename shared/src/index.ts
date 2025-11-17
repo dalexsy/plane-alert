@@ -58,3 +58,7 @@ export {
   isMilitaryAircraft,
 } from './aircraft-db-loader';
 export type { AircraftDbEntry, AircraftDbMetadata } from './aircraft-db-loader';
+
+// Export military types for filtering
+export { COMMON_MILITARY_TYPES } from './military-types';
+export type { MilitaryAircraftType } from './military-types';

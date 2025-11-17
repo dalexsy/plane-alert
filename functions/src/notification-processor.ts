@@ -84,7 +84,8 @@ async function fetchAircraftImage(
   }
 
   try {
-    let searchQuery = `"${model}" aircraft airplane photo`;
+    // Match frontend search query format (no quotes for better results)
+    let searchQuery = `${model} aircraft airplane photo`;
     if (operator) {
       const operatorShort = operator.split(' ')[0];
       searchQuery += ` ${operatorShort}`;
@@ -417,7 +418,7 @@ async function notifyForDevice(
     }
 
     const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
-  const messages: Array<Record<string, any>> = [];
+    const messages: Array<Record<string, any>> = [];
     const now = Date.now();
 
     const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
@@ -567,7 +568,11 @@ async function notifyForDevice(
           ? countries.getName(countryResult.countryCode, 'en')
           : null;
 
-      let aircraftName = plane.desc || plane.t || '';
+      const icaoUpper = icao.toUpperCase();
+
+      // Look up enriched model from user aircraft database
+      const dbRecord = userAircraftLookup.get(icaoUpper);
+      let aircraftName = dbRecord?.model || plane.desc || plane.t || '';
 
       if (!aircraftName) {
         if (countryName) {
@@ -576,8 +581,6 @@ async function notifyForDevice(
           aircraftName = 'Military Aircraft';
         }
       }
-
-      const icaoUpper = icao.toUpperCase();
       const iconPath = isSpecialAircraft(icaoUpper)
         ? 'favicon/special'
         : 'favicon/military';
@@ -730,6 +733,7 @@ async function notifyForDevice(
       try {
         logger.info('Sending Pushover notification', {
           docId,
+          deviceName: data.deviceName,
           userKey: data.pushoverUserKey.slice(0, 8),
           message: msg.message,
           model: msg.model,
@@ -761,6 +765,7 @@ async function notifyForDevice(
         const params: Record<string, string> = {
           token: PUSHOVER_API_TOKEN || '',
           user: data.pushoverUserKey,
+          device: data.deviceName || '',
           title: msg.title,
           message: msg.message,
           url: msg.url || '',

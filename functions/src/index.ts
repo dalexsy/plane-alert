@@ -24,6 +24,7 @@ export const listAllDevices = deviceFunctions.listAllDevices;
 export const unsubscribeDevice = deviceFunctions.unsubscribeDevice;
 export const debugListTokens = deviceFunctions.debugListTokens;
 export const debugSendToken = deviceFunctions.debugSendToken;
+export const testProximityTargeting = deviceFunctions.testProximityTargeting;
 
 // Import and create aircraft collection function
 import { createAircraftCollectionFunction } from './aircraft-collection';

@@ -146,9 +146,7 @@ export class PlaneDataService {
         : '';
     const categoryCode = rawCategory ? rawCategory.toUpperCase() : null;
     const rawTypeDescription =
-      ac.type !== undefined && ac.type !== null
-        ? String(ac.type).trim()
-        : '';
+      ac.type !== undefined && ac.type !== null ? String(ac.type).trim() : '';
     const typeDescription = rawTypeDescription || null;
 
     // Fetch DB record
@@ -415,13 +413,13 @@ export class PlaneDataService {
       isUnknown,
     } = processedData;
 
-  let planeModelInstance = previousLog.get(id);
-  const isExistingPlane = !!planeModelInstance;
+    let planeModelInstance = previousLog.get(id);
+    const isExistingPlane = !!planeModelInstance;
 
-  const backendHistory = this.aircraftSnapshot.getCurrentHistory();
-  const planeHistory = backendHistory[id];
+    const backendHistory = this.aircraftSnapshot.getCurrentHistory();
+    const planeHistory = backendHistory[id];
 
-  if (!planeModelInstance) {
+    if (!planeModelInstance) {
       const firstSeen = Date.now();
       const initialPlaneData: Plane = {
         icao: id,
@@ -479,8 +477,7 @@ export class PlaneDataService {
     planeModelInstance.model = processedData.model;
     planeModelInstance.operator = processedData.operator;
     planeModelInstance.distanceKm = processedData.distanceKm;
-    planeModelInstance.categoryCode =
-      processedData.categoryCode ?? undefined;
+    planeModelInstance.categoryCode = processedData.categoryCode ?? undefined;
     planeModelInstance.icaoType = processedData.icaoType ?? undefined;
     planeModelInstance.typeDescription =
       processedData.typeDescription ?? undefined;
@@ -501,7 +498,9 @@ export class PlaneDataService {
 
   private syncPositionHistory(
     planeModel: PlaneModel,
-    planeHistory: Array<{ lat: number; lon: number; timestamp: number }> | undefined,
+    planeHistory:
+      | Array<{ lat: number; lon: number; timestamp: number }>
+      | undefined,
     processedData: ProcessedPlaneData,
     snapshotTimestamp: number | undefined,
     isExistingPlane: boolean
@@ -560,8 +559,10 @@ export class PlaneDataService {
           altitudeSource = 'missing';
         }
 
-        const track = existing?.track ?? (isLatest ? processedData.track : undefined);
-        const velocity = existing?.velocity ?? (isLatest ? processedData.velocity : undefined);
+        const track =
+          existing?.track ?? (isLatest ? processedData.track : undefined);
+        const velocity =
+          existing?.velocity ?? (isLatest ? processedData.velocity : undefined);
 
         planeModel.addPositionToHistory(
           entry.lat,

@@ -113,6 +113,8 @@
       -webkit-appearance: none;
       appearance: none;
       cursor: pointer;
+      margin: 0;
+      padding: 0;
 
       &::-webkit-slider-thumb {
         -webkit-appearance: none;
@@ -125,6 +127,7 @@
         border: 2px solid rgba(255, 255, 255, 0.8);
         box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
         transition: all 0.15s ease;
+        margin-top: -6px; /* Center thumb on track (20px thumb - 8px track) / 2 */
 
         &:hover {
           transform: scale(1.1);
@@ -146,6 +149,7 @@
         border: 2px solid rgba(255, 255, 255, 0.8);
         box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
         transition: all 0.15s ease;
+        margin-top: 0; /* Firefox handles centering differently */
 
         &:hover {
           transform: scale(1.1);

@@ -73,9 +73,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
         typeof location.lat !== 'number' ||
         typeof location.lon !== 'number'
       ) {
-        res
-          .status(400)
-          .json({ error: 'location with lat/lon is required' });
+        res.status(400).json({ error: 'location with lat/lon is required' });
         return;
       }
 
@@ -265,7 +263,9 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
         stack: error?.stack,
         name: error?.name,
       });
-      res.status(500).json({ error: 'Internal error', details: error?.message });
+      res
+        .status(500)
+        .json({ error: 'Internal error', details: error?.message });
     }
   });
 
@@ -446,6 +446,66 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     });
   });
 
+  const testProximityTargeting = onRequest(async (req: any, res: any) => {
+    res.set('Access-Control-Allow-Origin', '*');
+
+    const PUSHOVER_API_TOKEN = process.env.PUSHOVER_API_TOKEN;
+
+    try {
+      const snapshot = await db.collection(DEVICE_COLLECTION).get();
+      const results: any[] = [];
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data() as DeviceRegistration;
+        const deviceInfo: any = {
+          deviceName: data.deviceName || doc.id,
+          userKey: data.pushoverUserKey?.slice(0, 10) + '...',
+          proximityEnabled: data.notifyProximity,
+        };
+
+        if (data.notifyProximity === true && data.pushoverUserKey) {
+          const params = {
+            token: PUSHOVER_API_TOKEN || '',
+            user: data.pushoverUserKey,
+            device: data.deviceName || '',
+            title: '✈️ TEST: Proximity Alert',
+            message:
+              'This is a test proximity notification to verify device targeting is working correctly.',
+            url: 'https://plane-alert.surge.sh/',
+            url_title: 'View App',
+            priority: '1',
+            sound: 'none',
+          };
+
+          const response = await fetch(
+            'https://api.pushover.net/1/messages.json',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams(params as any),
+            } as any
+          );
+
+          const result: any = await response.json();
+          deviceInfo.sent = response.ok && result.status === 1;
+          deviceInfo.response = result;
+        } else {
+          deviceInfo.sent = false;
+          deviceInfo.reason = 'proximity disabled';
+        }
+
+        results.push(deviceInfo);
+      }
+
+      res.json({ success: true, results });
+    } catch (error: any) {
+      logger.error('testProximityTargeting error', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return {
     registerDevice,
     checkDevice,
@@ -453,5 +513,6 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     unsubscribeDevice,
     debugListTokens,
     debugSendToken,
+    testProximityTargeting,
   };
 }

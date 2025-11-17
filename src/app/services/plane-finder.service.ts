@@ -103,7 +103,8 @@ export class PlaneFinderService {
         centerLon,
         radiusKm
       );
-      const snapshotTimestamp = this.planeDataService.getLastSnapshotTimestamp();
+      const snapshotTimestamp =
+        this.planeDataService.getLastSnapshotTimestamp();
 
       const currentUpdateSet = new Set<string>();
       const updatedLogModels: PlaneModel[] = [];
@@ -133,14 +134,13 @@ export class PlaneFinderService {
         }
 
         // Create or update plane model
-        const { planeModel } =
-          this.planeDataService.createOrUpdatePlaneModel(
-            processedData,
-            previousLog,
-            centerLat,
-            centerLon,
-            snapshotTimestamp
-          );
+        const { planeModel } = this.planeDataService.createOrUpdatePlaneModel(
+          processedData,
+          previousLog,
+          centerLat,
+          centerLon,
+          snapshotTimestamp
+        );
 
         // Handle filtered planes
         if (processedData.isFiltered) {

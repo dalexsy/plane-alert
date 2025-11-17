@@ -354,13 +354,15 @@ export class MapStateManagerService {
       const homeLocation = homeLocationStr ? JSON.parse(homeLocationStr) : null;
 
       // Load radius
-      const radiusStr = localStorage.getItem('lastSearchRadius') || localStorage.getItem('radius');
+      const radiusStr =
+        localStorage.getItem('lastSearchRadius') ||
+        localStorage.getItem('radius');
       const radius = radiusStr ? parseFloat(radiusStr) : initialState.radius;
 
       // Load current location - try unified location first, then fall back to individual keys
       let lat: number | null = null;
       let lon: number | null = null;
-      
+
       const unifiedLocation = localStorage.getItem('currentLocation');
       if (unifiedLocation) {
         try {
@@ -371,15 +373,17 @@ export class MapStateManagerService {
           // Fall back to individual keys
         }
       }
-      
+
       // Fall back to individual keys if unified location not available
       if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
-        const latStr = localStorage.getItem('lastLat') || localStorage.getItem('lat');
-        const lonStr = localStorage.getItem('lastLon') || localStorage.getItem('lon');
+        const latStr =
+          localStorage.getItem('lastLat') || localStorage.getItem('lat');
+        const lonStr =
+          localStorage.getItem('lastLon') || localStorage.getItem('lon');
         lat = latStr ? parseFloat(latStr) : null;
         lon = lonStr ? parseFloat(lonStr) : null;
       }
-      
+
       const view =
         lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)
           ? {

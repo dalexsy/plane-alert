@@ -2,7 +2,7 @@
   <div class="header-fixed">
     <h3>Push Notification Configuration</h3>
     <button type="button" class="close-btn" (click)="close()" title="Close">
-      ✕
+      <app-icon icon="close" size="small"></app-icon>
     </button>
   </div>
 
@@ -23,9 +23,9 @@
           placeholder="Enter your Pushover user key"
           class="key-input"
         />
-        <span *ngIf="keyValidated" class="status-icon" title="Key validated"
-          >✓</span
-        >
+        <span *ngIf="keyValidated" class="status-icon" title="Key validated">
+          <app-icon icon="check_circle" size="small"></app-icon>
+        </span>
       </div>
       <p class="help-text">
         <a href="https://pushover.net" target="_blank" rel="noopener"
@@ -53,23 +53,37 @@
         >
           <div class="device-info">
             <div class="device-name-location">
-              <span class="device-name">{{ formatDeviceName(device.name) }}</span>
-              <span class="device-location">📍 {{ formatLocation(device) }}</span>
+              <span class="device-name">{{
+                formatDeviceName(device.name)
+              }}</span>
+              <span
+                class="device-location"
+                *ngIf="formatLocation(device) !== 'No location set'"
+              >
+                <app-icon
+                  icon="location_on"
+                  variant="sharp"
+                  size="small"
+                ></app-icon>
+                {{ formatLocation(device) }}
+              </span>
             </div>
             <div class="device-controls">
-              <label class="toggle-label">
+              <label class="toggle-label" (click)="$event.stopPropagation()">
                 <input
                   type="checkbox"
-                  [checked]="device.proximityEnabled"
-                  (change)="toggleProximity(device, $event)"
+                  [(ngModel)]="device.proximityEnabled"
+                  (ngModelChange)="onProximityChange(device)"
+                  (click)="$event.stopPropagation()"
                 />
                 Proximity
               </label>
-              <label class="toggle-label">
+              <label class="toggle-label" (click)="$event.stopPropagation()">
                 <input
                   type="checkbox"
-                  [checked]="device.militaryEnabled"
-                  (change)="toggleMilitary(device, $event)"
+                  [(ngModel)]="device.militaryEnabled"
+                  (ngModelChange)="onMilitaryChange(device)"
+                  (click)="$event.stopPropagation()"
                 />
                 Military
               </label>
@@ -82,7 +96,7 @@
             (click)="removeDevice(device); $event.stopPropagation()"
             title="Remove this device"
           >
-            ✕
+            <app-icon icon="delete" size="small"></app-icon>
           </button>
         </div>
       </div>
@@ -129,20 +143,9 @@
       </div>
     </div>
 
-    <!-- Fixed Footer -->
-    <div class="footer-fixed">
-      <button
-        type="button"
-        class="save-btn"
-        *ngIf="selectedDevice"
-        (click)="saveSelectedDevice()"
-        [disabled]="isSaving"
-      >
-        {{ isSaving ? "Saving..." : "Save Configuration" }}
-      </button>
-      <span *ngIf="statusMessage" class="status-inline">{{
-        statusMessage
-      }}</span>
+    <!-- Status Message -->
+    <div class="status-footer" *ngIf="statusMessage">
+      <span class="status-inline">{{ statusMessage }}</span>
     </div>
   </div>
 </div>
