@@ -6,9 +6,9 @@ import { HelicopterListService } from './helicopter-list.service';
 import { SpecialListService } from './special-list.service';
 import { UnknownListService } from './unknown-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
-import { MilitaryPrefixService } from './military-prefix.service';
 import { HelicopterIdentificationService } from './helicopter-identification.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
+import { looksMilitary } from '@plane-alert/shared';
 import {
   AircraftDbService,
   AircraftRecord,
@@ -65,7 +65,6 @@ export class PlaneDataService {
     private specialListService: SpecialListService,
     private unknownListService: UnknownListService,
     private operatorCallSignService: OperatorCallSignService,
-    private militaryPrefixService: MilitaryPrefixService,
     private helicopterIdentificationService: HelicopterIdentificationService,
     private aircraftCountryService: AircraftCountryService,
     private aircraftDb: AircraftDbService,
@@ -76,7 +75,6 @@ export class PlaneDataService {
     await this.helicopterListService.refreshHelicopterList(manualUpdate);
     await this.unknownListService.refreshUnknownList(manualUpdate);
     await this.specialListService.refreshSpecialList(manualUpdate);
-    await this.militaryPrefixService.loadPrefixes();
   }
 
   /**
@@ -152,9 +150,9 @@ export class PlaneDataService {
     // Fetch DB record
     const dbAircraft = getAircraftInfo(id);
 
-    // Determine military status early (needed for country detection priority)
-    const prefixIsMil = this.militaryPrefixService.isMilitaryCallsign(callsign);
-    const isMilitary = prefixIsMil || dbAircraft?.mil || false;
+    // Determine military status using shared looksMilitary() function (same logic as backend)
+    // This checks: mil flag OR dbFlags AND filters boring aircraft types
+    const isMilitary = looksMilitary(ac);
 
     // Derive country using the aircraft country service
     const rawCountry = ac.ctry ?? ac.countryCode;

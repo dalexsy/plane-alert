@@ -137,7 +137,8 @@
           id="custom-ignore"
           [(ngModel)]="customIgnoreList"
           (ngModelChange)="onCustomFilterChange()"
-          placeholder="e.g., C130&#10;A400&#10;KC135"
+          (blur)="onCustomFilterBlur()"
+          placeholder="e.g., C130&#10;A400&#10;KC135&#10;KC30"
           rows="4"
         ></textarea>
       </div>
@@ -145,7 +146,14 @@
 
     <!-- Status Message -->
     <div class="status-footer" *ngIf="statusMessage">
-      <span class="status-inline">{{ statusMessage }}</span>
+      <span class="status-inline">
+        <app-icon
+          *ngIf="statusIcon"
+          [icon]="statusIcon"
+          size="small"
+        ></app-icon>
+        {{ statusMessage }}
+      </span>
     </div>
   </div>
 </div>

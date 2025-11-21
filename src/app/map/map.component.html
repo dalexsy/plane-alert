@@ -23,6 +23,11 @@
 </svg>
 
 <div class="overlay-container">
+  <app-api-status-overlay
+    [show]="apiDataUnavailable"
+    [lastUpdate]="lastSuccessfulUpdate"
+  ></app-api-status-overlay>
+
   <app-closest-plane-overlay
     *ngIf="closestPlane"
     [plane]="closestPlane"

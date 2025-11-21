@@ -9,26 +9,56 @@ export function smoothLerpToPosition(
   marker: L.Marker,
   startLatLng: L.LatLng,
   endLatLng: L.LatLng,
-  duration: number
+  duration: number,
+  track?: number | null
 ): void {
   const startTime = Date.now();
   const startLat = startLatLng.lat;
   const startLng = startLatLng.lng;
   const endLat = endLatLng.lat;
-  const endLng = endLatLng.lng; // Cubic-bezier easing function to match CSS transitions: cubic-bezier(0.25, 0.0, 0.25, 1.0)
-  // This creates smooth acceleration and deceleration for natural movement
-  const cubicBezier = (t: number): number => {
-    // P0 = (0, 0), P1 = (0.25, 0), P2 = (0.25, 1), P3 = (1, 1)
-    // Simplified cubic-bezier calculation for the specified control points
-    return t * t * (3.0 - 2.0 * t); // Smoothstep function that approximates the cubic-bezier
-  };
+  const endLng = endLatLng.lng;
+
+  // Calculate actual bearing between start and end points
+  const actualBearing = calculateBearing(startLat, startLng, endLat, endLng);
+
+  // If we have a track and it's significantly different from the straight-line bearing,
+  // use curved interpolation along the track direction
+  const useTrackPath =
+    track != null && Math.abs(normalizeAngleDiff(track, actualBearing)) > 15;
+
   function animate() {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
-    // Linear interpolation for constant-speed movement
-    const currentLat = startLat + (endLat - startLat) * progress;
-    const currentLng = startLng + (endLng - startLng) * progress;
+    let currentLat: number;
+    let currentLng: number;
+
+    if (useTrackPath && track != null) {
+      // Interpolate along the track heading rather than straight line
+      // Calculate distance to travel
+      const totalDistance = calculateDistance(
+        startLat,
+        startLng,
+        endLat,
+        endLng
+      );
+      const currentDistance = totalDistance * progress;
+
+      // Project position along track heading
+      const projected = projectPoint(
+        startLat,
+        startLng,
+        track,
+        currentDistance
+      );
+      currentLat = projected.lat;
+      currentLng = projected.lng;
+    } else {
+      // Standard linear interpolation
+      currentLat = startLat + (endLat - startLat) * progress;
+      currentLng = startLng + (endLng - startLng) * progress;
+    }
+
     marker.setLatLng([currentLat, currentLng]);
 
     if (progress < 1) {
@@ -38,6 +68,84 @@ export function smoothLerpToPosition(
 
   // Start the animation
   requestAnimationFrame(animate);
+}
+
+// Helper: Calculate bearing between two points
+function calculateBearing(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const θ = Math.atan2(y, x);
+
+  return ((θ * 180) / Math.PI + 360) % 360;
+}
+
+// Helper: Calculate distance between two points in km
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth radius in km
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+// Helper: Project a point along a bearing for a given distance
+function projectPoint(
+  lat: number,
+  lon: number,
+  bearing: number,
+  distanceKm: number
+): { lat: number; lng: number } {
+  const R = 6371; // Earth radius in km
+  const φ1 = (lat * Math.PI) / 180;
+  const λ1 = (lon * Math.PI) / 180;
+  const θ = (bearing * Math.PI) / 180;
+  const δ = distanceKm / R;
+
+  const φ2 = Math.asin(
+    Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ)
+  );
+
+  const λ2 =
+    λ1 +
+    Math.atan2(
+      Math.sin(θ) * Math.sin(δ) * Math.cos(φ1),
+      Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2)
+    );
+
+  return {
+    lat: (φ2 * 180) / Math.PI,
+    lng: (λ2 * 180) / Math.PI,
+  };
+}
+
+// Helper: Normalize angle difference to -180 to 180
+function normalizeAngleDiff(angle1: number, angle2: number): number {
+  let diff = angle1 - angle2;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+  return diff;
 }
 
 export function resumeMidFlightAnimation(
@@ -95,7 +203,7 @@ export function resumeMidFlightAnimation(
   const durationMs = Math.max(1000, playbackSeconds * 1000);
 
   marker.setLatLng(startLatLng);
-  smoothLerpToPosition(marker, startLatLng, targetLatLng, durationMs);
+  smoothLerpToPosition(marker, startLatLng, targetLatLng, durationMs, null);
   console.debug(
     `✈️ Resuming animation for ${icao}: ${timeSinceUpdate.toFixed(
       1
@@ -390,12 +498,13 @@ export function createOrUpdatePlaneMarker(
           ).toFixed(1)}s`
         );
       }
-      // Perform smooth lerping animation
+      // Perform smooth lerping animation along the plane's track
       smoothLerpToPosition(
         oldMarker,
         startPosition,
         newLatLng,
-        animationDuration
+        animationDuration,
+        rotation // Use the plane's track for curved path interpolation
       );
     } else {
       // For planes that haven't moved significantly or animations are disabled, update position immediately
@@ -527,7 +636,13 @@ export function createOrUpdatePlaneMarker(
     if (startLatLng && animationsEnabled) {
       marker.setLatLng(startLatLng);
       const targetLatLng = L.latLng(lat, lon);
-      smoothLerpToPosition(marker, startLatLng, targetLatLng, adjustedDuration);
+      smoothLerpToPosition(
+        marker,
+        startLatLng,
+        targetLatLng,
+        adjustedDuration,
+        null
+      );
     }
 
     // Apply altitude border styling if altitude exists

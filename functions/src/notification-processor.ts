@@ -233,12 +233,12 @@ function getOperatorFromCallsign(callsign: string): string | null {
 /**
  * Build notification body using shared formatter
  */
-function buildNotificationBody(
+async function buildNotificationBody(
   plane: AdsBPlane,
   distance: { value: number; unit: string },
   direction: string,
   distanceUnit: 'km' | 'miles'
-): string {
+): Promise<string> {
   const callsign =
     normalizeCallsign(plane.flight || plane.callsign) ||
     plane.hex.toUpperCase();
@@ -286,6 +286,16 @@ function buildNotificationBody(
     altitudeUnit = distanceUnit === 'miles' ? 'ft' : 'm';
   }
 
+  // Format location - try reverse geocoding, omit if it fails
+  let location: string | undefined;
+  if (plane.lat !== undefined && plane.lon !== undefined) {
+    const placeName = await reverseGeocode(plane.lat, plane.lon);
+    if (placeName) {
+      location = `over ${placeName}`;
+    }
+    // If geocoding fails, don't show location at all - coordinates aren't useful
+  }
+
   return formatNotificationBody({
     callsign,
     icao: plane.hex,
@@ -297,7 +307,67 @@ function buildNotificationBody(
     altitude,
     altitudeUnit,
     verticalRate: plane.baro_rate || undefined,
+    location,
   });
+}
+
+/**
+ * Reverse geocode coordinates to get a human-readable location
+ * Uses OpenStreetMap Nominatim API (free, no API key needed)
+ */
+async function reverseGeocode(
+  lat: number,
+  lon: number
+): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=14`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'PlaneAlert/1.0 (plane-alert.surge.sh)',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as any;
+
+    // Try to get neighborhood, suburb, or city with context
+    const address = data.address;
+    if (!address) return null;
+
+    // Get the most specific location
+    const primaryLocation =
+      address.neighbourhood ||
+      address.suburb ||
+      address.village ||
+      address.town ||
+      address.city;
+
+    // Determine second level: use country name if not Germany, otherwise use district
+    const country = address.country;
+    let secondLevel: string | null = null;
+
+    if (country && country !== 'Germany' && country !== 'Deutschland') {
+      // For non-German locations, show country
+      secondLevel = country;
+    } else {
+      // For Germany, show district/county for local context
+      secondLevel = address.county || address.state_district;
+    }
+
+    // Combine primary location with second level if both exist
+    if (primaryLocation && secondLevel) {
+      return `${primaryLocation}, ${secondLevel}`;
+    }
+
+    // Fall back to just the primary location or second level
+    return primaryLocation || secondLevel || null;
+  } catch (error) {
+    logger.warn('Reverse geocoding failed', { lat, lon, error });
+    return null;
+  }
 }
 
 /**
@@ -550,7 +620,7 @@ async function notifyForDevice(
         distanceKm,
         data.distanceUnit === 'miles' ? 'miles' : 'km'
       );
-      const body = buildNotificationBody(
+      const body = await buildNotificationBody(
         plane,
         distance,
         direction,
@@ -606,8 +676,8 @@ async function notifyForDevice(
       messages.push({
         title: title,
         message: body,
-        url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
-        url_title: 'View on Map',
+        url: `https://plane-alert.surge.sh/?lat=${plane.lat}&lon=${plane.lon}&zoom=12`,
+        url_title: 'View Location',
         icon: iconUrl,
         model: plane.t || plane.desc,
         operator: plane.desc,

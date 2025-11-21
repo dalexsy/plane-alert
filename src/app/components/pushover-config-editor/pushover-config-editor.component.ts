@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   COMMON_MILITARY_TYPES,
+  BORING_AIRCRAFT_TYPES,
   type MilitaryAircraftType,
 } from '@plane-alert/shared';
 import { IconComponent } from '../ui/icon.component';
@@ -59,6 +60,7 @@ export class PushoverConfigEditorComponent implements OnInit {
   commonMilitaryTypes: readonly MilitaryAircraftType[] = COMMON_MILITARY_TYPES;
 
   statusMessage = '';
+  statusIcon = '';
   pushoverUserKey = '';
 
   keyValidated = false;
@@ -143,6 +145,28 @@ export class PushoverConfigEditorComponent implements OnInit {
         this.selectedDevice!.ignoredTypes.push(type);
       }
     });
+  }
+
+  async onCustomFilterBlur(): Promise<void> {
+    if (!this.selectedDevice) return;
+
+    // Update the ignored types
+    this.onCustomFilterChange();
+
+    // Show saving indicator
+    this.statusMessage = 'Saving...';
+    this.statusIcon = 'sync';
+
+    // Save to backend
+    await this.saveDevice(this.selectedDevice, true);
+
+    // Show success
+    this.statusMessage = 'Saved';
+    this.statusIcon = 'check_circle';
+    setTimeout(() => {
+      this.statusMessage = '';
+      this.statusIcon = '';
+    }, 2000);
   }
 
   formatDeviceName(name: string): string {
@@ -233,16 +257,28 @@ export class PushoverConfigEditorComponent implements OnInit {
 
       if (response.ok) {
         this.devices = this.devices.filter((d) => d.docId !== device.docId);
-        this.statusMessage = '✓ Device removed';
-        setTimeout(() => (this.statusMessage = ''), 3000);
+        this.statusMessage = 'Device removed';
+        this.statusIcon = 'check_circle';
+        setTimeout(() => {
+          this.statusMessage = '';
+          this.statusIcon = '';
+        }, 3000);
       } else {
-        this.statusMessage = '⚠ Failed to remove device';
-        setTimeout(() => (this.statusMessage = ''), 3000);
+        this.statusMessage = 'Failed to remove device';
+        this.statusIcon = 'error';
+        setTimeout(() => {
+          this.statusMessage = '';
+          this.statusIcon = '';
+        }, 3000);
       }
     } catch (error) {
       console.error('Failed to remove device:', error);
-      this.statusMessage = '⚠ Failed to connect to server';
-      setTimeout(() => (this.statusMessage = ''), 3000);
+      this.statusMessage = 'Failed to connect to server';
+      this.statusIcon = 'error';
+      setTimeout(() => {
+        this.statusMessage = '';
+        this.statusIcon = '';
+      }, 3000);
     }
   }
 
@@ -328,7 +364,7 @@ export class PushoverConfigEditorComponent implements OnInit {
             docId: null,
             proximityEnabled: false,
             militaryEnabled: true,
-            ignoredTypes: [],
+            ignoredTypes: [...BORING_AIRCRAFT_TYPES], // Default: filter boring aircraft
           });
         }
       });
@@ -388,8 +424,12 @@ export class PushoverConfigEditorComponent implements OnInit {
 
     if (!latitude || !longitude) {
       if (!silent) {
-        this.statusMessage = '⚠ Please set your location first';
-        setTimeout(() => (this.statusMessage = ''), 4000);
+        this.statusMessage = 'Please set your location first';
+        this.statusIcon = 'warning';
+        setTimeout(() => {
+          this.statusMessage = '';
+          this.statusIcon = '';
+        }, 4000);
       }
       return;
     }
@@ -429,8 +469,12 @@ export class PushoverConfigEditorComponent implements OnInit {
       if (!response.ok) {
         const error = await response.text();
         if (!silent) {
-          this.statusMessage = `⚠ ${error}`;
-          setTimeout(() => (this.statusMessage = ''), 4000);
+          this.statusMessage = error;
+          this.statusIcon = 'error';
+          setTimeout(() => {
+            this.statusMessage = '';
+            this.statusIcon = '';
+          }, 4000);
         }
         return;
       }
@@ -454,14 +498,22 @@ export class PushoverConfigEditorComponent implements OnInit {
       );
 
       if (!silent) {
-        this.statusMessage = '✓ Saved';
-        setTimeout(() => (this.statusMessage = ''), 2000);
+        this.statusMessage = 'Saved';
+        this.statusIcon = 'check_circle';
+        setTimeout(() => {
+          this.statusMessage = '';
+          this.statusIcon = '';
+        }, 2000);
       }
     } catch (error) {
       console.error('Failed to save device:', error);
       if (!silent) {
-        this.statusMessage = '⚠ Failed to connect';
-        setTimeout(() => (this.statusMessage = ''), 3000);
+        this.statusMessage = 'Failed to connect';
+        this.statusIcon = 'error';
+        setTimeout(() => {
+          this.statusMessage = '';
+          this.statusIcon = '';
+        }, 3000);
       }
     } finally {
       this.isSaving = false;
@@ -470,7 +522,12 @@ export class PushoverConfigEditorComponent implements OnInit {
     }
   }
 
-  close(): void {
+  async close(): Promise<void> {
+    // Save any pending custom filter changes before closing
+    if (this.selectedDevice && this.customIgnoreList.trim()) {
+      this.onCustomFilterChange();
+      await this.saveDevice(this.selectedDevice, true);
+    }
     this.closeEditor.emit();
   }
 }

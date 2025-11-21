@@ -125,7 +125,6 @@ export class ResultsOverlayComponent
     private specialListService: SpecialListService,
     private aircraftDb: AircraftDbService,
     private scanService: ScanService,
-    private militaryPrefixService: MilitaryPrefixService,
     private planeFollowService: PlaneFollowService,
     private autoFollowService: AutoFollowService,
     private followCoordinatorService: FollowCoordinatorService,
@@ -278,10 +277,6 @@ export class ResultsOverlayComponent
     });
     // load collapse state from SettingsService
     this.collapsed = this.settings.resultsOverlayCollapsed;
-    // Load military prefixes if needed
-    this.militaryPrefixService.loadPrefixes().then(() => {
-      this.resultsUpdated = true;
-    });
     // militaryMute is loaded by SettingsService.load()
     // Collapse state already loaded by SettingsService.load()
     // Just update the time every second

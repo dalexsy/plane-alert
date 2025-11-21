@@ -410,15 +410,20 @@ export class SettingsService {
     }
     localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
 
-    // Update backend notification location
-    const firebaseMessaging = (await import('./firebase-messaging.service'))
-      .FirebaseMessagingService;
-    const injector = (await import('@angular/core')).inject;
+    // Update backend notification location (only if push notifications are enabled)
     try {
+      const firebaseMessaging = (await import('./firebase-messaging.service'))
+        .FirebaseMessagingService;
+      const injector = (await import('@angular/core')).inject;
       const messagingService = injector(firebaseMessaging);
-      await messagingService.updateCurrentLocation(lat, lon);
+
+      // Only update if there's an active token (push notifications enabled)
+      if (messagingService.hasActiveToken()) {
+        await messagingService.updateCurrentLocation(lat, lon);
+      }
     } catch (error) {
-      console.warn('Failed to update backend home location:', error);
+      // Silently ignore - this is optional for push notifications
+      console.debug('Backend location update skipped (no push token):', error);
     }
   }
 

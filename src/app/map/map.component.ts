@@ -36,6 +36,7 @@ import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
 import { haversineDistance } from '../utils/geo-utils';
 import { ConeComponent } from '../components/cone/cone.component';
+import { ApiStatusOverlayComponent } from '../components/api-status-overlay/api-status-overlay.component';
 import { ConeConfigEditorComponent } from '../components/cone-config-editor/cone-config-editor.component';
 import { InputOverlayComponent } from '../components/input-overlay/input-overlay.component';
 import {
@@ -103,6 +104,7 @@ import { FirebaseMessagingService } from '../services/firebase-messaging.service
     LocationOverlayComponent,
     WindowViewOverlayComponent,
     AngleOverlayComponent,
+    ApiStatusOverlayComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -125,6 +127,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   planeNewTimestamps = new Map<string, number>();
   planeLog = new Map<string, PlaneModel>();
   planeHistoricalLog: PlaneModel[] = [];
+
+  // API status tracking
+  apiDataUnavailable = false;
+  lastSuccessfulUpdate = '';
 
   currentLocationMarker!: L.Marker;
   // airportCircle!: L.Circle; // REMOVED - Replaced by dynamic airport circles
@@ -1205,6 +1211,28 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr
       )
       .then(({ faviconUrl }) => {
+        // Check if API data is available
+        const snapshotTimestamp =
+          this.planeDataService.getLastSnapshotTimestamp();
+        const now = Date.now();
+        const dataAgeMinutes = (now - snapshotTimestamp) / 1000 / 60;
+        const hasNoPlanes = this.planeLog.size === 0;
+
+        // Show warning if data is stale (>5 minutes old) and no planes
+        if (hasNoPlanes && dataAgeMinutes > 5) {
+          this.apiDataUnavailable = true;
+          this.lastSuccessfulUpdate = new Date(
+            snapshotTimestamp
+          ).toLocaleTimeString();
+        } else {
+          this.apiDataUnavailable = false;
+          if (!hasNoPlanes) {
+            this.lastSuccessfulUpdate = new Date(
+              snapshotTimestamp
+            ).toLocaleTimeString();
+          }
+        }
+
         // Update favicon if it changed
         if (faviconUrl) {
           this.updateFavicon(faviconUrl);

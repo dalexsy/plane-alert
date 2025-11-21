@@ -13,6 +13,7 @@ export interface NotificationData {
   altitude?: number;
   altitudeUnit: 'ft' | 'm';
   verticalRate?: number; // in ft/min for consistency with ADS-B data
+  location?: string; // Human-readable location or coordinates
 }
 
 /**
@@ -96,6 +97,11 @@ export function formatNotificationBody(data: NotificationData): string {
       }
     }
     parts.push(altitudeText);
+  }
+
+  // Location (if available)
+  if (data.location) {
+    parts.push(`📍 ${data.location}`);
   }
 
   // Join with bullets

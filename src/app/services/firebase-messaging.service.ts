@@ -72,6 +72,13 @@ export class FirebaseMessagingService {
   }
 
   /**
+   * Check if there's an active push notification token
+   */
+  hasActiveToken(): boolean {
+    return !!this.getStoredUserKey();
+  }
+
+  /**
    * Update current location in backend for proximity notifications
    */
   async updateCurrentLocation(lat: number, lon: number): Promise<boolean> {

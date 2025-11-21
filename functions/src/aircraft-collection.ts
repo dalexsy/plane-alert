@@ -14,27 +14,38 @@ import { clampRadius } from './utils';
 async function fetchAircraft(
   location: Location,
   radiusKm: number
-): Promise<AdsBPlane[]> {
+): Promise<AdsBPlane[] | null> {
   const radiusNm = radiusKm / 1.852;
   const url = `https://api.adsb.one/v2/point/${location.lat}/${
     location.lon
   }/${radiusNm.toFixed(2)}`;
 
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': ORIGIN_HEADER,
-      Accept: 'application/json',
-    },
-    timeout: 5000,
-  } as any);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': ORIGIN_HEADER,
+        Accept: 'application/json',
+      },
+      timeout: 5000,
+    } as any);
 
-  if (!response.ok) {
-    logger.warn('ADS-B API error', response.status, response.statusText);
-    return [];
+    if (!response.ok) {
+      logger.warn('ADS-B API error', response.status, response.statusText);
+      // Return null to indicate API failure (don't overwrite existing data)
+      return null;
+    }
+
+    const payload = (await response.json()) as { ac?: AdsBPlane[] };
+    return payload.ac ?? [];
+  } catch (error) {
+    logger.error('Failed to fetch from ADS-B API', {
+      error,
+      location,
+      radiusKm,
+    });
+    // Return null to indicate fetch failure
+    return null;
   }
-
-  const payload = (await response.json()) as { ac?: AdsBPlane[] };
-  return payload.ac ?? [];
 }
 
 export function createAircraftCollectionFunction(
@@ -103,6 +114,17 @@ export function createAircraftCollectionFunction(
                 location.radiusKm
               );
 
+              // If API failed, skip updating Firestore (keep existing data)
+              if (aircraft === null) {
+                logger.warn('Skipping Firestore update due to API failure', {
+                  locationKey,
+                });
+                return;
+              }
+
+              // Type guard: aircraft is now definitely AdsBPlane[]
+              const validAircraft: AdsBPlane[] = aircraft;
+
               // Get existing document to merge position history
               const docRef = db
                 .collection(AIRCRAFT_SNAPSHOTS_COLLECTION)
@@ -121,7 +143,7 @@ export function createAircraftCollectionFunction(
                 Array<{ lat: number; lon: number; timestamp: number }>
               > = {};
 
-              aircraft.forEach((plane) => {
+              validAircraft.forEach((plane) => {
                 const icao = plane.hex?.toUpperCase();
                 if (
                   !icao ||
@@ -150,7 +172,7 @@ export function createAircraftCollectionFunction(
                   lon: location.lon,
                   radiusKm: location.radiusKm,
                 },
-                aircraft: aircraft,
+                aircraft: validAircraft,
                 history: history, // Position history for trails
                 deviceCount: location.devices.length,
                 devices: location.devices,
@@ -162,7 +184,7 @@ export function createAircraftCollectionFunction(
 
               logger.info('Aircraft data stored', {
                 locationKey,
-                aircraftCount: aircraft.length,
+                aircraftCount: validAircraft.length,
                 deviceCount: location.devices.length,
               });
             } catch (error) {
@@ -208,6 +230,14 @@ async function collectAircraftForLocation(
       clampedRadius
     );
 
+    // If API failed, throw error
+    if (aircraft === null) {
+      throw new Error('ADS-B API failed');
+    }
+
+    // Type guard: aircraft is now definitely AdsBPlane[]
+    const validAircraft: AdsBPlane[] = aircraft;
+
     // Get existing document to merge position history
     const docRef = db
       .collection(AIRCRAFT_SNAPSHOTS_COLLECTION)
@@ -224,7 +254,7 @@ async function collectAircraftForLocation(
       Array<{ lat: number; lon: number; timestamp: number }>
     > = {};
 
-    aircraft.forEach((plane) => {
+    validAircraft.forEach((plane) => {
       const icao = plane.hex?.toUpperCase();
       if (
         !icao ||
@@ -253,7 +283,7 @@ async function collectAircraftForLocation(
         lon: roundedLon,
         radiusKm: clampedRadius,
       },
-      aircraft: aircraft,
+      aircraft: validAircraft,
       history: history, // Position history for trails
       deviceCount: 0, // On-demand requests don't have associated devices
       devices: [],
@@ -265,7 +295,7 @@ async function collectAircraftForLocation(
 
     logger.info('On-demand aircraft data collected', {
       locationKey,
-      aircraftCount: aircraft.length,
+      aircraftCount: validAircraft.length,
     });
   } catch (error) {
     logger.error('Failed to collect aircraft on-demand', {

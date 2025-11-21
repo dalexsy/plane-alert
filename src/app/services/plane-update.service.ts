@@ -3,8 +3,8 @@ import { MapService } from './map.service';
 import { PlaneFinderService } from './plane-finder.service';
 import { PlaneFilterService } from './plane-filter.service';
 import { AircraftDbService } from './aircraft-db.service';
-import { MilitaryPrefixService } from './military-prefix.service';
 import { SettingsService } from './settings.service';
+import { looksMilitary } from '@plane-alert/shared';
 import { PlaneLogService } from './plane-log.service';
 import { ClosestPlaneService } from './closest-plane.service';
 import { FollowService } from './follow.service';
@@ -30,7 +30,6 @@ export class PlaneUpdateService {
     private planeFinder: PlaneFinderService,
     private planeFilter: PlaneFilterService,
     private aircraftDb: AircraftDbService,
-    private militaryPrefixService: MilitaryPrefixService,
     private settings: SettingsService,
     private planeLogService: PlaneLogService,
     private closestPlaneService: ClosestPlaneService,
@@ -223,19 +222,16 @@ export class PlaneUpdateService {
       // If it's in planeLog from the previous scan, it's not new now
       planeModel.isNew = !previousPlaneKeys.has(planeModel.icao);
 
-      // Determine military status
+      // Determine military status using shared looksMilitary() function
+      // Note: PlaneModel doesn't have mil/dbFlags, so we keep legacy logic for now
       const dbMil = this.aircraftDb.lookup(planeModel.icao)?.mil || false;
-      const prefixMil = this.militaryPrefixService.isMilitaryCallsign(
-        planeModel.callsign
-      );
-      const isMilitary = dbMil || prefixMil;
-      planeModel.isMilitary = isMilitary;
+      planeModel.isMilitary = dbMil;
 
       planeModel.filteredOut = !this.planeFilter.shouldIncludeCallsign(
         planeModel.callsign,
         exclude,
         this.planeFilter.getFilterPrefixes(),
-        isMilitary
+        planeModel.isMilitary
       );
 
       return planeModel;
