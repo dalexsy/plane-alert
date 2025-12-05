@@ -248,10 +248,13 @@ export function createOrUpdatePlaneMarker(
 ): { marker: L.Marker; isNewMarker: boolean } {
   // Use centralized helicopter identification via isCustomHelicopter parameter
   const isCopter = isCustomHelicopter;
+  // Extract category code and velocity from plane data for icon heuristics
+  const categoryCode = planeData?.categoryCode || null;
+  const velocity = planeData?.velocity ?? null;
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter
     ? { path: '', iconType: 'helicopter' as const }
-    : getIconPathForModel(model, callsign, altitude || undefined, isCopter);
+    : getIconPathForModel(model, callsign, altitude || undefined, isCopter, categoryCode, velocity);
   // Only render inline SVG for non-helicopters that are not unknown devices
   const iconInner =
     !isCopter && !isUnknown

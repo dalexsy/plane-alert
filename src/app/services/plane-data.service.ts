@@ -15,6 +15,7 @@ import {
 } from '../services/aircraft-db.service';
 import { filterPlaneByPrefix } from '../utils/plane-log';
 import { AircraftSnapshotService } from './aircraft-snapshot.service';
+import { OpenskyRouteService } from './opensky-route.service';
 
 export interface ProcessedPlaneData {
   id: string;
@@ -40,6 +41,8 @@ export interface ProcessedPlaneData {
   isFiltered: boolean;
   verticalRate: number | null;
   distanceKm: number;
+  routeOrigin?: string;
+  routeDestination?: string;
 }
 
 @Injectable({
@@ -59,6 +62,9 @@ export class PlaneDataService {
   }> = [];
   private lastUnknownCountryLogTime = 0;
 
+  // Store route data for aircraft
+  private routeDataCache = new Map<string, { origin?: string; destination?: string }>();
+
   constructor(
     private newPlaneService: NewPlaneService,
     private helicopterListService: HelicopterListService,
@@ -68,7 +74,8 @@ export class PlaneDataService {
     private helicopterIdentificationService: HelicopterIdentificationService,
     private aircraftCountryService: AircraftCountryService,
     private aircraftDb: AircraftDbService,
-    private aircraftSnapshot: AircraftSnapshotService
+    private aircraftSnapshot: AircraftSnapshotService,
+    private openskyRouteService: OpenskyRouteService
   ) {}
 
   async refreshLists(manualUpdate: boolean): Promise<void> {
@@ -246,7 +253,8 @@ export class PlaneDataService {
         model,
         operator,
         categoryCode,
-        apiIcaoType
+        apiIcaoType,
+        callsign
       )
     ) {
       model = 'Helicopter';
@@ -267,7 +275,8 @@ export class PlaneDataService {
           dbModel,
           operator,
           categoryCode,
-          apiIcaoType
+          apiIcaoType,
+          callsign
         )
       ) {
         dbModel = 'Helicopter';
@@ -299,6 +308,20 @@ export class PlaneDataService {
       isMilitary
     );
 
+    // Fetch route data asynchronously (non-blocking)
+    // This will use cached data if available
+    this.openskyRouteService.getFlightRoute(id).subscribe((route) => {
+      if (route && (route.origin || route.destination)) {
+        this.routeDataCache.set(id, {
+          origin: route.origin,
+          destination: route.destination,
+        });
+      }
+    });
+
+    // Get cached route data if available
+    const cachedRoute = this.routeDataCache.get(id);
+
     return {
       id,
       callsign,
@@ -323,6 +346,8 @@ export class PlaneDataService {
       isFiltered,
       verticalRate: ac.baro_rate ?? null,
       distanceKm: dist,
+      routeOrigin: cachedRoute?.origin,
+      routeDestination: cachedRoute?.destination,
     };
   }
 
@@ -479,6 +504,8 @@ export class PlaneDataService {
     planeModelInstance.icaoType = processedData.icaoType ?? undefined;
     planeModelInstance.typeDescription =
       processedData.typeDescription ?? undefined;
+    planeModelInstance.routeOrigin = processedData.routeOrigin;
+    planeModelInstance.routeDestination = processedData.routeDestination;
 
     // Calculate derived properties
     const bearing = this.computeBearing(centerLat, centerLon, lat, lon);

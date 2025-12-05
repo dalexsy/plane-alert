@@ -5,7 +5,7 @@
 
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import { AdsBPlane } from './shared';
+import { AdsBPlane } from '@plane-alert/shared';
 
 const AIRCRAFT_SNAPSHOTS_COLLECTION = 'aircraft-snapshots';
 const DEFAULT_RADIUS_KM = 100;

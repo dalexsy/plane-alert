@@ -125,7 +125,9 @@ export class TooltipUpdateService {
       altitude,
       (alt: number) => this.altitudeColor.getFillColor(alt),
       undefined, // No operator logo in right tooltip
-      distanceText
+      distanceText,
+      planeModel.routeOrigin,
+      planeModel.routeDestination
     );
 
     // Update the marker's tooltip

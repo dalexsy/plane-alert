@@ -33,3 +33,6 @@ export const collectAircraftData = createAircraftCollectionFunction(db);
 // Import and create notification processor function
 import { createNotificationProcessorFunction } from './notification-processor';
 export const processPlanes = createNotificationProcessorFunction(db);
+
+// Import OpenSky proxy function
+export { openskyProxy } from './opensky-proxy';

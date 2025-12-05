@@ -9,6 +9,7 @@ import {
 } from '../utils/units.util';
 import {
   formatNotificationBody,
+  formatNotificationTitle,
   getCountryFlagEmoji,
 } from '@plane-alert/shared';
 
@@ -160,19 +161,30 @@ export class NotificationService {
       return;
     }
 
-    const label =
-      planeInfo.model?.trim() || planeInfo.callsign?.trim() || planeInfo.icao;
+    // Get country code and flag emoji
+    const countryCode =
+      planeInfo.origin || this.extractCountryCode(planeInfo.operator);
+    const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
+
+    // Format title using shared function: [flag] [model] or [flag] [callsign]
+    const model = planeInfo.model?.trim();
+    const callsign = planeInfo.callsign?.trim();
+    let title = formatNotificationTitle(
+      flagEmoji,
+      model,
+      callsign,
+      planeInfo.icao
+    );
 
     // Add emoji prefix for specific aircraft types
-    let title = label || 'Military Plane Alert';
     if (
-      label.toUpperCase().includes('A400') ||
-      label.toUpperCase().includes('A-400')
+      model?.toUpperCase().includes('A400') ||
+      model?.toUpperCase().includes('A-400')
     ) {
       title = '🦜 ' + title; // Parrot for A400M
     } else if (
-      label.toUpperCase().includes('E-3') ||
-      label.toUpperCase().includes('SENTRY')
+      model?.toUpperCase().includes('E-3') ||
+      model?.toUpperCase().includes('SENTRY')
     ) {
       title = '🛸 ' + title; // UFO for Sentry
     }

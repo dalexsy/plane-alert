@@ -121,7 +121,9 @@ export function planeTooltip(
     country: string;
     isMilitary: boolean;
   }) => string,
-  distanceText?: string
+  distanceText?: string,
+  routeOrigin?: string,
+  routeDestination?: string
 ): string {
   // Single place to control white mixing amount for both altitude text and arrow
   const WHITE_MIX_AMOUNT = 0.3;
@@ -181,7 +183,11 @@ export function planeTooltip(
       : ''
   }    ${
     truncatedOperator
-      ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>`
+      ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>${
+          routeOrigin || routeDestination
+            ? `<span class="divider">•</span> <span class="route-info">${routeOrigin || '?'} → ${routeDestination || '?'}</span>`
+            : ''
+        }`
       : // When no operator, show speed and altitude in main row
         (() => {
           const items: string[] = [];
@@ -263,7 +269,9 @@ export function planeTooltipLeft(
     country: string;
     isMilitary: boolean;
   }) => string,
-  distanceText?: string
+  distanceText?: string,
+  routeOrigin?: string,
+  routeDestination?: string
 ): string {
   // Use the same logic as the regular tooltip but with different styling
   const tooltip = planeTooltip(
@@ -283,7 +291,9 @@ export function planeTooltipLeft(
     altitude,
     getAltitudeColor,
     getOperatorLogo,
-    distanceText
+    distanceText,
+    routeOrigin,
+    routeDestination
   );
 
   // Wrap with left-side variant class

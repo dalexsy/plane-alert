@@ -26,7 +26,9 @@ export class HelicopterIdentificationService {
     'H10',
     'H11',
     'H12',
-    'B6',
+    'A6', // ADS-B rotorcraft category
+    'A7', // Often used for helicopters with misconfigured transponders
+    'B6', // Rotorcraft with different emitter type
     'B7',
     'C3',
   ]);
@@ -136,7 +138,8 @@ export class HelicopterIdentificationService {
     model?: string,
     operator?: string,
     categoryCode?: string | null,
-    icaoType?: string | null
+    icaoType?: string | null,
+    callsign?: string
   ): boolean {
     try {
       // First check the ICAO-based helicopter list (most authoritative)
@@ -152,6 +155,33 @@ export class HelicopterIdentificationService {
       // Certain ICAO type designators are rotorcraft-specific
       if (icaoType && this.isHelicopterByTypeDesignator(icaoType)) {
         return true;
+      }
+
+      // Special case: A7 category + helicopter type code
+      // A7 is used for helicopters with misconfigured transponders
+      if (
+        categoryCode === 'A7' &&
+        icaoType &&
+        this.isHelicopterByTypeDesignator(icaoType)
+      ) {
+        return true;
+      }
+
+      // Special case: A7 category + military/police callsign = likely helicopter
+      // Many military/police helicopters use A7 with no type code
+      if (categoryCode === 'A7' && callsign) {
+        const normalized = callsign.trim().toUpperCase();
+        // Check for military/police/rescue callsign patterns
+        const heliCallsignPatterns = [
+          /^(GAF|BAF|RAF|USAF|NAF|FAF|CAF|HAF|LAGR|RFF|ARMEE|ARMY|MARINE|NAVY)\d+$/i,
+          /^(RESCUE|MEDIC|LIFEGUARD|AIR\s*AMB|HEMS|HELIMED)\d*$/i,
+          /^(POLICE|POLIZEI|POLAIR|POLIS)\d*$/i,
+          /^(JOKER|TIGER|EAGLE|HAWK|VIPER|COBRA|APACHE)\d+$/i, // Military exercise callsigns
+          /^(CHX|ADAC|DRF|HTM)\d+$/i, // German helicopter operators (Christoph, ADAC, DRF)
+        ];
+        if (heliCallsignPatterns.some((pattern) => pattern.test(normalized))) {
+          return true;
+        }
       }
 
       // Check operator call sign patterns (second priority)
@@ -175,12 +205,20 @@ export class HelicopterIdentificationService {
 
   /**
    * Check if ADS-B category code indicates rotorcraft
+   * Note: A7 is ambiguous (includes helicopters, gliders, ultralights)
+   * so it requires additional type code checking
    */
   private isHelicopterByCategory(category: string): boolean {
     const normalized = category.trim().toUpperCase();
     if (!normalized) {
       return false;
     }
+
+    // A7 is ambiguous - requires type code check (done in main isHelicopter method)
+    if (normalized === 'A7') {
+      return false; // Don't identify by category alone for A7
+    }
+
     if (this.rotorcraftCategoryCodes.has(normalized)) {
       return true;
     }
@@ -357,7 +395,8 @@ export class HelicopterIdentificationService {
     model?: string,
     operator?: string,
     categoryCode?: string | null,
-    icaoType?: string | null
+    icaoType?: string | null,
+    callsign?: string
   ): {
     isHelicopter: boolean;
     identifiedByIcao: boolean;
@@ -365,11 +404,13 @@ export class HelicopterIdentificationService {
     identifiedByTypeDesignator: boolean;
     identifiedByOperator: boolean;
     identifiedByModel: boolean;
+    identifiedByCallsign: boolean;
     model: string | undefined;
     operator: string | undefined;
     icao: string;
     categoryCode?: string | null;
     icaoType?: string | null;
+    callsign?: string;
   } {
     const identifiedByIcao = this.helicopterListService.isHelicopter(icao);
     const identifiedByCategory = categoryCode
@@ -382,12 +423,30 @@ export class HelicopterIdentificationService {
       ? this.isHelicopterByOperator(operator)
       : false;
     const identifiedByModel = model ? this.isHelicopterByModel(model) : false;
+
+    // Check A7 + military/police callsign pattern
+    let identifiedByCallsign = false;
+    if (categoryCode === 'A7' && callsign) {
+      const normalized = callsign.trim().toUpperCase();
+      const heliCallsignPatterns = [
+        /^(GAF|BAF|RAF|USAF|NAF|FAF|CAF|HAF|LAGR|RFF|ARMEE|ARMY|MARINE|NAVY)\d+$/i,
+        /^(RESCUE|MEDIC|LIFEGUARD|AIR\s*AMB|HEMS|HELIMED)\d*$/i,
+        /^(POLICE|POLIZEI|POLAIR|POLIS)\d*$/i,
+        /^(JOKER|TIGER|EAGLE|HAWK|VIPER|COBRA|APACHE)\d+$/i,
+        /^(CHX|ADAC|DRF|HTM)\d+$/i,
+      ];
+      identifiedByCallsign = heliCallsignPatterns.some((pattern) =>
+        pattern.test(normalized)
+      );
+    }
+
     const isHelicopter =
       identifiedByIcao ||
       identifiedByCategory ||
       identifiedByTypeDesignator ||
       identifiedByOperator ||
-      identifiedByModel;
+      identifiedByModel ||
+      identifiedByCallsign;
 
     return {
       isHelicopter,
@@ -396,11 +455,13 @@ export class HelicopterIdentificationService {
       identifiedByTypeDesignator,
       identifiedByOperator,
       identifiedByModel,
+      identifiedByCallsign,
       model,
       operator,
       icao,
       categoryCode: categoryCode ?? null,
       icaoType: icaoType ?? null,
+      callsign,
     };
   }
 

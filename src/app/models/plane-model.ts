@@ -41,6 +41,9 @@ export class PlaneModel implements Plane {
   typeDescription?: string; // Text description provided by data source
   /** Distance from home in km, for closest-plane overlay */
   distanceKm?: number;
+  // Flight route information from OpenSky Network
+  routeOrigin?: string; // ICAO airport code of origin
+  routeDestination?: string; // ICAO airport code of destination
   airportName?: string; // Optional airport name assigned in MapComponent
   airportCode?: string; // Optional short code (IATA) for airport
   airportLat?: number; // Latitude of center of airport circle assigned when plane is at airport

@@ -246,7 +246,9 @@ export class PlaneVisualizationService {
       altitude,
       (alt: number) => this.altitudeColor.getFillColor(alt),
       undefined, // No operator logo in right tooltip
-      distanceText
+      distanceText,
+      plane.routeOrigin,
+      plane.routeDestination
     );
   }
 
@@ -441,7 +443,9 @@ export class PlaneVisualizationService {
       altitude,
       (alt: number) => this.altitudeColor.getFillColor(alt),
       undefined,
-      distanceText
+      distanceText,
+      plane.routeOrigin,
+      plane.routeDestination
     );
 
     if (plane.marker.getTooltip()) {

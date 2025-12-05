@@ -6,6 +6,8 @@ export interface NotificationData {
   callsign?: string;
   icao: string;
   direction?: string;
+  bearing?: number; // Bearing from user to plane (0-360)
+  planeHeading?: number; // Plane's track/heading (0-360)
   flagEmoji?: string;
   operator?: string;
   speed?: number;
@@ -13,6 +15,7 @@ export interface NotificationData {
   altitude?: number;
   altitudeUnit: 'ft' | 'm';
   verticalRate?: number; // in ft/min for consistency with ADS-B data
+  location?: string; // Human-readable location or coordinates
 }
 
 /**
@@ -34,6 +37,15 @@ export function getArrowForDirection(direction: string): string {
 }
 
 /**
+ * Convert bearing to cardinal direction
+ */
+function bearingToCardinal(bearing: number): string {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round((bearing % 360) / 45) % 8;
+  return directions[index];
+}
+
+/**
  * Convert country code to flag emoji
  */
 export function getCountryFlagEmoji(countryCode: string): string {
@@ -52,24 +64,73 @@ export function getCountryFlagEmoji(countryCode: string): string {
 }
 
 /**
- * Format notification body - single source of truth for both desktop and push notifications
- * Returns: "Direction Arrow • Flag Callsign • Operator • Speed • Altitude"
+ * Format notification title with flag emoji and aircraft identifier
+ * Format: "[flag] [model]" if model exists, otherwise "[flag] [callsign]"
  */
-export function formatNotificationBody(data: NotificationData): string {
-  const callsign = data.callsign?.trim() || data.icao.toUpperCase();
-  const arrow = data.direction ? getArrowForDirection(data.direction) : '';
-  const flagEmoji = data.flagEmoji || '🏳️';
+export function formatNotificationTitle(
+  flagEmoji: string,
+  model?: string,
+  callsign?: string,
+  icao?: string
+): string {
+  const flag = flagEmoji || '🏳️';
 
-  // Build parts array
-  const parts: string[] = [];
+  // Use model if available, otherwise use callsign, otherwise use ICAO
+  const identifier =
+    model?.trim() || callsign?.trim() || icao?.toUpperCase() || '';
 
-  // Direction with arrow
-  if (data.direction && arrow) {
-    parts.push(`${data.direction} ${arrow}`);
+  if (!identifier) {
+    return flag; // Just flag if nothing else available
   }
 
-  // Flag and callsign
-  parts.push(`${flagEmoji} ${callsign}`);
+  return `${flag} ${identifier}`;
+}
+
+/**
+ * Format notification body - single source of truth for both desktop and push notifications
+ * Format: "over [location] to the [bearing] flying [heading] • [callsign] • [speed] • [altitude]"
+ * @param data Notification data
+ * @param skipCallsignInBody If true, omits the callsign from the body (when it's already in the title)
+ */
+export function formatNotificationBody(data: NotificationData, skipCallsignInBody = false): string {
+  const callsign = data.callsign?.trim() || data.icao.toUpperCase();
+  const flagEmoji = data.flagEmoji || '🏳️';
+
+  // Build location/direction header
+  let header = '';
+  if (data.location) {
+    header = `over ${data.location}`;
+  }
+
+  // Add "to the [bearing]" if bearing available
+  if (data.direction) {
+    const arrow = getArrowForDirection(data.direction);
+    const directionText = arrow ? `${data.direction} ${arrow}` : data.direction;
+    header += header ? ` to the ${directionText}` : `to the ${directionText}`;
+  }
+
+  // Add "flying [heading]" if plane heading available
+  if (data.planeHeading !== undefined) {
+    const headingCardinal = bearingToCardinal(data.planeHeading);
+    const headingArrow = getArrowForDirection(headingCardinal);
+    const headingText = headingArrow
+      ? `${headingCardinal} ${headingArrow}`
+      : headingCardinal;
+    header += ` flying ${headingText}`;
+  }
+
+  // Build details array
+  const parts: string[] = [];
+
+  // Add header as first part if it exists
+  if (header) {
+    parts.push(header);
+  }
+
+  // Flag and callsign (skip if already in title)
+  if (!skipCallsignInBody) {
+    parts.push(`${flagEmoji} ${callsign}`);
+  }
 
   // Operator (if available)
   if (data.operator) {

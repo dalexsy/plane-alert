@@ -1,124 +1,230 @@
-# PlaneAlert
+# PlaneAlert 🛩️
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.6.
+Real-time military and special aircraft tracking with background push notifications. Built with Angular 19 and Firebase Cloud Functions.
 
-## Development server
+## 🚀 Quick Start
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Development
 
 ```bash
-ng generate component component-name
+npm install
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Opens the app at `http://localhost:4200/` with live reloading and a local proxy server.
+
+### Deployment
 
 ```bash
-ng generate --help
+# Deploy everything (frontend + backend)
+npm run deploy:all
+
+# Deploy only frontend to Surge
+npm run deploy
+
+# Deploy only backend to Firebase
+npm run deploy:functions
 ```
 
-## Building
+## 📱 User Setup (Receiving Notifications)
 
-To build the project run:
+1. **Visit** `https://plane-alert.surge.sh/?setup=pushover`
+2. **Sign up** at [Pushover.net](https://pushover.net) (free)
+3. **Enter** your Pushover User Key when prompted
+4. **Set** your home location and preferred radius
+5. **Receive** push notifications for military aircraft near you!
+
+Notifications work even when your browser is closed, thanks to Firebase Cloud Functions running every 3 minutes.
+
+## 🏗️ Project Structure
+
+```
+plane-alert/
+├── src/                    # Angular frontend (Progressive Web App)
+├── functions/              # Firebase Cloud Functions (backend)
+│   └── src/
+│       ├── services/       # Modular service layer
+│       │   ├── aircraft-fetcher.ts
+│       │   ├── image-fetcher.ts
+│       │   ├── geocoding.ts
+│       │   ├── notification-builder.ts
+│       │   ├── notification-cooldown.ts
+│       │   └── pushover-client.ts
+│       └── notification-processor.ts
+├── shared/                 # Shared TypeScript library
+│   └── src/
+│       ├── country-detection.ts
+│       ├── military-detection.ts
+│       ├── notification-formatter.ts
+│       ├── geo-utils.ts
+│       └── aircraft-db-loader.ts
+└── scripts/                # Build and deployment scripts
+```
+
+### Shared Package
+
+The `@plane-alert/shared` package contains logic used by both frontend and backend:
+
+- **Country detection** from ICAO hex codes and registration prefixes
+- **Military aircraft detection** with callsign patterns
+- **Notification formatting** (single source of truth)
+- **Geographic utilities** (distance, bearing calculations)
+- **Aircraft database** lookup
+
+## 🔧 Development
+
+### Building Components
 
 ```bash
-ng build
+# Build frontend only
+npm run build
+
+# Build shared library (required before deploying functions)
+cd shared && npm run build
+
+# Build backend functions
+cd functions && npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-BRUJO02
+### Running Tests
 
-## Geocoding (Address Lookup)
+```bash
+# Unit tests
+ng test
 
-The app uses geocoding services to convert coordinates to human-readable addresses. If you encounter 504 Gateway Timeout errors:
+# Test notification formatting
+node test-notification-title.js
+node test-notification-format.js
 
-### Quick Fix
+# Test helicopter detection
+node test-helicopter-detection.js
+```
+
+### Syncing Aircraft Database
+
+```bash
+npm run sync:db
+```
+
+Merges user-contributed aircraft data from multiple sources.
+
+## 🔔 Notification System
+
+### Features
+
+- **Concise Titles**: `[flag] [model]` or `[flag] [callsign]` (space-efficient)
+- **Rich Context**: Location, bearing from user, aircraft heading, speed, altitude
+- **Aircraft Images**: Automatically fetched from planespotters.net
+- **Smart Cooldown**: Per-device, per-aircraft notification throttling
+- **Geocoding**: Human-readable locations (e.g., "Potsdam, Brandenburg")
+
+### Format Example
+
+**Title**: `🇩🇪 Airbus A400M Atlas`  
+**Body**: `over Brandenburg to the NW ↖ flying SE ↘ • 🇩🇪 GAF123 • Luftwaffe • 450 km/h • 8,500 m`
+
+### Backend Architecture
+
+The notification processor runs every 3 minutes via Firebase Cloud Scheduler:
+
+1. **Fetch** devices from Firestore
+2. **Query** ADS-B One API for nearby aircraft
+3. **Filter** for military/special aircraft using shared detection logic
+4. **Check** cooldown to avoid duplicate notifications
+5. **Build** notification with geocoding and operator lookup
+6. **Send** via Pushover API with aircraft image
+
+All helper functions are modularized into services for better maintainability.
+
+## 🌍 API Integrations
+
+- **ADS-B One** - Real-time aircraft position data
+- **Google Custom Search** - Aircraft image lookup
+- **OpenStreetMap Nominatim** - Reverse geocoding
+- **Pushover** - Cross-platform push notifications
+
+## ⚙️ Configuration
+
+### Environment Variables (Backend)
+
+Create `functions/.env`:
+
+```env
+PUSHOVER_API_TOKEN=your_pushover_app_token
+GOOGLE_SEARCH_API_KEY=your_google_api_key
+GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id
+```
+
+### Firebase Setup
+
+The project is already configured for `plane-alert-800ff`. If you need to reconfigure:
+
+1. Update `src/app/config/firebase.config.ts` with your project credentials
+2. Update `.firebaserc` with your project ID
+3. Enable Firestore, Cloud Functions, and Cloud Scheduler
+4. Upgrade to Firebase Blaze plan (required for scheduled functions)
+
+**You typically don't need to redo Firebase setup** unless you're creating a new project from scratch.
+
+## 📝 Maintenance Notes
+
+### Updating Shared Code
+
+When modifying `shared/src/`, the deploy script automatically rebuilds and syncs to `functions/shared-package/`. Manual rebuild:
+
+```bash
+cd shared
+npm run build
+cd ..
+npm run prepare:functions-shared
+```
+
+### Adding Service Modules
+
+1. Create service in `functions/src/services/`
+2. Import in `notification-processor.ts`
+3. Keep functions focused and single-purpose
+
+### Testing Locally
+
+```bash
+# Run functions emulator (optional)
+cd functions
+npm run serve
+```
+
+## 🐛 Troubleshooting
+
+### Geocoding Timeouts
+
+Disable geocoding in browser console:
 
 ```javascript
-// In browser console, disable geocoding:
 localStorage.setItem("disable-geocoding", "true");
 location.reload();
 ```
 
-### What This Does
+### Firebase Deploy Fails
 
-### Re-enable Geocoding
-
-```javascript
-localStorage.removeItem("disable-geocoding");
-location.reload();
-```
-
-### Alternative Solutions
-
-## Background notifications (Firebase Cloud Functions)
-
-This repo now contains a minimal Firebase Functions project in the `functions/` folder. It stores device push tokens in Firestore and pings the ADS-B feed every few minutes to send background alerts.
-
-### Setup for New Devices
-
-**Quick Setup URL**: Open `https://plane-alert.surge.sh/?setup=pushover` on any device to be prompted for your Pushover User Key.
-
-1. Sign up at [Pushover.net](https://pushover.net) (free)
-2. Find your User Key on your dashboard
-3. Visit `https://plane-alert.surge.sh/?setup=pushover` on your device
-4. Enter your User Key when prompted
-5. Set your home location in the app
-6. You'll receive push notifications for aircraft near your location!
-
-### Cloud Function Deployment
-
-1. Install the Firebase CLI if you have not already:
-   ```bash
-   npm install -g firebase-tools
-   ```
-2. Configure the functions project:
-   ```bash
-   cd functions
-   npm install
-   ```
-3. Make sure the active Firebase project is `plane-alert-800ff` (or update the IDs in `src/app/config/firebase.config.ts` if you renamed it). Cloud Scheduler triggers require the Blaze plan.
-4. Deploy the functions:
-   ```bash
-   firebase deploy --only functions
-   ```
-
-Once deployed, the web app automatically POSTs each browser's FCM token, home location, radius, and distance units to the HTTPS endpoint. The scheduled function polls ADS-B data, filters for likely military flights, and pushes notifications even when the PWA is closed. Tokens are removed automatically if Firebase reports them as invalid.
-
-### Notification Features
-
-- **Follow Aircraft**: Click "View on Map" in push notifications to automatically center and follow the aircraft
-- **Military & Special Aircraft**: Automatic detection of military callsigns and special ICAO codes
-- **Customizable Alerts**: Set your own home location and radius
-- **Cross-Platform**: Works on Android, iOS, and Desktop via Pushover
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Ensure you're authenticated:
 
 ```bash
-ng test
+firebase login
+firebase use plane-alert-800ff
 ```
 
-## Running end-to-end tests
+### Shared Package Not Found
 
-For end-to-end (e2e) testing, run:
+Reinstall local dependency:
 
 ```bash
-ng e2e
+cd functions
+npm install
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## 📚 Additional Resources
 
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- [Angular CLI Documentation](https://angular.dev/tools/cli)
+- [Firebase Cloud Functions](https://firebase.google.com/docs/functions)
+- [Pushover API](https://pushover.net/api)
+- [ADS-B One API](https://api.adsb.one/)

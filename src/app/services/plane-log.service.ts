@@ -178,7 +178,9 @@ export class PlaneLogService {
           plane.model,
           plane.callsign,
           alt,
-          isHelicopter
+          isHelicopter,
+          plane.categoryCode,
+          plane.velocity
         );
         // Calculate scale, distance
         const distKm = haversineDistance(

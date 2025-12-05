@@ -1,9 +1,12 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import fetch from 'node-fetch';
 import * as countries from 'i18n-iso-countries';
-import type { AdsBPlane, AircraftDbEntry, AircraftDbMetadata } from './shared';
+import type {
+  AdsBPlane,
+  AircraftDbEntry,
+  AircraftDbMetadata,
+} from '@plane-alert/shared';
 import {
   normalizeCallsign,
   getAircraftCountry,
@@ -11,18 +14,17 @@ import {
   computeBearing,
   bearingToCardinal,
   formatDistance,
-  formatNotificationBody,
   getCountryFlagEmoji,
   createAircraftLookupMap,
   looksMilitary,
-} from './shared';
+  formatNotificationTitle,
+} from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from './types';
 import {
   DEVICE_COLLECTION,
   COOLDOWN_COLLECTION,
   MAX_NOTIFICATIONS_PER_DEVICE,
   RECENT_NOTIFICATION_TTL_MS,
-  ORIGIN_HEADER,
 } from './constants';
 import {
   clampRadius,
@@ -31,6 +33,23 @@ import {
   pruneOldNotifications,
   isSpecialAircraft,
 } from './utils';
+// Import service modules
+import { fetchAircraft } from './services/aircraft-fetcher';
+import {
+  fetchAircraftImage,
+  downloadAndEncodeImage,
+} from './services/image-fetcher';
+import { reverseGeocode } from './services/geocoding';
+import {
+  getOperatorFromCallsign,
+  buildNotificationBody,
+} from './services/notification-builder';
+import { checkAndMarkNotified } from './services/notification-cooldown';
+import {
+  sendPushoverNotification,
+  sendPushoverNotifications,
+  type PushoverMessage,
+} from './services/pushover-client';
 
 // Import user aircraft database
 import userAircraftDb from './data/user-aircraft-db.json';
@@ -39,404 +58,6 @@ import userAircraftDb from './data/user-aircraft-db.json';
 const userAircraftLookup = createAircraftLookupMap(
   userAircraftDb as Array<AircraftDbEntry | AircraftDbMetadata>
 );
-
-const PUSHOVER_API_TOKEN = process.env.PUSHOVER_API_TOKEN;
-
-async function fetchAircraft(
-  location: Location,
-  radiusKm: number
-): Promise<AdsBPlane[]> {
-  const radiusNm = radiusKm / 1.852;
-  const url = `https://api.adsb.one/v2/point/${location.lat}/${
-    location.lon
-  }/${radiusNm.toFixed(2)}`;
-
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': ORIGIN_HEADER,
-      Accept: 'application/json',
-    },
-    timeout: 5000,
-  } as any);
-
-  if (!response.ok) {
-    logger.warn('ADS-B API error', response.status, response.statusText);
-    return [];
-  }
-
-  const payload = (await response.json()) as { ac?: AdsBPlane[] };
-  return payload.ac ?? [];
-}
-
-/**
- * Fetch aircraft image from Google Custom Search API
- */
-async function fetchAircraftImage(
-  model: string,
-  operator?: string
-): Promise<string | null> {
-  const GOOGLE_API_KEY = process.env.GOOGLE_SEARCH_API_KEY;
-  const GOOGLE_SEARCH_ENGINE_ID = process.env.GOOGLE_SEARCH_ENGINE_ID;
-
-  if (!GOOGLE_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
-    logger.warn('Google Search API credentials not configured');
-    return null;
-  }
-
-  try {
-    // Match frontend search query format (no quotes for better results)
-    let searchQuery = `${model} aircraft airplane photo`;
-    if (operator) {
-      const operatorShort = operator.split(' ')[0];
-      searchQuery += ` ${operatorShort}`;
-    }
-    searchQuery +=
-      ' site:planespotters.net OR site:airliners.net OR site:jetphotos.com';
-    searchQuery +=
-      ' -cartoon -drawing -model -toy -lego -illustration -diagram -youtube -thumbnail';
-
-    const url = new URL('https://www.googleapis.com/customsearch/v1');
-    url.searchParams.set('key', GOOGLE_API_KEY);
-    url.searchParams.set('cx', GOOGLE_SEARCH_ENGINE_ID);
-    url.searchParams.set('q', searchQuery);
-    url.searchParams.set('searchType', 'image');
-    url.searchParams.set('num', '1');
-    url.searchParams.set('imgSize', 'large');
-    url.searchParams.set('imgType', 'photo');
-    url.searchParams.set('safe', 'active');
-
-    const response = await fetch(url.toString(), { timeout: 3000 } as any);
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data: any = await response.json();
-
-    if (data.items && data.items.length > 0) {
-      const item = data.items[0];
-      return item.link || null;
-    }
-
-    return null;
-  } catch (error: any) {
-    logger.warn('Failed to fetch aircraft image', {
-      model,
-      error: error?.message,
-    });
-    return null;
-  }
-}
-
-/**
- * Download image and convert to Base64
- */
-async function downloadAndEncodeImage(
-  imageUrl: string
-): Promise<string | null> {
-  try {
-    const response = await fetch(imageUrl, {
-      timeout: 3000,
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; PlaneAlert/1.0; +https://plane-alert.surge.sh)',
-      },
-    } as any);
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.startsWith('image/')) {
-      return null;
-    }
-
-    const buffer = await response.arrayBuffer();
-
-    if (buffer.byteLength > 5 * 1024 * 1024) {
-      logger.warn('Image too large', {
-        url: imageUrl,
-        size: buffer.byteLength,
-      });
-      return null;
-    }
-
-    const base64 = Buffer.from(buffer).toString('base64');
-    return base64;
-  } catch (error: any) {
-    logger.warn('Failed to download image', {
-      url: imageUrl,
-      error: error?.message,
-    });
-    return null;
-  }
-}
-
-/**
- * Get operator from callsign
- */
-function getOperatorFromCallsign(callsign: string): string | null {
-  if (!callsign) {
-    return null;
-  }
-
-  const operatorMap: Record<string, string> = {
-    GAF: 'Luftwaffe',
-    SHADO: 'Luftwaffe',
-    HUKR: 'Royal Air Force',
-    RRR: 'Royal Air Force',
-    ASCOT: 'Royal Air Force',
-    TARTN: 'Royal Air Force',
-    RCH: 'US Air Force',
-    REACH: 'US Air Force',
-    CNV: 'US Air Force',
-    CONVOY: 'US Air Force',
-    EVAC: 'US Air Force',
-    SPAR: 'US Air Force',
-    BOXER: 'US Air Force',
-    SENTRY: 'US Air Force',
-    DUKE: 'US Army',
-    ARMY: 'US Army',
-    MARINE: 'US Marine Corps',
-    NAVY: 'US Navy',
-    COAST: 'US Coast Guard',
-    FF: 'French Air Force',
-    CTM: 'French Air Force',
-    FAF: 'French Air Force',
-    EIDER: 'Royal Canadian Air Force',
-    CFC: 'Royal Canadian Air Force',
-    IAM: 'Italian Air Force',
-    MM: 'Italian Air Force',
-    NAF: 'Norwegian Armed Forces',
-    RSAF: 'Republic of Singapore Air Force',
-  };
-
-  const normalized = callsign.trim().toUpperCase();
-
-  if (operatorMap[normalized]) {
-    return operatorMap[normalized];
-  }
-
-  const sortedPrefixes = Object.keys(operatorMap).sort(
-    (a, b) => b.length - a.length
-  );
-  for (const prefix of sortedPrefixes) {
-    if (normalized.startsWith(prefix)) {
-      return operatorMap[prefix];
-    }
-  }
-
-  return null;
-}
-
-/**
- * Build notification body using shared formatter
- */
-async function buildNotificationBody(
-  plane: AdsBPlane,
-  distance: { value: number; unit: string },
-  direction: string,
-  distanceUnit: 'km' | 'miles'
-): Promise<string> {
-  const callsign =
-    normalizeCallsign(plane.flight || plane.callsign) ||
-    plane.hex.toUpperCase();
-
-  const countryResult = getAircraftCountry(plane.r, plane.hex, undefined, true);
-
-  const countryCode =
-    countryResult.countryCode !== 'Unknown' ? countryResult.countryCode : null;
-  const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
-
-  const operator = getOperatorFromCallsign(callsign);
-
-  let speed: number | undefined;
-  let speedUnit: 'mph' | 'km/h';
-  if (plane.gs && plane.gs > 0) {
-    if (distanceUnit === 'miles') {
-      speed = Math.round(plane.gs * 1.15078);
-      speedUnit = 'mph';
-    } else {
-      speed = Math.round(plane.gs * 1.852);
-      speedUnit = 'km/h';
-    }
-  } else {
-    speedUnit = distanceUnit === 'miles' ? 'mph' : 'km/h';
-  }
-
-  let altitude: number | undefined;
-  let altitudeUnit: 'ft' | 'm';
-  const altitudeFeet =
-    typeof plane.alt_baro === 'number'
-      ? plane.alt_baro
-      : typeof plane.alt_geom === 'number'
-      ? plane.alt_geom
-      : null;
-
-  if (altitudeFeet !== null && altitudeFeet > 0) {
-    if (distanceUnit === 'miles') {
-      altitude = altitudeFeet;
-      altitudeUnit = 'ft';
-    } else {
-      altitude = Math.round(altitudeFeet * 0.3048);
-      altitudeUnit = 'm';
-    }
-  } else {
-    altitudeUnit = distanceUnit === 'miles' ? 'ft' : 'm';
-  }
-
-  // Format location - try reverse geocoding, omit if it fails
-  let location: string | undefined;
-  if (plane.lat !== undefined && plane.lon !== undefined) {
-    const placeName = await reverseGeocode(plane.lat, plane.lon);
-    if (placeName) {
-      location = `over ${placeName}`;
-    }
-    // If geocoding fails, don't show location at all - coordinates aren't useful
-  }
-
-  return formatNotificationBody({
-    callsign,
-    icao: plane.hex,
-    direction,
-    flagEmoji,
-    operator: operator || undefined,
-    speed,
-    speedUnit,
-    altitude,
-    altitudeUnit,
-    verticalRate: plane.baro_rate || undefined,
-    location,
-  });
-}
-
-/**
- * Reverse geocode coordinates to get a human-readable location
- * Uses OpenStreetMap Nominatim API (free, no API key needed)
- */
-async function reverseGeocode(
-  lat: number,
-  lon: number
-): Promise<string | null> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=14`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'PlaneAlert/1.0 (plane-alert.surge.sh)',
-      },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as any;
-
-    // Try to get neighborhood, suburb, or city with context
-    const address = data.address;
-    if (!address) return null;
-
-    // Get the most specific location
-    const primaryLocation =
-      address.neighbourhood ||
-      address.suburb ||
-      address.village ||
-      address.town ||
-      address.city;
-
-    // Determine second level: use country name if not Germany, otherwise use district
-    const country = address.country;
-    let secondLevel: string | null = null;
-
-    if (country && country !== 'Germany' && country !== 'Deutschland') {
-      // For non-German locations, show country
-      secondLevel = country;
-    } else {
-      // For Germany, show district/county for local context
-      secondLevel = address.county || address.state_district;
-    }
-
-    // Combine primary location with second level if both exist
-    if (primaryLocation && secondLevel) {
-      return `${primaryLocation}, ${secondLevel}`;
-    }
-
-    // Fall back to just the primary location or second level
-    return primaryLocation || secondLevel || null;
-  } catch (error) {
-    logger.warn('Reverse geocoding failed', { lat, lon, error });
-    return null;
-  }
-}
-
-/**
- * Check if notification should be sent and atomically mark as notified if allowed
- */
-async function checkAndMarkNotified(
-  db: admin.firestore.Firestore,
-  userKey: string,
-  icao: string,
-  cooldownMs: number
-): Promise<boolean> {
-  const cooldownId = `${userKey}__${icao}`;
-  const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
-
-  try {
-    const shouldNotify = await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(cooldownRef);
-      const now = Date.now();
-
-      if (doc.exists) {
-        const data = doc.data();
-        const lastSent = data?.lastSent || 0;
-
-        if (now - lastSent < cooldownMs) {
-          logger.info('Aircraft in cooldown, skipping', {
-            userKey: userKey.slice(0, 8),
-            icao,
-            timeSinceLastMs: now - lastSent,
-            cooldownMs,
-          });
-          return false;
-        }
-      }
-
-      logger.info('Claiming notification for aircraft', {
-        userKey: userKey.slice(0, 8),
-        icao,
-        docExists: doc.exists,
-      });
-
-      transaction.set(
-        cooldownRef,
-        {
-          userKey,
-          icao,
-          lastSent: now,
-        },
-        { merge: true }
-      );
-
-      return true;
-    });
-
-    logger.info('Transaction result', {
-      userKey: userKey.slice(0, 8),
-      icao,
-      shouldNotify,
-    });
-
-    return shouldNotify;
-  } catch (error: any) {
-    logger.error('checkAndMarkNotified transaction failed', {
-      userKey: userKey.slice(0, 8),
-      icao,
-      error,
-    });
-    return false;
-  }
-}
 
 async function notifyForDevice(
   db: admin.firestore.Firestore,
@@ -488,7 +109,7 @@ async function notifyForDevice(
     }
 
     const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
-    const messages: Array<Record<string, any>> = [];
+    const messages: PushoverMessage[] = [];
     const now = Date.now();
 
     const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
@@ -620,12 +241,6 @@ async function notifyForDevice(
         distanceKm,
         data.distanceUnit === 'miles' ? 'miles' : 'km'
       );
-      const body = await buildNotificationBody(
-        plane,
-        distance,
-        direction,
-        data.distanceUnit === 'miles' ? 'miles' : 'km'
-      );
 
       const countryResult = getAircraftCountry(
         plane.r,
@@ -633,45 +248,48 @@ async function notifyForDevice(
         undefined,
         true
       );
-      const countryName =
-        countryResult.countryCode !== 'Unknown'
-          ? countries.getName(countryResult.countryCode, 'en')
-          : null;
+      const flagEmoji = getCountryFlagEmoji(countryResult.countryCode);
 
       const icaoUpper = icao.toUpperCase();
 
       // Look up enriched model from user aircraft database
       const dbRecord = userAircraftLookup.get(icaoUpper);
-      let aircraftName = dbRecord?.model || plane.desc || plane.t || '';
+      const model = dbRecord?.model || plane.desc || plane.t;
+      const callsign = normalizeCallsign(plane.flight || plane.callsign);
 
-      if (!aircraftName) {
-        if (countryName) {
-          aircraftName = `${countryName} Military`;
-        } else {
-          aircraftName = 'Military Aircraft';
+      // If no model, the title will contain the callsign, so skip it in the body
+      const skipCallsignInBody = !model;
+      const body = await buildNotificationBody(
+        plane,
+        distance,
+        direction,
+        bearing,
+        data.distanceUnit === 'miles' ? 'miles' : 'km',
+        skipCallsignInBody
+      );
+
+      // Use shared formatting function for consistent title format
+      let title = formatNotificationTitle(
+        flagEmoji,
+        model,
+        callsign,
+        icaoUpper
+      );
+
+      // Add special emoji prefixes for specific aircraft
+      if (model) {
+        const modelUpper = model.toUpperCase();
+        if (modelUpper.includes('A400') || modelUpper.includes('A-400')) {
+          title = '🦜 ' + title;
+        } else if (modelUpper.includes('E-3') || modelUpper.includes('SENTRY')) {
+          title = '🛸 ' + title;
         }
       }
+
       const iconPath = isSpecialAircraft(icaoUpper)
         ? 'favicon/special'
         : 'favicon/military';
       const iconUrl = `https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
-
-      let title = aircraftName;
-      if (
-        aircraftName.toUpperCase().includes('A400') ||
-        aircraftName.toUpperCase().includes('A-400')
-      ) {
-        title = '🦜 ' + title;
-      } else if (
-        aircraftName.toUpperCase().includes('E-3') ||
-        aircraftName.toUpperCase().includes('SENTRY')
-      ) {
-        title = '🛸 ' + title;
-      }
-
-      if (title === '') {
-        title = 'Military Plane Alert';
-      }
 
       messages.push({
         title: title,
@@ -798,91 +416,13 @@ async function notifyForDevice(
       return;
     }
 
-    // Send via Pushover API
-    for (const msg of messages) {
-      try {
-        logger.info('Sending Pushover notification', {
-          docId,
-          deviceName: data.deviceName,
-          userKey: data.pushoverUserKey.slice(0, 8),
-          message: msg.message,
-          model: msg.model,
-        });
-
-        let attachmentBase64: string | null = null;
-        if (msg.model && msg.model.trim()) {
-          logger.info('Fetching aircraft image', {
-            docId,
-            model: msg.model,
-          });
-
-          const imageUrl = await fetchAircraftImage(msg.model, msg.operator);
-          if (imageUrl) {
-            logger.info('Found image URL, downloading', {
-              docId,
-              url: imageUrl.substring(0, 100),
-            });
-            attachmentBase64 = await downloadAndEncodeImage(imageUrl);
-            if (attachmentBase64) {
-              logger.info('Image encoded successfully', {
-                docId,
-                size: attachmentBase64.length,
-              });
-            }
-          }
-        }
-
-        const params: Record<string, string> = {
-          token: PUSHOVER_API_TOKEN || '',
-          user: data.pushoverUserKey,
-          device: data.deviceName || '',
-          title: msg.title,
-          message: msg.message,
-          url: msg.url || '',
-          url_title: msg.url_title || '',
-          priority: '1',
-          sound: 'none',
-          icon: msg.icon || '',
-        };
-
-        if (attachmentBase64) {
-          params.attachment_base64 = attachmentBase64;
-          params.attachment_type = 'image/jpeg';
-        }
-
-        const response = await fetch(
-          'https://api.pushover.net/1/messages.json',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams(params),
-          } as any
-        );
-
-        const result: any = await response.json();
-
-        if (response.ok && result.status === 1) {
-          logger.info('Sent Pushover notification', {
-            userKey: data.pushoverUserKey.slice(0, 8),
-            message: msg.message,
-            withImage: !!attachmentBase64,
-          });
-        } else {
-          logger.error('Pushover API error', {
-            userKey: data.pushoverUserKey.slice(0, 8),
-            error: result,
-          });
-        }
-      } catch (error: any) {
-        logger.error('Failed to send Pushover notification', {
-          docId,
-          userKey: data.pushoverUserKey.slice(0, 8),
-          error: error?.message,
-        });
-      }
-    }
+    // Send via Pushover API using service
+    await sendPushoverNotifications(
+      data.pushoverUserKey,
+      data.deviceName || '',
+      messages,
+      docId
+    );
 
     await device.set(
       {

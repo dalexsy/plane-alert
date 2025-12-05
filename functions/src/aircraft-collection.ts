@@ -2,7 +2,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
-import type { AdsBPlane } from './shared';
+import type { AdsBPlane } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from './types';
 import {
   DEVICE_COLLECTION,

@@ -48,6 +48,10 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     &.balloon {
       transform: scale(1.2);
     }
+
+    &.ground_vehicle {
+      transform: scale(0.9);
+    }
   }
 
   // Grounded planes: grey and smaller (32px)

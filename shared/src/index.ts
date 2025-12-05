@@ -46,6 +46,7 @@ export {
 // Export notification formatting
 export {
   formatNotificationBody,
+  formatNotificationTitle,
   getArrowForDirection,
   getCountryFlagEmoji,
 } from './notification-formatter';
