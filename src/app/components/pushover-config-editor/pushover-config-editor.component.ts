@@ -27,6 +27,7 @@ interface BackendDeviceEntry {
   deviceName: string;
   platform?: string;
   config: BackendDeviceConfig;
+  isRegisteredInPushover?: boolean;
 }
 
 interface DeviceListItem {
@@ -40,6 +41,7 @@ interface DeviceListItem {
     lon: number;
     address?: string;
   };
+  isRegisteredInPushover: boolean;
 }
 
 @Component({
@@ -345,6 +347,7 @@ export class PushoverConfigEditorComponent implements OnInit {
           proximityEnabled: config.notifyProximity,
           militaryEnabled: !militaryDisabled,
           ignoredTypes,
+          isRegisteredInPushover: entry.isRegisteredInPushover,
         });
         deviceMap.set(deviceName, {
           name: deviceName,
@@ -353,10 +356,11 @@ export class PushoverConfigEditorComponent implements OnInit {
           militaryEnabled: !militaryDisabled,
           ignoredTypes: [...ignoredTypes],
           location: config.home || (config as any).location || undefined,
+          isRegisteredInPushover: entry.isRegisteredInPushover !== false,
         });
       });
 
-      // Add available devices that aren't registered yet
+      // Add available devices that aren't registered yet (these are from Pushover)
       availableDevices.forEach((name) => {
         if (!deviceMap.has(name)) {
           deviceMap.set(name, {
@@ -365,6 +369,7 @@ export class PushoverConfigEditorComponent implements OnInit {
             proximityEnabled: false,
             militaryEnabled: true,
             ignoredTypes: [...BORING_AIRCRAFT_TYPES], // Default: filter boring aircraft
+            isRegisteredInPushover: true, // These come from Pushover API
           });
         }
       });

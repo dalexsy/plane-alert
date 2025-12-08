@@ -132,19 +132,22 @@ export async function buildNotificationBody(
     }
   }
 
-  return formatNotificationBody({
-    callsign,
-    icao: plane.hex,
-    direction,
-    bearing,
-    planeHeading: plane.track,
-    flagEmoji,
-    operator: operator || undefined,
-    speed,
-    speedUnit,
-    altitude,
-    altitudeUnit,
-    verticalRate: plane.baro_rate || undefined,
-    location,
-  }, skipCallsignInBody);
+  return formatNotificationBody(
+    {
+      callsign,
+      icao: plane.hex,
+      direction,
+      bearing,
+      planeHeading: plane.track,
+      flagEmoji,
+      operator: operator || undefined,
+      speed,
+      speedUnit,
+      altitude,
+      altitudeUnit,
+      verticalRate: plane.baro_rate || undefined,
+      location,
+    },
+    skipCallsignInBody
+  );
 }

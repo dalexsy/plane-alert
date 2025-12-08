@@ -199,6 +199,12 @@
       border: 1px solid rgba(0, 123, 255, 0.4);
     }
 
+    &.orphaned {
+      background: rgba(255, 152, 0, 0.1);
+      border: 1px dashed rgba(255, 152, 0, 0.4);
+      opacity: 0.8;
+    }
+
     .device-info {
       flex: 1;
       display: flex;
@@ -224,6 +230,18 @@
 
           app-icon {
             color: #4caf50;
+          }
+        }
+
+        .orphan-warning {
+          font-size: 0.8em;
+          color: #ffa726;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          app-icon {
+            color: #ffa726;
           }
         }
       }

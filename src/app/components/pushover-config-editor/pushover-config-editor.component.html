@@ -49,6 +49,7 @@
           *ngFor="let device of devices"
           class="device-item"
           [class.selected]="selectedDevice === device"
+          [class.orphaned]="!device.isRegisteredInPushover"
           (click)="selectDevice(device)"
         >
           <div class="device-info">
@@ -56,6 +57,14 @@
               <span class="device-name">{{
                 formatDeviceName(device.name)
               }}</span>
+              <span
+                *ngIf="!device.isRegisteredInPushover"
+                class="orphan-warning"
+                title="This device is not registered in Pushover and cannot receive notifications"
+              >
+                <app-icon icon="warning" size="small"></app-icon>
+                Not in Pushover
+              </span>
               <span
                 class="device-location"
                 *ngIf="formatLocation(device) !== 'No location set'"

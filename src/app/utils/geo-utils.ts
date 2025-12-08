@@ -67,7 +67,7 @@ export async function reverseGeocode(
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
     const response = await fetch(
-      `/nominatim/reverse?format=json&lat=${lat}&lon=${lon}`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
       {
         signal: controller.signal,
         headers: { 'User-Agent': 'PlaneAlert/1.0' },

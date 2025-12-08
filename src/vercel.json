@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/nominatim/:path*",
+      "destination": "https://nominatim.openstreetmap.org/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/nominatim/(.*)",
+      "headers": [
+        { "key": "User-Agent", "value": "PlaneAlert/1.0 (plane-alert.vercel.app)" }
+      ]
+    }
+  ]
+}

@@ -5,14 +5,25 @@ import { COOLDOWN_COLLECTION } from '../constants';
 /**
  * Check if notification should be sent and atomically mark as notified if allowed
  * Uses Firestore transactions to prevent duplicate notifications
+ * 
+ * @param db - Firestore database instance
+ * @param userKey - Pushover user key
+ * @param deviceName - Device name (for per-device cooldown) - if empty, uses per-user cooldown
+ * @param icao - Aircraft ICAO hex code
+ * @param cooldownMs - Cooldown period in milliseconds
  */
 export async function checkAndMarkNotified(
   db: admin.firestore.Firestore,
   userKey: string,
+  deviceName: string,
   icao: string,
   cooldownMs: number
 ): Promise<boolean> {
-  const cooldownId = `${userKey}__${icao}`;
+  // Cooldown is per-device - each device gets its own notification for matching aircraft
+  // This allows the same aircraft to notify multiple devices, but prevents duplicates on same device
+  const cooldownId = deviceName 
+    ? `${userKey}__${deviceName}__${icao}` 
+    : `${userKey}__${icao}`;
   const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
 
   try {

@@ -136,7 +136,7 @@ export class GeocodingCacheService {
 
     try {
       // Try Nominatim first (better Unicode support, preserves umlauts)
-      const nominatimUrl = `/nominatim/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=en`;
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=en`;
       const nominatimResponse = await this.ngZone.runOutsideAngular(() =>
         firstValueFrom(this.http.get<any>(nominatimUrl).pipe(timeout(5000)))
       );

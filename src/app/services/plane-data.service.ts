@@ -63,7 +63,10 @@ export class PlaneDataService {
   private lastUnknownCountryLogTime = 0;
 
   // Store route data for aircraft
-  private routeDataCache = new Map<string, { origin?: string; destination?: string }>();
+  private routeDataCache = new Map<
+    string,
+    { origin?: string; destination?: string }
+  >();
 
   constructor(
     private newPlaneService: NewPlaneService,

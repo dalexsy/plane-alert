@@ -230,21 +230,24 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
       const validation = await validatePushoverUserKey(pushoverUserKey);
       const keyValid = validation.valid || deviceEntries.length > 0;
 
-      const availableDevicesSet = new Set<string>();
-      for (const name of validation.devices) {
-        if (typeof name === 'string' && name.trim().length > 0) {
-          availableDevicesSet.add(name.trim());
-        }
-      }
+      // Only use Pushover-registered devices as the source of truth for available devices
+      // This prevents showing devices in the UI that can't actually receive notifications
+      const pushoverDevices = new Set<string>(
+        validation.devices
+          .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+          .map((name) => name.trim().toLowerCase())
+      );
+
+      // Mark each device entry with whether it's registered in Pushover
       for (const entry of deviceEntries) {
-        if (entry.deviceName.trim().length > 0) {
-          availableDevicesSet.add(entry.deviceName.trim());
-        }
+        (entry as any).isRegisteredInPushover = pushoverDevices.has(entry.deviceName.toLowerCase());
       }
 
-      const availableDevices = Array.from(availableDevicesSet).sort((a, b) =>
-        a.localeCompare(b)
-      );
+      // Only include Pushover-registered devices as available
+      const availableDevices = validation.devices
+        .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+        .map((name) => name.trim())
+        .sort((a, b) => a.localeCompare(b));
 
       logger.info('checkDevice success', {
         userKey: pushoverUserKey.slice(0, 8),

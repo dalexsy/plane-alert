@@ -15,7 +15,8 @@ export interface FlightRoute {
 })
 export class OpenskyRouteService {
   // Use Firebase Cloud Function proxy to bypass CORS
-  private readonly PROXY_URL = 'https://us-central1-plane-alert-800ff.cloudfunctions.net/openskyProxy';
+  private readonly PROXY_URL =
+    'https://us-central1-plane-alert-800ff.cloudfunctions.net/openskyProxy';
   private readonly CACHE_DURATION_MS = 3600000; // 1 hour
   private readonly CACHE_PREFIX = 'opensky_route_';
   private readonly REQUEST_TIMEOUT_MS = 10000; // 10 second timeout
@@ -33,7 +34,7 @@ export class OpenskyRouteService {
   /**
    * Get flight route (origin/destination) for an aircraft by ICAO hex
    * Results are cached for 1 hour to avoid rate limits
-   * 
+   *
    * NOTE: Currently disabled due to OpenSky rate limits. Returns null immediately.
    */
   getFlightRoute(icao: string): Observable<FlightRoute | null> {
@@ -62,45 +63,50 @@ export class OpenskyRouteService {
     // Use Firebase proxy endpoint
     const url = `${this.PROXY_URL}?icao24=${icaoLower}`;
 
-    return this.http.get<{
-      origin: string | null;
-      destination: string | null;
-      departureTime?: number;
-      arrivalTime?: number;
-    }>(url).pipe(
-      timeout(this.REQUEST_TIMEOUT_MS),
-      map((response) => {
-        if (!response || (!response.origin && !response.destination)) {
-          // Cache the null result to avoid repeated failed queries
+    return this.http
+      .get<{
+        origin: string | null;
+        destination: string | null;
+        departureTime?: number;
+        arrivalTime?: number;
+      }>(url)
+      .pipe(
+        timeout(this.REQUEST_TIMEOUT_MS),
+        map((response) => {
+          if (!response || (!response.origin && !response.destination)) {
+            // Cache the null result to avoid repeated failed queries
+            this.cacheRoute(icaoLower, null);
+            return null;
+          }
+
+          const route: FlightRoute = {
+            origin: response.origin || undefined,
+            destination: response.destination || undefined,
+            departureTime: response.departureTime,
+            arrivalTime: response.arrivalTime,
+          };
+
+          // Only cache if we have useful data
+          if (route.origin || route.destination) {
+            this.cacheRoute(icaoLower, route);
+            return route;
+          }
+
+          // Cache null result
           this.cacheRoute(icaoLower, null);
           return null;
-        }
-
-        const route: FlightRoute = {
-          origin: response.origin || undefined,
-          destination: response.destination || undefined,
-          departureTime: response.departureTime,
-          arrivalTime: response.arrivalTime,
-        };
-
-        // Only cache if we have useful data
-        if (route.origin || route.destination) {
-          this.cacheRoute(icaoLower, route);
-          return route;
-        }
-
-        // Cache null result
-        this.cacheRoute(icaoLower, null);
-        return null;
-      }),
-      catchError((error) => {
-        // Don't throw errors, just return null
-        console.warn(`OpenSky route fetch failed for ${icao}:`, error.message);
-        // Cache null to avoid repeated failures
-        this.cacheRoute(icaoLower, null);
-        return of(null);
-      })
-    );
+        }),
+        catchError((error) => {
+          // Don't throw errors, just return null
+          console.warn(
+            `OpenSky route fetch failed for ${icao}:`,
+            error.message
+          );
+          // Cache null to avoid repeated failures
+          this.cacheRoute(icaoLower, null);
+          return of(null);
+        })
+      );
   }
 
   /**

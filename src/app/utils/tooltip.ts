@@ -185,7 +185,9 @@ export function planeTooltip(
     truncatedOperator
       ? `<span class="divider">•</span> <span class="aircraft-operator">${truncatedOperator}</span>${
           routeOrigin || routeDestination
-            ? `<span class="divider">•</span> <span class="route-info">${routeOrigin || '?'} → ${routeDestination || '?'}</span>`
+            ? `<span class="divider">•</span> <span class="route-info">${
+                routeOrigin || '?'
+              } → ${routeDestination || '?'}</span>`
             : ''
         }`
       : // When no operator, show speed and altitude in main row

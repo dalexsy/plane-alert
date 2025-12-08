@@ -38,7 +38,7 @@ export class LocationService {
     lng: number
   ): Observable<{ street: string | null; district: string | null }> {
     // Using Nominatim API for reverse geocoding
-    const url = `/nominatim/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`;
 
     return this.http.get<LocationResponse>(url).pipe(
       timeout(5000), // 5 second timeout

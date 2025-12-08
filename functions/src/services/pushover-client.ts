@@ -58,10 +58,10 @@ export async function sendPushoverNotification(
       }
     }
 
+    // Target specific device if provided, otherwise send to all devices
     const params: Record<string, string> = {
       token: PUSHOVER_API_TOKEN || '',
       user: userKey,
-      device: deviceName || '',
       title: message.title,
       message: message.message,
       url: message.url || '',
@@ -70,6 +70,11 @@ export async function sendPushoverNotification(
       sound: 'none',
       icon: message.icon || '',
     };
+
+    // Only add device parameter if a specific device is targeted
+    if (deviceName) {
+      params.device = deviceName;
+    }
 
     if (attachmentBase64) {
       params.attachment_base64 = attachmentBase64;

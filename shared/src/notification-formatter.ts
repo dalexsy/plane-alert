@@ -92,7 +92,10 @@ export function formatNotificationTitle(
  * @param data Notification data
  * @param skipCallsignInBody If true, omits the callsign from the body (when it's already in the title)
  */
-export function formatNotificationBody(data: NotificationData, skipCallsignInBody = false): string {
+export function formatNotificationBody(
+  data: NotificationData,
+  skipCallsignInBody = false
+): string {
   const callsign = data.callsign?.trim() || data.icao.toUpperCase();
   const flagEmoji = data.flagEmoji || '🏳️';
 

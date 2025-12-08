@@ -68,6 +68,17 @@ export class LocationOverlayComponent {
   @Input() isSelected: boolean = false;
   @Output() selectPlane = new EventEmitter<PlaneModel>();
 
+  /** Check if we have airport info to display (plane at airport and grounded or low altitude) */
+  get hasAirportInfo(): boolean {
+    if (!this.plane?.airportName) {
+      return false;
+    }
+    return (
+      this.plane.onGround === true ||
+      (this.plane.altitude != null && this.plane.altitude <= 200)
+    );
+  }
+
   constructor(private debouncedClick: DebouncedClickService) {}
   /** Handle user click to select this plane */
   onClick(): void {

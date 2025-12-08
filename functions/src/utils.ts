@@ -49,7 +49,9 @@ export function inferDeviceName(
   if (splitIndex !== -1 && splitIndex + 2 < docId.length) {
     const slug = docId.slice(splitIndex + 2);
     if (slug) {
-      return slug.replace(/-/g, ' ');
+      // Return the slug as-is (don't convert hyphens to spaces)
+      // Pushover device names must match exactly
+      return slug;
     }
   }
   return 'default';

@@ -221,6 +221,7 @@ async function notifyForDevice(
       const shouldNotify = await checkAndMarkNotified(
         db,
         data.pushoverUserKey,
+        data.deviceName || '',
         icao,
         RECENT_NOTIFICATION_TTL_MS
       );
@@ -281,7 +282,10 @@ async function notifyForDevice(
         const modelUpper = model.toUpperCase();
         if (modelUpper.includes('A400') || modelUpper.includes('A-400')) {
           title = '🦜 ' + title;
-        } else if (modelUpper.includes('E-3') || modelUpper.includes('SENTRY')) {
+        } else if (
+          modelUpper.includes('E-3') ||
+          modelUpper.includes('SENTRY')
+        ) {
           title = '🛸 ' + title;
         }
       }
@@ -333,6 +337,7 @@ async function notifyForDevice(
         const shouldNotify = await checkAndMarkNotified(
           db,
           data.pushoverUserKey,
+          data.deviceName || '',
           `proximity_${icao}`,
           PROXIMITY_NOTIFICATION_COOLDOWN_MS
         );

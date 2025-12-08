@@ -367,8 +367,11 @@ export function getIconPathForModel(
         // This catches military jets (like GAF) and airliners with missing model data
         const altitudeM = altitude ?? 0;
         const velocityMs = velocity ?? 0;
-        
-        if (altitudeM >= JET_ALTITUDE_THRESHOLD_M && velocityMs >= JET_VELOCITY_THRESHOLD_MS) {
+
+        if (
+          altitudeM >= JET_ALTITUDE_THRESHOLD_M &&
+          velocityMs >= JET_VELOCITY_THRESHOLD_MS
+        ) {
           // High + fast = jet (use twin engine icon as most common jet type)
           result = { path: TWIN_ENGINE_SVG, iconType: 'twin_engine' };
         } else if (altitudeM < 3000 && velocityMs < 80 && velocityMs > 0) {

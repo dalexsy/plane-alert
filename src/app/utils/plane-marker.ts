@@ -254,7 +254,14 @@ export function createOrUpdatePlaneMarker(
   // Inline SVG for non-helicopters, CSS ::before for helicopters
   const iconData = isCopter
     ? { path: '', iconType: 'helicopter' as const }
-    : getIconPathForModel(model, callsign, altitude || undefined, isCopter, categoryCode, velocity);
+    : getIconPathForModel(
+        model,
+        callsign,
+        altitude || undefined,
+        isCopter,
+        categoryCode,
+        velocity
+      );
   // Only render inline SVG for non-helicopters that are not unknown devices
   const iconInner =
     !isCopter && !isUnknown
