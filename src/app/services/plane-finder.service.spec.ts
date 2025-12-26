@@ -1,44 +1,42 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { PlaneFinderService } from './plane-finder.service';
-import { NewPlaneService } from './new-plane.service';
 import { SettingsService } from './settings.service';
-import { HelicopterListService } from './helicopter-list.service';
-import { SpecialListService } from './special-list.service';
-import { OperatorCallSignService } from './operator-call-sign.service';
+import { EventEmitter } from '@angular/core';
+import { PlaneDataService } from './plane-data.service';
+import { PathCalculationService } from './path-calculation.service';
+import { PlaneVisualizationService } from './plane-visualization.service';
+import { TooltipUpdateService } from './tooltip-update.service';
 
 describe('PlaneFinderService', () => {
   let service: PlaneFinderService;
 
-  // Mock classes
-  class MockNewPlaneService {
-    isNew = () => false;
-    updatePlanes = () => {};
+  class MockSettingsService {
+    distanceUnit = 'km';
+    distanceUnitChanged = new EventEmitter<string>();
   }
-  class MockSettingsService {}
-  class MockHelicopterListService {
-    refreshHelicopterList = () => Promise.resolve(false);
-  }
-  class MockSpecialListService {
-    refreshSpecialList = () => Promise.resolve();
-  }
-  class MockOperatorCallSignService {
-    getOperator = () => undefined;
+
+  class MockPlaneDataService {}
+
+  class MockPathCalculationService {}
+
+  class MockPlaneVisualizationService {}
+
+  class MockTooltipUpdateService {
+    updateAllTooltipsForUnitChange() {}
   }
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
       providers: [
         PlaneFinderService,
-        { provide: NewPlaneService, useClass: MockNewPlaneService },
         { provide: SettingsService, useClass: MockSettingsService },
-        { provide: HelicopterListService, useClass: MockHelicopterListService },
-        { provide: SpecialListService, useClass: MockSpecialListService },
+        { provide: PlaneDataService, useClass: MockPlaneDataService },
+        { provide: PathCalculationService, useClass: MockPathCalculationService },
         {
-          provide: OperatorCallSignService,
-          useClass: MockOperatorCallSignService,
+          provide: PlaneVisualizationService,
+          useClass: MockPlaneVisualizationService,
         },
+        { provide: TooltipUpdateService, useClass: MockTooltipUpdateService },
       ],
     });
     service = TestBed.inject(PlaneFinderService);

@@ -370,7 +370,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (tooltipEl) {
           tooltipEl.classList.toggle(
             'special-plane-tooltip',
-            this.specialListService.isSpecial(plane.icao)
+            plane.isSpecial === true
           );
         }
         // Also update marker icon class
@@ -378,7 +378,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (markerEl) {
           markerEl.classList.toggle(
             'special-plane',
-            this.specialListService.isSpecial(plane.icao)
+            plane.isSpecial === true
           );
         }
       });
@@ -486,7 +486,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (tooltipEl) {
           tooltipEl.classList.toggle(
             'special-plane-tooltip',
-            this.specialListService.isSpecial(plane.icao)
+            plane.isSpecial === true
           );
         }
         // Also update marker icon class
@@ -494,7 +494,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (markerEl) {
           markerEl.classList.toggle(
             'special-plane',
-            this.specialListService.isSpecial(plane.icao)
+            plane.isSpecial === true
           );
         }
       });

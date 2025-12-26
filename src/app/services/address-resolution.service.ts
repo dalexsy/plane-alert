@@ -167,11 +167,28 @@ export class AddressResolutionService {
 
     formatted = parts.join(', ');
 
-    formatted = formatted
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    formatted = this.toTitleCaseAddress(formatted);
 
     return formatted;
+  }
+
+  private toTitleCaseAddress(value: string): string {
+    const lower = value.toLocaleLowerCase();
+
+    // Title-case the first letter after start/separators.
+    // Use Unicode property escapes to avoid breaking on characters like "ö" or "ß".
+    let titled = lower.replace(
+      /(^|[\s,.-])(\p{L})/gu,
+      (_m, sep: string, letter: string) => `${sep}${letter.toLocaleUpperCase()}`
+    );
+
+    // Uppercase a trailing letter in house numbers (e.g., "9a" -> "9A").
+    titled = titled.replace(
+      /(\d)(\p{L})(?=\b)/gu,
+      (_m, digit: string, letter: string) => `${digit}${letter.toLocaleUpperCase()}`
+    );
+
+    return titled;
   }
 
   private cleanDisplayName(displayName: string): string {

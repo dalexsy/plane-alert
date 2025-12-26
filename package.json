@@ -14,7 +14,9 @@
     "deploy:functions": "npm run sync:db && cd shared && npm run build && cd .. && npm run prepare:functions-shared && cd functions && npm install && npm run deploy",
     "deploy:all": "npm run build:surge && npm run deploy:functions",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test --watch=false --browsers=ChromeHeadless --no-progress",
+    "test:watch": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless --no-progress"
   },
   "private": true,
   "dependencies": {

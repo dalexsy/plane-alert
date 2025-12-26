@@ -113,6 +113,16 @@ $new-plane-color: #ff6161;
     border-color: #89d138;
   }
 
+  &.stale-plane-tooltip:not(.special-plane-tooltip):not(.followed-plane-tooltip) {
+    border-color: #989898;
+
+    &:hover,
+    &.hovered-tooltip,
+    &.highlighted-tooltip {
+      border-color: #989898;
+    }
+  }
+
   // Only apply white border on hover/hovered unless special or followed
   &:hover:not(.special-plane-tooltip):not(.followed-plane-tooltip),
   &.hovered-tooltip:not(.special-plane-tooltip):not(.followed-plane-tooltip) {
@@ -156,6 +166,17 @@ $new-plane-color: #ff6161;
     &.special-star-tooltip {
       color: gold;
     }
+  }
+
+  .stale-tag {
+    font-size: 0.65rem;
+    line-height: 1;
+    padding: 0.05rem 0.2rem;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   &.followed-plane-tooltip {

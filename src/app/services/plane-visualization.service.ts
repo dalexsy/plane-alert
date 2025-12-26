@@ -132,6 +132,7 @@ export class PlaneVisualizationService {
       isSpecial,
       isUnknown,
       positionHistory: plane.positionHistory,
+      icaoType: plane.icaoType,
     };
 
     const latestHistoryTimestamp =
@@ -227,6 +228,7 @@ export class PlaneVisualizationService {
     const onGround = plane.onGround ?? false;
     const isMilitary = plane.isMilitary ?? false;
     const isSpecial = plane.isSpecial ?? false;
+    const isStale = plane.isStale ?? false;
     const verticalRate = plane.verticalRate ?? null;
 
     return planeTooltip(
@@ -242,6 +244,7 @@ export class PlaneVisualizationService {
       onGround,
       isMilitary,
       isSpecial,
+      isStale,
       verticalRate,
       altitude,
       (alt: number) => this.altitudeColor.getFillColor(alt),
@@ -424,6 +427,7 @@ export class PlaneVisualizationService {
     const onGround = plane.onGround ?? false;
     const isMilitary = plane.isMilitary ?? false;
     const isSpecial = plane.isSpecial ?? false;
+    const isStale = plane.isStale ?? false;
     const verticalRate = plane.verticalRate ?? null;
 
     const tooltip = planeTooltip(
@@ -439,6 +443,7 @@ export class PlaneVisualizationService {
       onGround,
       isMilitary,
       isSpecial,
+      isStale,
       verticalRate,
       altitude,
       (alt: number) => this.altitudeColor.getFillColor(alt),

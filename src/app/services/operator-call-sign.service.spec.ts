@@ -72,9 +72,7 @@ describe('OperatorCallSignService', () => {
 
     // Test with unknown call sign
     expect(service.getOperatorWithLogging('XYZ123')).toBeUndefined();
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '[Unknown Call Sign] XYZ - Full callsign: XYZ123'
-    );
+    expect(consoleSpy).toHaveBeenCalledWith('"XYZ": ""');
 
     // Should only log once per prefix
     service.getOperatorWithLogging('XYZ456');

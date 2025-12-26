@@ -260,7 +260,8 @@ export function createOrUpdatePlaneMarker(
         altitude || undefined,
         isCopter,
         categoryCode,
-        velocity
+        velocity,
+        planeData?.icaoType || null
       );
   // Only render inline SVG for non-helicopters that are not unknown devices
   const iconInner =

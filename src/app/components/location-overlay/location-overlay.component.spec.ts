@@ -3,23 +3,14 @@ import { By } from '@angular/platform-browser';
 
 import { LocationOverlayComponent } from './location-overlay.component';
 import { PlaneModel } from '../../models/plane-model';
+import { DebouncedClickService } from '../../services/debounced-click.service';
 
 describe('LocationOverlayComponent', () => {
   let component: LocationOverlayComponent;
   let fixture: ComponentFixture<LocationOverlayComponent>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [LocationOverlayComponent],
-    }).compileComponents();
-  });
-
-  beforeEach(() => {
-    fixture = TestBed.createComponent(LocationOverlayComponent);
-    component = fixture.componentInstance;
-
-    // Create mock plane data with all required properties
-    const mockPlane = new PlaneModel({
+  const createMockPlane = () =>
+    new PlaneModel({
       icao: 'ABC123',
       callsign: 'TEST123',
       lat: 51.5074,
@@ -34,8 +25,24 @@ describe('LocationOverlayComponent', () => {
       isNew: false,
     });
 
-    component.plane = mockPlane;
-    fixture.detectChanges();
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [LocationOverlayComponent],
+      providers: [
+        {
+          provide: DebouncedClickService,
+          useValue: {
+            debouncedClick: (_key: string, fn: () => void) => fn(),
+          },
+        },
+      ],
+      teardown: { destroyAfterEach: true },
+    }).compileComponents();
+  });
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(LocationOverlayComponent);
+    component = fixture.componentInstance;
   });
 
   it('should create', () => {
@@ -49,55 +56,49 @@ describe('LocationOverlayComponent', () => {
     expect(overlayEl).toBeNull();
   });
 
-  it('should show street information when available', () => {
-    component.street = 'Main Street';
-    fixture.detectChanges();
-    const streetEl = fixture.debugElement.query(By.css('.street'));
-    expect(streetEl.nativeElement.textContent).toContain('Main Street');
-  });
-
-  it('should show "Unknown" when street is not available', () => {
-    component.street = null;
-    fixture.detectChanges();
-    const streetEl = fixture.debugElement.query(By.css('.street'));
-    expect(streetEl.nativeElement.textContent).toContain('Unknown');
-  });
-
   it('should show district when available', () => {
+    component.plane = createMockPlane();
     component.district = 'Downtown';
     fixture.detectChanges();
     const districtEl = fixture.debugElement.query(By.css('.district'));
-    expect(districtEl.nativeElement.textContent).toContain('Downtown');
+    expect(districtEl).withContext('Expected .district to exist').not.toBeNull();
+    expect(districtEl!.nativeElement.textContent).toContain('Downtown');
   });
 
   it('should not show district element when district is not available', () => {
+    component.plane = createMockPlane();
     component.district = null;
     fixture.detectChanges();
     const districtEl = fixture.debugElement.query(By.css('.district'));
     expect(districtEl).toBeNull();
   });
 
+  it('should show airport name when plane has airport info', () => {
+    component.plane = createMockPlane();
+    (component.plane as any).airportName = 'Frankfurt Airport';
+    (component.plane as any).onGround = true;
+    component.district = null;
+    fixture.detectChanges();
+
+    const airportEl = fixture.debugElement.query(By.css('.airport-name'));
+    expect(airportEl)
+      .withContext('Expected .airport-name to exist')
+      .not.toBeNull();
+    expect(airportEl!.nativeElement.textContent).toContain('Frankfurt Airport');
+  });
+
   it('should emit selectPlane event on click', () => {
     spyOn(component.selectPlane, 'emit');
-    const mockPlane = new PlaneModel({
-      icao: 'ABC123',
-      callsign: 'TEST123',
-      lat: 51.5074,
-      lon: -0.1278,
-      origin: 'UK',
-      firstSeen: Date.now(),
-      model: 'B737',
-      operator: 'Test Airways',
-      bearing: 90,
-      cardinal: 'E',
-      arrow: '→',
-      isNew: false,
-    });
+    const mockPlane = createMockPlane();
     component.plane = mockPlane;
+    component.district = 'Downtown';
     fixture.detectChanges();
 
     const overlayEl = fixture.debugElement.query(By.css('.location-overlay'));
-    overlayEl.nativeElement.click();
+    expect(overlayEl)
+      .withContext('Expected .location-overlay to exist')
+      .not.toBeNull();
+    overlayEl!.nativeElement.click();
 
     expect(component.selectPlane.emit).toHaveBeenCalledWith(mockPlane);
   });

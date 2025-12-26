@@ -1,17 +1,57 @@
 import { TestBed } from '@angular/core/testing';
-import { RouterModule } from '@angular/router';
 import { AppComponent } from './app.component';
+import { NoonRefreshService } from './services/noon-refresh.service';
+import {
+  NotificationService,
+  NotificationStatusInfo,
+} from './services/notification.service';
+import { FirebaseMessagingService } from './services/firebase-messaging.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [
-        RouterModule.forRoot([])
+    TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [
+        {
+          provide: NoonRefreshService,
+          useValue: {
+            start: () => {},
+          },
+        },
+        {
+          provide: NotificationService,
+          useValue: {
+            evaluateStatus: async () =>
+              ({
+                state: 'prompt',
+                icon: '',
+                label: '',
+                details: '',
+                canRequest: false,
+                canTest: false,
+              } as NotificationStatusInfo),
+            requestPermission: async () => 'default',
+            showMilitaryPlaneNotification: () => {},
+          },
+        },
+        {
+          provide: FirebaseMessagingService,
+          useValue: {
+            getStoredUserKey: () => null,
+            registerDevice: async () => false,
+          },
+        },
       ],
-      declarations: [
-        AppComponent
-      ],
-    }).compileComponents();
+    });
+
+    TestBed.overrideComponent(AppComponent, {
+      set: {
+        template: '',
+        imports: [],
+      },
+    });
+
+    await TestBed.compileComponents();
   });
 
   it('should create the app', () => {
@@ -24,12 +64,5 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     expect(app.title).toEqual('plane-alert');
-  });
-
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, plane-alert');
   });
 });

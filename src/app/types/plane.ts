@@ -23,6 +23,8 @@ export interface Plane {
   velocity?: number | null;
   /** Indicates special plane category */
   isSpecial?: boolean;
+  /** True when this plane is retained briefly after it drops out of the feed */
+  isStale?: boolean;
   /** Indicates if this is an A380 for visual highlighting */
   isA380?: boolean;
 }

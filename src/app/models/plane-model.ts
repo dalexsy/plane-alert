@@ -33,6 +33,7 @@ export class PlaneModel implements Plane {
   filteredOut!: boolean;
   onGround?: boolean;
   isSpecial?: boolean;
+  isStale?: boolean;
   isA380?: boolean;
   isMilitary?: boolean;
   isUnknown?: boolean;

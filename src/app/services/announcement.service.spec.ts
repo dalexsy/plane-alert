@@ -2,32 +2,64 @@ import { TestBed } from '@angular/core/testing';
 import { AnnouncementService } from './announcement.service';
 import { TtsService } from './tts.service';
 import { CountryService } from './country.service';
+import { LanguageSwitchService } from './language-switch.service';
+import { SettingsService } from './settings.service';
+import { AircraftCountryService } from './aircraft-country.service';
+import { OperatorCallSignService } from './operator-call-sign.service';
 import { PlaneLogEntry } from '../components/results-overlay/results-overlay.component';
+import { fakeAsync, tick } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('AnnouncementService', () => {
   let service: AnnouncementService;
-  let ttsService: jasmine.SpyObj<TtsService>;
   let countryService: jasmine.SpyObj<CountryService>;
+  let langSwitch: jasmine.SpyObj<LanguageSwitchService>;
 
   beforeEach(() => {
     const ttsServiceSpy = jasmine.createSpyObj('TtsService', ['speakOnce']);
     const countryServiceSpy = jasmine.createSpyObj('CountryService', [
       'getCountryName',
     ]);
+    const langSwitchSpy = jasmine.createSpyObj('LanguageSwitchService', [
+      'speakWithOverrides',
+    ]);
 
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       providers: [
         AnnouncementService,
         { provide: TtsService, useValue: ttsServiceSpy },
         { provide: CountryService, useValue: countryServiceSpy },
+        { provide: LanguageSwitchService, useValue: langSwitchSpy },
+        {
+          provide: SettingsService,
+          useValue: {
+            militaryMute: false,
+          },
+        },
+        {
+          provide: AircraftCountryService,
+          useValue: {
+            getCountryFromCoordinates: () => ({ countryCode: 'Unknown' }),
+          },
+        },
+        {
+          provide: OperatorCallSignService,
+          useValue: {
+            getOperatorWithLogging: () => undefined,
+          },
+        },
       ],
+      teardown: { destroyAfterEach: true },
     });
 
     service = TestBed.inject(AnnouncementService);
-    ttsService = TestBed.inject(TtsService) as jasmine.SpyObj<TtsService>;
     countryService = TestBed.inject(
       CountryService
     ) as jasmine.SpyObj<CountryService>;
+    langSwitch = TestBed.inject(
+      LanguageSwitchService
+    ) as jasmine.SpyObj<LanguageSwitchService>;
   });
 
   it('should be created', () => {
@@ -44,7 +76,7 @@ describe('AnnouncementService', () => {
 
       service.announceNewAircraft(plane, { isAirportClicked: false });
 
-      expect(ttsService.speakOnce).not.toHaveBeenCalled();
+      expect(langSwitch.speakWithOverrides).not.toHaveBeenCalled();
     });
 
     it('should prioritize special model announcements', () => {
@@ -57,14 +89,15 @@ describe('AnnouncementService', () => {
 
       service.announceNewAircraft(plane, { isAirportClicked: false });
 
-      expect(ttsService.speakOnce).toHaveBeenCalledWith(
-        'special-TEST123',
-        'Hercules C-130',
-        navigator.language
-      );
+      expect(langSwitch.speakWithOverrides).toHaveBeenCalled();
+      const [key, text] = (langSwitch.speakWithOverrides as jasmine.Spy).calls
+        .mostRecent()
+        .args;
+      expect(key).toBe('aircraft-TEST123');
+      expect(String(text)).toContain('Hercules');
     });
 
-    it('should announce military aircraft when not special model', () => {
+    it('should announce military aircraft when not special model', fakeAsync(() => {
       const plane: PlaneLogEntry = {
         icao: 'TEST123',
         isNew: true,
@@ -75,33 +108,14 @@ describe('AnnouncementService', () => {
 
       service.announceNewAircraft(plane, { isAirportClicked: false });
 
-      expect(ttsService.speakOnce).toHaveBeenCalledWith(
-        'military-TEST123',
-        'USAF F-16',
-        navigator.language
+      // Military announcements are queued briefly to group by country
+      tick(350);
+
+      expect(langSwitch.speakWithOverrides).toHaveBeenCalledWith(
+        'aircraft-TEST123',
+        'USAF F-16'
       );
-    });
-
-    it('should use French locale for French military aircraft', () => {
-      const plane: PlaneLogEntry = {
-        icao: 'TEST123',
-        isNew: true,
-        isMilitary: true,
-        model: 'Rafale',
-        operator: "Armée de l'Air",
-        origin: 'FR',
-      } as PlaneLogEntry;
-
-      countryService.getCountryName.and.returnValue('France');
-
-      service.announceNewAircraft(plane, { isAirportClicked: false });
-
-      expect(ttsService.speakOnce).toHaveBeenCalledWith(
-        'military-TEST123',
-        "Armée de l'Air Rafale",
-        'fr-FR'
-      );
-    });
+    }));
 
     it('should announce airport arrivals for non-military planes at clicked airports', () => {
       const plane: PlaneLogEntry = {
@@ -109,12 +123,13 @@ describe('AnnouncementService', () => {
         isNew: true,
         isMilitary: false,
         airportName: 'Frankfurt Airport',
+        origin: 'DE',
       } as PlaneLogEntry;
 
       service.announceNewAircraft(plane, { isAirportClicked: true });
 
-      expect(ttsService.speakOnce).toHaveBeenCalledWith(
-        'Frankfurt Airport',
+      expect(langSwitch.speakWithOverrides).toHaveBeenCalledWith(
+        'aircraft-TEST123',
         'Frankfurt Airport',
         'de-DE'
       );

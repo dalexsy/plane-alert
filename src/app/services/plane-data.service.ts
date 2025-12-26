@@ -219,7 +219,7 @@ export class PlaneDataService {
     ) {
       onGroundBasedOnLogic = true;
     }
-    const onGround = ac.ground === true || onGroundBasedOnLogic;
+    const onGround = ac.gnd === true || ac.ground === true || onGroundBasedOnLogic;
 
     const isUnknown = this.unknownListService.isUnknown(id);
 
@@ -247,7 +247,7 @@ export class PlaneDataService {
     const prefixOperator =
       this.operatorCallSignService.getOperatorWithLogging(callsign);
     let operator = prefixOperator ?? (dbAircraft?.ownop || '');
-    let model = apiModel || dbAircraft?.model || '';
+    let model = apiModel || dbAircraft?.model || apiIcaoType || '';
 
     if (
       !model &&
@@ -263,7 +263,8 @@ export class PlaneDataService {
       model = 'Helicopter';
     }
 
-    const isSpecial = this.specialListService.isSpecial(id);
+    const isBalloon = apiIcaoType.trim().toUpperCase() === 'BALL';
+    const isSpecial = this.specialListService.isSpecial(id) || isBalloon;
 
     // Check if this is an A380 for visual highlighting
     const isA380 = model && /a\s*-?\s*380/i.test(model);

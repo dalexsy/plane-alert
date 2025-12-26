@@ -107,6 +107,7 @@ const TYPE_ICON_MAP: Record<string, PlaneIconData> = {
   SKYHAWK: { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
   CTLS: { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
   'CT LS': { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
+  BALL: { path: BALLOON_SVG, iconType: 'balloon' },
 };
 
 /**
@@ -124,7 +125,8 @@ export function getIconPathForModel(
   altitude?: number,
   isHelicopter?: boolean,
   categoryCode?: string | null,
-  velocity?: number | null
+  velocity?: number | null,
+  icaoType?: string | null
 ): PlaneIconData {
   // Check if it's a ground vehicle first (ADS-B category C0-C7)
   if (categoryCode && /^C[0-7]$/i.test(categoryCode)) {
@@ -134,6 +136,14 @@ export function getIconPathForModel(
   // Check if it's a helicopter
   if (isHelicopter) {
     return { path: HELICOPTER_SVG, iconType: 'helicopter' };
+  }
+
+  // Check ICAO type code first (e.g., BALL for balloons)
+  if (icaoType) {
+    const icaoCode = icaoType.trim().toUpperCase();
+    if (TYPE_ICON_MAP[icaoCode]) {
+      return TYPE_ICON_MAP[icaoCode];
+    }
   }
 
   // Check for 5-letter callsign with no numbers - use single engine (Cessna) icon

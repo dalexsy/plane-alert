@@ -13,6 +13,7 @@ import { PlaneModel } from '../models/plane-model';
 import { CountryService } from './country.service';
 import { SpecialListService } from './special-list.service';
 import { NotificationService } from './notification.service';
+import { TooltipUpdateService } from './tooltip-update.service';
 import {
   playAlertSound,
   playHerculesAlert,
@@ -37,7 +38,8 @@ export class PlaneUpdateService {
     private locationUpdateService: LocationUpdateService,
     private countryService: CountryService,
     private specialListService: SpecialListService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private tooltipUpdateService: TooltipUpdateService
   ) {}
 
   /**
@@ -140,9 +142,7 @@ export class PlaneUpdateService {
   }
 
   private getFaviconUrl(updatedLog: PlaneModel[]): string {
-    const hasSpecial = updatedLog.some((p) =>
-      this.specialListService.isSpecial(p.icao)
-    );
+    const hasSpecial = updatedLog.some((p) => p.isSpecial === true);
     const hasMil = updatedLog.some(
       (p) => !!this.aircraftDb.lookup(p.icao)?.mil
     );
@@ -168,7 +168,7 @@ export class PlaneUpdateService {
     const hasAlertPlanes = newVisible.some(
       (p) =>
         this.aircraftDb.lookup(p.icao)?.mil ||
-        this.specialListService.isSpecial(p.icao)
+        p.isSpecial === true
     );
 
     // Get military planes for notifications
@@ -219,6 +219,9 @@ export class PlaneUpdateService {
     return updatedLog.map((p) => {
       const planeModel = isPlaneModel(p) ? p : new PlaneModel(p);
 
+      // Fresh updates are not stale
+      planeModel.isStale = false;
+
       // If it's in planeLog from the previous scan, it's not new now
       planeModel.isNew = !previousPlaneKeys.has(planeModel.icao);
 
@@ -245,9 +248,25 @@ export class PlaneUpdateService {
     highlightedPlaneIcao: string | null,
     map: L.Map
   ): void {
+    const STALE_TTL_MS = 5 * 60 * 1000;
+    const now = Date.now();
+
     // Remove planes that are no longer in range
     for (const [id, plane] of planeLog.entries()) {
       if (!updatedPlaneModels.some((p) => p.icao === id)) {
+        const lastSeenTs =
+          plane.positionHistory && plane.positionHistory.length > 0
+            ? plane.positionHistory[plane.positionHistory.length - 1].timestamp
+            : plane.firstSeen;
+
+        if (now - lastSeenTs <= STALE_TTL_MS) {
+          if (plane.isStale !== true) {
+            plane.isStale = true;
+            this.tooltipUpdateService.updateTooltipForPlaneNow(plane);
+          }
+          continue;
+        }
+
         plane.removeVisuals(map);
         planeLog.delete(id);
       }
@@ -255,7 +274,13 @@ export class PlaneUpdateService {
 
     // Update logs with new plane data
     for (const planeModel of updatedPlaneModels) {
+      const wasStale = planeLog.get(planeModel.icao)?.isStale === true;
+      planeModel.isStale = false;
       planeLog.set(planeModel.icao, planeModel);
+
+      if (wasStale) {
+        this.tooltipUpdateService.updateTooltipForPlaneNow(planeModel);
+      }
     }
 
     // Update active ICAOs

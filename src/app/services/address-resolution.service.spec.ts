@@ -12,14 +12,17 @@ describe('AddressResolutionService', () => {
 
   beforeEach(() => {
     const settingsSpy = jasmine.createSpyObj('SettingsService', [
-      'setCurrentAddress',
       'setRadius',
+      'setLocationWithAddress',
     ]);
     const scanSpy = jasmine.createSpyObj('ScanService', ['forceScan']);
     const locationSpy = jasmine.createSpyObj('LocationContextService', [
       'updateFromAddress',
-      'setAddress',
+      'setLocation',
     ]);
+
+    // Provide a default radius used by the service
+    (settingsSpy as any).radius = 5;
 
     TestBed.configureTestingModule({
       providers: [
@@ -28,6 +31,7 @@ describe('AddressResolutionService', () => {
         { provide: ScanService, useValue: scanSpy },
         { provide: LocationContextService, useValue: locationSpy },
       ],
+      teardown: { destroyAfterEach: true },
     });
 
     service = TestBed.inject(AddressResolutionService);
@@ -148,10 +152,15 @@ describe('AddressResolutionService', () => {
       expect(locationContext.updateFromAddress).toHaveBeenCalledWith(
         'klarastr 2 12459 berlin'
       );
-      expect(settingsService.setCurrentAddress).toHaveBeenCalledWith(
-        'Klarastraße 2, Oberschöneweide, Treptow-Köpenick, 12459 Berlin, Germany'
+      expect(locationContext.setLocation).toHaveBeenCalledWith(
+        52.52,
+        13.405,
+        'Klarastraße 2, Oberschöneweide, Treptow-Köpenick, 12459 Berlin, Germany',
+        'address'
       );
-      expect(locationContext.setAddress).toHaveBeenCalledWith(
+      expect(settingsService.setLocationWithAddress).toHaveBeenCalledWith(
+        52.52,
+        13.405,
         'Klarastraße 2, Oberschöneweide, Treptow-Köpenick, 12459 Berlin, Germany'
       );
       expect(scanService.forceScan).toHaveBeenCalled();

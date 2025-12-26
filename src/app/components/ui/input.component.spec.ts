@@ -34,10 +34,23 @@ describe('InputComponent', () => {
   it('should emit enterPressed on Enter key', () => {
     spyOn(component.enterPressed, 'emit');
     const keyEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+
+    // Enter only emits for textarea mode
+    component.type = 'textarea';
     
     component.onKeydown(keyEvent);
     
     expect(component.enterPressed.emit).toHaveBeenCalledWith(keyEvent);
+  });
+
+  it('should not emit enterPressed on Enter for text input', () => {
+    spyOn(component.enterPressed, 'emit');
+    component.type = 'text';
+    
+    const keyEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+    component.onKeydown(keyEvent);
+
+    expect(component.enterPressed.emit).not.toHaveBeenCalled();
   });
 
   it('should set textarea type correctly', () => {

@@ -59,6 +59,12 @@ export class TooltipUpdateService {
     }
   }
 
+  updateTooltipForPlaneNow(planeModel: PlaneModel): void {
+    if (!this.currentMap || !this.currentGetFlagHTML) return;
+    const userUnit = this.settings.distanceUnit as DistanceUnit;
+    this.updateTooltipForPlane(planeModel, userUnit);
+  }
+
   private updateTooltipForPlane(
     planeModel: PlaneModel,
     userUnit: DistanceUnit
@@ -105,6 +111,7 @@ export class TooltipUpdateService {
     const onGround = planeModel.onGround ?? false;
     const isMilitary = planeModel.isMilitary ?? false;
     const isSpecial = planeModel.isSpecial ?? false;
+    const isStale = planeModel.isStale ?? false;
     const verticalRate = planeModel.verticalRate ?? null;
 
     // Generate new tooltip
@@ -121,6 +128,7 @@ export class TooltipUpdateService {
       onGround,
       isMilitary,
       isSpecial,
+      isStale,
       verticalRate,
       altitude,
       (alt: number) => this.altitudeColor.getFillColor(alt),
@@ -145,16 +153,18 @@ export class TooltipUpdateService {
         isNew ? 'new-plane-tooltip' : ''
       } ${isMilitary ? 'military-plane-tooltip' : ''} ${
         isSpecial ? 'special-plane-tooltip' : ''
-      }`,
+      } ${isStale ? 'stale-plane-tooltip' : ''}`,
       pane: 'tooltipPane',
     };
 
     planeModel.marker.bindTooltip(tooltip, rightTooltipOptions);
 
-    // Apply altitude border styling if altitude exists
-    if (altitude != null) {
-      const tooltipEl = planeModel.marker.getTooltip()?.getElement();
-      if (tooltipEl) {
+    const tooltipEl = planeModel.marker.getTooltip()?.getElement();
+    if (tooltipEl) {
+      if (isStale) {
+        tooltipEl.classList.remove('altitude-bordered-tooltip');
+        tooltipEl.style.borderColor = '';
+      } else if (altitude != null) {
         tooltipEl.classList.add('altitude-bordered-tooltip');
         tooltipEl.style.borderColor = this.altitudeColor.getFillColor(altitude);
       }

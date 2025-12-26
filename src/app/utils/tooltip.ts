@@ -113,6 +113,7 @@ export function planeTooltip(
   isGrounded: boolean,
   isMilitary: boolean,
   isSpecial: boolean,
+  isStale: boolean,
   verticalRate: number | null,
   altitude?: number | null,
   getAltitudeColor?: (alt: number) => string,
@@ -173,6 +174,7 @@ export function planeTooltip(
       ? callsign
       : '<span class="none-callsign">Pending</span>'
   }</a>
+      ${isStale ? '<span class="stale-tag" title="Stale: retained for a few minutes after dropping out of the live feed">STALE</span>' : ''}
       ${
         isMilitary
           ? '<span class="material-symbols-sharp icon small military-star-tooltip">star</span>'
@@ -289,6 +291,7 @@ export function planeTooltipLeft(
     isGrounded,
     isMilitary,
     isSpecial,
+    false,
     verticalRate,
     altitude,
     getAltitudeColor,
@@ -298,6 +301,6 @@ export function planeTooltipLeft(
     routeDestination
   );
 
-  // Wrap with left-side variant class
-  return `<span class="plane-tooltip-left-variant">${tooltip}</span>`;
-}
+    // Wrap with left-side variant class
+    return `<span class="plane-tooltip-left-variant">${tooltip}</span>`;
+  }
