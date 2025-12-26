@@ -376,10 +376,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Also update marker icon class
         const markerEl = plane.marker?.getElement();
         if (markerEl) {
-          markerEl.classList.toggle(
-            'special-plane',
-            plane.isSpecial === true
-          );
+          markerEl.classList.toggle('special-plane', plane.isSpecial === true);
         }
       });
     }); // Listen for tooltip follow/unfollow events
@@ -492,10 +489,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Also update marker icon class
         const markerEl = plane.marker?.getElement();
         if (markerEl) {
-          markerEl.classList.toggle(
-            'special-plane',
-            plane.isSpecial === true
-          );
+          markerEl.classList.toggle('special-plane', plane.isSpecial === true);
         }
       });
     });

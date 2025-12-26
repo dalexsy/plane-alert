@@ -24,7 +24,10 @@ describe('ResultsOverlayComponent', () => {
       imports: [HttpClientTestingModule, ResultsOverlayComponent],
       providers: [
         { provide: SettingsService, useValue: { seenCollapsed: false } },
-        { provide: CountryService, useValue: { getCountryName: () => undefined } },
+        {
+          provide: CountryService,
+          useValue: { getCountryName: () => undefined },
+        },
         { provide: PlaneFilterService, useValue: {} },
         {
           provide: SpecialListService,

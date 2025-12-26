@@ -166,9 +166,7 @@ export class PlaneUpdateService {
     const hasA400 = newVisible.some((p) => p.model?.match(/a\s*-?\s*400/i));
     const hasA380 = newVisible.some((p) => p.model?.match(/a\s*-?\s*380/i));
     const hasAlertPlanes = newVisible.some(
-      (p) =>
-        this.aircraftDb.lookup(p.icao)?.mil ||
-        p.isSpecial === true
+      (p) => this.aircraftDb.lookup(p.icao)?.mil || p.isSpecial === true
     );
 
     // Get military planes for notifications

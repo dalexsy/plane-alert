@@ -234,18 +234,26 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
       // This prevents showing devices in the UI that can't actually receive notifications
       const pushoverDevices = new Set<string>(
         validation.devices
-          .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+          .filter(
+            (name): name is string =>
+              typeof name === 'string' && name.trim().length > 0
+          )
           .map((name) => name.trim().toLowerCase())
       );
 
       // Mark each device entry with whether it's registered in Pushover
       for (const entry of deviceEntries) {
-        (entry as any).isRegisteredInPushover = pushoverDevices.has(entry.deviceName.toLowerCase());
+        (entry as any).isRegisteredInPushover = pushoverDevices.has(
+          entry.deviceName.toLowerCase()
+        );
       }
 
       // Only include Pushover-registered devices as available
       const availableDevices = validation.devices
-        .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
+        .filter(
+          (name): name is string =>
+            typeof name === 'string' && name.trim().length > 0
+        )
         .map((name) => name.trim())
         .sort((a, b) => a.localeCompare(b));
 

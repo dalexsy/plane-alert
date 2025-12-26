@@ -31,7 +31,10 @@ describe('PlaneFinderService', () => {
         PlaneFinderService,
         { provide: SettingsService, useClass: MockSettingsService },
         { provide: PlaneDataService, useClass: MockPlaneDataService },
-        { provide: PathCalculationService, useClass: MockPathCalculationService },
+        {
+          provide: PathCalculationService,
+          useClass: MockPathCalculationService,
+        },
         {
           provide: PlaneVisualizationService,
           useClass: MockPlaneVisualizationService,

@@ -185,7 +185,8 @@ export class AddressResolutionService {
     // Uppercase a trailing letter in house numbers (e.g., "9a" -> "9A").
     titled = titled.replace(
       /(\d)(\p{L})(?=\b)/gu,
-      (_m, digit: string, letter: string) => `${digit}${letter.toLocaleUpperCase()}`
+      (_m, digit: string, letter: string) =>
+        `${digit}${letter.toLocaleUpperCase()}`
     );
 
     return titled;

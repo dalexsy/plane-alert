@@ -61,7 +61,9 @@ describe('LocationOverlayComponent', () => {
     component.district = 'Downtown';
     fixture.detectChanges();
     const districtEl = fixture.debugElement.query(By.css('.district'));
-    expect(districtEl).withContext('Expected .district to exist').not.toBeNull();
+    expect(districtEl)
+      .withContext('Expected .district to exist')
+      .not.toBeNull();
     expect(districtEl!.nativeElement.textContent).toContain('Downtown');
   });
 

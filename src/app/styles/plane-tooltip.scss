@@ -113,7 +113,9 @@ $new-plane-color: #ff6161;
     border-color: #89d138;
   }
 
-  &.stale-plane-tooltip:not(.special-plane-tooltip):not(.followed-plane-tooltip) {
+  &.stale-plane-tooltip:not(.special-plane-tooltip):not(
+      .followed-plane-tooltip
+    ) {
     border-color: #989898;
 
     &:hover,

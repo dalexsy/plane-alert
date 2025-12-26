@@ -57,7 +57,11 @@ describe('AircraftCountryService', () => {
 
   describe('API Country Priority', () => {
     it('should use API country when no better signals exist', () => {
-      const result = service.getAircraftCountryDetailed(undefined, undefined, 'US');
+      const result = service.getAircraftCountryDetailed(
+        undefined,
+        undefined,
+        'US'
+      );
       expect(result.countryCode).toBe('US');
       expect(result.confidence).toBe('high');
       expect(result.source).toBe('api');
@@ -132,7 +136,9 @@ describe('AircraftCountryService', () => {
       // Test the problematic hex code that was incorrectly showing as Italian
       const result = service.getAircraftCountryDetailed(undefined, '4c1234');
       // Track the currently-shipped ICAO ranges data
-      expect(result.countryCode).toBe(lookupCountryFromRanges('4c1234') ?? 'Unknown');
+      expect(result.countryCode).toBe(
+        lookupCountryFromRanges('4c1234') ?? 'Unknown'
+      );
       expect(result.source).toBe('icao-hex');
     });
 
@@ -168,17 +174,29 @@ describe('AircraftCountryService', () => {
   describe('Priority System', () => {
     it('should prioritize Registration > ICAO hex > API (for civilian aircraft)', () => {
       // Registration wins over ICAO and API
-      const regResult = service.getAircraftCountryDetailed('G-ABCD', 'A12345', 'FR');
+      const regResult = service.getAircraftCountryDetailed(
+        'G-ABCD',
+        'A12345',
+        'FR'
+      );
       expect(regResult.countryCode).toBe('GB');
       expect(regResult.source).toBe('registration');
 
       // ICAO hex used when no registration is available
-      const icaoResult = service.getAircraftCountryDetailed(undefined, 'A12345', 'FR');
+      const icaoResult = service.getAircraftCountryDetailed(
+        undefined,
+        'A12345',
+        'FR'
+      );
       expect(icaoResult.countryCode).toBe('US');
       expect(icaoResult.source).toBe('icao-hex');
 
       // API used only when both registration + ICAO are absent/unusable
-      const apiOnly = service.getAircraftCountryDetailed(undefined, undefined, 'FR');
+      const apiOnly = service.getAircraftCountryDetailed(
+        undefined,
+        undefined,
+        'FR'
+      );
       expect(apiOnly.countryCode).toBe('FR');
       expect(apiOnly.source).toBe('api');
     });
@@ -282,7 +300,9 @@ describe('AircraftCountryService', () => {
 
       // Range may be allocated; assert based on the shipped ranges
       const unknownResult = service.getAircraftCountry('', '123456', '');
-      expect(unknownResult).toBe(lookupCountryFromRanges('123456') ?? 'Unknown');
+      expect(unknownResult).toBe(
+        lookupCountryFromRanges('123456') ?? 'Unknown'
+      );
     });
   });
 });

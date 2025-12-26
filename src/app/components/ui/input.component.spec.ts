@@ -9,9 +9,8 @@ describe('InputComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [InputComponent]
-    })
-    .compileComponents();
+      imports: [InputComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(InputComponent);
     component = fixture.componentInstance;
@@ -25,9 +24,9 @@ describe('InputComponent', () => {
   it('should emit inputChange on input', () => {
     spyOn(component.inputChange, 'emit');
     const testValue = 'test input';
-    
+
     component.onInput({ target: { value: testValue } } as any);
-    
+
     expect(component.inputChange.emit).toHaveBeenCalledWith(testValue);
   });
 
@@ -37,16 +36,16 @@ describe('InputComponent', () => {
 
     // Enter only emits for textarea mode
     component.type = 'textarea';
-    
+
     component.onKeydown(keyEvent);
-    
+
     expect(component.enterPressed.emit).toHaveBeenCalledWith(keyEvent);
   });
 
   it('should not emit enterPressed on Enter for text input', () => {
     spyOn(component.enterPressed, 'emit');
     component.type = 'text';
-    
+
     const keyEvent = new KeyboardEvent('keydown', { key: 'Enter' });
     component.onKeydown(keyEvent);
 
@@ -56,10 +55,10 @@ describe('InputComponent', () => {
   it('should set textarea type correctly', () => {
     component.type = 'textarea';
     fixture.detectChanges();
-    
+
     const textarea = fixture.nativeElement.querySelector('textarea');
     const input = fixture.nativeElement.querySelector('input');
-    
+
     expect(textarea).toBeTruthy();
     expect(input).toBeFalsy();
   });
@@ -67,10 +66,10 @@ describe('InputComponent', () => {
   it('should set input type correctly', () => {
     component.type = 'text';
     fixture.detectChanges();
-    
+
     const textarea = fixture.nativeElement.querySelector('textarea');
     const input = fixture.nativeElement.querySelector('input');
-    
+
     expect(textarea).toBeFalsy();
     expect(input).toBeTruthy();
     expect(input.type).toBe('text');

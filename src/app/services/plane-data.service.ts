@@ -219,7 +219,8 @@ export class PlaneDataService {
     ) {
       onGroundBasedOnLogic = true;
     }
-    const onGround = ac.gnd === true || ac.ground === true || onGroundBasedOnLogic;
+    const onGround =
+      ac.gnd === true || ac.ground === true || onGroundBasedOnLogic;
 
     const isUnknown = this.unknownListService.isUnknown(id);
 

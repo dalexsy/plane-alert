@@ -89,8 +89,11 @@ cd functions && npm run build
 ### Running Tests
 
 ```bash
-# Unit tests
-ng test
+# Unit tests (single run, headless)
+npm test
+
+# Unit tests (watch mode)
+npm run test:watch
 
 # Test notification formatting
 node test-notification-title.js

@@ -13,7 +13,10 @@
     {
       "source": "/nominatim/(.*)",
       "headers": [
-        { "key": "User-Agent", "value": "PlaneAlert/1.0 (plane-alert.vercel.app)" }
+        {
+          "key": "User-Agent",
+          "value": "PlaneAlert/1.0 (plane-alert.vercel.app)"
+        }
       ]
     }
   ]

@@ -262,11 +262,15 @@ describe('RainService', () => {
   });
 
   it('should map weather descriptions to correct intensities', () => {
-    const drizzle = service.getIntensityForDescription('light intensity drizzle');
+    const drizzle = service.getIntensityForDescription(
+      'light intensity drizzle'
+    );
     const light = service.getIntensityForDescription('light rain');
     const moderate = service.getIntensityForDescription('moderate rain');
     const heavy = service.getIntensityForDescription('heavy intensity rain');
-    const thunder = service.getIntensityForDescription('thunderstorm with heavy rain');
+    const thunder = service.getIntensityForDescription(
+      'thunderstorm with heavy rain'
+    );
 
     expect(drizzle).toBeLessThanOrEqual(light);
     expect(light).toBeLessThanOrEqual(moderate);

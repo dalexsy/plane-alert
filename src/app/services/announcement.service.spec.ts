@@ -90,9 +90,9 @@ describe('AnnouncementService', () => {
       service.announceNewAircraft(plane, { isAirportClicked: false });
 
       expect(langSwitch.speakWithOverrides).toHaveBeenCalled();
-      const [key, text] = (langSwitch.speakWithOverrides as jasmine.Spy).calls
-        .mostRecent()
-        .args;
+      const [key, text] = (
+        langSwitch.speakWithOverrides as jasmine.Spy
+      ).calls.mostRecent().args;
       expect(key).toBe('aircraft-TEST123');
       expect(String(text)).toContain('Hercules');
     });
