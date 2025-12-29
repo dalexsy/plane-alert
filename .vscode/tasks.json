@@ -37,6 +37,27 @@
           }
         }
       }
+    },
+    {
+      "label": "npm: deploy (frontend)",
+      "type": "npm",
+      "script": "deploy",
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "npm: deploy:functions (backend)",
+      "type": "npm",
+      "script": "deploy:functions",
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "npm: deploy:all (frontend+backend)",
+      "type": "npm",
+      "script": "deploy:all",
+      "isBackground": false,
+      "problemMatcher": []
     }
   ]
 }

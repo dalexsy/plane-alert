@@ -10,6 +10,7 @@ import {
 } from '../utils/units.util';
 import {
   createOrUpdatePlaneMarker,
+  cancelMarkerAnimation,
   removeLeftMarkerFromPlane,
   resumeMidFlightAnimation,
 } from '../utils/plane-marker';
@@ -42,6 +43,14 @@ export class PlaneVisualizationService {
     plane.removeHistoryTrailSegments(map);
   }
 
+  cancelMarkerAnimations(planes: Iterable<PlaneModel>): void {
+    for (const plane of planes) {
+      if (plane.marker) {
+        cancelMarkerAnimation(plane.marker);
+      }
+    }
+  }
+
   resumeMidFlightAnimations(
     planes: Iterable<PlaneModel>,
     lastSnapshotTimestamp: number
@@ -60,6 +69,10 @@ export class PlaneVisualizationService {
     for (const plane of planes) {
       if (!plane.marker) {
         console.debug(`Skipping resume for ${plane.icao}: no marker`);
+        continue;
+      }
+
+      if (plane.isStale === true) {
         continue;
       }
 
@@ -131,6 +144,7 @@ export class PlaneVisualizationService {
       onGround,
       isSpecial,
       isUnknown,
+      isStale: plane.isStale === true,
       positionHistory: plane.positionHistory,
       icaoType: plane.icaoType,
     };

@@ -14,6 +14,7 @@ import { CountryService } from './country.service';
 import { SpecialListService } from './special-list.service';
 import { NotificationService } from './notification.service';
 import { TooltipUpdateService } from './tooltip-update.service';
+import { haversineDistance } from '../utils/geo-utils';
 import {
   playAlertSound,
   playHerculesAlert,
@@ -248,10 +249,30 @@ export class PlaneUpdateService {
   ): void {
     const STALE_TTL_MS = 5 * 60 * 1000;
     const now = Date.now();
+    const centerLat = this.settings.lat ?? 52.3667;
+    const centerLon = this.settings.lon ?? 13.5033;
+    const radiusKm = this.settings.radius ?? 5;
 
     // Remove planes that are no longer in range
     for (const [id, plane] of planeLog.entries()) {
       if (!updatedPlaneModels.some((p) => p.icao === id)) {
+        // If a plane is clearly outside the current search radius, remove it immediately.
+        // "Stale" is only useful for smoothing brief dropouts near the current area;
+        // it should never keep planes from a different location visible.
+        if (plane.lat != null && plane.lon != null) {
+          const distKm = haversineDistance(
+            centerLat,
+            centerLon,
+            plane.lat,
+            plane.lon
+          );
+          if (distKm > radiusKm) {
+            plane.removeVisuals(map);
+            planeLog.delete(id);
+            continue;
+          }
+        }
+
         const lastSeenTs =
           plane.positionHistory && plane.positionHistory.length > 0
             ? plane.positionHistory[plane.positionHistory.length - 1].timestamp

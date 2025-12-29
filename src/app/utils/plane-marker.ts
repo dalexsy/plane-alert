@@ -4,6 +4,17 @@ import { getIconPathForModel } from './plane-icons';
 import { OperatorTooltipService } from '../services/operator-tooltip.service';
 import SunCalc from 'suncalc';
 
+export function cancelMarkerAnimation(marker: L.Marker): void {
+  const rafId: number | undefined = (marker as any).__paAnimRaf;
+  if (typeof rafId === 'number') {
+    cancelAnimationFrame(rafId);
+  }
+  // Bump token so any in-flight animate loop no-ops.
+  const token: number = (marker as any).__paAnimToken ?? 0;
+  (marker as any).__paAnimToken = token + 1;
+  (marker as any).__paAnimRaf = undefined;
+}
+
 // Smooth lerping animation function
 export function smoothLerpToPosition(
   marker: L.Marker,
@@ -12,62 +23,54 @@ export function smoothLerpToPosition(
   duration: number,
   track?: number | null
 ): void {
+  // Never allow multiple concurrent animations fighting over the same marker.
+  cancelMarkerAnimation(marker);
+  const myToken: number = (marker as any).__paAnimToken;
+
   const startTime = Date.now();
   const startLat = startLatLng.lat;
   const startLng = startLatLng.lng;
   const endLat = endLatLng.lat;
   const endLng = endLatLng.lng;
 
-  // Calculate actual bearing between start and end points
-  const actualBearing = calculateBearing(startLat, startLng, endLat, endLng);
-
-  // If we have a track and it's significantly different from the straight-line bearing,
-  // use curved interpolation along the track direction
-  const useTrackPath =
-    track != null && Math.abs(normalizeAngleDiff(track, actualBearing)) > 15;
+  // Single source of truth for geometry:
+  // The historical trail is drawn as straight segments between history points.
+  // To keep the marker *on* that trail, always interpolate directly between
+  // startLatLng and endLatLng (ignore track curvature here).
+  void track;
 
   function animate() {
+    if (((marker as any).__paAnimToken as number) !== myToken) {
+      return;
+    }
+
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
     let currentLat: number;
     let currentLng: number;
 
-    if (useTrackPath && track != null) {
-      // Interpolate along the track heading rather than straight line
-      // Calculate distance to travel
-      const totalDistance = calculateDistance(
-        startLat,
-        startLng,
-        endLat,
-        endLng
-      );
-      const currentDistance = totalDistance * progress;
+    // Standard linear interpolation (matches trail polyline segments)
+    currentLat = startLat + (endLat - startLat) * progress;
+    currentLng = startLng + (endLng - startLng) * progress;
 
-      // Project position along track heading
-      const projected = projectPoint(
-        startLat,
-        startLng,
-        track,
-        currentDistance
-      );
-      currentLat = projected.lat;
-      currentLng = projected.lng;
+    // Ensure we always finish exactly at the target point.
+    if (progress >= 1) {
+      marker.setLatLng(endLatLng);
     } else {
-      // Standard linear interpolation
-      currentLat = startLat + (endLat - startLat) * progress;
-      currentLng = startLng + (endLng - startLng) * progress;
+      marker.setLatLng([currentLat, currentLng]);
     }
-
-    marker.setLatLng([currentLat, currentLng]);
 
     if (progress < 1) {
-      requestAnimationFrame(animate);
+      (marker as any).__paAnimRaf = requestAnimationFrame(animate);
+      return;
     }
+
+    (marker as any).__paAnimRaf = undefined;
   }
 
   // Start the animation
-  requestAnimationFrame(animate);
+  (marker as any).__paAnimRaf = requestAnimationFrame(animate);
 }
 
 // Helper: Calculate bearing between two points
@@ -197,20 +200,36 @@ export function resumeMidFlightAnimation(
     return false;
   }
 
-  const startLatLng = L.latLng(previousPos.lat, previousPos.lon);
+  // Accuracy-first: the latest snapshot is the best known current position.
+  // When returning to a backgrounded tab, rewinding to the previous snapshot and
+  // replaying a full interval makes planes look like they lag, then "rush".
+  // Instead, ease from the current (stale) marker position to the latest point.
+  const from = marker.getLatLng();
   const targetLatLng = L.latLng(currentPos.lat, currentPos.lon);
-  const playbackSeconds = Math.max(1, scanInterval * 0.95);
-  const durationMs = Math.max(1000, playbackSeconds * 1000);
+  const distanceKm = calculateDistance(from.lat, from.lng, targetLatLng.lat, targetLatLng.lng);
+  const distanceM = distanceKm * 1000;
 
-  marker.setLatLng(startLatLng);
-  smoothLerpToPosition(marker, startLatLng, targetLatLng, durationMs, null);
+  // Short, natural correction. Cap so we don't watch long cross-map travel.
+  const minMs = 300;
+  const maxMs = 1500;
+  const maxVisualSpeedMps = 250; // ~900 km/h
+  const computedMs = Math.round((distanceM / Math.max(1, maxVisualSpeedMps)) * 1000);
+  const durationMs = Math.max(minMs, Math.min(maxMs, computedMs));
+
+  if (distanceM < 0.5) {
+    marker.setLatLng(targetLatLng);
+  } else {
+    smoothLerpToPosition(marker, from, targetLatLng, durationMs, null);
+  }
+
   console.debug(
-    `✈️ Resuming animation for ${icao}: ${timeSinceUpdate.toFixed(
-      1
-    )}s elapsed, ${(durationMs / 1000).toFixed(1)}s playback`
+    `✈️ Resume-to-latest for ${icao}: Δ=${distanceM.toFixed(0)}m over ${(
+      durationMs / 1000
+    ).toFixed(1)}s (snapshot age ${timeSinceUpdate.toFixed(1)}s)`
   );
 
   (marker as any).__paResumeTs = lastUpdateTimestamp;
+  (marker as any).__paLastUpdateTs = lastUpdateTimestamp;
 
   return true;
 }
@@ -246,6 +265,8 @@ export function createOrUpdatePlaneMarker(
   animationsEnabled: boolean = true, // Whether animations are enabled
   lastUpdateTimestamp?: number // Timestamp of the last backend update for calculating animation progress
 ): { marker: L.Marker; isNewMarker: boolean } {
+  const effectiveAnimationsEnabled =
+    animationsEnabled && !(planeData?.isStale === true);
   // Use centralized helicopter identification via isCustomHelicopter parameter
   const isCopter = isCustomHelicopter;
   // Extract category code and velocity from plane data for icon heuristics
@@ -433,6 +454,16 @@ export function createOrUpdatePlaneMarker(
     }
   };
   if (oldMarker) {
+    // If we've missed multiple backend updates (common when the tab is backgrounded),
+    // animating the entire catch-up distance over a single scan interval looks like
+    // planes "rush" to their new locations. In that case, snap to the latest point.
+    const previousUpdateTs: number | undefined = (oldMarker as any)
+      .__paLastUpdateTs;
+    const hasUpdateGap =
+      typeof previousUpdateTs === 'number' &&
+      typeof lastUpdateTimestamp === 'number' &&
+      lastUpdateTimestamp - previousUpdateTs > scanInterval * 1000 * 1.5;
+
     // Get the current position for smooth interpolation
     const currentLatLng = oldMarker.getLatLng();
     const newLatLng = L.latLng(lat, lon);
@@ -493,7 +524,11 @@ export function createOrUpdatePlaneMarker(
       }
     }
 
-    if ((hasPositionChanged || shouldAnimateFromHistory) && animationsEnabled) {
+    if (
+      (hasPositionChanged || shouldAnimateFromHistory) &&
+      effectiveAnimationsEnabled &&
+      !hasUpdateGap
+    ) {
       if (shouldAnimateFromHistory) {
         // already logged above with ✈️ marker
       } else if (hasPositionChanged) {
@@ -517,9 +552,31 @@ export function createOrUpdatePlaneMarker(
         animationDuration,
         rotation // Use the plane's track for curved path interpolation
       );
+    } else if (hasPositionChanged && effectiveAnimationsEnabled && hasUpdateGap) {
+      // Large gap (tab was hidden / missed snapshots): do a short eased correction
+      // to the newest location instead of a long playback or a jarring teleport.
+      const from = currentLatLng;
+      const to = newLatLng;
+      const distanceKm = calculateDistance(from.lat, from.lng, to.lat, to.lng);
+      const distanceM = distanceKm * 1000;
+
+      const minMs = 400;
+      const maxMs = 1200;
+      const maxVisualSpeedMps = 250;
+      const computedMs = Math.round((distanceM / Math.max(1, maxVisualSpeedMps)) * 1000);
+      const durationMs = Math.max(minMs, Math.min(maxMs, computedMs));
+
+      smoothLerpToPosition(oldMarker, from, to, durationMs, rotation);
     } else {
+      // If we are not animating (or plane is stale), ensure any prior animation is stopped.
+      cancelMarkerAnimation(oldMarker);
       // For planes that haven't moved significantly or animations are disabled, update position immediately
       oldMarker.setLatLng([lat, lon]);
+    }
+
+    // Track the latest snapshot timestamp applied to this marker for catch-up detection.
+    if (typeof lastUpdateTimestamp === 'number') {
+      (oldMarker as any).__paLastUpdateTs = lastUpdateTimestamp;
     }
     oldMarker.setIcon(icon);
 
@@ -614,7 +671,7 @@ export function createOrUpdatePlaneMarker(
     let adjustedDuration = Math.max(2, scanInterval * 0.95) * 1000;
 
     if (
-      animationsEnabled &&
+      effectiveAnimationsEnabled &&
       planeData?.positionHistory &&
       planeData.positionHistory.length >= 2 &&
       lastUpdateTimestamp
@@ -640,11 +697,14 @@ export function createOrUpdatePlaneMarker(
     }
 
     const marker = L.marker([lat, lon], { icon });
+    if (typeof lastUpdateTimestamp === 'number') {
+      (marker as any).__paLastUpdateTs = lastUpdateTimestamp;
+    }
     marker.bindTooltip(tooltipContent, rightTooltipOptions);
     marker.addTo(map);
 
     // If we have a start position, begin animation from there
-    if (startLatLng && animationsEnabled) {
+    if (startLatLng && effectiveAnimationsEnabled) {
       marker.setLatLng(startLatLng);
       const targetLatLng = L.latLng(lat, lon);
       smoothLerpToPosition(

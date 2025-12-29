@@ -183,33 +183,26 @@ export class PlaneDataService {
         ? velocityKnots * 0.514444
         : null;
 
-    // Process altitude (API returns feet, convert to meters for internal storage)
-    // Note: alt_baro can be 'ground' string or a number in feet
-    const altitudeApiValue = ac.alt_baro ?? ac.alt_geom;
-    let altitude: number | null = null;
-
-    if (typeof altitudeApiValue === 'number') {
-      // Convert feet to meters (1 foot = 0.3048 meters)
-      altitude = altitudeApiValue * 0.3048;
-    } else if (altitudeApiValue === 'ground') {
-      altitude = 0;
-    }
-
-    // For the heuristic check, use the original feet value
-    const altitudeFeet =
-      typeof altitudeApiValue === 'number' ? altitudeApiValue : 0;
+    // Altitudes from the backend snapshot are in feet (ADS-B style fields).
+    // We store meters internally, but we intentionally suppress non-positive values
+    // to avoid showing confusing negative "altitudes" while taxiing / on ground.
+    const altitudeFeetCandidate =
+      typeof ac.alt_baro === 'number'
+        ? ac.alt_baro
+        : typeof ac.alt_geom === 'number'
+        ? ac.alt_geom
+        : null;
 
     // Determine if on ground
     let onGroundBasedOnLogic = false;
-    let altitudeForHeuristicCheck: number | undefined;
-
-    if (ac.alt_baro === 'ground') {
-      altitudeForHeuristicCheck = 0;
-    } else if (typeof ac.alt_baro === 'number') {
-      altitudeForHeuristicCheck = ac.alt_baro;
-    } else if (typeof ac.alt_geom === 'number') {
-      altitudeForHeuristicCheck = ac.alt_geom;
-    }
+    const altitudeForHeuristicCheck: number | undefined =
+      ac.alt_baro === 'ground'
+        ? 0
+        : typeof ac.alt_baro === 'number'
+        ? ac.alt_baro
+        : typeof ac.alt_geom === 'number'
+        ? ac.alt_geom
+        : undefined;
 
     if (
       typeof altitudeForHeuristicCheck === 'number' &&
@@ -219,8 +212,26 @@ export class PlaneDataService {
     ) {
       onGroundBasedOnLogic = true;
     }
+
     const onGround =
-      ac.gnd === true || ac.ground === true || onGroundBasedOnLogic;
+      ac.gnd === true || ac.ground === true || ac.alt_baro === 'ground' ||
+      onGroundBasedOnLogic;
+
+    // Process altitude (feet -> meters). Align with backend notification logic:
+    // - If we're on the ground, force altitude to 0
+    // - Otherwise, only accept strictly-positive altitude values
+    let altitude: number | null = null;
+    if (onGround) {
+      altitude = 0;
+    } else if (typeof altitudeFeetCandidate === 'number' && altitudeFeetCandidate > 0) {
+      altitude = altitudeFeetCandidate * 0.3048;
+    } else {
+      altitude = null;
+    }
+
+    // For downstream logic that still expects a numeric feet value
+    const altitudeFeet =
+      typeof altitudeFeetCandidate === 'number' ? altitudeFeetCandidate : 0;
 
     const isUnknown = this.unknownListService.isUnknown(id);
 
@@ -647,6 +658,33 @@ export class PlaneDataService {
           maxAltitude,
           fallbackStats,
         });
+      }
+
+      // IMPORTANT: backend history sometimes lags the current snapshot payload.
+      // If we don't append the latest processedData position, the last 2 history points
+      // can be older than the marker target, causing "mid-flight" animations to use
+      // stale segments (looks like it's replaying multiple scans).
+      const latestTs =
+        typeof snapshotTimestamp === 'number' && !Number.isNaN(snapshotTimestamp)
+          ? snapshotTimestamp
+          : Date.now();
+
+      const lastBuilt =
+        planeModel.positionHistory[planeModel.positionHistory.length - 1];
+      const matchesProcessed =
+        !!lastBuilt &&
+        Math.abs(lastBuilt.lat - processedData.lat) < 0.000001 &&
+        Math.abs(lastBuilt.lon - processedData.lon) < 0.000001;
+
+      if (!matchesProcessed) {
+        planeModel.addPositionToHistory(
+          processedData.lat,
+          processedData.lon,
+          processedData.track,
+          processedData.velocity,
+          processedData.altitude,
+          latestTs
+        );
       }
       return;
     }

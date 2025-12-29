@@ -276,17 +276,22 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
   private globalTooltipClickHandler!: (e: MouseEvent) => void;
   private visibilityChangeHandler = () => {
+    // Browser backgrounding throttles requestAnimationFrame and timers; when the tab
+    // becomes visible again, any in-flight marker lerps can "jump" or look like
+    // motion without new data. Cancel animations on any visibility transition.
+    this.planeVisualizationService.cancelMarkerAnimations(
+      Array.from(this.planeLog.values())
+    );
+
     if (this.document.visibilityState === 'visible') {
       const lastSnapshotTimestamp =
         this.planeDataService.getLastSnapshotTimestamp();
-      console.debug('Document visible; attempting resume', {
-        lastSnapshotTimestamp,
-        planeCount: this.planeLog.size,
-      });
       this.planeVisualizationService.resumeMidFlightAnimations(
         Array.from(this.planeLog.values()),
         lastSnapshotTimestamp
       );
+
+      // Also force a scan for fresh snapshot data.
       this.scanService.forceScan();
     }
   };
