@@ -1,9 +1,24 @@
 // Simple script to update Galaxy location via the existing checkDevice API
 const https = require("https");
 
+const pushoverUserKey = process.env.PUSHOVER_USER_KEY || process.argv[2];
+const deviceName =
+  process.env.PUSHOVER_DEVICE || process.argv[3] || "galaxys24";
+if (!pushoverUserKey) {
+  console.error("❌ Missing Pushover user key.");
+  console.error("Usage:");
+  console.error(
+    "  PUSHOVER_USER_KEY=xxx node tools/galaxy/update-galaxy-simple.js"
+  );
+  console.error(
+    "  node tools/galaxy/update-galaxy-simple.js <PUSHOVER_USER_KEY> [DEVICE_NAME]"
+  );
+  process.exit(1);
+}
+
 const deviceData = {
-  pushoverUserKey: "u4h7b5hnvdgvozqd5yzm86i474fs4g",
-  deviceName: "galaxys24",
+  pushoverUserKey,
+  deviceName,
   location: {
     lat: 52.4605886, // Berlin (same as Pixel 5)
     lon: 13.523268,

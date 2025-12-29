@@ -4,7 +4,6 @@ import { PlaneFinderService } from './plane-finder.service';
 import { PlaneFilterService } from './plane-filter.service';
 import { AircraftDbService } from './aircraft-db.service';
 import { SettingsService } from './settings.service';
-import { looksMilitary } from '@plane-alert/shared';
 import { PlaneLogService } from './plane-log.service';
 import { ClosestPlaneService } from './closest-plane.service';
 import { FollowService } from './follow.service';
@@ -144,9 +143,7 @@ export class PlaneUpdateService {
 
   private getFaviconUrl(updatedLog: PlaneModel[]): string {
     const hasSpecial = updatedLog.some((p) => p.isSpecial === true);
-    const hasMil = updatedLog.some(
-      (p) => !!this.aircraftDb.lookup(p.icao)?.mil
-    );
+    const hasMil = updatedLog.some((p) => p.isMilitary === true);
     return hasSpecial
       ? 'assets/favicon/special/favicon.ico'
       : hasMil
@@ -167,13 +164,11 @@ export class PlaneUpdateService {
     const hasA400 = newVisible.some((p) => p.model?.match(/a\s*-?\s*400/i));
     const hasA380 = newVisible.some((p) => p.model?.match(/a\s*-?\s*380/i));
     const hasAlertPlanes = newVisible.some(
-      (p) => this.aircraftDb.lookup(p.icao)?.mil || p.isSpecial === true
+      (p) => p.isMilitary === true || p.isSpecial === true
     );
 
     // Get military planes for notifications
-    const militaryPlanes = newVisible.filter(
-      (p) => this.aircraftDb.lookup(p.icao)?.mil
-    );
+    const militaryPlanes = newVisible.filter((p) => p.isMilitary === true);
 
     // Play only one alert sound per scan, prioritizing specific aircraft types
     if (!this.settings.militaryMute) {
@@ -224,10 +219,11 @@ export class PlaneUpdateService {
       // If it's in planeLog from the previous scan, it's not new now
       planeModel.isNew = !previousPlaneKeys.has(planeModel.icao);
 
-      // Determine military status using shared looksMilitary() function
-      // Note: PlaneModel doesn't have mil/dbFlags, so we keep legacy logic for now
+      // Merge military status from the live feed (PlaneDataService) and local DB.
+      // We must NOT overwrite a true value computed from the live snapshot,
+      // otherwise the list can disagree with the already-rendered marker/tooltip.
       const dbMil = this.aircraftDb.lookup(planeModel.icao)?.mil || false;
-      planeModel.isMilitary = dbMil;
+      planeModel.isMilitary = planeModel.isMilitary === true || dbMil;
 
       planeModel.filteredOut = !this.planeFilter.shouldIncludeCallsign(
         planeModel.callsign,

@@ -770,8 +770,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         const planeModel = this.planeLog.get(plane.icao);
         if (planeModel) {
           // Re-evaluate filter status based on the updated filter list
-          const isMilitary =
-            this.aircraftDb.lookup(planeModel.icao)?.mil || false;
+          const isMilitary = planeModel.isMilitary === true;
           const shouldBeFiltered = !this.planeFilter.shouldIncludeCallsign(
             planeModel.callsign,
             this.settings.excludeDiscount,
@@ -798,7 +797,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
         // Also update filteredOut flag on historical entries for the seen list
         this.planeHistoricalLog.forEach((hist) => {
-          const isMilHist = this.aircraftDb.lookup(hist.icao)?.mil || false;
+          const isMilHist = hist.isMilitary === true;
           hist.filteredOut = !this.planeFilter.shouldIncludeCallsign(
             hist.callsign,
             this.settings.excludeDiscount,

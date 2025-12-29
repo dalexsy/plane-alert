@@ -162,7 +162,7 @@ export class PlaneFinderService {
           processedData.altitude,
           processedData.onGround,
           processedData.isNew,
-          processedData.isMilitary,
+          planeModel.isMilitary === true,
           processedData.isSpecial,
           processedData.isUnknown,
           processedData.model,

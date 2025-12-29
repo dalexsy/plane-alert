@@ -1,18 +1,15 @@
 import { Injectable } from '@angular/core';
 import { PlaneModel } from '../models/plane-model';
 import { PlaneLogService } from './plane-log.service';
-import { PlaneFilterService } from './plane-filter.service';
-import { AircraftDbService } from './aircraft-db.service';
 import { haversineDistance } from '../utils/geo-utils';
-import { playAlertSound } from '../utils/alert-sound';
 
 @Injectable({ providedIn: 'root' })
 export class MapLogicService {
   constructor(
-    private planeLogService: PlaneLogService,
-    private planeFilter: PlaneFilterService,
-    private aircraftDb: AircraftDbService
-  ) {}
+    private planeLogService: PlaneLogService
+  ) // Intentionally keep plane classification on PlaneModel to avoid
+  // map/list divergence (do not recompute from AircraftDbService here).
+  {}
 
   processPlanes(
     planes: PlaneModel[],
@@ -26,8 +23,8 @@ export class MapLogicService {
       : planes;
 
     const sortByMilitary = (a: PlaneModel, b: PlaneModel) => {
-      const aIsMilitary = this.aircraftDb.lookup(a.icao)?.mil || false;
-      const bIsMilitary = this.aircraftDb.lookup(b.icao)?.mil || false;
+      const aIsMilitary = a.isMilitary === true;
+      const bIsMilitary = b.isMilitary === true;
       if (aIsMilitary !== bIsMilitary) return aIsMilitary ? -1 : 1;
       return b.firstSeen - a.firstSeen || a.icao.localeCompare(b.icao);
     };
@@ -71,9 +68,6 @@ export class MapLogicService {
       seenPlanes = seenPlanes.filter((plane) => !plane.filteredOut);
     }
     this.planeLogService.updateHistoricalLog(seenPlanes);
-    for (const plane of this.planeLogService.getHistoricalLog()) {
-      plane.isMilitary = this.aircraftDb.lookup(plane.icao)?.mil || false;
-    }
     this.planeLogService.getHistoricalLog().sort((a, b) => {
       if (a.isMilitary !== b.isMilitary) {
         return a.isMilitary ? -1 : 1;

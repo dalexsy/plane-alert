@@ -3,9 +3,7 @@
  * Format: "over [location] to the [bearing from user] flying [plane heading] • [callsign] • [speed] • [altitude]"
  */
 
-const {
-  formatNotificationBody,
-} = require("./shared/dist/cjs/notification-formatter");
+const { formatNotificationBody } = require("@plane-alert/shared");
 
 console.log("📱 Testing New Push Notification Format\n");
 console.log(

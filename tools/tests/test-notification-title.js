@@ -6,7 +6,7 @@
 const {
   formatNotificationTitle,
   getCountryFlagEmoji,
-} = require("./shared/dist/cjs/notification-formatter");
+} = require("@plane-alert/shared");
 
 console.log("📱 Testing Notification Title Format\n");
 console.log(

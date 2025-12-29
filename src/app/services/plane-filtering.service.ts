@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
-import { AircraftDbService } from './aircraft-db.service';
 import { PlaneFilterService } from './plane-filter.service';
 import { SettingsService } from './settings.service';
 import { PlaneLogService } from './plane-log.service';
@@ -11,7 +10,6 @@ import { PlaneModel } from '../models/plane-model';
 })
 export class PlaneFilteringService {
   constructor(
-    private aircraftDb: AircraftDbService,
     private planeFilter: PlaneFilterService,
     private settings: SettingsService,
     private planeLogService: PlaneLogService
@@ -30,8 +28,8 @@ export class PlaneFilteringService {
 
     // Reset the filteredOut flag for all planes to ensure proper re-evaluation
     for (const plane of planeLog.values()) {
-      // Get military status
-      const isMilitary = this.aircraftDb.lookup(plane.icao)?.mil || false;
+      // Use plane's own classification to avoid map/list divergence.
+      const isMilitary = plane.isMilitary === true;
 
       // If commercial filter is OFF (exclude is false), all planes should be shown
       if (!exclude) {
@@ -78,7 +76,7 @@ export class PlaneFilteringService {
 
     // Also update the historical log using the same logic
     for (const plane of planeHistoricalLog) {
-      const isMilitary = this.aircraftDb.lookup(plane.icao)?.mil || false;
+      const isMilitary = plane.isMilitary === true;
 
       // If commercial filter is OFF (exclude is false), no plane should be filtered
       if (!exclude) {

@@ -96,11 +96,17 @@ npm test
 npm run test:watch
 
 # Test notification formatting
-node test-notification-title.js
-node test-notification-format.js
+npm run tool:test:notification-title
+npm run tool:test:notification-format
 
 # Test helicopter detection
-node test-helicopter-detection.js
+npm run tool:test:helicopter-detection
+
+# Test operator matching
+npm run tool:test:operator-matching
+
+# Test pushover integration
+npm run tool:test:pushover
 ```
 
 ### Syncing Aircraft Database

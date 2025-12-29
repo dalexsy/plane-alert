@@ -124,7 +124,7 @@ export class UrlParameterService {
       );
 
       // Store the user key in localStorage for future use
-      localStorage.setItem('pushoverUserKey', userKey.trim());
+      localStorage.setItem('plane-alert-pushover-key', userKey.trim());
     }
   }
 

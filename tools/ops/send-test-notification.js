@@ -1,12 +1,28 @@
 // Send a test notification to Galaxy S24
 const https = require("https");
 
+const token = process.env.PUSHOVER_API_TOKEN;
+const user = process.env.PUSHOVER_USER_KEY;
+const device = process.env.PUSHOVER_DEVICE || "galaxys24";
+const message = process.env.PUSHOVER_MESSAGE || "Plane Alert test message";
+const title = process.env.PUSHOVER_TITLE || "Plane Alert";
+
+if (!token || !user) {
+  console.error("❌ ERROR: Missing environment variables!");
+  console.error("Please set PUSHOVER_API_TOKEN and PUSHOVER_USER_KEY");
+  console.error("\nOptional:");
+  console.error("  PUSHOVER_DEVICE=galaxys24");
+  console.error('  PUSHOVER_MESSAGE="hello"');
+  console.error('  PUSHOVER_TITLE="Plane Alert"');
+  process.exit(1);
+}
+
 const params = new URLSearchParams({
-  token: "a51thwyzvw24g3afcex6hf7xdnjfi9",
-  user: "u4h7b5hnvdgvozqd5yzm86i474fs4g",
-  message: "Daryl changed your location <3",
-  device: "galaxys24",
-  title: "💕 Plane Alert",
+  token,
+  user,
+  message,
+  device,
+  title,
   priority: "0",
 });
 

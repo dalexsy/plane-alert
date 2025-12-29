@@ -110,6 +110,12 @@ export class PlaneVisualizationService {
     centerLon: number,
     lastSnapshotTimestamp?: number
   ): L.Marker {
+    // Derive classification from the PlaneModel as single source of truth.
+    // (Call sites may pass stale booleans; the model is what both map + list render from.)
+    const effectiveIsMilitary = plane.isMilitary === true;
+    const effectiveIsSpecial = plane.isSpecial === true;
+    const effectiveIsUnknown = plane.isUnknown === true;
+
     // Create tooltip
     const tooltip = this.createTooltip(
       plane,
@@ -138,12 +144,12 @@ export class PlaneVisualizationService {
       operator: plane.operator,
       registration: '', // Would need to be passed in
       model,
-      isMilitary,
+      isMilitary: effectiveIsMilitary,
       country: plane.origin,
       altitude,
       onGround,
-      isSpecial,
-      isUnknown,
+      isSpecial: effectiveIsSpecial,
+      isUnknown: effectiveIsUnknown,
       isStale: plane.isStale === true,
       positionHistory: plane.positionHistory,
       icaoType: plane.icaoType,
@@ -170,7 +176,7 @@ export class PlaneVisualizationService {
       onGround,
       tooltip,
       '', // customPlaneIcon
-      isMilitary,
+      effectiveIsMilitary,
       model,
       this.helicopterIdentificationService.isHelicopter(
         icao,
@@ -179,8 +185,8 @@ export class PlaneVisualizationService {
         plane.categoryCode,
         plane.icaoType
       ),
-      isSpecial,
-      isUnknown,
+      effectiveIsSpecial,
+      effectiveIsUnknown,
       altitude,
       false, // followed - would need to be passed in
       this.settings.interval,

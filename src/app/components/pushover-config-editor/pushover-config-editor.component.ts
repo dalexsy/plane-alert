@@ -7,6 +7,10 @@ import {
   type MilitaryAircraftType,
 } from '@plane-alert/shared';
 import { IconComponent } from '../ui/icon.component';
+import {
+  checkDeviceEndpoint,
+  pushRegistrationEndpoint,
+} from '../../config/firebase.config';
 
 interface BackendDeviceConfig {
   radiusKm?: number;
@@ -285,7 +289,8 @@ export class PushoverConfigEditorComponent implements OnInit {
   }
 
   private loadConfiguration(): void {
-    this.pushoverUserKey = localStorage.getItem('pushover-user-key') || '';
+    this.pushoverUserKey =
+      localStorage.getItem('plane-alert-pushover-key') || '';
   }
 
   private async checkRegistrationStatus(): Promise<void> {
@@ -298,14 +303,11 @@ export class PushoverConfigEditorComponent implements OnInit {
     this.keyValidationError = '';
 
     try {
-      const response = await fetch(
-        'https://us-central1-plane-alert-800ff.cloudfunctions.net/checkDevice',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pushoverUserKey: this.pushoverUserKey }),
-        }
-      );
+      const response = await fetch(checkDeviceEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pushoverUserKey: this.pushoverUserKey }),
+      });
 
       if (!response.ok) {
         this.keyValidated = false;
@@ -427,7 +429,15 @@ export class PushoverConfigEditorComponent implements OnInit {
     const latitude = parseFloat(localStorage.getItem('user-latitude') || '0');
     const longitude = parseFloat(localStorage.getItem('user-longitude') || '0');
 
-    if (!latitude || !longitude) {
+    // Prefer the app's real saved home location key.
+    // This avoids relying on stale/legacy localStorage values.
+    const savedHome = localStorage.getItem('plane-alert-home-location');
+    const home = savedHome ? (JSON.parse(savedHome) as any) : null;
+
+    const homeLat = typeof home?.lat === 'number' ? home.lat : latitude;
+    const homeLon = typeof home?.lon === 'number' ? home.lon : longitude;
+
+    if (!homeLat || !homeLon) {
       if (!silent) {
         this.statusMessage = 'Please set your location first';
         this.statusIcon = 'warning';
@@ -448,9 +458,9 @@ export class PushoverConfigEditorComponent implements OnInit {
       distanceUnit: 'km' as const,
       radiusKm: 100,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      home: {
-        lat: latitude,
-        lon: longitude,
+      location: {
+        lat: homeLat,
+        lon: homeLon,
       },
       specialIcaos: [],
       notifyProximity: device.proximityEnabled,
@@ -460,16 +470,16 @@ export class PushoverConfigEditorComponent implements OnInit {
     console.log('Saving device:', device.name, deviceData);
 
     try {
-      localStorage.setItem('pushover-user-key', this.pushoverUserKey.trim());
-
-      const response = await fetch(
-        'https://us-central1-plane-alert-800ff.cloudfunctions.net/registerDevice',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(deviceData),
-        }
+      localStorage.setItem(
+        'plane-alert-pushover-key',
+        this.pushoverUserKey.trim()
       );
+
+      const response = await fetch(pushRegistrationEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deviceData),
+      });
 
       if (!response.ok) {
         const error = await response.text();

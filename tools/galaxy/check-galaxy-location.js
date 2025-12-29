@@ -1,8 +1,21 @@
 // Check Galaxy location
 const https = require("https");
 
+const pushoverUserKey = process.env.PUSHOVER_USER_KEY || process.argv[2];
+if (!pushoverUserKey) {
+  console.error("❌ Missing Pushover user key.");
+  console.error("Usage:");
+  console.error(
+    "  PUSHOVER_USER_KEY=xxx node tools/galaxy/check-galaxy-location.js"
+  );
+  console.error(
+    "  node tools/galaxy/check-galaxy-location.js <PUSHOVER_USER_KEY>"
+  );
+  process.exit(1);
+}
+
 const checkData = {
-  pushoverUserKey: "u4h7b5hnvdgvozqd5yzm86i474fs4g",
+  pushoverUserKey,
 };
 
 const data = JSON.stringify(checkData);
