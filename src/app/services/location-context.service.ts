@@ -101,10 +101,6 @@ export class LocationContextService {
     private http: HttpClient,
     private geocodingCache: GeocodingCacheService
   ) {
-    console.log(
-      'LocationContext initialized with default location:',
-      this._currentLocation.value
-    );
     // Clear address cache since we're now using GeocodingCacheService
     this.addressCache.clear();
     // Debounce location changes to prevent excessive API calls
@@ -491,7 +487,6 @@ export class LocationContextService {
       return;
     }
 
-    console.log('LocationContext updateAddress called with:', lat, lon);
     const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
     const cached = this.addressCache.get(cacheKey);
 
@@ -512,13 +507,6 @@ export class LocationContextService {
     this.geocodingCache
       .reverseGeocode(lat, lon)
       .then((address) => {
-        console.log(
-          'LocationContext setting address to:',
-          address,
-          'for coordinates:',
-          lat,
-          lon
-        );
         // Cache the result
         this.addressCache.set(cacheKey, {
           data: address,

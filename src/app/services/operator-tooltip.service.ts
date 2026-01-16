@@ -54,12 +54,15 @@ export class OperatorTooltipService {
       }
     }
 
-    // Third try: Use registration or ICAO for country detection
-    if (plane.callsign || plane.icao) {
+    // Third try: Use ICAO hex for country detection.
+    // IMPORTANT: do not treat callsign as a registration (it breaks flags badly).
+    if (plane.icao) {
       const detectionResult =
         this.aircraftCountryService.getAircraftCountryDetailed(
-          plane.callsign,
-          plane.icao
+          undefined,
+          plane.icao,
+          undefined,
+          plane.isMilitary === true
         );
       if (detectionResult.countryCode !== 'Unknown') {
         return detectionResult.countryCode.toLowerCase();

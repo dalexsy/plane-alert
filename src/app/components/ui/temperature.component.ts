@@ -89,23 +89,43 @@ export class TemperatureComponent implements OnInit, OnDestroy {
   }
 
   private fetchTemperature(latitude: number, longitude: number): void {
-    fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
-    )
+    // Using OpenWeatherMap API (same as animations for consistency)
+    const apiKey = 'ffcc03a274b2d049bf4633584e7b5699';
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+    
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        this.temperature = data.current_weather?.temperature ?? null;
-        // optionally update weatherIcon based on weathercode if available
-        if (data.current_weather?.weathercode != null) {
-          // basic mapping, sun for clear
-          this.weatherIcon =
-            data.current_weather.weathercode === 0 ? 'wb_sunny' : 'wb_cloudy';
+        this.temperature = data.main?.temp ?? null;
+        this.highTemp = data.main?.temp_max ?? null;
+        this.lowTemp = data.main?.temp_min ?? null;
+        
+        // Map OpenWeatherMap condition to Material Icon
+        if (data.weather && data.weather.length > 0) {
+          const condition = data.weather[0].main?.toLowerCase() || '';
+          const description = data.weather[0].description?.toLowerCase() || '';
+          
+          if (condition.includes('clear')) {
+            this.weatherIcon = 'wb_sunny';
+          } else if (condition.includes('snow') || description.includes('snow')) {
+            this.weatherIcon = 'ac_unit';
+          } else if (condition.includes('rain') || condition.includes('drizzle')) {
+            this.weatherIcon = 'rainy';
+          } else if (condition.includes('thunderstorm')) {
+            this.weatherIcon = 'thunderstorm';
+          } else if (condition.includes('mist') || condition.includes('fog') || condition.includes('haze')) {
+            this.weatherIcon = 'foggy';
+          } else if (condition.includes('cloud')) {
+            this.weatherIcon = 'wb_cloudy';
+          } else {
+            this.weatherIcon = 'wb_cloudy'; // default
+          }
         }
-        this.highTemp = data.daily?.temperature_2m_max?.[0] ?? null;
-        this.lowTemp = data.daily?.temperature_2m_min?.[0] ?? null;
+        
         this.loading = false;
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Weather API error:', error);
         this.temperature = null;
         this.highTemp = null;
         this.lowTemp = null;

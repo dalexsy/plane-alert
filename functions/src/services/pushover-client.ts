@@ -12,6 +12,8 @@ export interface PushoverMessage {
   icon?: string;
   model?: string;
   operator?: string;
+  registration?: string;
+  hex?: string;
 }
 
 /**
@@ -40,8 +42,8 @@ export async function sendPushoverNotification(
       });
 
       const imageUrl = await fetchAircraftImage(
-        message.model,
-        message.operator
+        message.registration,
+        message.hex
       );
       if (imageUrl) {
         logger.info('Found image URL, downloading', {

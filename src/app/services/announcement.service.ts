@@ -92,11 +92,7 @@ export class AnnouncementService {
   ): void {
     // Try to get operator from database first, then fallback to callsign lookup
     let operator = plane.operator?.trim();
-    if (!operator && plane.callsign) {
-      operator =
-        this.operatorCallSignService.getOperatorWithLogging(plane.callsign) ||
-        undefined;
-    }
+    // Do not guess operator from callsign prefix; it's unreliable.
 
     const model = plane.model?.trim();
     const originCountryName = plane.origin

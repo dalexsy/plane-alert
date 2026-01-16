@@ -1,9 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
-import {
   AircraftCountryService,
   CountryDetectionResult,
 } from './aircraft-country.service';
@@ -25,34 +21,13 @@ function lookupCountryFromRanges(hex: string): string | undefined {
 
 describe('AircraftCountryService', () => {
   let service: AircraftCountryService;
-  let httpMock: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [],
     });
     service = TestBed.inject(AircraftCountryService);
-    httpMock = TestBed.inject(HttpTestingController);
-    httpMock
-      .expectOne('/assets/data/icao-country-ranges.json')
-      .flush(icaoCountryRanges);
-
-    // The service loads ranges asynchronously; for unit tests we force the loaded state
-    // so synchronous lookups behave deterministically.
-    (service as any).icaoCountryRanges = (icaoCountryRanges as any[]).map(
-      (r: any) => ({
-        ...r,
-        startDec: parseInt(r.startHex, 16),
-        finishDec: parseInt(r.finishHex, 16),
-      })
-    );
-    (service as any).icaoRangesLoaded = true;
-
     service.clearCache(); // Clear cache before each test
-  });
-
-  afterEach(() => {
-    httpMock.verify();
   });
 
   describe('API Country Priority', () => {

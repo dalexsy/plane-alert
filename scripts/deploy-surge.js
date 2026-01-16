@@ -2,6 +2,20 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
+const args = process.argv.slice(2);
+const shouldBuild = !args.includes("--skip-build");
+
+if (shouldBuild) {
+  console.log("🏗️  Building (fresh dist) before deploy...");
+  try {
+    execSync("npm run build", { stdio: "inherit" });
+  } catch (error) {
+    console.error("❌ Build failed; aborting deploy.");
+    process.exit(1);
+  }
+  console.log("");
+}
+
 // Validate deployment directory
 const deployPath = path.join(__dirname, "../dist/plane-alert/browser");
 

@@ -2,7 +2,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
-import type { AdsBPlane } from '@plane-alert/shared';
+import { looksMilitary, type AdsBPlane } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from './types';
 import {
   DEVICE_COLLECTION,
@@ -10,6 +10,7 @@ import {
   ORIGIN_HEADER,
 } from './constants';
 import { clampRadius } from './utils';
+import { batchGetFlightData } from './services/flight-data-cache';
 
 async function fetchAircraft(
   location: Location,
@@ -125,6 +126,52 @@ export function createAircraftCollectionFunction(
               // Type guard: aircraft is now definitely AdsBPlane[]
               const validAircraft: AdsBPlane[] = aircraft;
 
+              // Enrich with AeroAPI flight data for MILITARY aircraft only (cost control)
+              const planesWithFlight = validAircraft.filter((plane) =>
+                Boolean(plane.flight && plane.flight.trim())
+              );
+              const militaryPlanesWithFlight = planesWithFlight.filter(
+                (plane) => looksMilitary(plane)
+              );
+              const callsigns = militaryPlanesWithFlight.map((plane) =>
+                plane.flight!.trim()
+              );
+
+              logger.info('Processing aircraft for flight data', {
+                locationKey,
+                totalAircraft: validAircraft.length,
+                planesWithFlight: planesWithFlight.length,
+                militaryWithFlight: militaryPlanesWithFlight.length,
+                milFieldTrue: planesWithFlight.filter((p) => p.mil === true)
+                  .length,
+                dbFlagsIs1: planesWithFlight.filter((p) => p.dbFlags === 1)
+                  .length,
+                callsignsFound: callsigns.length,
+                sampleCallsigns: callsigns.slice(0, 5),
+              });
+
+              let flightDataMap = new Map();
+              if (callsigns.length > 0) {
+                try {
+                  flightDataMap = await batchGetFlightData(db, callsigns);
+                  logger.info('Fetched flight data for aircraft', {
+                    locationKey,
+                    callsignsQueried: callsigns.length,
+                    dataReceived: flightDataMap.size,
+                    sampleData: Array.from(flightDataMap.entries()).slice(0, 2),
+                  });
+                } catch (error) {
+                  logger.warn('Failed to fetch flight data batch', {
+                    error,
+                    locationKey,
+                  });
+                }
+              } else {
+                logger.info('No callsigns to query for flight data', {
+                  locationKey,
+                });
+              }
+
               // Get existing document to merge position history
               const docRef = db
                 .collection(AIRCRAFT_SNAPSHOTS_COLLECTION)
@@ -173,6 +220,7 @@ export function createAircraftCollectionFunction(
                   radiusKm: location.radiusKm,
                 },
                 aircraft: validAircraft,
+                flightData: Object.fromEntries(flightDataMap), // O/D/ETA data keyed by callsign
                 history: history, // Position history for trails
                 deviceCount: location.devices.length,
                 devices: location.devices,

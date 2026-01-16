@@ -48,6 +48,12 @@ describe('OperatorCallSignService', () => {
     expect(service.getOperator('XXX999')).toBe('Ryanair');
   });
 
+  it('should not match very short prefixes (e.g. ground vehicles)', () => {
+    // Simulate a bad/too-generic mapping that would previously match "B352".
+    service.addMapping('B', 'Bellview Airlines, Sierra Leone' as any);
+    expect(service.getOperator('B352')).toBeUndefined();
+  });
+
   it('should return undefined for unknown call signs', () => {
     expect(service.getOperator('FOO123')).toBeUndefined();
     expect(service.getOperator('')).toBeUndefined();

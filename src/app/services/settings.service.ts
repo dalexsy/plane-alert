@@ -423,7 +423,6 @@ export class SettingsService {
       }
     } catch (error) {
       // Silently ignore - this is optional for push notifications
-      console.debug('Backend location update skipped (no push token):', error);
     }
   }
 

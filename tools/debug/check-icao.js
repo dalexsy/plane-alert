@@ -45,10 +45,19 @@ async function checkICAO() {
     console.log(`  Track: ${plane.track || "N/A"}°`);
 
     console.log("\n🎯 Detection Result:");
-    if (plane.mil === true) {
-      console.log("  ✅ Would be detected as military (mil=true)");
+    const wouldBeDetectedMilitary = plane.mil === true || plane.dbFlags === 1;
+    if (wouldBeDetectedMilitary) {
+      console.log(
+        `  ✅ Would be detected as military (mil=${
+          plane.mil === true
+        }, dbFlags=${plane.dbFlags})`
+      );
     } else {
-      console.log("  ❌ Would NOT be detected as military (mil is not true)");
+      console.log(
+        `  ❌ Would NOT be detected as military (mil=${
+          plane.mil === true
+        }, dbFlags=${plane.dbFlags})`
+      );
       console.log("  💡 This explains why you're not getting notifications!");
     }
   } catch (error) {

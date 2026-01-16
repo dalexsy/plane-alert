@@ -4,7 +4,7 @@
   position: absolute;
   top: 0.25rem;
   right: 45px;
-  z-index: 700; // Below window-view-overlay (800) so it never covers tooltips
+  z-index: 700; // Below window-view-overlay (1100) so it never covers tooltips
   pointer-events: none; // Don't block clicks to elements behind it
   background: #1e1e1eb3;
   border: 1px solid rgba(255, 255, 255, 0.4);

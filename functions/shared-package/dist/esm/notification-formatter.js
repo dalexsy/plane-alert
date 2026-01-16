@@ -97,6 +97,10 @@ export function formatNotificationBody(data, skipCallsignInBody = false) {
     if (data.operator) {
         parts.push(data.operator);
     }
+    // Route (origin→destination with ETA)
+    if (data.route) {
+        parts.push(data.route);
+    }
     // Speed (if available)
     if (data.speed && data.speed > 0) {
         const speed = Math.round(data.speed);

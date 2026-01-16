@@ -56,6 +56,9 @@ export class OperatorCallSignService {
       (a, b) => b.length - a.length
     );
     for (const prefix of userPrefixes) {
+      // Avoid bogus matches from very short prefixes (e.g. ground vehicles like "B352").
+      // ICAO operator/callsign prefixes are typically 3+ letters.
+      if (prefix.length < 3) continue;
       if (
         cs === prefix ||
         (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))
@@ -68,6 +71,8 @@ export class OperatorCallSignService {
       (a, b) => b.length - a.length
     );
     for (const prefix of prefixes) {
+      // Avoid bogus matches from very short prefixes (e.g. ground vehicles like "B352").
+      if (prefix.length < 3) continue;
       if (
         cs === prefix ||
         (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))
@@ -93,6 +98,7 @@ export class OperatorCallSignService {
     );
     let foundPrefix: string | undefined;
     for (const prefix of prefixes) {
+      if (prefix.length < 3) continue;
       if (
         cs === prefix ||
         (cs.startsWith(prefix) && /^\d/.test(cs.slice(prefix.length)))
@@ -106,7 +112,11 @@ export class OperatorCallSignService {
     // Extract entire prefix until first digit (so names like LIFTER are fully captured)
     const prefixMatch = cs.match(/^[^0-9]+/);
     const logPrefix = prefixMatch ? prefixMatch[0] : cs;
-    if (!operator && !this.unknownCallSigns.has(logPrefix)) {
+    if (
+      logPrefix.length >= 3 &&
+      !operator &&
+      !this.unknownCallSigns.has(logPrefix)
+    ) {
       // Only log alphabetic prefixes (skip all-digit or N-prefix, VFR/IFR)
       if (
         !/^\d+$/.test(callSign) &&

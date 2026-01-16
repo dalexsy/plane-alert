@@ -8,7 +8,7 @@ import { UnknownListService } from './unknown-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { HelicopterIdentificationService } from './helicopter-identification.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
-import { looksMilitary } from '@plane-alert/shared';
+import { isMilitaryOperator, looksMilitary } from '@plane-alert/shared';
 import {
   AircraftDbService,
   AircraftRecord,
@@ -16,6 +16,14 @@ import {
 import { filterPlaneByPrefix } from '../utils/plane-log';
 import { AircraftSnapshotService } from './aircraft-snapshot.service';
 import { OpenskyRouteService } from './opensky-route.service';
+import {
+  calculateDistanceKm,
+  computeBearingDeg,
+  bearingToCardinal,
+  cardinalToArrow,
+} from './plane-data/plane-geo.util';
+import { PlaneRouteCacheService } from './plane-data/plane-route-cache.service';
+import { UnknownCountryLoggerService } from './plane-data/unknown-country-logger.service';
 
 export interface ProcessedPlaneData {
   id: string;
@@ -43,31 +51,21 @@ export interface ProcessedPlaneData {
   distanceKm: number;
   routeOrigin?: string;
   routeDestination?: string;
+  routeOriginIata?: string;
+  routeDestinationIata?: string;
+  routeOriginName?: string;
+  routeDestinationName?: string;
+  routeEtaUtc?: string;
+  routeStatus?: string;
+  routeArrivalDelay?: number;
+  routeCancelled?: boolean;
+  routeDiverted?: boolean;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class PlaneDataService {
-  // Track logged unknown countries to prevent duplicates
-  private loggedUnknownCountries = new Set<string>();
-  private unknownCountryAircraft: Array<{
-    icao: string;
-    registration: string;
-    operator: string;
-    rawCountry: string;
-    callsign: string;
-    detectedCountry: string;
-    isMilitary: boolean;
-  }> = [];
-  private lastUnknownCountryLogTime = 0;
-
-  // Store route data for aircraft
-  private routeDataCache = new Map<
-    string,
-    { origin?: string; destination?: string }
-  >();
-
   constructor(
     private newPlaneService: NewPlaneService,
     private helicopterListService: HelicopterListService,
@@ -78,7 +76,9 @@ export class PlaneDataService {
     private aircraftCountryService: AircraftCountryService,
     private aircraftDb: AircraftDbService,
     private aircraftSnapshot: AircraftSnapshotService,
-    private openskyRouteService: OpenskyRouteService
+    private openskyRouteService: OpenskyRouteService,
+    private routeCache: PlaneRouteCacheService,
+    private unknownCountryLogger: UnknownCountryLoggerService
   ) {}
 
   async refreshLists(manualUpdate: boolean): Promise<void> {
@@ -107,11 +107,16 @@ export class PlaneDataService {
 
       // Return current cached data (now populated with initial fetch)
       const aircraft = this.aircraftSnapshot.getCurrentAircraft();
+      const flightData = this.aircraftSnapshot.getCurrentFlightData();
+
+      // Store flight data for route enrichment
+      this.routeCache.updateFromFlightData(flightData);
 
       console.log('Fetched aircraft data from Firestore', {
         location: `${centerLat.toFixed(2)},${centerLon.toFixed(2)}`,
         radiusKm,
         count: aircraft.length,
+        flightDataCount: Object.keys(flightData).length,
         lastUpdate: new Date(
           this.aircraftSnapshot.getLastUpdate()
         ).toLocaleTimeString(),
@@ -214,7 +219,9 @@ export class PlaneDataService {
     }
 
     const onGround =
-      ac.gnd === true || ac.ground === true || ac.alt_baro === 'ground' ||
+      ac.gnd === true ||
+      ac.ground === true ||
+      ac.alt_baro === 'ground' ||
       onGroundBasedOnLogic;
 
     // Process altitude (feet -> meters). Align with backend notification logic:
@@ -223,7 +230,10 @@ export class PlaneDataService {
     let altitude: number | null = null;
     if (onGround) {
       altitude = 0;
-    } else if (typeof altitudeFeetCandidate === 'number' && altitudeFeetCandidate > 0) {
+    } else if (
+      typeof altitudeFeetCandidate === 'number' &&
+      altitudeFeetCandidate > 0
+    ) {
       altitude = altitudeFeetCandidate * 0.3048;
     } else {
       altitude = null;
@@ -248,7 +258,7 @@ export class PlaneDataService {
       : wouldBeFiltered;
 
     // Check distance from center
-    const dist = this.calculateDistance(centerLat, centerLon, lat, lon);
+    const dist = calculateDistanceKm(centerLat, centerLon, lat, lon);
     if (dist > radiusKm) {
       return null; // Out of range
     }
@@ -256,10 +266,49 @@ export class PlaneDataService {
     const isNew = this.newPlaneService.isNew(id);
 
     // Determine operator and model
-    const prefixOperator =
-      this.operatorCallSignService.getOperatorWithLogging(callsign);
-    let operator = prefixOperator ?? (dbAircraft?.ownop || '');
+    // Operator sources (in order):
+    // 1) API-derived operator ICAO (opicao) (best)
+    // 2) Local DB (ownop)
+    // 3) Callsign-prefix mapping (fallback) BUT only for likely-aircraft records (category A*)
+
+    // ADS-B One sometimes provides operator ICAO separately (even when callsign/flight is blank).
+    // This is a no-cost enrichment that can improve operator name + logo matching.
+    const opIcao: string =
+      typeof ac.opicao === 'string' ? ac.opicao.trim() : '';
+    const opIcaoOperator = opIcao
+      ? this.operatorCallSignService.getOperator(opIcao)
+      : undefined;
+
+    // Fallback: callsign-prefix mapping is useful when opicao is missing,
+    // but it can mislabel ground vehicles and other emitters.
+    const canUseCallsignOperatorFallback =
+      !!callsign && !!categoryCode && categoryCode.startsWith('A');
+    const prefixOperator = canUseCallsignOperatorFallback
+      ? this.operatorCallSignService.getOperatorWithLogging(callsign)
+      : undefined;
+
+    // Prevent bogus civilian airline names from showing on military aircraft.
+    // Example: callsign prefix mappings can incorrectly label military flights.
+    const safePrefixOperator =
+      isMilitary && prefixOperator && !isMilitaryOperator(prefixOperator)
+        ? undefined
+        : prefixOperator;
+
+    const safeOpIcaoOperator =
+      isMilitary && opIcaoOperator && !isMilitaryOperator(opIcaoOperator)
+        ? undefined
+        : opIcaoOperator;
+
+    // Prefer API-derived operator (opicao) first; then explicit DB operator; then callsign fallback.
+    let operator =
+      safeOpIcaoOperator ?? dbAircraft?.ownop ?? safePrefixOperator ?? '';
     let model = apiModel || dbAircraft?.model || apiIcaoType || '';
+
+    // Fallback: US military flights often omit an operator string.
+    // If we’ve already classified as military and the country is US, default to US Air Force.
+    if (isMilitary && (!operator || !operator.trim()) && origin === 'US') {
+      operator = 'US Air Force';
+    }
 
     if (
       !model &&
@@ -314,29 +363,30 @@ export class PlaneDataService {
     }
 
     // Log unknown countries
-    this.logUnknownCountries(
-      id,
-      reg,
+    this.unknownCountryLogger.logUnknownCountryIfNeeded({
+      icao: id,
+      registration: reg,
       operator,
-      rawCountry,
+      rawCountry: rawCountry || '',
       callsign,
-      origin,
-      isMilitary
-    );
+      detectedCountry: origin,
+      isMilitary,
+    });
 
     // Fetch route data asynchronously (non-blocking)
     // This will use cached data if available
     this.openskyRouteService.getFlightRoute(id).subscribe((route) => {
       if (route && (route.origin || route.destination)) {
-        this.routeDataCache.set(id, {
-          origin: route.origin,
-          destination: route.destination,
+        const cached = this.routeCache.get(callsign, id) ?? {};
+        this.routeCache.merge(callsign, {
+          origin: cached.origin ?? route.origin,
+          destination: cached.destination ?? route.destination,
         });
       }
     });
 
-    // Get cached route data if available
-    const cachedRoute = this.routeDataCache.get(id);
+    // Get cached route data if available - check by callsign first (AeroAPI), then by ICAO (OpenSky)
+    const cachedRoute = this.routeCache.get(callsign, id);
 
     return {
       id,
@@ -364,67 +414,16 @@ export class PlaneDataService {
       distanceKm: dist,
       routeOrigin: cachedRoute?.origin,
       routeDestination: cachedRoute?.destination,
+      routeOriginIata: cachedRoute?.originIata,
+      routeDestinationIata: cachedRoute?.destinationIata,
+      routeOriginName: cachedRoute?.originName,
+      routeDestinationName: cachedRoute?.destinationName,
+      routeEtaUtc: cachedRoute?.etaUtc,
+      routeStatus: cachedRoute?.status,
+      routeArrivalDelay: cachedRoute?.arrivalDelay,
+      routeCancelled: cachedRoute?.cancelled,
+      routeDiverted: cachedRoute?.diverted,
     };
-  }
-
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const R = 6371; // Earth's radius in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private logUnknownCountries(
-    icao: string,
-    registration: string,
-    operator: string,
-    rawCountry: string,
-    callsign: string,
-    detectedCountry: string,
-    isMilitary: boolean
-  ): void {
-    if (
-      (detectedCountry === 'Unknown' ||
-        (isMilitary && detectedCountry !== 'Unknown')) &&
-      !this.loggedUnknownCountries.has(icao)
-    ) {
-      this.unknownCountryAircraft.push({
-        icao,
-        registration: registration || 'N/A',
-        operator: operator || 'N/A',
-        rawCountry: rawCountry || 'N/A',
-        callsign: callsign || 'N/A',
-        detectedCountry,
-        isMilitary,
-      });
-      this.loggedUnknownCountries.add(icao);
-    }
-
-    // Log batch every 30 seconds
-    const now = Date.now();
-    if (
-      now - this.lastUnknownCountryLogTime > 30000 &&
-      this.unknownCountryAircraft.length > 0
-    ) {
-      this.unknownCountryAircraft.forEach((aircraft) => {
-        const milFlag = aircraft.isMilitary ? '[MIL]' : '';
-        console.log(`Unknown country aircraft ${milFlag}:`, aircraft);
-      });
-      this.unknownCountryAircraft = [];
-      this.lastUnknownCountryLogTime = now;
-    }
   }
 
   createOrUpdatePlaneModel(
@@ -522,11 +521,22 @@ export class PlaneDataService {
       processedData.typeDescription ?? undefined;
     planeModelInstance.routeOrigin = processedData.routeOrigin;
     planeModelInstance.routeDestination = processedData.routeDestination;
+    planeModelInstance.routeOriginIata = processedData.routeOriginIata;
+    planeModelInstance.routeDestinationIata =
+      processedData.routeDestinationIata;
+    planeModelInstance.routeOriginName = processedData.routeOriginName;
+    planeModelInstance.routeDestinationName =
+      processedData.routeDestinationName;
+    planeModelInstance.routeEtaUtc = processedData.routeEtaUtc;
+    planeModelInstance.routeStatus = processedData.routeStatus;
+    planeModelInstance.routeArrivalDelay = processedData.routeArrivalDelay;
+    planeModelInstance.routeCancelled = processedData.routeCancelled;
+    planeModelInstance.routeDiverted = processedData.routeDiverted;
 
     // Calculate derived properties
-    const bearing = this.computeBearing(centerLat, centerLon, lat, lon);
-    const cardinal = this.getCardinalDirection(bearing);
-    const arrow = this.getArrowForDirection(cardinal);
+    const bearing = computeBearingDeg(centerLat, centerLon, lat, lon);
+    const cardinal = bearingToCardinal(bearing);
+    const arrow = cardinalToArrow(cardinal);
 
     planeModelInstance.bearing = bearing;
     planeModelInstance.cardinal = cardinal;
@@ -665,7 +675,8 @@ export class PlaneDataService {
       // can be older than the marker target, causing "mid-flight" animations to use
       // stale segments (looks like it's replaying multiple scans).
       const latestTs =
-        typeof snapshotTimestamp === 'number' && !Number.isNaN(snapshotTimestamp)
+        typeof snapshotTimestamp === 'number' &&
+        !Number.isNaN(snapshotTimestamp)
           ? snapshotTimestamp
           : Date.now();
 
@@ -715,70 +726,6 @@ export class PlaneDataService {
       processedData.altitude,
       fallbackTimestamp
     );
-  }
-
-  private computeBearing(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const lat1Rad = (lat1 * Math.PI) / 180;
-    const lat2Rad = (lat2 * Math.PI) / 180;
-
-    const y = Math.sin(dLon) * Math.cos(lat2Rad);
-    const x =
-      Math.cos(lat1Rad) * Math.sin(lat2Rad) -
-      Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
-
-    const bearing = (Math.atan2(y, x) * 180) / Math.PI;
-    return (bearing + 360) % 360;
-  }
-
-  private getCardinalDirection(bearing: number): string {
-    const directions = [
-      'N',
-      'NNE',
-      'NE',
-      'ENE',
-      'E',
-      'ESE',
-      'SE',
-      'SSE',
-      'S',
-      'SSW',
-      'SW',
-      'WSW',
-      'W',
-      'WNW',
-      'NW',
-      'NNW',
-    ];
-    const index = Math.round(bearing / 22.5) % 16;
-    return directions[index];
-  }
-
-  private getArrowForDirection(cardinal: string): string {
-    const arrows: { [key: string]: string } = {
-      N: '↑',
-      NNE: '↗',
-      NE: '↗',
-      ENE: '↗',
-      E: '→',
-      ESE: '↘',
-      SE: '↘',
-      SSE: '↘',
-      S: '↓',
-      SSW: '↙',
-      SW: '↙',
-      WSW: '↙',
-      W: '←',
-      WNW: '↖',
-      NW: '↖',
-      NNW: '↖',
-    };
-    return arrows[cardinal] || '↑';
   }
 
   updateNewPlaneService(currentUpdateSet: Set<string>): void {

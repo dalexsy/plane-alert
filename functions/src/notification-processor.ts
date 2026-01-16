@@ -50,6 +50,7 @@ import {
   sendPushoverNotifications,
   type PushoverMessage,
 } from './services/pushover-client';
+import { batchGetFlightData } from './services/flight-data-cache';
 
 // Import user aircraft database
 import userAircraftDb from './data/user-aircraft-db.json';
@@ -106,6 +107,46 @@ async function notifyForDevice(
 
     if (!aircraft.length) {
       return;
+    }
+
+    // Fetch flight data for MILITARY aircraft only (cost control)
+    // Note: AeroAPI often has no data for many ADS-B callsigns; querying everything is prohibitively expensive.
+    const planesWithFlight = aircraft.filter((plane) =>
+      Boolean(plane.flight && plane.flight.trim())
+    );
+    const militaryPlanesWithFlight = planesWithFlight.filter((plane) => {
+      const icao = plane.hex?.toUpperCase();
+      const userDbEntry = icao ? userAircraftLookup.get(icao) : undefined;
+      return userDbEntry !== undefined
+        ? userDbEntry.mil === true
+        : looksMilitary(plane);
+    });
+    const callsigns = militaryPlanesWithFlight.map((plane) =>
+      plane.flight!.trim()
+    );
+
+    logger.info('Selecting callsigns for flight data', {
+      docId,
+      totalAircraft: aircraft.length,
+      planesWithFlight: planesWithFlight.length,
+      militaryWithFlight: militaryPlanesWithFlight.length,
+      milFieldTrue: planesWithFlight.filter((p) => p.mil === true).length,
+      dbFlagsIs1: planesWithFlight.filter((p) => p.dbFlags === 1).length,
+      callsignsFound: callsigns.length,
+      sampleCallsigns: callsigns.slice(0, 5),
+    });
+
+    const flightDataMap =
+      callsigns.length > 0
+        ? await batchGetFlightData(db, callsigns)
+        : new Map();
+
+    if (callsigns.length > 0) {
+      logger.info('Fetched flight data for notifications', {
+        docId,
+        callsignsQueried: callsigns.length,
+        dataReceived: flightDataMap.size,
+      });
     }
 
     const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
@@ -243,20 +284,28 @@ async function notifyForDevice(
         data.distanceUnit === 'miles' ? 'miles' : 'km'
       );
 
+      const rawCountry = (plane as any).ctry ?? (plane as any).countryCode;
       const countryResult = getAircraftCountry(
         plane.r,
         plane.hex,
-        undefined,
-        true
+        rawCountry,
+        isMilitary
       );
-      const flagEmoji = getCountryFlagEmoji(countryResult.countryCode);
 
-      const icaoUpper = icao.toUpperCase();
+      const countryCode =
+        countryResult.countryCode !== 'Unknown'
+          ? countryResult.countryCode
+          : null;
+      const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
 
-      // Look up enriched model from user aircraft database
-      const dbRecord = userAircraftLookup.get(icaoUpper);
-      const model = dbRecord?.model || plane.desc || plane.t;
+      const icaoUpper = plane.hex.toUpperCase();
       const callsign = normalizeCallsign(plane.flight || plane.callsign);
+      const model = userDbEntry?.model || plane.desc || plane.t;
+
+      // Get flight data if available for this aircraft (AeroAPI enrichment)
+      const flightData = callsign
+        ? flightDataMap.get(callsign.toUpperCase())
+        : undefined;
 
       // If no model, the title will contain the callsign, so skip it in the body
       const skipCallsignInBody = !model;
@@ -266,7 +315,8 @@ async function notifyForDevice(
         direction,
         bearing,
         data.distanceUnit === 'miles' ? 'miles' : 'km',
-        skipCallsignInBody
+        skipCallsignInBody,
+        flightData
       );
 
       // Use shared formatting function for consistent title format
@@ -303,6 +353,8 @@ async function notifyForDevice(
         icon: iconUrl,
         model: plane.t || plane.desc,
         operator: plane.desc,
+        registration: plane.r,
+        hex: plane.hex,
       });
 
       lastNotified[icao] = now;
@@ -387,6 +439,8 @@ async function notifyForDevice(
             url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
             url_title: 'View on Map',
             icon: `https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png?v=${Date.now()}`,
+            registration: plane.r,
+            hex: plane.hex,
           });
 
           lastProximityNotified[icao] = now;

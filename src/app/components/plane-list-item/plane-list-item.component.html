@@ -222,3 +222,33 @@
     </div>
   </span>
 </span>
+
+<span
+  class="bottom"
+  *ngIf="
+    plane.routeOrigin ||
+    plane.routeDestination ||
+    plane.routeOriginIata ||
+    plane.routeDestinationIata
+  "
+>
+  <span class="operator-visibility">
+    <span></span>
+    <span class="operator">
+      <span class="operator-logo">
+        <span
+          class="material-symbols-sharp route-status-icon"
+          *ngIf="routeStatusIcon"
+          [appTooltip]="plane.routeStatus || ''"
+          style="font-size: 16px; line-height: 16px"
+        >
+          {{ routeStatusIcon }}
+        </span>
+      </span>
+      <span [appTooltip]="routeTooltip"
+        >{{ routeOriginDisplay }} → {{ routeDestinationDisplay }}</span
+      >
+    </span>
+  </span>
+  <span class="model" *ngIf="localizedEta">ETA {{ localizedEta }}</span>
+</span>

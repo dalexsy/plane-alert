@@ -442,13 +442,14 @@ export class WindowViewOverlayComponent
     const condition = weather.main?.toLowerCase() || '';
     const description = weather.description?.toLowerCase() || '';
 
-    // Check if it's currently raining
-    const isRaining =
+    // Check if it's currently raining or snowing
+    const isPrecipitating =
       condition.includes('rain') ||
       condition.includes('drizzle') ||
-      condition.includes('thunderstorm');
+      condition.includes('thunderstorm') ||
+      condition.includes('snow');
 
-    if (isRaining) {
+    if (isPrecipitating) {
       // Extract wind data for realistic rain direction
       const windSpeed = weatherData.wind?.speed || 0; // m/s
       const windDirection = weatherData.wind?.deg || 0; // degrees

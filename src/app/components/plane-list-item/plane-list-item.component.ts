@@ -18,6 +18,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { PlaneLogEntry } from '../results-overlay/results-overlay.component'; // Adjust path if needed
+import { TooltipDirective } from '../../directives/tooltip.directive';
 import { CountryService } from '../../services/country.service';
 import { PlaneFilterService } from '../../services/plane-filter.service';
 import { SettingsService } from '../../services/settings.service';
@@ -41,7 +42,7 @@ import {
 @Component({
   selector: 'app-plane-list-item',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, TooltipDirective],
   templateUrl: './plane-list-item.component.html',
   styleUrls: ['./plane-list-item.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
@@ -72,6 +73,85 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
   }
 
   @Input({ required: true }) plane!: PlaneLogEntry;
+
+  private formatAirportTooltip(
+    name: string | undefined,
+    code: string | undefined
+  ): string {
+    if (typeof name === 'string' && name.trim()) return name.trim();
+    if (typeof code === 'string' && code.trim()) return code.trim();
+    return '';
+  }
+
+  get routeOriginDisplay(): string {
+    return this.plane.routeOriginIata || this.plane.routeOrigin || '?';
+  }
+
+  get routeDestinationDisplay(): string {
+    return (
+      this.plane.routeDestinationIata || this.plane.routeDestination || '?'
+    );
+  }
+
+  get routeTooltip(): string {
+    const originText = this.formatAirportTooltip(
+      this.plane.routeOriginName,
+      this.routeOriginDisplay
+    );
+    const destText = this.formatAirportTooltip(
+      this.plane.routeDestinationName,
+      this.routeDestinationDisplay
+    );
+
+    if (originText && destText) return `${originText} → ${destText}`;
+    return originText || destText || '';
+  }
+
+  get routeStatusIcon(): string | null {
+    if (this.plane.routeCancelled) return 'cancel';
+    if (this.plane.routeDiverted) return 'swap_horiz';
+
+    const status =
+      typeof this.plane.routeStatus === 'string'
+        ? this.plane.routeStatus.toLowerCase()
+        : '';
+    if (status.includes('landed') || status.includes('arrived'))
+      return 'flight_land';
+
+    return null;
+  }
+
+  get localizedEta(): string | undefined {
+    const utcEta = this.plane.routeEtaUtc;
+    if (!utcEta || typeof utcEta !== 'string') return undefined;
+
+    // Parse UTC time like "12:34Z"
+    const match = utcEta.match(/^(\d{2}):(\d{2})Z?$/);
+    if (!match) return undefined;
+
+    const utcHours = parseInt(match[1], 10);
+    const utcMinutes = parseInt(match[2], 10);
+
+    // Create a date object for today in UTC with the ETA time
+    const now = new Date();
+    const utcDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        utcHours,
+        utcMinutes
+      )
+    );
+
+    // Convert to local time and format
+    const localHours = utcDate.getHours();
+    const localMinutes = utcDate.getMinutes();
+    const formattedHours = String(localHours).padStart(2, '0');
+    const formattedMinutes = String(localMinutes).padStart(2, '0');
+
+    return `${formattedHours}:${formattedMinutes}`;
+  }
   // Reflect military/special state on host element for styling
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.plane?.isMilitary === true;
@@ -339,7 +419,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     this.moveTooltipToBody();
 
     this.aircraftImageService
-      .getAircraftImage(this.plane.model, this.plane.operator)
+      .getAircraftImage(this.plane.r, this.plane.icao)
       .subscribe({
         next: (image) => {
           this.aircraftImage = image;

@@ -15,6 +15,7 @@ export interface NotificationData {
     altitudeUnit: 'ft' | 'm';
     verticalRate?: number;
     location?: string;
+    route?: string;
 }
 /**
  * Get arrow for cardinal direction

@@ -6,6 +6,8 @@ import {
   formatNotificationBody,
 } from '@plane-alert/shared';
 import { reverseGeocode } from './geocoding';
+import type { FlightData } from './aeroapi-client';
+import { formatRoute, formatETA } from './aeroapi-client';
 
 /**
  * Get operator from callsign
@@ -67,6 +69,7 @@ export function getOperatorFromCallsign(callsign: string): string | null {
 /**
  * Build notification body using shared formatter
  * v2: Updated notification format with location and bearings
+ * v3: Added optional flight data (origin/destination/ETA)
  */
 export async function buildNotificationBody(
   plane: AdsBPlane,
@@ -74,7 +77,8 @@ export async function buildNotificationBody(
   direction: string,
   bearing: number,
   distanceUnit: 'km' | 'miles',
-  skipCallsignInBody = false
+  skipCallsignInBody = false,
+  flightData?: FlightData | null
 ): Promise<string> {
   const callsign =
     normalizeCallsign(plane.flight || plane.callsign) ||
@@ -132,6 +136,18 @@ export async function buildNotificationBody(
     }
   }
 
+  // Format flight route and ETA if available
+  let routeInfo: string | undefined;
+  if (flightData) {
+    const route = formatRoute(flightData);
+    const eta = formatETA(flightData);
+    if (route && eta) {
+      routeInfo = `${route} (ETA ${eta})`;
+    } else if (route) {
+      routeInfo = route;
+    }
+  }
+
   return formatNotificationBody(
     {
       callsign,
@@ -147,6 +163,7 @@ export async function buildNotificationBody(
       altitudeUnit,
       verticalRate: plane.baro_rate || undefined,
       location,
+      route: routeInfo,
     },
     skipCallsignInBody
   );

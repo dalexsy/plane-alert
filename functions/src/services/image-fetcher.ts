@@ -2,63 +2,50 @@ import { logger } from 'firebase-functions/v2';
 import fetch from 'node-fetch';
 
 /**
- * Fetch aircraft image from Google Custom Search API
+ * Fetch aircraft image from Planespotters.net API
  */
 export async function fetchAircraftImage(
-  model: string,
-  operator?: string
+  registration?: string,
+  hex?: string
 ): Promise<string | null> {
-  const GOOGLE_API_KEY = process.env.GOOGLE_SEARCH_API_KEY;
-  const GOOGLE_SEARCH_ENGINE_ID = process.env.GOOGLE_SEARCH_ENGINE_ID;
+  // Try registration first, then hex
+  const identifiers = [
+    { type: 'reg', value: registration },
+    { type: 'hex', value: hex },
+  ].filter((id) => id.value && id.value.trim());
 
-  if (!GOOGLE_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
-    logger.warn('Google Search API credentials not configured');
-    return null;
+  for (const { type, value } of identifiers) {
+    try {
+      const url = `https://api.planespotters.net/pub/photos/${type}/${encodeURIComponent(
+        value!.trim()
+      )}`;
+
+      const response = await fetch(url, { timeout: 3000 } as any);
+
+      if (!response.ok) {
+        continue; // Try next identifier
+      }
+
+      const data: any = await response.json();
+
+      if (data.photos && data.photos.length > 0) {
+        // Prefer large thumbnail or full photo
+        const photo = data.photos[0];
+        const imageUrl =
+          photo.thumbnail_large || photo.photo || photo.thumbnail;
+        if (imageUrl) {
+          return imageUrl;
+        }
+      }
+    } catch (error: any) {
+      logger.warn(`Failed to fetch from Planespotters ${type}`, {
+        identifier: value,
+        error: error?.message,
+      });
+    }
   }
 
-  try {
-    // Match frontend search query format (no quotes for better results)
-    let searchQuery = `${model} aircraft airplane photo`;
-    if (operator) {
-      const operatorShort = operator.split(' ')[0];
-      searchQuery += ` ${operatorShort}`;
-    }
-    searchQuery +=
-      ' site:planespotters.net OR site:airliners.net OR site:jetphotos.com';
-    searchQuery +=
-      ' -cartoon -drawing -model -toy -lego -illustration -diagram -youtube -thumbnail';
-
-    const url = new URL('https://www.googleapis.com/customsearch/v1');
-    url.searchParams.set('key', GOOGLE_API_KEY);
-    url.searchParams.set('cx', GOOGLE_SEARCH_ENGINE_ID);
-    url.searchParams.set('q', searchQuery);
-    url.searchParams.set('searchType', 'image');
-    url.searchParams.set('num', '1');
-    url.searchParams.set('imgSize', 'large');
-    url.searchParams.set('imgType', 'photo');
-    url.searchParams.set('safe', 'active');
-
-    const response = await fetch(url.toString(), { timeout: 3000 } as any);
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data: any = await response.json();
-
-    if (data.items && data.items.length > 0) {
-      const item = data.items[0];
-      return item.link || null;
-    }
-
-    return null;
-  } catch (error: any) {
-    logger.warn('Failed to fetch aircraft image', {
-      model,
-      error: error?.message,
-    });
-    return null;
-  }
+  return null;
 }
 
 /**

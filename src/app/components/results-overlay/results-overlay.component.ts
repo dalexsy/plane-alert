@@ -58,6 +58,8 @@ export interface PlaneLogEntry {
   lon?: number;
   filteredOut?: boolean;
   icao: string;
+  r?: string; // registration
+  hex?: string; // ICAO hex code
   isMilitary?: boolean; // Add this property to indicate if the plane is military
   isSpecial?: boolean; // Add special plane flag
   isA380?: boolean; // Add A380 visual highlighting flag
@@ -68,6 +70,17 @@ export interface PlaneLogEntry {
   airportLat?: number;
   airportLon?: number;
   altitude?: number | null; // plane altitude in meters, nullable to match PlaneModel
+  routeOrigin?: string;
+  routeDestination?: string;
+  routeOriginIata?: string;
+  routeDestinationIata?: string;
+  routeOriginName?: string;
+  routeDestinationName?: string;
+  routeEtaUtc?: string;
+  routeStatus?: string;
+  routeArrivalDelay?: number;
+  routeCancelled?: boolean;
+  routeDiverted?: boolean;
 }
 
 @Component({

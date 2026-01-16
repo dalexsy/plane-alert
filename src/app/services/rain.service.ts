@@ -5,6 +5,8 @@ import { BehaviorSubject, Observable } from 'rxjs';
  * Configuration interface for rain animation parameters
  */
 export interface RainConfiguration {
+  /** Precipitation type driving visuals */
+  precipitationType: 'rain' | 'snow';
   /** Number of rain drops to render */
   dropCount: number;
   /** Rain intensity (0.0 to 1.0) */
@@ -90,6 +92,7 @@ export interface WeatherRainMapping {
 })
 export class RainService {
   private readonly defaultConfig: RainConfiguration = {
+    precipitationType: 'rain',
     dropCount: 150,
     intensity: 0.7,
     windAngle: 0,
@@ -164,6 +167,11 @@ export class RainService {
     const condition = weatherCondition?.toLowerCase() || '';
     const description = weatherDescription?.toLowerCase() || '';
 
+    const isSnow =
+      condition.includes('snow') ||
+      description.includes('snow') ||
+      description.includes('flurries');
+
     // Determine if it should be raining
     const shouldRain = this.shouldActivateRain(condition, description);
     if (shouldRain) {
@@ -176,6 +184,8 @@ export class RainService {
       );
       const windAngle = this.calculateWindEffect(windSpeed, windDirection);
       const fallSpeed = this.calculateFallSpeed(
+        condition,
+        description,
         intensity,
         pressure,
         temperature,
@@ -200,6 +210,7 @@ export class RainService {
 
       this.startRain({
         ...this.defaultConfig,
+        precipitationType: isSnow ? 'snow' : 'rain',
         intensity,
         windAngle,
         fallSpeed,
@@ -289,9 +300,12 @@ export class RainService {
       condition.includes('rain') ||
       condition.includes('drizzle') ||
       condition.includes('thunderstorm') ||
+      condition.includes('snow') ||
       description.includes('rain') ||
       description.includes('drizzle') ||
-      description.includes('shower')
+      description.includes('shower') ||
+      description.includes('snow') ||
+      description.includes('flurries')
     );
   }
   /**
@@ -384,17 +398,38 @@ export class RainService {
    * Calculate realistic fall speed based on atmospheric conditions
    */
   private calculateFallSpeed(
+    condition: string,
+    description: string,
     intensity: number,
     pressure: number,
     temperature: number,
     humidity: number
   ): number {
+    // Check if it's snow - snow falls much slower than rain
+    const isSnow = condition.includes('snow') || description.includes('snow') || description.includes('flurries');
+    
     // Base fall speed from configuration
     let fallSpeed = this.defaultConfig.fallSpeed;
+    
+    if (isSnow) {
+      // Snow should feel like a drift, not rain.
+      // Use a much lower baseline than rain and keep it tightly clamped.
+      fallSpeed *= 0.05;
 
-    // Intensity effect: Higher intensity = larger drops = faster fall
-    const intensityFactor = 0.7 + intensity * 0.6; // 0.7 to 1.3 multiplier
-    fallSpeed *= intensityFactor;
+      // Light snow falls even slower
+      if (description.includes('light')) {
+        fallSpeed *= 0.7;
+      }
+      // Heavy/wet snow falls a bit faster
+      else if (description.includes('heavy')) {
+        fallSpeed *= 1.1;
+      }
+    } else {
+      // Rain physics
+      // Intensity effect: Higher intensity = larger drops = faster fall
+      const intensityFactor = 0.7 + intensity * 0.6; // 0.7 to 1.3 multiplier
+      fallSpeed *= intensityFactor;
+    }
 
     // Air density effect (from pressure and temperature)
     const normalPressure = 1013.25; // hPa
@@ -410,7 +445,7 @@ export class RainService {
     const humidityFactor = Math.max(0.95, 1 - (humidity - 50) * 0.002);
     fallSpeed *= humidityFactor;
 
-    return Math.max(400, Math.min(1200, fallSpeed));
+    return Math.max(isSnow ? 20 : 400, Math.min(isSnow ? 120 : 1200, fallSpeed));
   }
 
   /**
@@ -497,17 +532,27 @@ export class RainService {
     const y = -Math.random() * 20 - 5; // -25% to -5%
 
     // Size variation
-    const size = 0.5 + Math.random() * (config.sizeVariance - 0.5);
+    const size =
+      config.precipitationType === 'snow'
+        ? 0.9 + Math.random() * 1.1
+        : 0.5 + Math.random() * (config.sizeVariance - 0.5);
 
-    // Speed variation (±20%)
-    const speed = 0.8 + Math.random() * 0.4;
+    // Speed variation
+    // Rain: a bit of variance; Snow: keep tight so it feels floaty.
+    const speed =
+      config.precipitationType === 'snow'
+        ? 0.18 + Math.random() * 0.22
+        : 0.8 + Math.random() * 0.4;
 
     // Opacity variation
-    const opacity = Math.max(0.1, config.opacity + (Math.random() - 0.5) * 0.3);
+    const opacity =
+      config.precipitationType === 'snow'
+        ? Math.max(0.08, config.opacity + (Math.random() - 0.5) * 0.2)
+        : Math.max(0.1, config.opacity + (Math.random() - 0.5) * 0.3);
 
     // Animation timing
     const delay = Math.random() * 2000; // 0-2 second delay
-    const baseDuration = 3000; // 3 seconds base
+    const baseDuration = config.precipitationType === 'snow' ? 14000 : 3000;
     const duration = baseDuration / speed;
 
     return {
@@ -562,14 +607,23 @@ export class RainService {
     const config = this.currentConfig$.value;
     const drops = this.rainDrops$.value;
 
+    const isSnow = config.precipitationType === 'snow';
+    const nowMs = Date.now();
+
     const updatedDrops = drops.map((drop) => {
       // Calculate fall distance based on time
       const fallDistance = (config.fallSpeed * drop.speed * deltaTime) / 1000;
       const fallPercentage = (fallDistance / window.innerHeight) * 100;
 
       // Apply wind effect
-      const windEffect = (config.windAngle / 45) * 0.5; // Max 0.5% horizontal movement per frame
-      const newX = drop.x + windEffect;
+      const windEffect = (config.windAngle / 45) * (isSnow ? 0.08 : 0.5);
+
+      // Snow drift: gentle side-to-side flutter.
+      const drift = isSnow
+        ? Math.sin(nowMs / 1200 + Number(drop.id) * 0.8) * 0.12
+        : 0;
+
+      const newX = drop.x + windEffect + drift;
       const newY = drop.y + fallPercentage;
 
       // Reset drop if it has fallen off screen
@@ -616,6 +670,23 @@ export class RainService {
     temperature: number,
     visibility: number
   ): string {
+    // Check if it's snow first
+    if (condition.includes('snow') || description.includes('snow') || description.includes('flurries')) {
+      // Snow: keep it subtle so it doesn't read like bright white streaks.
+      const baseSnowColor = { r: 245, g: 248, b: 255, a: 0.45 };
+
+      // Light snow is more transparent
+      if (description.includes('light')) {
+        baseSnowColor.a = 0.25;
+      }
+      // Heavy snow is more opaque
+      else if (description.includes('heavy')) {
+        baseSnowColor.a = 0.6;
+      }
+
+      return `rgba(${baseSnowColor.r}, ${baseSnowColor.g}, ${baseSnowColor.b}, ${baseSnowColor.a})`;
+    }
+
     // Base rain color
     let baseColor = { r: 200, g: 220, b: 255, a: 0.8 }; // Light blue
 

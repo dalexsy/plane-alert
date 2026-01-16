@@ -162,32 +162,23 @@ export function resumeMidFlightAnimation(
   icao: string
 ): boolean {
   if (!animationsEnabled) {
-    console.debug(`Skipping resume for ${icao}: animations disabled`);
     return false;
   }
   if (!planeData?.positionHistory || planeData.positionHistory.length < 2) {
-    console.debug(`Skipping resume for ${icao}: insufficient history`);
     return false;
   }
   if (!lastUpdateTimestamp) {
-    console.debug(`Skipping resume for ${icao}: missing timestamp`);
     return false;
   }
 
   const alreadyResumedAt = (marker as any).__paResumeTs;
   if (alreadyResumedAt && alreadyResumedAt === lastUpdateTimestamp) {
-    console.debug(`Skipping resume for ${icao}: already resumed for snapshot`);
     return false;
   }
 
   const now = Date.now();
   const timeSinceUpdate = (now - lastUpdateTimestamp) / 1000;
   if (timeSinceUpdate < 0 || timeSinceUpdate >= scanInterval) {
-    console.debug(
-      `Skipping resume for ${icao}: elapsed ${timeSinceUpdate.toFixed(
-        1
-      )}s outside window`
-    );
     return false;
   }
 
@@ -206,14 +197,21 @@ export function resumeMidFlightAnimation(
   // Instead, ease from the current (stale) marker position to the latest point.
   const from = marker.getLatLng();
   const targetLatLng = L.latLng(currentPos.lat, currentPos.lon);
-  const distanceKm = calculateDistance(from.lat, from.lng, targetLatLng.lat, targetLatLng.lng);
+  const distanceKm = calculateDistance(
+    from.lat,
+    from.lng,
+    targetLatLng.lat,
+    targetLatLng.lng
+  );
   const distanceM = distanceKm * 1000;
 
   // Short, natural correction. Cap so we don't watch long cross-map travel.
   const minMs = 300;
   const maxMs = 1500;
   const maxVisualSpeedMps = 250; // ~900 km/h
-  const computedMs = Math.round((distanceM / Math.max(1, maxVisualSpeedMps)) * 1000);
+  const computedMs = Math.round(
+    (distanceM / Math.max(1, maxVisualSpeedMps)) * 1000
+  );
   const durationMs = Math.max(minMs, Math.min(maxMs, computedMs));
 
   if (distanceM < 0.5) {
@@ -221,12 +219,6 @@ export function resumeMidFlightAnimation(
   } else {
     smoothLerpToPosition(marker, from, targetLatLng, durationMs, null);
   }
-
-  console.debug(
-    `✈️ Resume-to-latest for ${icao}: Δ=${distanceM.toFixed(0)}m over ${(
-      durationMs / 1000
-    ).toFixed(1)}s (snapshot age ${timeSinceUpdate.toFixed(1)}s)`
-  );
 
   (marker as any).__paResumeTs = lastUpdateTimestamp;
   (marker as any).__paLastUpdateTs = lastUpdateTimestamp;
@@ -478,12 +470,6 @@ export function createOrUpdatePlaneMarker(
     let startPosition = currentLatLng;
     let animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
 
-    console.debug(
-      `Checking ${icao}: hasHistory=${!!planeData?.positionHistory}, historyLen=${
-        planeData?.positionHistory?.length
-      }, hasTimestamp=${!!lastUpdateTimestamp}, animations=${animationsEnabled}`
-    );
-
     if (
       animationsEnabled &&
       planeData?.positionHistory &&
@@ -500,12 +486,6 @@ export function createOrUpdatePlaneMarker(
         Math.abs(currentLatLng.lat - lat) < 0.00001 &&
         Math.abs(currentLatLng.lng - lon) < 0.00001;
 
-      console.debug(
-        `${icao} details: isAtCurrent=${isAtCurrentPosition}, timeSince=${timeSinceUpdate.toFixed(
-          1
-        )}s, scanInt=${scanInterval}`
-      );
-
       if (
         isAtCurrentPosition &&
         timeSinceUpdate > 0 &&
@@ -516,11 +496,6 @@ export function createOrUpdatePlaneMarker(
         startPosition = L.latLng(previousPos.lat, previousPos.lon);
         animationDuration = Math.max(1, scanInterval * 0.95) * 1000;
         oldMarker.setLatLng(startPosition);
-        console.debug(
-          `✈️ Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(
-            1
-          )}s elapsed, ${(animationDuration / 1000).toFixed(1)}s playback`
-        );
       }
     }
 
@@ -536,13 +511,6 @@ export function createOrUpdatePlaneMarker(
         const deltaLon = newLatLng.lng - startPosition.lng;
         const approxMeters =
           Math.sqrt(deltaLat * deltaLat + deltaLon * deltaLon) * 111320; // rough conversion for debugging
-        console.debug(
-          `Animating ${icao}: Δlat=${deltaLat.toFixed(
-            6
-          )}, Δlon=${deltaLon.toFixed(6)}, ≈${approxMeters.toFixed(0)}m over ${(
-            animationDuration / 1000
-          ).toFixed(1)}s`
-        );
       }
       // Perform smooth lerping animation along the plane's track
       smoothLerpToPosition(
@@ -552,7 +520,11 @@ export function createOrUpdatePlaneMarker(
         animationDuration,
         rotation // Use the plane's track for curved path interpolation
       );
-    } else if (hasPositionChanged && effectiveAnimationsEnabled && hasUpdateGap) {
+    } else if (
+      hasPositionChanged &&
+      effectiveAnimationsEnabled &&
+      hasUpdateGap
+    ) {
       // Large gap (tab was hidden / missed snapshots): do a short eased correction
       // to the newest location instead of a long playback or a jarring teleport.
       const from = currentLatLng;
@@ -563,7 +535,9 @@ export function createOrUpdatePlaneMarker(
       const minMs = 400;
       const maxMs = 1200;
       const maxVisualSpeedMps = 250;
-      const computedMs = Math.round((distanceM / Math.max(1, maxVisualSpeedMps)) * 1000);
+      const computedMs = Math.round(
+        (distanceM / Math.max(1, maxVisualSpeedMps)) * 1000
+      );
       const durationMs = Math.max(minMs, Math.min(maxMs, computedMs));
 
       smoothLerpToPosition(oldMarker, from, to, durationMs, rotation);
@@ -688,11 +662,6 @@ export function createOrUpdatePlaneMarker(
       ) {
         startLatLng = L.latLng(previousPos.lat, previousPos.lon);
         adjustedDuration = Math.max(1, scanInterval * 0.95) * 1000;
-        console.debug(
-          `Mid-flight animation for ${icao}: ${timeSinceUpdate.toFixed(
-            1
-          )}s elapsed, ${(adjustedDuration / 1000).toFixed(1)}s playback`
-        );
       }
     }
 

@@ -16,6 +16,7 @@ export interface NotificationData {
   altitudeUnit: 'ft' | 'm';
   verticalRate?: number; // in ft/min for consistency with ADS-B data
   location?: string; // Human-readable location or coordinates
+  route?: string; // Flight route: "LAX→JFK (ETA 14:30 UTC)"
 }
 
 /**
@@ -138,6 +139,11 @@ export function formatNotificationBody(
   // Operator (if available)
   if (data.operator) {
     parts.push(data.operator);
+  }
+
+  // Route (origin→destination with ETA)
+  if (data.route) {
+    parts.push(data.route);
   }
 
   // Speed (if available)

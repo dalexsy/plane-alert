@@ -45,6 +45,15 @@ export class PlaneModel implements Plane {
   // Flight route information from OpenSky Network
   routeOrigin?: string; // ICAO airport code of origin
   routeDestination?: string; // ICAO airport code of destination
+  routeOriginIata?: string; // IATA code of origin (when available)
+  routeDestinationIata?: string; // IATA code of destination (when available)
+  routeOriginName?: string; // Airport name of origin (when available)
+  routeDestinationName?: string; // Airport name of destination (when available)
+  routeEtaUtc?: string; // ETA in UTC like "12:34Z" (when available)
+  routeStatus?: string; // Flight status from FlightAware AeroAPI (when available)
+  routeArrivalDelay?: number; // Arrival delay from FlightAware AeroAPI (seconds, when available)
+  routeCancelled?: boolean; // Cancelled flag from FlightAware AeroAPI
+  routeDiverted?: boolean; // Diverted flag from FlightAware AeroAPI
   airportName?: string; // Optional airport name assigned in MapComponent
   airportCode?: string; // Optional short code (IATA) for airport
   airportLat?: number; // Latitude of center of airport circle assigned when plane is at airport

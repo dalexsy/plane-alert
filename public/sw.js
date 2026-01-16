@@ -18,7 +18,8 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Minimal service worker focused on runtime caching of fetched assets
-const CACHE_NAME = "plane-alert-v7"; // Bump to force cache refresh
+// NOTE: CACHE_NAME is auto-bumped by scripts/post-build.js during deploy builds.
+const CACHE_NAME = "plane-alert-v8";
 const PRECACHE_URLS = ["/", "/index.html", "/assets/favicon/favicon.ico"];
 
 self.addEventListener("install", (event) => {
@@ -56,8 +57,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const isNavigation = request.mode === "navigate";
+
   event.respondWith(
     (async () => {
+      // For navigations (HTML), do not serve long-lived cached shells.
+      // Always prefer network and avoid caching the response.
+      if (isNavigation) {
+        try {
+          return await fetch(request, { cache: "no-store" });
+        } catch {
+          const fallback = await caches.match("/index.html");
+          if (fallback) return fallback;
+          return Response.error();
+        }
+      }
+
+      // For assets (JS/CSS/images), cache successful same-origin responses.
       try {
         const response = await fetch(request);
         const shouldCache =
@@ -69,19 +85,9 @@ self.addEventListener("fetch", (event) => {
         }
 
         return response;
-      } catch (error) {
+      } catch {
         const cached = await caches.match(request);
-        if (cached) {
-          return cached;
-        }
-
-        if (request.mode === "navigate") {
-          const fallback = await caches.match("/");
-          if (fallback) {
-            return fallback;
-          }
-        }
-
+        if (cached) return cached;
         return Response.error();
       }
     })()

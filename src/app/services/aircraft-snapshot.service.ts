@@ -8,6 +8,7 @@ export interface AircraftSnapshot {
     radiusKm: number;
   };
   aircraft: any[]; // AdsBPlane[] type from backend
+  flightData?: Record<string, any>; // Flight data keyed by callsign
   history: Record<
     string,
     Array<{ lat: number; lon: number; timestamp: number }>
@@ -24,6 +25,9 @@ export interface AircraftSnapshot {
 export class AircraftSnapshotService {
   private aircraftSubject = new BehaviorSubject<any[]>([]);
   public aircraft$ = this.aircraftSubject.asObservable();
+
+  private flightDataSubject = new BehaviorSubject<Record<string, any>>({});
+  public flightData$ = this.flightDataSubject.asObservable();
 
   private historySubject = new BehaviorSubject<
     Record<string, Array<{ lat: number; lon: number; timestamp: number }>>
@@ -107,10 +111,12 @@ export class AircraftSnapshotService {
           locationKey,
           aircraftCount: data.aircraft?.length || 0,
           historyCount: Object.keys(data.history || {}).length,
+          flightDataCount: Object.keys(data.flightData || {}).length,
         });
 
         this.aircraftSubject.next(data.aircraft || []);
         this.historySubject.next(data.history || {});
+        this.flightDataSubject.next(data.flightData || {});
         const serverTimestamp = this.getTimestampMillis(data.timestamp);
         this.lastUpdateSubject.next(serverTimestamp);
       } else {
@@ -122,7 +128,9 @@ export class AircraftSnapshotService {
       console.error('Error fetching initial aircraft data:', error);
       // On error, try direct API fetch as fallback
       await this.fetchDirectFromAPI(roundedLat, roundedLon, radiusKm);
-    } // Set up realtime listener for future updates
+    }
+
+    // Set up realtime listener for future updates
     this.unsubscribeFn = onSnapshot(
       docRef,
       (snapshot: any) => {
@@ -132,11 +140,13 @@ export class AircraftSnapshotService {
             locationKey,
             aircraftCount: data.aircraft?.length || 0,
             historyCount: Object.keys(data.history || {}).length,
+            flightDataCount: Object.keys(data.flightData || {}).length,
             timestamp: data.timestamp,
           });
 
           this.aircraftSubject.next(data.aircraft || []);
           this.historySubject.next(data.history || {});
+          this.flightDataSubject.next(data.flightData || {});
           const serverTimestamp = this.getTimestampMillis(data.timestamp);
           this.lastUpdateSubject.next(serverTimestamp);
         } else {
@@ -219,6 +229,13 @@ export class AircraftSnapshotService {
    */
   getCurrentAircraft(): any[] {
     return this.aircraftSubject.value;
+  }
+
+  /**
+   * Get current flight data synchronously
+   */
+  getCurrentFlightData(): Record<string, any> {
+    return this.flightDataSubject.value;
   }
 
   /**

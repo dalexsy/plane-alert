@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import registrationCountryPrefix from '../../assets/data/registration-country-prefix.json';
+import icaoCountryRanges from '../../assets/data/icao-country-ranges.json';
 import { ICAO_LOOKUP_CONFIG } from '../config/icao-allocations.config';
 
 /**
@@ -66,45 +66,18 @@ export class AircraftCountryService {
     string,
     { result: string; timestamp: number }
   >();
-  // Comprehensive ICAO country ranges loaded from JSON
-  private icaoCountryRanges: IcaoCountryRange[] = [];
-  private icaoRangesLoaded = false;
-  private icaoRangesPromise: Promise<void>;
+  // Comprehensive ICAO country ranges loaded from JSON (bundled, not fetched at runtime).
+  // This avoids incorrect country flags during initial render while async HTTP loading completes.
+  private readonly icaoCountryRanges: IcaoCountryRange[] = (
+    icaoCountryRanges as any[]
+  ).map((r) => ({
+    ...r,
+    startDec: parseInt(r.startHex, 16),
+    finishDec: parseInt(r.finishHex, 16),
+  }));
+  private readonly icaoRangesLoaded = true;
 
-  constructor(private http: HttpClient) {
-    // Load comprehensive ICAO ranges on service initialization
-    this.icaoRangesPromise = this.loadIcaoCountryRanges();
-  }
-
-  /**
-   * Load comprehensive ICAO country ranges from JSON file
-   */ private async loadIcaoCountryRanges(): Promise<void> {
-    try {
-      const rawRanges = await this.http
-        .get<Omit<IcaoCountryRange, 'startDec' | 'finishDec'>[]>(
-          '/assets/data/icao-country-ranges.json'
-        )
-        .toPromise();
-      // Compute decimal values from hex
-      this.icaoCountryRanges = (rawRanges || []).map((r) => ({
-        ...r,
-        startDec: parseInt(r.startHex, 16),
-        finishDec: parseInt(r.finishHex, 16),
-      }));
-      this.icaoRangesLoaded = true;
-    } catch (error) {
-      this.icaoRangesLoaded = true; // Mark as loaded to prevent retries
-    }
-  }
-
-  /**
-   * Ensures ICAO ranges are loaded before proceeding
-   */
-  private async ensureRangesLoaded(): Promise<void> {
-    if (!this.icaoRangesLoaded) {
-      await this.icaoRangesPromise;
-    }
-  }
+  constructor() {}
   /**
    * Determines the country of origin for an aircraft with detailed result information
    * @param registration Aircraft registration (tail number)

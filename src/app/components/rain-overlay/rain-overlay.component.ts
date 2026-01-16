@@ -21,6 +21,7 @@ import {
     <div
       class="rain-overlay"
       [class.active]="isRaining"
+      [class.snow]="configuration?.precipitationType === 'snow'"
       [style.opacity]="isRaining ? 1 : 0"
     >
       <div
@@ -30,6 +31,7 @@ import {
         [style.top.%]="drop.y"
         [style.transform]="getDropTransform(drop)"
         [style.opacity]="drop.opacity"
+        [style.background]="getDropBackground()"
         [style.animation-delay.ms]="drop.delay"
         [style.animation-duration.ms]="drop.duration"
       ></div>
@@ -64,6 +66,20 @@ import {
         box-shadow: 0 0 1px rgba(200, 220, 255, 0.3);
         animation: fall linear infinite;
         transform-origin: center bottom;
+      }
+
+      /* Snow mode: round flakes, no streak animation */
+      .rain-overlay.snow .rain-drop {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        filter: blur(0.2px);
+        box-shadow: none;
+        animation: none;
+      }
+
+      .rain-overlay.snow .rain-drop::before {
+        display: none;
       }
 
       .rain-drop::before {
@@ -249,10 +265,20 @@ export class RainOverlayComponent implements OnInit, OnDestroy {
     const config = this.configuration;
     if (!config) return `scale(${drop.size})`;
 
-    const windSkew = config.windAngle * 0.3; // Convert wind angle to skew
+    const windSkew =
+      config.precipitationType === 'snow' ? 0 : config.windAngle * 0.3;
     const scale = drop.size;
 
     return `scale(${scale}) skewX(${windSkew}deg)`;
+  }
+
+  /**
+   * In snow mode, use the configured color rather than the rain gradient.
+   */
+  public getDropBackground(): string | null {
+    const config = this.configuration;
+    if (!config) return null;
+    return config.precipitationType === 'snow' ? config.color : null;
   }
 
   /**

@@ -270,8 +270,8 @@ export class PlaneVisualizationService {
       (alt: number) => this.altitudeColor.getFillColor(alt),
       undefined, // No operator logo in right tooltip
       distanceText,
-      plane.routeOrigin,
-      plane.routeDestination
+      plane.routeOriginIata || plane.routeOrigin,
+      plane.routeDestinationIata || plane.routeDestination
     );
   }
 
