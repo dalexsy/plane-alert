@@ -2,7 +2,7 @@ export function haversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const toRad = (x: number) => (x * Math.PI) / 180;
   const R = 6371;
@@ -19,7 +19,7 @@ export function computeBearing(
   fromLat: number,
   fromLon: number,
   toLat: number,
-  toLon: number
+  toLon: number,
 ): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const toDeg = (rad: number) => (rad * 180) / Math.PI;
@@ -59,7 +59,7 @@ export function getArrowForDirection(direction: string): string {
 
 export async function reverseGeocode(
   lat: number,
-  lon: number
+  lon: number,
 ): Promise<string> {
   try {
     // Add timeout to prevent hanging requests
@@ -71,7 +71,7 @@ export async function reverseGeocode(
       {
         signal: controller.signal,
         headers: { 'User-Agent': 'PlaneAlert/1.0' },
-      }
+      },
     );
 
     clearTimeout(timeoutId);
@@ -89,11 +89,11 @@ export async function reverseGeocode(
       error.message.includes('Failed to fetch')
     ) {
       console.warn(
-        'Reverse geocoding blocked by CORS policy or network error. Using coordinates fallback.'
+        'Reverse geocoding blocked by CORS policy or network error. Using coordinates fallback.',
       );
     } else if (error.name === 'AbortError') {
       console.warn(
-        'Reverse geocoding request timed out. Using coordinates fallback.'
+        'Reverse geocoding request timed out. Using coordinates fallback.',
       );
     } else {
       console.warn('Reverse geocoding failed:', error);
@@ -111,7 +111,7 @@ export interface ForwardGeocodeResult {
 }
 
 export async function forwardGeocode(
-  query: string
+  query: string,
 ): Promise<ForwardGeocodeResult | null> {
   try {
     const controller = new AbortController();
@@ -119,12 +119,12 @@ export async function forwardGeocode(
 
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        query
+        query,
       )}&limit=1`,
       {
         signal: controller.signal,
         headers: { 'User-Agent': 'PlaneAlert/1.0' },
-      }
+      },
     );
 
     clearTimeout(timeoutId);

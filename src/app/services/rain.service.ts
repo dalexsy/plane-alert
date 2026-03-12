@@ -112,7 +112,7 @@ export class RainService {
   };
 
   private currentConfig$ = new BehaviorSubject<RainConfiguration>(
-    this.defaultConfig
+    this.defaultConfig,
   );
   private rainDrops$ = new BehaviorSubject<RainDrop[]>([]);
   private isRaining$ = new BehaviorSubject<boolean>(false);
@@ -163,7 +163,7 @@ export class RainService {
     humidity: number = 50,
     pressure: number = 1013.25,
     temperature: number = 288.15,
-    visibility: number = 10000
+    visibility: number = 10000,
   ): void {
     // Disable decorative animations on low-power devices
     if (this.performance.disableDecorativeAnimations) {
@@ -186,7 +186,7 @@ export class RainService {
         description,
         humidity,
         pressure,
-        temperature
+        temperature,
       );
       const windAngle = this.calculateWindEffect(windSpeed, windDirection);
       const fallSpeed = this.calculateFallSpeed(
@@ -195,23 +195,23 @@ export class RainService {
         intensity,
         pressure,
         temperature,
-        humidity
+        humidity,
       );
       const dropCount = this.calculateDropCount(
         intensity,
         visibility,
-        humidity
+        humidity,
       );
       const rainColor = this.calculateRainColor(
         condition,
         description,
         temperature,
-        visibility
+        visibility,
       );
       const sizeVariance = this.calculateSizeVariance(
         intensity,
         pressure,
-        humidity
+        humidity,
       );
 
       this.startRain({
@@ -290,7 +290,7 @@ export class RainService {
       description,
       50,
       1013.25,
-      288.15
+      288.15,
     );
   }
 
@@ -328,7 +328,7 @@ export class RainService {
     description: string,
     humidity: number = 50,
     pressure: number = 1013.25,
-    temperature: number = 288.15
+    temperature: number = 288.15,
   ): number {
     // Base intensity from weather description
     let baseIntensity = this.weatherIntensityMap.moderateRain;
@@ -351,7 +351,7 @@ export class RainService {
     if (condition.includes('thunderstorm')) {
       baseIntensity = Math.max(
         baseIntensity,
-        this.weatherIntensityMap.thunderstorm
+        this.weatherIntensityMap.thunderstorm,
       );
     } else if (condition.includes('drizzle')) {
       baseIntensity = Math.min(baseIntensity, this.weatherIntensityMap.drizzle);
@@ -368,7 +368,7 @@ export class RainService {
     const normalPressure = 1013.25;
     const pressureFactor = Math.max(
       0.8,
-      Math.min(1.2, normalPressure / pressure)
+      Math.min(1.2, normalPressure / pressure),
     );
     intensityModifier *= pressureFactor;
 
@@ -388,7 +388,7 @@ export class RainService {
    */
   private calculateWindEffect(
     windSpeed: number,
-    windDirection: number
+    windDirection: number,
   ): number {
     // Convert wind speed to angle effect (0-45 degrees)
     const maxWindAngle = 45;
@@ -415,7 +415,7 @@ export class RainService {
     intensity: number,
     pressure: number,
     temperature: number,
-    humidity: number
+    humidity: number,
   ): number {
     // Check if it's snow - snow falls much slower than rain
     const isSnow =
@@ -462,7 +462,7 @@ export class RainService {
 
     return Math.max(
       isSnow ? 20 : 400,
-      Math.min(isSnow ? 120 : 1200, fallSpeed)
+      Math.min(isSnow ? 120 : 1200, fallSpeed),
     );
   }
 
@@ -472,7 +472,7 @@ export class RainService {
   private calculateDropCount(
     intensity: number,
     visibility: number,
-    humidity: number
+    humidity: number,
   ): number {
     // Base drop count from configuration
     let dropCount = this.defaultConfig.dropCount;
@@ -502,7 +502,7 @@ export class RainService {
   private calculateSizeVariance(
     intensity: number,
     pressure: number,
-    humidity: number
+    humidity: number,
   ): number {
     // Base size variance from configuration
     let sizeVariance = this.defaultConfig.sizeVariance;
@@ -515,7 +515,7 @@ export class RainService {
     const normalPressure = 1013.25;
     const pressureFactor = Math.max(
       0.9,
-      Math.min(1.3, normalPressure / pressure)
+      Math.min(1.3, normalPressure / pressure),
     );
     sizeVariance *= pressureFactor;
 
@@ -686,7 +686,7 @@ export class RainService {
     condition: string,
     description: string,
     temperature: number,
-    visibility: number
+    visibility: number,
   ): string {
     // Check if it's snow first
     if (
@@ -755,7 +755,7 @@ export class RainService {
     }
 
     return `rgba(${Math.round(baseColor.r)}, ${Math.round(
-      baseColor.g
+      baseColor.g,
     )}, ${Math.round(baseColor.b)}, ${baseColor.a})`;
   }
 }

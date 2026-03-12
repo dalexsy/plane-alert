@@ -38,7 +38,7 @@ export class OperatorCallSignService {
   private saveUserData(): void {
     localStorage.setItem(
       this.USER_OPERATORS_KEY,
-      JSON.stringify(this.userOperatorMap)
+      JSON.stringify(this.userOperatorMap),
     );
   }
 
@@ -53,7 +53,7 @@ export class OperatorCallSignService {
     const cs = callSign.toUpperCase();
     // Check user map first
     const userPrefixes = Object.keys(this.userOperatorMap).sort(
-      (a, b) => b.length - a.length
+      (a, b) => b.length - a.length,
     );
     for (const prefix of userPrefixes) {
       // Avoid bogus matches from very short prefixes (e.g. ground vehicles like "B352").
@@ -68,7 +68,7 @@ export class OperatorCallSignService {
     }
     // Then check main map
     const prefixes = Object.keys(this.operatorMap).sort(
-      (a, b) => b.length - a.length
+      (a, b) => b.length - a.length,
     );
     for (const prefix of prefixes) {
       // Avoid bogus matches from very short prefixes (e.g. ground vehicles like "B352").
@@ -94,7 +94,7 @@ export class OperatorCallSignService {
     }
     const cs = callSign.toUpperCase();
     const prefixes = Object.keys(this.operatorMap).sort(
-      (a, b) => b.length - a.length
+      (a, b) => b.length - a.length,
     );
     let foundPrefix: string | undefined;
     for (const prefix of prefixes) {

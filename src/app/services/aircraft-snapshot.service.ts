@@ -49,7 +49,7 @@ export class AircraftSnapshotService {
   private async refreshViaBackend(
     lat: number,
     lon: number,
-    radiusKm: number
+    radiusKm: number,
   ): Promise<boolean> {
     try {
       const response = await fetch(aircraftOnDemandEndpoint, {
@@ -64,7 +64,7 @@ export class AircraftSnapshotService {
         console.warn(
           'On-demand backend refresh failed:',
           response.status,
-          response.statusText
+          response.statusText,
         );
         return false;
       }
@@ -116,7 +116,7 @@ export class AircraftSnapshotService {
   async subscribeToLocation(
     lat: number,
     lon: number,
-    radiusKm: number
+    radiusKm: number,
   ): Promise<void> {
     // Initialize Firebase lazily
     await this.initFirebase();
@@ -180,12 +180,12 @@ export class AircraftSnapshotService {
             console.warn(
               'Snapshot is stale; requesting on-demand refresh',
               Math.round(ageMs / 1000),
-              's'
+              's',
             );
             const refreshed = await this.refreshViaBackend(
               roundedLat,
               roundedLon,
-              radiusKm
+              radiusKm,
             );
             if (!refreshed) {
               // Fallback to direct API fetch (may fail due to CORS)
@@ -198,7 +198,7 @@ export class AircraftSnapshotService {
           const refreshed = await this.refreshViaBackend(
             roundedLat,
             roundedLon,
-            radiusKm
+            radiusKm,
           );
           if (!refreshed) {
             await this.fetchDirectFromAPI(roundedLat, roundedLon, radiusKm);
@@ -210,7 +210,7 @@ export class AircraftSnapshotService {
         const refreshed = await this.refreshViaBackend(
           roundedLat,
           roundedLon,
-          radiusKm
+          radiusKm,
         );
         if (!refreshed) {
           await this.fetchDirectFromAPI(roundedLat, roundedLon, radiusKm);
@@ -246,7 +246,7 @@ export class AircraftSnapshotService {
           console.error('Error subscribing to aircraft snapshot:', error);
           // On error, clear data to avoid showing stale information
           this.aircraftSubject.next([]);
-        }
+        },
       );
     } finally {
       if (this.subscribeInFlightKey === locationKey) {
@@ -262,12 +262,12 @@ export class AircraftSnapshotService {
   private async fetchDirectFromAPI(
     lat: number,
     lon: number,
-    radiusKm: number
+    radiusKm: number,
   ): Promise<void> {
     try {
       const radiusNm = radiusKm / 1.852;
       const url = `https://api.adsb.lol/v2/point/${lat}/${lon}/${radiusNm.toFixed(
-        2
+        2,
       )}`;
 
       console.log('Fetching aircraft directly from ADS-B API:', {
@@ -355,7 +355,7 @@ export class AircraftSnapshotService {
       } catch (err) {
         console.warn(
           'Failed to convert Firestore timestamp, falling back to Date.now()',
-          err
+          err,
         );
       }
     }

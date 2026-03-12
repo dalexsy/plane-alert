@@ -32,7 +32,7 @@ export class MapUpdateService {
     private locationContextService: LocationContextService,
     private scanService: ScanService,
     private geocodingCache: GeocodingCacheService,
-    private planeLogService: PlaneLogService
+    private planeLogService: PlaneLogService,
   ) {}
 
   /**
@@ -48,7 +48,7 @@ export class MapUpdateService {
     lat: number,
     lon: number,
     radiusKm?: number,
-    zoomLevel?: number
+    zoomLevel?: number,
   ): Promise<void> {
     // Clamp radius to a maximum of 500km
     let mainRadius = radiusKm ?? this.settings.radius ?? 5;
@@ -89,7 +89,7 @@ export class MapUpdateService {
       lon,
       this.settings.getHomeLocation(),
       currentLocationMarker,
-      homeMarker
+      homeMarker,
     );
 
     // Update input overlay if not collapsed
@@ -106,7 +106,7 @@ export class MapUpdateService {
         lat,
         lon,
         mainRadius,
-        this.settings.showAirportLabels
+        this.settings.showAirportLabels,
       );
 
       // Don't remove planes here - let the scan handle it after new data arrives
@@ -136,7 +136,7 @@ export class MapUpdateService {
     planeHistoricalLog: PlaneModel[],
     lat: number,
     lon: number,
-    radius: number
+    radius: number,
   ): void {
     for (const [icao, plane] of planeLog.entries()) {
       if (

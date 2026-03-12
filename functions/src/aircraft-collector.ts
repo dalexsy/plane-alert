@@ -51,7 +51,7 @@ export function clampRadius(radiusKm?: number): number {
  */
 export async function fetchAircraft(
   home: HomeLocation,
-  radiusKm: number
+  radiusKm: number,
 ): Promise<AdsBPlane[]> {
   const radiusNm = radiusKm / 1.852;
   const baseUrl =
@@ -85,7 +85,7 @@ export async function fetchAircraft(
  * Group devices by location to consolidate API calls
  */
 export function groupDevicesByLocation(
-  devices: Array<{ id: string; data: DeviceRegistration }>
+  devices: Array<{ id: string; data: DeviceRegistration }>,
 ): Map<string, LocationGroup> {
   const locationGroups = new Map<string, LocationGroup>();
 
@@ -119,7 +119,7 @@ export async function storeAircraftSnapshot(
   db: admin.firestore.Firestore,
   locationKey: string,
   location: LocationGroup,
-  aircraft: AdsBPlane[]
+  aircraft: AdsBPlane[],
 ): Promise<void> {
   const docRef = db.collection(AIRCRAFT_SNAPSHOTS_COLLECTION).doc(locationKey);
 
@@ -134,7 +134,7 @@ export async function storeAircraftSnapshot(
     devices: location.devices,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
     expiresAt: admin.firestore.Timestamp.fromMillis(
-      Date.now() + 2 * 60 * 60 * 1000 // 2 hours TTL
+      Date.now() + 2 * 60 * 60 * 1000, // 2 hours TTL
     ),
   });
 
@@ -149,7 +149,7 @@ export async function storeAircraftSnapshot(
  * Collect and store aircraft data for all registered device locations
  */
 export async function collectAircraftForAllLocations(
-  db: admin.firestore.Firestore
+  db: admin.firestore.Firestore,
 ): Promise<void> {
   try {
     // Get all registered devices
@@ -179,7 +179,7 @@ export async function collectAircraftForAllLocations(
         try {
           const aircraft = await fetchAircraft(
             { lat: location.lat, lon: location.lon },
-            location.radiusKm
+            location.radiusKm,
           );
 
           await storeAircraftSnapshot(db, locationKey, location, aircraft);
@@ -189,7 +189,7 @@ export async function collectAircraftForAllLocations(
             error,
           });
         }
-      }
+      },
     );
 
     await Promise.all(tasks);

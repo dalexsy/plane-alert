@@ -47,8 +47,14 @@
     </div>
 
     <!-- No Devices Message -->
-    <div class="no-devices-section" *ngIf="!isVerifyingKey && keyValidated && devices.length === 0">
-      <p>No devices found. Make sure you have the Pushover app installed and logged in with this user key.</p>
+    <div
+      class="no-devices-section"
+      *ngIf="!isVerifyingKey && keyValidated && devices.length === 0"
+    >
+      <p>
+        No devices found. Make sure you have the Pushover app installed and
+        logged in with this user key.
+      </p>
     </div>
 
     <!-- Device List -->
@@ -70,8 +76,8 @@
                 formatDeviceName(device.name)
               }}</span>
             </div>
-            <div 
-              class="device-location-display" 
+            <div
+              class="device-location-display"
               *ngIf="selectedDevice !== device || !isEditingLocation"
               (click)="startEditingLocation(device); $event.stopPropagation()"
               title="Click to edit location"
@@ -81,9 +87,14 @@
                 variant="sharp"
                 size="small"
               ></app-icon>
-              <span class="location-text">{{ getLocationDisplay(device) }}</span>
+              <span class="location-text">{{
+                getLocationDisplay(device)
+              }}</span>
             </div>
-            <div class="device-location-editor" *ngIf="selectedDevice === device && isEditingLocation">
+            <div
+              class="device-location-editor"
+              *ngIf="selectedDevice === device && isEditingLocation"
+            >
               <app-input
                 [value]="locationSearchQuery"
                 (inputChange)="locationSearchQuery = $event"

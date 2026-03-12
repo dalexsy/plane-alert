@@ -52,7 +52,9 @@ export class AircraftDbService {
       console.log('✅ Database already loaded');
       return;
     }
-    console.log('⚠️ Loading full 607k aircraft database (for admin use only)...');
+    console.log(
+      '⚠️ Loading full 607k aircraft database (for admin use only)...',
+    );
     await this.load();
   }
 
@@ -69,7 +71,7 @@ export class AircraftDbService {
     }
     this.isLoading = true;
     console.log('📦 Loading aircraft database (this may take a moment)...');
-    
+
     // Load split database files and merge
     this.loadPromise = Promise.all([
       this.http
@@ -133,7 +135,7 @@ export class AircraftDbService {
         this.loadPromise = null;
         throw error;
       });
-    
+
     return this.loadPromise;
   }
 
@@ -149,12 +151,16 @@ export class AircraftDbService {
           const icao = rec.icao.toLowerCase();
           this.userDb.set(icao, rec);
         });
-        console.log(`✅ Loaded ${this.userDb.size} user aircraft from localStorage (main 607k DB NOT loaded - using API data instead)`);
+        console.log(
+          `✅ Loaded ${this.userDb.size} user aircraft from localStorage (main 607k DB NOT loaded - using API data instead)`,
+        );
       } catch (e) {
         console.error('Error loading user aircraft data:', e);
       }
     } else {
-      console.log('📊 No user aircraft database found (main 607k DB NOT loaded - using API data instead)');
+      console.log(
+        '📊 No user aircraft database found (main 607k DB NOT loaded - using API data instead)',
+      );
     }
   }
 
@@ -175,7 +181,7 @@ export class AircraftDbService {
             this.userDb.size
           } user aircraft from localStorage (filtered out ${
             records.length - this.userDb.size
-          } duplicates)`
+          } duplicates)`,
         );
       } catch (e) {
         console.error('Error loading user aircraft data:', e);
@@ -213,7 +219,7 @@ export class AircraftDbService {
    */
   lookup(icaoHex: string): AircraftRecord | undefined {
     const lower = icaoHex.toLowerCase();
-    
+
     // Only check user database - no longer load the massive main database
     return this.userDb.get(lower);
   }
@@ -228,7 +234,7 @@ export class AircraftDbService {
       this.updateGlobalJson();
 
       console.log(
-        `✅ Added aircraft ${record.icao} to database (${this.userDb.size} total unknown aircraft)`
+        `✅ Added aircraft ${record.icao} to database (${this.userDb.size} total unknown aircraft)`,
       );
     }
   }
@@ -316,7 +322,7 @@ export class AircraftDbService {
 
     if (!isLocalHost) {
       console.log(
-        'Skipping /save-db call because app is not running on the local dev server.'
+        'Skipping /save-db call because app is not running on the local dev server.',
       );
       return;
     }
@@ -337,7 +343,7 @@ export class AircraftDbService {
       .then((response) => {
         if (response.ok) {
           console.log(
-            `✅ Saved ${this.userDb.size} user aircraft to repository`
+            `✅ Saved ${this.userDb.size} user aircraft to repository`,
           );
         } else {
           console.warn('Failed to save user database to repository');
@@ -364,10 +370,13 @@ export class AircraftDbService {
       this.saveToFile();
     } else {
       // Otherwise, schedule a write for later
-      this.saveTimeout = setTimeout(() => {
-        this.lastFileWrite = Date.now();
-        this.saveToFile();
-      }, this.MIN_WRITE_INTERVAL - (now - this.lastFileWrite));
+      this.saveTimeout = setTimeout(
+        () => {
+          this.lastFileWrite = Date.now();
+          this.saveToFile();
+        },
+        this.MIN_WRITE_INTERVAL - (now - this.lastFileWrite),
+      );
     }
   }
 }

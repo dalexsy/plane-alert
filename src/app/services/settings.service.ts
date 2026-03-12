@@ -288,7 +288,7 @@ export class SettingsService {
   async setLocationWithAddress(
     lat: number,
     lon: number,
-    address: string
+    address: string,
   ): Promise<void> {
     this._lat = lat;
     this._lon = lon;
@@ -407,14 +407,14 @@ export class SettingsService {
   async setHomeLocation(
     lat: number,
     lon: number,
-    address?: string
+    address?: string,
   ): Promise<void> {
     const homeData: any = { lat, lon };
     if (address) {
       homeData.address = address;
     }
     localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
-    
+
     console.log('🏠 Home location updated:', { lat, lon, address });
 
     // Update backend notification location (only if push notifications are enabled)
@@ -427,7 +427,9 @@ export class SettingsService {
       if (messagingService.hasActiveToken()) {
         const updated = await messagingService.updateCurrentLocation(lat, lon);
         if (updated) {
-          console.log('✅ Backend location synchronized for push notifications');
+          console.log(
+            '✅ Backend location synchronized for push notifications',
+          );
         } else {
           console.warn('⚠️ Failed to sync location with backend');
         }
@@ -739,7 +741,7 @@ export class SettingsService {
     }
     // Load input overlay collapsed preference
     const inputOverlayCollapsedStr = localStorage.getItem(
-      this.inputOverlayCollapsedKey
+      this.inputOverlayCollapsedKey,
     );
     if (inputOverlayCollapsedStr !== null) {
       this._inputOverlayCollapsed = inputOverlayCollapsedStr === 'true';
@@ -751,14 +753,14 @@ export class SettingsService {
     }
     // Load results overlay collapsed preference
     const resultsOverlayCollapsedStr = localStorage.getItem(
-      this.resultsOverlayCollapsedKey
+      this.resultsOverlayCollapsedKey,
     );
     if (resultsOverlayCollapsedStr !== null) {
       this._resultsOverlayCollapsed = resultsOverlayCollapsedStr === 'true';
     }
     // Load results overlay other controls hidden preference
     const resultsControlsStr = localStorage.getItem(
-      this.resultsOverlayControlsKey
+      this.resultsOverlayControlsKey,
     );
     if (resultsControlsStr !== null) {
       this._resultsOverlayOtherControlsHidden = resultsControlsStr === 'true';

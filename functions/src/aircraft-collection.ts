@@ -16,7 +16,7 @@ import { batchGetFlightData } from './services/flight-data-cache';
 async function fetchWithTimeout(
   url: string,
   init: any,
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -49,12 +49,12 @@ async function fetchAircraft(
       const response = await fetchWithTimeout(
         url,
         {
-        headers: {
-          'User-Agent': ORIGIN_HEADER,
-          Accept: 'application/json',
+          headers: {
+            'User-Agent': ORIGIN_HEADER,
+            Accept: 'application/json',
+          },
         },
-        },
-        8000
+        8000,
       );
 
       if (!response.ok) {
@@ -63,7 +63,9 @@ async function fetchAircraft(
       }
 
       const payload = (await response.json()) as any;
-      const states: any[] = Array.isArray(payload?.states) ? payload.states : [];
+      const states: any[] = Array.isArray(payload?.states)
+        ? payload.states
+        : [];
 
       const planes: AdsBPlane[] = states
         .map((s: any[]): AdsBPlane | null => {
@@ -135,7 +137,7 @@ async function fetchAircraft(
           Accept: 'application/json',
         },
       },
-      5000
+      5000,
     );
 
     if (!response.ok) {
@@ -167,7 +169,7 @@ async function fetchAircraft(
 }
 
 export function createAircraftCollectionFunction(
-  db: admin.firestore.Firestore
+  db: admin.firestore.Firestore,
 ) {
   return onSchedule(
     {
@@ -298,7 +300,8 @@ export function createAircraftCollectionFunction(
                 locationKey,
                 totalAircraft: validAircraft.length,
                 planesWithFlight: planesWithFlight.length,
-                militaryOrSpecialWithFlight: militaryOrSpecialPlanesWithFlight.length,
+                militaryOrSpecialWithFlight:
+                  militaryOrSpecialPlanesWithFlight.length,
                 milFieldTrue: planesWithFlight.filter((p) => p.mil === true)
                   .length,
                 dbFlagsIs1: planesWithFlight.filter((p) => p.dbFlags === 1)

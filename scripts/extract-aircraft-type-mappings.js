@@ -60,11 +60,11 @@ async function extractTypeMappings() {
   const cleanMap = {};
   for (const [icaoType, modelSet] of typeMap.entries()) {
     const models = Array.from(modelSet);
-    
+
     // Score each model name and pick the best one
     let bestModel = models[0];
     let bestScore = scoreModelName(bestModel);
-    
+
     for (const model of models) {
       const score = scoreModelName(model);
       if (score > bestScore) {
@@ -72,21 +72,18 @@ async function extractTypeMappings() {
         bestModel = model;
       }
     }
-    
+
     cleanMap[icaoType] = bestModel;
   }
 
   // Sort by ICAO code for readability
   const sortedEntries = Object.entries(cleanMap).sort(([a], [b]) =>
-    a.localeCompare(b)
+    a.localeCompare(b),
   );
   const sortedMap = Object.fromEntries(sortedEntries);
 
   // Write to output file
-  const outputPath = path.join(
-    __dirname,
-    "output/aircraft-type-mappings.json"
-  );
+  const outputPath = path.join(__dirname, "output/aircraft-type-mappings.json");
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(sortedMap, null, 2));
 
@@ -104,7 +101,7 @@ async function extractTypeMappings() {
   const tsCode = generateTypeScriptCode(sortedEntries);
   const tsOutputPath = path.join(
     __dirname,
-    "output/aircraft-type-names-generated.ts"
+    "output/aircraft-type-names-generated.ts",
   );
   fs.writeFileSync(tsOutputPath, tsCode);
   console.log(`\nTypeScript code written to: ${tsOutputPath}`);
@@ -152,7 +149,7 @@ function generateTypeScriptCode(entries) {
     "  const upperCode = icaoCode.trim().toUpperCase();",
     "  return AIRCRAFT_TYPE_MAP.get(upperCode) || icaoCode;",
     "}",
-    ""
+    "",
   );
 
   return lines.join("\n");
@@ -167,7 +164,7 @@ extractTypeMappings().catch(console.error);
 function scoreModelName(name) {
   let score = 0;
   const nameLower = name.toLowerCase();
-  
+
   // Strongly prefer names with manufacturer keywords
   if (/airbus/i.test(name)) score += 100;
   if (/boeing/i.test(name)) score += 100;
@@ -185,27 +182,27 @@ function scoreModelName(name) {
   if (/bell\s[\d]/i.test(name)) score += 60;
   if (/sikorsky/i.test(name)) score += 60;
   if (/piper/i.test(name)) score += 50;
-  
+
   // Penalize very short names (likely tail numbers)
   if (name.length < 5) score -= 50;
-  
+
   // Penalize names with too many dashes (likely specific variants)
   const dashCount = (name.match(/-/g) || []).length;
   if (dashCount > 2) score -= 20;
-  
+
   // Prefer names that look like model numbers without too much specificity
   if (/\d{3,4}[a-z]?$/i.test(name.trim())) score += 10; // Like "737-800" or "A320"
-  
+
   // Penalize names with registration patterns
   if (/[A-Z]{1,2}-[A-Z]{3,4}/i.test(name)) score -= 30; // Like "N-123AB"
   if (/\d{3}[A-Z]{2,3}$/i.test(name)) score -= 30; // Like "737ABC"
-  
+
   // Prefer reasonable length names
   if (name.length >= 10 && name.length <= 30) score += 15;
   if (name.length > 50) score -= 20;
-  
+
   // Prefer names without too many numbers at the end
   if (/\d{4,}$/.test(name)) score -= 25; // Like ending in "2019"
-  
+
   return score;
 }

@@ -15,7 +15,9 @@ async function registerServiceWorkerSafely(): Promise<void> {
   try {
     const swResponse = await fetch('/sw.js', { cache: 'no-store' });
     if (!swResponse.ok) {
-      console.warn('Service worker script not available, skipping registration');
+      console.warn(
+        'Service worker script not available, skipping registration',
+      );
       return;
     }
   } catch {
@@ -34,9 +36,12 @@ async function registerServiceWorkerSafely(): Promise<void> {
     });
     console.log('Service Worker registered:', registration);
     registration.update();
-    setInterval(() => {
-      registration.update();
-    }, 60 * 60 * 1000);
+    setInterval(
+      () => {
+        registration.update();
+      },
+      60 * 60 * 1000,
+    );
   } catch (error) {
     console.warn('Service Worker registration skipped:', error);
   }

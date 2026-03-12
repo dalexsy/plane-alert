@@ -49,7 +49,10 @@ export class PerformanceService {
     if ('connection' in navigator) {
       const connection = (navigator as any).connection;
       if (connection) {
-        if (connection.effectiveType === '3g' || connection.effectiveType === '2g') {
+        if (
+          connection.effectiveType === '3g' ||
+          connection.effectiveType === '2g'
+        ) {
           score -= 15;
         }
         if (connection.saveData) {
@@ -79,7 +82,9 @@ export class PerformanceService {
     this._isLowPowerMode = score < 50;
 
     if (this._isLowPowerMode) {
-      console.log(`🐌 Low-power mode auto-enabled (device score: ${score}/100)`);
+      console.log(
+        `🐌 Low-power mode auto-enabled (device score: ${score}/100)`,
+      );
       console.log('   Animations will be throttled to improve performance');
     } else {
       console.log(`⚡ High-performance mode (device score: ${score}/100)`);
@@ -106,8 +111,10 @@ export class PerformanceService {
   setLowPowerMode(enabled: boolean): void {
     this._isLowPowerMode = enabled;
     localStorage.setItem(this.PERFORMANCE_KEY, enabled ? 'low' : 'high');
-    console.log(`🔄 Low-power mode ${enabled ? 'enabled' : 'disabled'} manually`);
-    
+    console.log(
+      `🔄 Low-power mode ${enabled ? 'enabled' : 'disabled'} manually`,
+    );
+
     // Reload to apply changes
     setTimeout(() => {
       window.location.reload();
@@ -120,7 +127,7 @@ export class PerformanceService {
    */
   get rafThrottle(): number {
     if (!this._isLowPowerMode) return 0;
-    
+
     // Throttle to 15fps on low-power devices (every 4th frame)
     return 66; // ~15fps
   }

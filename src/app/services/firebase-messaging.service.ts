@@ -10,7 +10,10 @@ import { SettingsService } from './settings.service';
 export class FirebaseMessagingService {
   private readonly deviceNameKey = 'plane-alert-device-name';
 
-  constructor(private http: HttpClient, private settings: SettingsService) {}
+  constructor(
+    private http: HttpClient,
+    private settings: SettingsService,
+  ) {}
 
   /**
    * Register Pushover user key with backend
@@ -24,12 +27,12 @@ export class FirebaseMessagingService {
     const home = this.settings.getHomeLocation();
     if (!home) {
       console.error(
-        '❌ No home location set. Double-tap the map to set your location before enabling notifications.'
+        '❌ No home location set. Double-tap the map to set your location before enabling notifications.',
       );
       alert(
         'Please set your home location first:\n\n' +
-        '1. Double-tap on the map at your location\n' +
-        '2. Then try enabling notifications again'
+          '1. Double-tap on the map at your location\n' +
+          '2. Then try enabling notifications again',
       );
       return false;
     }
@@ -53,7 +56,7 @@ export class FirebaseMessagingService {
       await firstValueFrom(
         this.http.post(pushRegistrationEndpoint, payload, {
           headers: { 'Content-Type': 'application/json' },
-        })
+        }),
       );
       localStorage.setItem('plane-alert-pushover-key', pushoverUserKey.trim());
       try {
@@ -94,7 +97,7 @@ export class FirebaseMessagingService {
     }
 
     console.log('📍 Updating backend location:', { lat, lon });
-    
+
     const radius = this.settings.radius ?? 100;
     const deviceName = this.getOrCreateDeviceName();
     const payload = {
@@ -111,7 +114,7 @@ export class FirebaseMessagingService {
       await firstValueFrom(
         this.http.post(pushRegistrationEndpoint, payload, {
           headers: { 'Content-Type': 'application/json' },
-        })
+        }),
       );
       console.log('✅ Backend location updated successfully:', { lat, lon });
       return true;

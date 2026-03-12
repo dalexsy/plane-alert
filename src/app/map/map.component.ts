@@ -280,7 +280,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // becomes visible again, any in-flight marker lerps can "jump" or look like
     // motion without new data. Cancel animations on any visibility transition.
     this.planeVisualizationService.cancelMarkerAnimations(
-      Array.from(this.planeLog.values())
+      Array.from(this.planeLog.values()),
     );
 
     if (this.document.visibilityState === 'visible') {
@@ -288,7 +288,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.planeDataService.getLastSnapshotTimestamp();
       this.planeVisualizationService.resumeMidFlightAnimations(
         Array.from(this.planeLog.values()),
-        lastSnapshotTimestamp
+        lastSnapshotTimestamp,
       );
 
       // Also force a scan for fresh snapshot data.
@@ -341,7 +341,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     private environmentalData: EnvironmentalDataService,
     private planeVisualizationService: PlaneVisualizationService,
     private planeDataService: PlaneDataService,
-    private firebaseMessaging: FirebaseMessagingService
+    private firebaseMessaging: FirebaseMessagingService,
   ) {
     // Initialize view cones configuration from settings
     this.viewConesConfig = this.settings.viewConesConfig;
@@ -364,7 +364,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     if (currentLocation.lat !== null && currentLocation.lon !== null) {
       this.brightnessService.setLocation(
         currentLocation.lat,
-        currentLocation.lon
+        currentLocation.lon,
       );
     }
 
@@ -375,7 +375,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (tooltipEl) {
           tooltipEl.classList.toggle(
             'special-plane-tooltip',
-            plane.isSpecial === true
+            plane.isSpecial === true,
           );
         }
         // Also update marker icon class
@@ -449,7 +449,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.mapService.setMainRadius(
         this.currentLat,
         this.currentLon,
-        this.settings.radius ?? 100
+        this.settings.radius ?? 100,
       );
     } else {
       // Show preview radius
@@ -489,7 +489,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (tooltipEl) {
           tooltipEl.classList.toggle(
             'special-plane-tooltip',
-            plane.isSpecial === true
+            plane.isSpecial === true,
           );
         }
         // Also update marker icon class
@@ -517,12 +517,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Apply initial animation setting
     this.planeDisplayService.applyAnimationSetting(
       this.animationsEnabled,
-      this.document
+      this.document,
     );
 
     // Initialize altitude borders state
     this.planeDisplayService.setAltitudeBordersEnabled(
-      this.uiState.showAltitudeBorders
+      this.uiState.showAltitudeBorders,
     );
 
     const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
@@ -557,12 +557,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
           // Set location immediately with placeholder address so forceScan uses the new coordinates
           const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(
-            4
+            4,
           )}`;
           await this.settings.setLocationWithAddress(
             dblLat,
             dblLng,
-            placeholderAddress
+            placeholderAddress,
           );
 
           this.updateMap(dblLat, dblLng, currentMainRadius); // This will trigger airport search
@@ -573,13 +573,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               dblLat,
               dblLng,
               address,
-              'address'
+              'address',
             );
             await this.settings.setLocationWithAddress(dblLat, dblLng, address);
           });
 
           this.scanService.forceScan(); // Restart the scan with new location
-        }
+        },
       );
     this.map = map;
     this.currentLocationMarker = currentLocationMarker;
@@ -611,7 +611,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Apply map layer visibility based on saved preferences
     this.weatherOverlayService.setCloudCoverVisible(
-      this.settings.showCloudCover
+      this.settings.showCloudCover,
     );
     this.weatherOverlayService.setRainCoverVisible(this.settings.showRainCover);
     this.toggleConeVisibility(this.uiState.coneVisible);
@@ -649,7 +649,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         savedAddress,
         'Coordinates:',
         startLat,
-        startLon
+        startLon,
       );
       // Clear the bad address and re-geocode
       this.reverseGeocode(startLat, startLon).then(async (address) => {
@@ -658,7 +658,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           startLat,
           startLon,
           address,
-          'default'
+          'default',
         );
         await this.settings.setLocationWithAddress(startLat, startLon, address);
       });
@@ -667,7 +667,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         startLat,
         startLon,
         savedAddress,
-        'default'
+        'default',
       );
     } else {
       // Only reverse-geocode if we don't have a saved address
@@ -676,7 +676,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           startLat,
           startLon,
           address,
-          'default'
+          'default',
         );
         // Save it for next session
         await this.settings.setLocationWithAddress(startLat, startLon, address);
@@ -685,7 +685,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Initialize home marker if home location exists
     this.homeMarker = this.mapInitializerService.initializeHomeMarker(
-      this.settings.getHomeLocation()
+      this.settings.getHomeLocation(),
     );
 
     // Update markers visibility based on current location
@@ -694,7 +694,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       lon,
       this.settings.getHomeLocation(),
       this.currentLocationMarker,
-      this.homeMarker
+      this.homeMarker,
     );
 
     // Check if we're at home location and enable cones if we are
@@ -710,7 +710,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Update the Show View Axes checkbox to match
       setTimeout(() => {
         const coneCheckbox = document.getElementById(
-          'showCone'
+          'showCone',
         ) as HTMLInputElement;
         if (coneCheckbox) {
           coneCheckbox.checked = true;
@@ -721,7 +721,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Initialize plane log service with component references
     this.planeLogService.initialize(
       this.resultsOverlayComponent,
-      this.windowViewOverlayComponent
+      this.windowViewOverlayComponent,
     );
     this.planeLogService.setMapComponent(this);
 
@@ -737,18 +737,18 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.filterManagementService.onExcludeDiscountChange(
         this.planeLog,
         this.planeHistoricalLog,
-        this.map
+        this.map,
       );
     });
     this.resultsOverlayComponent.clearHistoricalList.subscribe(() =>
       this.filterManagementService.clearSeenList(
         this.planeHistoricalLog,
         this.resultsOverlayComponent,
-        this.cdr
-      )
+        this.cdr,
+      ),
     );
     this.resultsOverlayComponent.exportFilterList.subscribe(() =>
-      this.filterManagementService.exportFilterList()
+      this.filterManagementService.exportFilterList(),
     );
 
     // Subscribe to follow service state changes
@@ -776,7 +776,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             planeModel.callsign,
             this.settings.excludeDiscount,
             this.planeFilter.getFilterPrefixes(),
-            isMilitary
+            isMilitary,
           );
 
           // Update the filteredOut status directly on the model
@@ -803,14 +803,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             hist.callsign,
             this.settings.excludeDiscount,
             this.planeFilter.getFilterPrefixes(),
-            isMilHist
+            isMilHist,
           );
         });
         // Rebuild logs to refresh seen list
         this.planeHistoricalLog = this.planeLogService.updatePlaneLog(
-          Array.from(this.planeLog.values())
+          Array.from(this.planeLog.values()),
         );
-      }
+      },
     );
     this.scanService.start(this.settings.interval, () => {
       this.findPlanes();
@@ -819,7 +819,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.scanService.forceScan();
     this.document.addEventListener(
       'visibilitychange',
-      this.visibilityChangeHandler
+      this.visibilityChangeHandler,
     );
 
     // Subscribe to radius changes: clear markers and paths outside new radius
@@ -837,7 +837,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         lat,
         lon,
         newRadius,
-        this.showAirportLabels
+        this.showAirportLabels,
       );
     });
 
@@ -894,7 +894,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.mapThemeService.destroy();
     this.document.removeEventListener(
       'visibilitychange',
-      this.visibilityChangeHandler
+      this.visibilityChangeHandler,
     );
     window.removeEventListener('click', this.globalTooltipClickHandler);
   }
@@ -906,7 +906,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private addressLooksWrongForCoordinates(
     address: string,
     lat: number,
-    lon: number
+    lon: number,
   ): boolean {
     // Simple heuristic: check if address mentions a place that's clearly wrong
     const addressLower = address.toLowerCase();
@@ -957,7 +957,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Update visual indicators
     this.followService.updateFollowedStyles(
       this.planeLog,
-      this.highlightedPlaneIcao
+      this.highlightedPlaneIcao,
     );
     this.cdr.detectChanges();
   }
@@ -989,7 +989,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.centerOnPlane(
         planeLogEntry,
         fromShuffle || fromNearest,
-        fromShuffle
+        fromShuffle,
       );
     } finally {
       this.isProcessingFollowRequest = false;
@@ -1036,7 +1036,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
       // Update the Show View Axes checkbox to match
       const coneCheckbox = document.getElementById(
-        'showCone'
+        'showCone',
       ) as HTMLInputElement;
       if (coneCheckbox) {
         coneCheckbox.checked = true;
@@ -1052,13 +1052,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           homeLocation.lat,
           homeLocation.lon,
           homeLocation.address,
-          'home'
+          'home',
         );
         // Save coordinates AND address together atomically
         await this.settings.setLocationWithAddress(
           homeLocation.lat,
           homeLocation.lon,
-          homeLocation.address
+          homeLocation.address,
         );
       } else {
         // Only reverse geocode if we don't have a saved address
@@ -1068,20 +1068,20 @@ export class MapComponent implements AfterViewInit, OnDestroy {
               homeLocation.lat,
               homeLocation.lon,
               address,
-              'home'
+              'home',
             );
             await this.settings.setLocationWithAddress(
               homeLocation.lat,
               homeLocation.lon,
-              address
+              address,
             );
             // Also update home location to include address
             this.settings.setHomeLocation(
               homeLocation.lat,
               homeLocation.lon,
-              address
+              address,
             );
-          }
+          },
         );
       }
     }
@@ -1092,7 +1092,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     lat: number,
     lon: number,
     radiusKm?: number, // This is the MAIN search radius
-    zoomLevel?: number
+    zoomLevel?: number,
   ): Promise<void> {
     this.isProgrammaticMove = true;
     await this.mapUpdate.updateMap(
@@ -1105,7 +1105,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       lat,
       lon,
       radiusKm,
-      zoomLevel
+      zoomLevel,
     );
     // Update brightness service with new location for day/night theme switching
     this.brightnessService.setLocation(lat, lon);
@@ -1156,7 +1156,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public getCurrentWindSpeed(): number {
     return this.convertWindSpeed(
       this.windSpeed,
-      this.windUnits[this.currentWindUnitIndex]
+      this.windUnits[this.currentWindUnitIndex],
     );
   }
 
@@ -1186,7 +1186,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Update the set of active plane ICAOs after removal
     this.activePlaneIcaos = new Set(this.planeLog.keys());
     this.planeHistoricalLog = this.planeLogService.updatePlaneLog(
-      Array.from(this.planeLog.values())
+      Array.from(this.planeLog.values()),
     );
   }
   reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -1207,7 +1207,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         this.activePlaneIcaos,
         this.highlightedPlaneIcao,
         this.followNearest,
-        this.cdr
+        this.cdr,
       )
       .then(({ faviconUrl }) => {
         // Check if API data is available
@@ -1221,13 +1221,13 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         if (hasNoPlanes && dataAgeMinutes > 5) {
           this.apiDataUnavailable = true;
           this.lastSuccessfulUpdate = new Date(
-            snapshotTimestamp
+            snapshotTimestamp,
           ).toLocaleTimeString();
         } else {
           this.apiDataUnavailable = false;
           if (!hasNoPlanes) {
             this.lastSuccessfulUpdate = new Date(
-              snapshotTimestamp
+              snapshotTimestamp,
             ).toLocaleTimeString();
           }
         }
@@ -1240,7 +1240,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         // Update component properties with the results
         this.closestPlaneService.computeClosestPlane(
           this.planeLog as Map<string, PlaneModel>,
-          this.highlightedPlaneIcao
+          this.highlightedPlaneIcao,
         );
         const closestData = this.closestPlaneService.getClosestPlaneData();
         this.closestPlane = closestData.closestPlane;
@@ -1307,7 +1307,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
     // Update the Show View Axes checkbox to match
     const coneCheckbox = document.getElementById(
-      'showCone'
+      'showCone',
     ) as HTMLInputElement;
     if (coneCheckbox) {
       coneCheckbox.checked = false;
@@ -1323,24 +1323,24 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.updateMap(
             position.coords.latitude,
             position.coords.longitude,
-            currentMainRadius // Pass main radius
+            currentMainRadius, // Pass main radius
           ); // Triggers airport search
           // Update location context with current source (this will reverse-geocode)
           this.locationContext.updateFromMapCenter(
             position.coords.latitude,
             position.coords.longitude,
-            'current'
+            'current',
           );
 
           // Save coordinates AND address together atomically for persistence
           this.reverseGeocode(
             position.coords.latitude,
-            position.coords.longitude
+            position.coords.longitude,
           ).then(async (address) => {
             await this.settings.setLocationWithAddress(
               position.coords.latitude,
               position.coords.longitude,
-              address
+              address,
             );
           });
         },
@@ -1352,15 +1352,15 @@ export class MapComponent implements AfterViewInit, OnDestroy {
             this.updateMap(
               this.DEFAULT_COORDS[0],
               this.DEFAULT_COORDS[1],
-              currentMainRadius // Pass main radius
+              currentMainRadius, // Pass main radius
             ); // Triggers airport search
             this.inputOverlayComponent.addressInputRef.setValue(
-              'Unable to fetch location; using default'
+              'Unable to fetch location; using default',
             );
             this.locationErrorShown = true;
           }
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
       );
     } else {
       alert('Geolocation is not supported by your browser.');
@@ -1371,7 +1371,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.addressResolution.resolveAndUpdateFromAddress(
       this.inputOverlayComponent,
       this.updateMap.bind(this),
-      this.map.getZoom()
+      this.map.getZoom(),
     );
   }
 
@@ -1379,7 +1379,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.planeFiltering.onExcludeDiscountChange(
       this.planeLog,
       this.planeHistoricalLog,
-      this.map
+      this.map,
     );
   }
   get currentLat(): number {
@@ -1480,7 +1480,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       // Use CSS filters to tint the cloud layer based on atmospheric conditions
       const filter = this.createCloudLayerFilter(
         skyColors.bottomColor,
-        skyColors.topColor
+        skyColors.topColor,
       );
       el.style.filter = filter;
       el.style.mixBlendMode = 'multiply';
@@ -1490,7 +1490,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   /** Create CSS filter string for cloud layer based on sky colors */
   private createCloudLayerFilter(
     bottomColor: string,
-    topColor: string
+    topColor: string,
   ): string {
     // Extract RGB values from the colors
     const bottomRgb = this.extractRgbFromColor(bottomColor);
@@ -1511,7 +1511,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const hueShift = this.calculateHueShift(avgR, avgG, avgB);
     const saturationAdjust = Math.max(
       0.8,
-      Math.min(1.2, 1 + (saturation / 255) * 0.3)
+      Math.min(1.2, 1 + (saturation / 255) * 0.3),
     );
     const brightnessAdjust = Math.max(0.7, Math.min(1.3, brightness * 1.2));
 
@@ -1520,7 +1520,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   /** Extract RGB values from color string */
   private extractRgbFromColor(
-    color: string
+    color: string,
   ): { r: number; g: number; b: number } | null {
     // Handle various color formats (hex, rgb, rgba)
     if (color.startsWith('#')) {
@@ -1578,7 +1578,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   centerOnPlane(
     plane: PlaneLogEntry | PlaneModel,
     preserveFollowNearest = false,
-    fromShuffle = false
+    fromShuffle = false,
   ): void {
     this.planeCentering.centerOnPlane(
       plane,
@@ -1600,7 +1600,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
         setPlaneHistoricalLog: (log: PlaneModel[]) =>
           (this.planeHistoricalLog = log),
         unhighlightPlane: this.unhighlightPlane.bind(this),
-      }
+      },
     );
   }
   /** Follow and center on overlay-selected nearest plane */
@@ -1691,7 +1691,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Update all existing tooltips with the new border style
     this.planeDisplayService.updateTooltipAltitudeBorders(
       Array.from(this.planeLog.values()),
-      enabled
+      enabled,
     );
 
     this.cdr.detectChanges();

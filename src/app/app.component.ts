@@ -25,7 +25,7 @@ export class AppComponent implements OnInit {
     private notificationService: NotificationService,
     private firebaseMessaging: FirebaseMessagingService,
     private versionCheck: VersionCheckService,
-    private performance: PerformanceService
+    private performance: PerformanceService,
   ) {
     // VersionCheckService constructor runs automatically to check version
     // PerformanceService constructor runs automatically to detect device capabilities
@@ -62,7 +62,7 @@ export class AppComponent implements OnInit {
         await this.firebaseMessaging.registerDevice(storedKey);
       } else {
         console.log(
-          '⏸️ Skipping auto-registration: no saved location. Double-tap map to set location.'
+          '⏸️ Skipping auto-registration: no saved location. Double-tap map to set location.',
         );
       }
       return;
@@ -72,18 +72,18 @@ export class AppComponent implements OnInit {
     const userKey = prompt(
       'Enter your Pushover User Key to enable notifications.\n\n' +
         'Find it at: https://pushover.net/\n' +
-        '(You need the Pushover app installed)'
+        '(You need the Pushover app installed)',
     );
 
     if (userKey && userKey.trim()) {
       const success = await this.firebaseMessaging.registerDevice(userKey);
       if (success) {
         alert(
-          "✅ Notifications enabled! You'll receive alerts for military planes."
+          "✅ Notifications enabled! You'll receive alerts for military planes.",
         );
       } else {
         alert(
-          '❌ Failed to enable notifications. Check the console for details.'
+          '❌ Failed to enable notifications. Check the console for details.',
         );
       }
     }
@@ -116,11 +116,11 @@ export class AppComponent implements OnInit {
       const browser = this.getBrowserLabel();
       alert(
         `Notifications are blocked in ${browser} for plane-alert-final.surge.sh.\n\n` +
-          'Open the site information panel, allow notifications, then tap Enable notifications again.'
+          'Open the site information panel, allow notifications, then tap Enable notifications again.',
       );
     } else if (permission === 'default') {
       alert(
-        'Notification prompt was dismissed. Tap Enable notifications again when you are ready to allow alerts.'
+        'Notification prompt was dismissed. Tap Enable notifications again when you are ready to allow alerts.',
       );
     }
   }

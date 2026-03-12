@@ -1,4 +1,10 @@
-import { Component, Output, EventEmitter, OnInit, ViewChild } from '@angular/core';
+import {
+  Component,
+  Output,
+  EventEmitter,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -100,7 +106,7 @@ export class PushoverConfigEditorComponent implements OnInit {
       // Always fetch fresh data to ensure we have the latest from backend
       console.log(
         'Fetching device registration status for key:',
-        this.pushoverUserKey
+        this.pushoverUserKey,
       );
       void this.checkRegistrationStatus();
     }
@@ -122,7 +128,9 @@ export class PushoverConfigEditorComponent implements OnInit {
     this.customIgnoreList = device.ignoredTypes
       .filter(
         (type) =>
-          !this.commonMilitaryTypes.some((mt) => mt.code === type.toUpperCase())
+          !this.commonMilitaryTypes.some(
+            (mt) => mt.code === type.toUpperCase(),
+          ),
       )
       .join('\n');
     this.isEditingLocation = false;
@@ -132,7 +140,7 @@ export class PushoverConfigEditorComponent implements OnInit {
 
   getLocationDisplay(device: DeviceListItem): string {
     const location = device.location;
-    
+
     if (!location?.lat || !location?.lon) {
       return 'Set location';
     }
@@ -146,16 +154,31 @@ export class PushoverConfigEditorComponent implements OnInit {
     }
 
     // If no address, show coordinates with city hint
-    const isBerlin = location.lat > 52 && location.lat < 53 && location.lon > 13 && location.lon < 14;
-    const isMunich = location.lat > 48 && location.lat < 49 && location.lon > 11 && location.lon < 12;
-    const cityHint = isBerlin ? ' (Berlin area)' : isMunich ? ' (Munich area)' : '';
+    const isBerlin =
+      location.lat > 52 &&
+      location.lat < 53 &&
+      location.lon > 13 &&
+      location.lon < 14;
+    const isMunich =
+      location.lat > 48 &&
+      location.lat < 49 &&
+      location.lon > 11 &&
+      location.lon < 12;
+    const cityHint = isBerlin
+      ? ' (Berlin area)'
+      : isMunich
+        ? ' (Munich area)'
+        : '';
     return `${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}${cityHint}`;
   }
 
   startEditingLocation(device: DeviceListItem): void {
     this.selectedDevice = device;
     this.isEditingLocation = true;
-    this.locationSearchQuery = this.getLocationDisplay(device) === 'Set location' ? '' : this.getLocationDisplay(device);
+    this.locationSearchQuery =
+      this.getLocationDisplay(device) === 'Set location'
+        ? ''
+        : this.getLocationDisplay(device);
     this.locationError = '';
 
     setTimeout(() => {
@@ -235,12 +258,12 @@ export class PushoverConfigEditorComponent implements OnInit {
       .filter((line) => line.length > 0);
 
     const commonCodes = new Set(
-      this.commonMilitaryTypes.map((mt) => mt.code.toUpperCase())
+      this.commonMilitaryTypes.map((mt) => mt.code.toUpperCase()),
     );
 
     // Keep only common types that are still checked
     this.selectedDevice.ignoredTypes = this.selectedDevice.ignoredTypes.filter(
-      (type) => commonCodes.has(type)
+      (type) => commonCodes.has(type),
     );
 
     // Add custom types
@@ -280,13 +303,11 @@ export class PushoverConfigEditorComponent implements OnInit {
     return name;
   }
 
-
-
   async onProximityChange(device: DeviceListItem): Promise<void> {
     // ngModel already updated the value, just save
     console.log(
       `Proximity changed for ${device.name}:`,
-      device.proximityEnabled
+      device.proximityEnabled,
     );
 
     // Prevent concurrent saves for the same device
@@ -335,7 +356,7 @@ export class PushoverConfigEditorComponent implements OnInit {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ deviceId: device.docId }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -380,8 +401,11 @@ export class PushoverConfigEditorComponent implements OnInit {
     this.keyValidationError = '';
 
     try {
-      console.log('Checking registration status for key:', this.pushoverUserKey.substring(0, 8) + '...');
-      
+      console.log(
+        'Checking registration status for key:',
+        this.pushoverUserKey.substring(0, 8) + '...',
+      );
+
       const response = await fetch(checkDeviceEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -396,7 +420,11 @@ export class PushoverConfigEditorComponent implements OnInit {
           response.status >= 500
             ? 'Server error while verifying your key. Please try again.'
             : 'Unable to verify that key. Please check it and try again.';
-        console.error('Response not OK:', response.status, await response.text());
+        console.error(
+          'Response not OK:',
+          response.status,
+          await response.text(),
+        );
         return;
       }
 
@@ -435,10 +463,10 @@ export class PushoverConfigEditorComponent implements OnInit {
         // Military is disabled if ignoredTypes contains '*'
         const militaryDisabled =
           ignoredTypes.length === 1 && ignoredTypes[0] === '*';
-        
+
         // Extract location from config (try both new 'location' and legacy 'home' fields)
         const deviceLocation = (config as any).location || config.home;
-        
+
         console.log('Loading device from backend:', deviceName, {
           proximityEnabled: config.notifyProximity,
           militaryEnabled: !militaryDisabled,
@@ -473,7 +501,7 @@ export class PushoverConfigEditorComponent implements OnInit {
 
       // Only show devices that are registered in Pushover
       this.devices = Array.from(deviceMap.values())
-        .filter(device => device.isRegisteredInPushover)
+        .filter((device) => device.isRegisteredInPushover)
         .sort((a, b) => a.name.localeCompare(b.name));
 
       console.log(
@@ -484,7 +512,7 @@ export class PushoverConfigEditorComponent implements OnInit {
           militaryEnabled: d.militaryEnabled,
           docId: d.docId,
           isRegisteredInPushover: d.isRegisteredInPushover,
-        }))
+        })),
       );
 
       console.log(
@@ -492,21 +520,28 @@ export class PushoverConfigEditorComponent implements OnInit {
         Array.from(deviceMap.values()).map((d) => ({
           name: d.name,
           isRegisteredInPushover: d.isRegisteredInPushover,
-        }))
+        })),
       );
 
       // If no devices after filtering but we have devices in the map, show all devices
       // This handles the case where the Pushover validation is failing but we have backend data
       if (this.devices.length === 0 && deviceMap.size > 0) {
-        console.warn('No devices passed Pushover filter, showing all backend devices');
+        console.warn(
+          'No devices passed Pushover filter, showing all backend devices',
+        );
         this.devices = Array.from(deviceMap.values()).sort((a, b) =>
-          a.name.localeCompare(b.name)
+          a.name.localeCompare(b.name),
         );
       }
-      
+
       // If still no devices, but we have availableDevices from Pushover, something is wrong
       if (this.devices.length === 0 && availableDevices.size > 0) {
-        console.error('Pushover reports', availableDevices.size, 'available devices but none are showing. Available:', Array.from(availableDevices));
+        console.error(
+          'Pushover reports',
+          availableDevices.size,
+          'available devices but none are showing. Available:',
+          Array.from(availableDevices),
+        );
       }
 
       this.keyValidated = data.keyValid === true;
@@ -519,7 +554,7 @@ export class PushoverConfigEditorComponent implements OnInit {
           devices: this.devices,
           keyValidated: this.keyValidated,
           timestamp: Date.now(),
-        })
+        }),
       );
 
       // Auto-select first device if none selected
@@ -529,11 +564,21 @@ export class PushoverConfigEditorComponent implements OnInit {
 
       // Log coordinate details for debugging
       console.log('Device location summary:');
-      this.devices.forEach(device => {
+      this.devices.forEach((device) => {
         if (device.location?.lat && device.location?.lon) {
-          const isBerlin = device.location.lat > 52 && device.location.lat < 53 && device.location.lon > 13 && device.location.lon < 14;
-          const isMunich = device.location.lat > 48 && device.location.lat < 49 && device.location.lon > 11 && device.location.lon < 12;
-          console.log(`  ${device.name}: ${device.location.lat.toFixed(4)}, ${device.location.lon.toFixed(4)} (${isBerlin ? 'BERLIN' : isMunich ? 'MUNICH' : 'OTHER'}) - ${device.location.address || 'NO ADDRESS'}`);
+          const isBerlin =
+            device.location.lat > 52 &&
+            device.location.lat < 53 &&
+            device.location.lon > 13 &&
+            device.location.lon < 14;
+          const isMunich =
+            device.location.lat > 48 &&
+            device.location.lat < 49 &&
+            device.location.lon > 11 &&
+            device.location.lon < 12;
+          console.log(
+            `  ${device.name}: ${device.location.lat.toFixed(4)}, ${device.location.lon.toFixed(4)} (${isBerlin ? 'BERLIN' : isMunich ? 'MUNICH' : 'OTHER'}) - ${device.location.address || 'NO ADDRESS'}`,
+          );
         } else {
           console.log(`  ${device.name}: NO LOCATION SET`);
         }
@@ -548,11 +593,9 @@ export class PushoverConfigEditorComponent implements OnInit {
     }
   }
 
-
-
   private async saveDevice(
     device: DeviceListItem,
-    silent: boolean = false
+    silent: boolean = false,
   ): Promise<void> {
     if (this.isSaving && !silent) return; // Don't block silent saves
 
@@ -569,11 +612,16 @@ export class PushoverConfigEditorComponent implements OnInit {
       lat = device.location.lat;
       lon = device.location.lon;
       address = device.location.address;
-      console.log(`Saving device ${device.name} with device-specific location:`, { lat, lon, address });
+      console.log(
+        `Saving device ${device.name} with device-specific location:`,
+        { lat, lon, address },
+      );
     } else {
       // Fall back to global home location
       const latitude = parseFloat(localStorage.getItem('user-latitude') || '0');
-      const longitude = parseFloat(localStorage.getItem('user-longitude') || '0');
+      const longitude = parseFloat(
+        localStorage.getItem('user-longitude') || '0',
+      );
 
       const savedHome = localStorage.getItem('plane-alert-home-location');
       const home = savedHome ? (JSON.parse(savedHome) as any) : null;
@@ -581,7 +629,11 @@ export class PushoverConfigEditorComponent implements OnInit {
       lat = typeof home?.lat === 'number' ? home.lat : latitude;
       lon = typeof home?.lon === 'number' ? home.lon : longitude;
       address = home?.address;
-      console.log(`Saving device ${device.name} with global home location:`, { lat, lon, address });
+      console.log(`Saving device ${device.name} with global home location:`, {
+        lat,
+        lon,
+        address,
+      });
     }
 
     if (!lat || !lon) {
@@ -621,26 +673,35 @@ export class PushoverConfigEditorComponent implements OnInit {
       const isBerlinCoords = lat > 52 && lat < 53 && lon > 13 && lon < 14;
       const isMunichCoords = lat > 48 && lat < 49 && lon > 11 && lon < 12;
       const isBerlinAddress = address.toLowerCase().includes('berlin');
-      const isMunichAddress = address.toLowerCase().includes('munich') || address.toLowerCase().includes('münchen');
-      
-      if ((isBerlinAddress && !isBerlinCoords) || (isMunichAddress && !isMunichCoords)) {
+      const isMunichAddress =
+        address.toLowerCase().includes('munich') ||
+        address.toLowerCase().includes('münchen');
+
+      if (
+        (isBerlinAddress && !isBerlinCoords) ||
+        (isMunichAddress && !isMunichCoords)
+      ) {
         console.error(`⚠️ LOCATION MISMATCH for ${device.name}!`, {
           address,
           coordinates: { lat, lon },
           isBerlinCoords,
           isMunichCoords,
           isBerlinAddress,
-          isMunichAddress
+          isMunichAddress,
         });
       }
     }
 
-    console.log('💾 Saving device payload:', device.name, JSON.stringify(deviceData, null, 2));
+    console.log(
+      '💾 Saving device payload:',
+      device.name,
+      JSON.stringify(deviceData, null, 2),
+    );
 
     try {
       localStorage.setItem(
         'plane-alert-pushover-key',
-        this.pushoverUserKey.trim()
+        this.pushoverUserKey.trim(),
       );
 
       const response = await fetch(pushRegistrationEndpoint, {
@@ -677,7 +738,7 @@ export class PushoverConfigEditorComponent implements OnInit {
           devices: this.devices,
           keyValidated: this.keyValidated,
           timestamp: Date.now(),
-        })
+        }),
       );
 
       if (!silent) {

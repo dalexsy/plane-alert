@@ -7,7 +7,7 @@ import { ORIGIN_HEADER } from '../constants';
 async function fetchWithTimeout(
   url: string,
   init: any,
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -20,7 +20,7 @@ async function fetchWithTimeout(
 
 async function fetchFromOpenSky(
   location: Location,
-  radiusKm: number
+  radiusKm: number,
 ): Promise<AdsBPlane[] | null> {
   const latDelta = radiusKm / 111.32;
   const cosLat = Math.cos((location.lat * Math.PI) / 180);
@@ -42,7 +42,7 @@ async function fetchFromOpenSky(
           Accept: 'application/json',
         },
       },
-      8000
+      8000,
     );
 
     if (!response.ok) {
@@ -108,7 +108,7 @@ async function fetchFromOpenSky(
  */
 export async function fetchAircraft(
   location: Location,
-  radiusKm: number
+  radiusKm: number,
 ): Promise<AdsBPlane[]> {
   const radiusNm = radiusKm / 1.852;
   const baseUrls = (
@@ -119,7 +119,7 @@ export async function fetchAircraft(
 
   for (const baseUrl of baseUrls) {
     const url = `${baseUrl}/v2/point/${location.lat}/${location.lon}/${radiusNm.toFixed(
-      2
+      2,
     )}`;
 
     try {
@@ -131,7 +131,7 @@ export async function fetchAircraft(
             Accept: 'application/json',
           },
         },
-        5000
+        5000,
       );
 
       if (!response.ok) {

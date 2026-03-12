@@ -82,7 +82,7 @@ export class PlaneDataService {
     private aircraftSnapshot: AircraftSnapshotService,
     private openskyRouteService: OpenskyRouteService,
     private routeCache: PlaneRouteCacheService,
-    private unknownCountryLogger: UnknownCountryLoggerService
+    private unknownCountryLogger: UnknownCountryLoggerService,
   ) {}
 
   async refreshLists(manualUpdate: boolean): Promise<void> {
@@ -98,7 +98,7 @@ export class PlaneDataService {
   async fetchPlaneData(
     centerLat: number,
     centerLon: number,
-    radiusKm: number
+    radiusKm: number,
   ): Promise<any[]> {
     try {
       // Subscribe to Firestore realtime updates for this location
@@ -106,7 +106,7 @@ export class PlaneDataService {
       await this.aircraftSnapshot.subscribeToLocation(
         centerLat,
         centerLon,
-        radiusKm
+        radiusKm,
       );
 
       // Return current cached data (now populated with initial fetch)
@@ -132,8 +132,8 @@ export class PlaneDataService {
     blockedPrefixes: string[],
     isInitialLoad: boolean,
     getAircraftInfo: (
-      icao: string
-    ) => { model?: string; ownop?: string; mil?: boolean } | null
+      icao: string,
+    ) => { model?: string; ownop?: string; mil?: boolean } | null,
   ): ProcessedPlaneData | null {
     const id = ac.hex.toUpperCase();
 
@@ -172,7 +172,7 @@ export class PlaneDataService {
       reg,
       id,
       rawCountry,
-      isMilitary
+      isMilitary,
     );
 
     const lat = ac.lat;
@@ -192,8 +192,8 @@ export class PlaneDataService {
       typeof ac.alt_baro === 'number'
         ? ac.alt_baro
         : typeof ac.alt_geom === 'number'
-        ? ac.alt_geom
-        : null;
+          ? ac.alt_geom
+          : null;
 
     // Determine if on ground
     let onGroundBasedOnLogic = false;
@@ -201,10 +201,10 @@ export class PlaneDataService {
       ac.alt_baro === 'ground'
         ? 0
         : typeof ac.alt_baro === 'number'
-        ? ac.alt_baro
-        : typeof ac.alt_geom === 'number'
-        ? ac.alt_geom
-        : undefined;
+          ? ac.alt_baro
+          : typeof ac.alt_geom === 'number'
+            ? ac.alt_geom
+            : undefined;
 
     if (
       typeof altitudeForHeuristicCheck === 'number' &&
@@ -246,13 +246,13 @@ export class PlaneDataService {
     const wouldBeFiltered = filterPlaneByPrefix(
       callsign,
       excludeDiscount,
-      blockedPrefixes
+      blockedPrefixes,
     );
     const isFiltered = isInitialLoad
       ? false
       : isMilitary
-      ? false
-      : wouldBeFiltered;
+        ? false
+        : wouldBeFiltered;
 
     // Check distance from center
     const dist = calculateDistanceKm(centerLat, centerLon, lat, lon);
@@ -299,7 +299,7 @@ export class PlaneDataService {
     // Prefer API-derived operator (opicao) first; then explicit DB operator; then callsign fallback.
     let operator =
       safeOpIcaoOperator ?? dbAircraft?.ownop ?? safePrefixOperator ?? '';
-    
+
     // Model priority: API description > DB model > ICAO type code (converted to readable name)
     let model = apiModel || dbAircraft?.model || '';
     if (!model && apiIcaoType) {
@@ -321,7 +321,7 @@ export class PlaneDataService {
         operator,
         categoryCode,
         apiIcaoType,
-        callsign
+        callsign,
       )
     ) {
       model = 'Helicopter';
@@ -347,7 +347,7 @@ export class PlaneDataService {
           operator,
           categoryCode,
           apiIcaoType,
-          callsign
+          callsign,
         )
       ) {
         dbModel = 'Helicopter';
@@ -437,7 +437,7 @@ export class PlaneDataService {
     previousLog: Map<string, PlaneModel>,
     centerLat: number,
     centerLon: number,
-    snapshotTimestamp?: number
+    snapshotTimestamp?: number,
   ): { planeModel: PlaneModel; isExisting: boolean } {
     const {
       id,
@@ -514,7 +514,7 @@ export class PlaneDataService {
       planeHistory,
       processedData,
       snapshotTimestamp,
-      isExistingPlane
+      isExistingPlane,
     );
 
     // Update model properties
@@ -560,7 +560,7 @@ export class PlaneDataService {
       | undefined,
     processedData: ProcessedPlaneData,
     snapshotTimestamp: number | undefined,
-    isExistingPlane: boolean
+    isExistingPlane: boolean,
   ): void {
     const validHistory = Array.isArray(planeHistory)
       ? planeHistory.filter(
@@ -568,7 +568,7 @@ export class PlaneDataService {
             entry &&
             typeof entry.lat === 'number' &&
             typeof entry.lon === 'number' &&
-            typeof entry.timestamp === 'number'
+            typeof entry.timestamp === 'number',
         )
       : [];
 
@@ -628,8 +628,8 @@ export class PlaneDataService {
           velocity,
           typeof altitude === 'number'
             ? altitude
-            : processedData.altitude ?? undefined,
-          entry.timestamp
+            : (processedData.altitude ?? undefined),
+          entry.timestamp,
         );
 
         if (typeof altitude === 'number') {
@@ -700,7 +700,7 @@ export class PlaneDataService {
           processedData.track,
           processedData.velocity,
           processedData.altitude,
-          latestTs
+          latestTs,
         );
       }
       return;
@@ -730,7 +730,7 @@ export class PlaneDataService {
       processedData.track,
       processedData.velocity,
       processedData.altitude,
-      fallbackTimestamp
+      fallbackTimestamp,
     );
   }
 

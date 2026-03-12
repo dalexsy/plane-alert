@@ -209,9 +209,11 @@ async function notifyForDevice(
       }
 
       // Filter out boring military types (transports, trainers, commercial aircraft used by military)
-      const aircraftType = (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
-      const isBoringMilitary = BORING_AIRCRAFT_TYPES.some((boring) => 
-        aircraftType.includes(boring.toUpperCase())
+      const aircraftType = (plane.t || plane.type || '')
+        .toUpperCase()
+        .replace(/[-\s]/g, '');
+      const isBoringMilitary = BORING_AIRCRAFT_TYPES.some((boring) =>
+        aircraftType.includes(boring.toUpperCase()),
       );
 
       if (isBoringMilitary && !isSpecialPlane) {
@@ -319,7 +321,8 @@ async function notifyForDevice(
       const icaoUpper = plane.hex.toUpperCase();
       const callsign = normalizeCallsign(plane.flight || plane.callsign);
       // Convert ICAO type code to readable name (e.g., "B738" -> "Boeing 737-800")
-      const model = plane.desc || (plane.t ? getAircraftTypeName(plane.t) : plane.t);
+      const model =
+        plane.desc || (plane.t ? getAircraftTypeName(plane.t) : plane.t);
 
       // Get flight data if available for this aircraft (AeroAPI enrichment)
       const flightData = callsign
@@ -442,7 +445,10 @@ async function notifyForDevice(
             normalizeCallsign(plane.flight || plane.callsign) ||
             plane.hex.toUpperCase();
           // Convert ICAO type code to readable name
-          const model = plane.desc || (plane.t ? getAircraftTypeName(plane.t) : null) || 'Aircraft';
+          const model =
+            plane.desc ||
+            (plane.t ? getAircraftTypeName(plane.t) : null) ||
+            'Aircraft';
           const distanceM = Math.round(distanceKm * 1000);
 
           const bearing = computeBearing(
@@ -531,8 +537,9 @@ export function createNotificationProcessorFunction(
     },
     async () => {
       const broadcastAllDevices =
-        String(process.env.PUSHOVER_BROADCAST_ALL_DEVICES || '').toLowerCase() ===
-        'true';
+        String(
+          process.env.PUSHOVER_BROADCAST_ALL_DEVICES || '',
+        ).toLowerCase() === 'true';
 
       const snapshot = await db.collection(DEVICE_COLLECTION).get();
       if (snapshot.empty) {

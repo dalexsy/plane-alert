@@ -54,7 +54,10 @@ export class GeocodingCacheService {
   private isProcessingQueue = false;
   private geocodingEnabled = true; // Can be disabled if APIs are problematic
 
-  constructor(private ngZone: NgZone, private http: HttpClient) {
+  constructor(
+    private ngZone: NgZone,
+    private http: HttpClient,
+  ) {
     // Check if geocoding should be disabled (useful for offline development)
     if (typeof window !== 'undefined') {
       const disableGeocoding = localStorage.getItem('disable-geocoding');
@@ -63,7 +66,7 @@ export class GeocodingCacheService {
 
     // Periodically purge expired entries outside Angular to avoid CD overhead
     this.ngZone.runOutsideAngular(() =>
-      setInterval(() => this.clearExpiredCache(), this.CACHE_DURATION)
+      setInterval(() => this.clearExpiredCache(), this.CACHE_DURATION),
     );
   }
 
@@ -77,7 +80,7 @@ export class GeocodingCacheService {
 
     const now = Date.now();
     const key = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(
-      this.COORDINATE_PRECISION
+      this.COORDINATE_PRECISION,
     )}`;
 
     // Check cache or in-flight
@@ -99,7 +102,7 @@ export class GeocodingCacheService {
     const elapsed = now - this.lastRequestTime;
     if (elapsed < this.MIN_REQUEST_INTERVAL) {
       await new Promise((r) =>
-        setTimeout(r, this.MIN_REQUEST_INTERVAL - elapsed)
+        setTimeout(r, this.MIN_REQUEST_INTERVAL - elapsed),
       );
     }
 
@@ -123,7 +126,7 @@ export class GeocodingCacheService {
   private async performRequest(
     lat: number,
     lon: number,
-    retryCount = 0
+    retryCount = 0,
   ): Promise<string> {
     const maxRetries = 2;
 
@@ -131,7 +134,7 @@ export class GeocodingCacheService {
       // Try Nominatim first (better Unicode support, preserves umlauts)
       const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=en`;
       const nominatimResponse = await this.ngZone.runOutsideAngular(() =>
-        firstValueFrom(this.http.get<any>(nominatimUrl).pipe(timeout(5000)))
+        firstValueFrom(this.http.get<any>(nominatimUrl).pipe(timeout(5000))),
       );
 
       // Build address from Nominatim response
@@ -162,8 +165,8 @@ export class GeocodingCacheService {
       const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
       const response = await this.ngZone.runOutsideAngular(() =>
         firstValueFrom(
-          this.http.get<ReverseGeocodeResponse>(url).pipe(timeout(5000))
-        )
+          this.http.get<ReverseGeocodeResponse>(url).pipe(timeout(5000)),
+        ),
       );
 
       const formatted = this.buildAddressString(response);
@@ -206,10 +209,10 @@ export class GeocodingCacheService {
       ) {
         console.warn(
           `Geocoding attempt ${retryCount + 1} failed, retrying...`,
-          error.message
+          error.message,
         );
         await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (retryCount + 1))
+          setTimeout(resolve, 1000 * (retryCount + 1)),
         ); // Exponential backoff
         return this.performRequest(lat, lon, retryCount + 1);
       }
@@ -217,7 +220,7 @@ export class GeocodingCacheService {
       // Specific handling for rate limiting (403) and network errors
       if (error.status === 403) {
         console.warn(
-          'Geocoding rate limited (403). Caching will reduce future requests.'
+          'Geocoding rate limited (403). Caching will reduce future requests.',
         );
       } else if (
         error.message &&
@@ -235,7 +238,7 @@ export class GeocodingCacheService {
       // This will be cached to prevent repeated failed requests
       const fallback = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
       const cacheKey = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(
-        this.COORDINATE_PRECISION
+        this.COORDINATE_PRECISION,
       )}`;
       this.cache.set(cacheKey, {
         address: fallback,
@@ -293,7 +296,7 @@ export class GeocodingCacheService {
       ];
       if (
         continentTokens.some(
-          (token) => normalized === token || normalized.startsWith(`${token}/`)
+          (token) => normalized === token || normalized.startsWith(`${token}/`),
         )
       ) {
         return true;
@@ -341,7 +344,7 @@ export class GeocodingCacheService {
     };
 
     const pickFirstValid = (
-      candidates: Array<string | null | undefined>
+      candidates: Array<string | null | undefined>,
     ): string | undefined => {
       for (const candidate of candidates) {
         if (!candidate) {

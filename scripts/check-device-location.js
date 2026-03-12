@@ -61,30 +61,32 @@ async function checkDevices() {
       console.log(
         `  Location: ${
           location ? `${location.lat}, ${location.lon}` : "not set"
-        }`
+        }`,
       );
       console.log(`  Address: ${location?.address || "not set"}`);
-      console.log(`  Legacy Home: ${
+      console.log(
+        `  Legacy Home: ${
           data.home ? `${data.home.lat}, ${data.home.lon}` : "not set"
-        }`);
+        }`,
+      );
       console.log(`  Radius: ${data.radiusKm || 100} km`);
       console.log(`  Distance Unit: ${data.distanceUnit || "km"}`);
       console.log(
-        `  Proximity Alerts: ${data.notifyProximity ? "enabled" : "disabled"}`
+        `  Proximity Alerts: ${data.notifyProximity ? "enabled" : "disabled"}`,
       );
       console.log(
         `  Created: ${
           data.createdAt
             ? new Date(data.createdAt._seconds * 1000).toISOString()
             : "unknown"
-        }`
+        }`,
       );
       console.log(
         `  Updated: ${
           data.updatedAt
             ? new Date(data.updatedAt._seconds * 1000).toISOString()
             : "unknown"
-        }`
+        }`,
       );
       console.log("");
     }

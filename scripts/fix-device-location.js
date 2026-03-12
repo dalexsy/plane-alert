@@ -13,8 +13,12 @@ const db = admin.firestore();
 const [, , pushoverKey, deviceName, lat, lon, address] = process.argv;
 
 if (!pushoverKey || !deviceName || !lat || !lon) {
-  console.error("Usage: node scripts/fix-device-location.js <pushover-key> <device-name> <lat> <lon> [address]");
-  console.error("Example: node scripts/fix-device-location.js YOUR_KEY desktop 52.4606 13.5233 \"Berlin, Germany\"");
+  console.error(
+    "Usage: node scripts/fix-device-location.js <pushover-key> <device-name> <lat> <lon> [address]",
+  );
+  console.error(
+    'Example: node scripts/fix-device-location.js YOUR_KEY desktop 52.4606 13.5233 "Berlin, Germany"',
+  );
   process.exit(1);
 }
 
@@ -35,7 +39,7 @@ async function fixDeviceLocation() {
     ]);
 
     let deviceDoc = null;
-    
+
     for (const doc of fieldMatch.docs) {
       const data = doc.data();
       if (data.deviceName === deviceName) {
@@ -43,7 +47,7 @@ async function fixDeviceLocation() {
         break;
       }
     }
-    
+
     if (!deviceDoc) {
       for (const doc of prefixMatch.docs) {
         const data = doc.data();
@@ -60,19 +64,22 @@ async function fixDeviceLocation() {
     }
 
     const currentData = deviceDoc.data();
-    console.log("📍 Current location:", JSON.stringify(currentData.location || currentData.home, null, 2));
+    console.log(
+      "📍 Current location:",
+      JSON.stringify(currentData.location || currentData.home, null, 2),
+    );
 
     const newLocation = {
       lat: parseFloat(lat),
       lon: parseFloat(lon),
-      ...(address && { address })
+      ...(address && { address }),
     };
 
     console.log("📍 New location:", JSON.stringify(newLocation, null, 2));
 
     const updateData = {
       location: newLocation,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     // Remove legacy home field if it exists
@@ -88,7 +95,6 @@ async function fixDeviceLocation() {
     if (address) {
       console.log(`   Address: ${address}`);
     }
-    
   } catch (error) {
     console.error("❌ Error:", error);
   } finally {

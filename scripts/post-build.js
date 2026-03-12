@@ -33,7 +33,7 @@ if (fs.existsSync(swPath)) {
   const sw = fs.readFileSync(swPath, "utf8");
   const next = sw.replace(
     /const\s+CACHE_NAME\s*=\s*"plane-alert-[^"]+"\s*;/,
-    `const CACHE_NAME = "plane-alert-${buildId}";`
+    `const CACHE_NAME = "plane-alert-${buildId}";`,
   );
 
   if (next !== sw) {
@@ -60,10 +60,12 @@ largeJsonFiles.forEach((filename) => {
 
     const originalSize = (fileBuffer.length / 1024 / 1024).toFixed(2);
     const compressedSize = (gzipBuffer.length / 1024 / 1024).toFixed(2);
-    const ratio = ((1 - gzipBuffer.length / fileBuffer.length) * 100).toFixed(1);
+    const ratio = ((1 - gzipBuffer.length / fileBuffer.length) * 100).toFixed(
+      1,
+    );
 
     console.log(
-      `✓ ${filename}: ${originalSize}MB → ${compressedSize}MB (${ratio}% smaller)`
+      `✓ ${filename}: ${originalSize}MB → ${compressedSize}MB (${ratio}% smaller)`,
     );
   }
 });

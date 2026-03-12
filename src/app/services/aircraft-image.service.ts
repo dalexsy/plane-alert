@@ -17,14 +17,17 @@ export interface AircraftImage {
 export class AircraftImageService {
   private cache = new Map<string, Observable<AircraftImage | null>>();
 
-  constructor(private http: HttpClient, private performance: PerformanceService) {}
+  constructor(
+    private http: HttpClient,
+    private performance: PerformanceService,
+  ) {}
 
   /**
    * Get aircraft image for a given registration or hex using Planespotters.net API
    */
   getAircraftImage(
     registration?: string,
-    hex?: string
+    hex?: string,
   ): Observable<AircraftImage | null> {
     // Skip image loading on low-power devices to reduce network overhead
     if (this.performance.isLowPowerMode) {
@@ -47,7 +50,7 @@ export class AircraftImageService {
     }
 
     const request = this.fetchFromPlanespotters(registration, hex).pipe(
-      shareReplay(1)
+      shareReplay(1),
     );
 
     // Cache the observable
@@ -60,7 +63,7 @@ export class AircraftImageService {
    */
   private fetchFromPlanespotters(
     registration?: string,
-    hex?: string
+    hex?: string,
   ): Observable<AircraftImage | null> {
     // Try registration first, then hex
     const identifiers = [
@@ -83,7 +86,7 @@ export class AircraftImageService {
           }
 
           const url = `https://api.planespotters.net/pub/photos/${type}/${encodeURIComponent(
-            value!.trim()
+            value!.trim(),
           )}`;
 
           return this.http.get<any>(url).pipe(
@@ -128,9 +131,9 @@ export class AircraftImageService {
             catchError((error) => {
               console.error('Planespotters API error for', value, ':', error);
               return of(null);
-            })
+            }),
           );
-        })
+        }),
       );
     }
 

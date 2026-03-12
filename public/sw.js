@@ -1,8 +1,8 @@
 importScripts(
-  "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"
+  "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
 );
 importScripts(
-  "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"
+  "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js",
 );
 
 const firebaseConfig = {
@@ -25,7 +25,7 @@ const PRECACHE_URLS = ["/", "/index.html", "/assets/favicon/favicon.ico"];
 // Force immediate activation
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)),
   );
   // Skip waiting to activate immediately
   self.skipWaiting();
@@ -38,16 +38,16 @@ self.addEventListener("activate", (event) => {
         cacheNames.map((cacheName) => {
           // Delete ALL old caches, especially ones with the old database
           if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Deleting old cache:', cacheName);
+            console.log("🗑️ Deleting old cache:", cacheName);
             return caches.delete(cacheName);
           }
           return undefined;
-        })
+        }),
       ).then(() => {
         // Force immediate control of all clients
         return self.clients.claim();
-      })
-    )
+      }),
+    ),
   );
 });
 
@@ -64,9 +64,9 @@ self.addEventListener("fetch", (event) => {
   }
 
   const isNavigation = request.mode === "navigate";
-  
+
   // NEVER cache the huge aircraft database files
-  const isAircraftDb = url.pathname.includes('basic-ac-db');
+  const isAircraftDb = url.pathname.includes("basic-ac-db");
   if (isAircraftDb) {
     event.respondWith(fetch(request, { cache: "no-store" }));
     return;
@@ -103,7 +103,7 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
         return Response.error();
       }
-    })()
+    })(),
   );
 });
 
@@ -130,13 +130,13 @@ self.addEventListener("notificationclick", (event) => {
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientsArr) => {
         const matchingClient = clientsArr.find((client) =>
-          client.url.includes(targetUrl)
+          client.url.includes(targetUrl),
         );
         if (matchingClient) {
           matchingClient.focus();
           return matchingClient.navigate(targetUrl);
         }
         return self.clients.openWindow(targetUrl);
-      })
+      }),
   );
 });

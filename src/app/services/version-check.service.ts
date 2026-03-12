@@ -17,9 +17,11 @@ export class VersionCheckService {
 
   private async checkVersion(): Promise<void> {
     const storedVersion = localStorage.getItem(this.VERSION_KEY);
-    
+
     if (storedVersion !== this.CURRENT_VERSION) {
-      console.log(`🔄 Version changed from ${storedVersion || 'unknown'} to ${this.CURRENT_VERSION}`);
+      console.log(
+        `🔄 Version changed from ${storedVersion || 'unknown'} to ${this.CURRENT_VERSION}`,
+      );
       console.log('🧹 Running one-time client reset migration...');
 
       const migrationAlreadyRunning =
@@ -29,11 +31,11 @@ export class VersionCheckService {
         localStorage.setItem(this.MIGRATION_LOCK_KEY, '1');
         await this.runClientResetMigration();
       }
-      
+
       // Update version
       localStorage.setItem(this.VERSION_KEY, this.CURRENT_VERSION);
       localStorage.removeItem(this.MIGRATION_LOCK_KEY);
-      
+
       // Force hard reload if we had an old version
       if (storedVersion) {
         console.log('💥 Forcing hard reload to clear old code...');
@@ -91,14 +93,15 @@ export class VersionCheckService {
           databases
             .map((db) => db.name)
             .filter((name): name is string => !!name)
-            .map((name) =>
-              new Promise<void>((resolve) => {
-                const req = indexedDB.deleteDatabase(name);
-                req.onsuccess = () => resolve();
-                req.onerror = () => resolve();
-                req.onblocked = () => resolve();
-              })
-            )
+            .map(
+              (name) =>
+                new Promise<void>((resolve) => {
+                  const req = indexedDB.deleteDatabase(name);
+                  req.onsuccess = () => resolve();
+                  req.onerror = () => resolve();
+                  req.onblocked = () => resolve();
+                }),
+            ),
         );
       }
     } catch {
@@ -133,7 +136,7 @@ export class VersionCheckService {
 
       const value = localStorage.getItem(key) || '';
       const isLegacyKey = legacyPrefixes.some((prefix) =>
-        key.toLowerCase().includes(prefix)
+        key.toLowerCase().includes(prefix),
       );
       const isHugeValue = value.length > 1_000_000;
 

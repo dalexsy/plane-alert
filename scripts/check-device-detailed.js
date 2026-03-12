@@ -18,7 +18,9 @@ if (!pushoverKey) {
 
 async function checkDevices() {
   try {
-    console.log(`\n🔍 Checking devices for key: ${pushoverKey.slice(0, 8)}...\n`);
+    console.log(
+      `\n🔍 Checking devices for key: ${pushoverKey.slice(0, 8)}...\n`,
+    );
 
     const collectionRef = db.collection("deviceTokens");
     const prefix = `${pushoverKey}__`;
@@ -56,11 +58,11 @@ async function checkDevices() {
       const location = data.location;
       const home = data.home;
       const effectiveLocation = location || home;
-      
+
       console.log(`📱 Device: ${data.deviceName || "unknown"}`);
       console.log(`   Doc ID: ${docId}`);
       console.log(`   Platform: ${data.platform || "unknown"}`);
-      
+
       // Check both location fields
       if (location) {
         console.log(`   ✓ Location field: ${location.lat}, ${location.lon}`);
@@ -68,19 +70,19 @@ async function checkDevices() {
       } else {
         console.log(`   ✗ Location field: NOT SET`);
       }
-      
+
       if (home) {
         console.log(`   ⚠️  Legacy Home field: ${home.lat}, ${home.lon}`);
         console.log(`     Address: ${home.address || "NOT SET"}`);
       } else {
         console.log(`   ✓ Legacy Home field: NOT SET (good)`);
       }
-      
+
       if (effectiveLocation) {
         const lat = effectiveLocation.lat;
         const lon = effectiveLocation.lon;
         console.log(`   📍 Effective Location: ${lat}, ${lon}`);
-        
+
         // Determine rough city based on coordinates
         if (lat > 52 && lat < 53 && lon > 13 && lon < 14) {
           console.log(`   🏙️  Location appears to be: BERLIN`);
@@ -90,14 +92,18 @@ async function checkDevices() {
           console.log(`   🏙️  Location: UNKNOWN CITY`);
         }
       }
-      
+
       console.log(`   Radius: ${data.radiusKm || 100} km`);
-      console.log(`   Proximity: ${data.notifyProximity ? "enabled" : "disabled"}`);
-      console.log(`   Updated: ${
-        data.updatedAt
-          ? new Date(data.updatedAt._seconds * 1000).toISOString()
-          : "unknown"
-      }`);
+      console.log(
+        `   Proximity: ${data.notifyProximity ? "enabled" : "disabled"}`,
+      );
+      console.log(
+        `   Updated: ${
+          data.updatedAt
+            ? new Date(data.updatedAt._seconds * 1000).toISOString()
+            : "unknown"
+        }`,
+      );
       console.log("");
     }
   } catch (error) {
