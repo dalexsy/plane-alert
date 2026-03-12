@@ -69,11 +69,21 @@ export class NoonRefreshService implements OnDestroy {
 
   private performRefresh(type: string): void {
     console.log(`Noon Refresh Service: Performing ${type} refresh...`);
-    // Force a hard refresh like F5 - bypasses cache and reloads everything
-    // Add timestamp to force cache bypass
-    const url = new URL(window.location.href);
-    url.searchParams.set('_refresh', Date.now().toString());
-    window.location.href = url.toString();
+    
+    // Unregister service worker before refresh to ensure clean state
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        Promise.all(registrations.map(reg => reg.unregister())).then(() => {
+          // Use location.reload() for a cleaner refresh that properly re-initializes everything
+          window.location.reload();
+        });
+      }).catch(err => {
+        console.warn('Service worker cleanup failed, forcing reload anyway:', err);
+        window.location.reload();
+      });
+    } else {
+      window.location.reload();
+    }
   }
 
   private clearTimers(): void {

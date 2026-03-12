@@ -14,4 +14,6 @@ export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from
 export type { AircraftDbEntry, AircraftDbMetadata } from './aircraft-db-loader';
 export { COMMON_MILITARY_TYPES } from './military-types';
 export type { MilitaryAircraftType } from './military-types';
+export { AIRCRAFT_TYPE_NAMES, getAircraftTypeName, } from './aircraft-type-names';
+export type { AircraftTypeName } from './aircraft-type-names';
 //# sourceMappingURL=index.d.ts.map

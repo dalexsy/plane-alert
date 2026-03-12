@@ -54,15 +54,19 @@ async function checkDevices() {
     console.log(`\nFound ${devices.size} device(s):\n`);
 
     for (const [docId, data] of devices.entries()) {
+      const location = data.location || data.home;
       console.log(`Device ID: ${docId}`);
       console.log(`  Device Name: ${data.deviceName || "unknown"}`);
       console.log(`  Platform: ${data.platform || "unknown"}`);
       console.log(
-        `  Home Location: ${
-          data.home ? `${data.home.lat}, ${data.home.lon}` : "not set"
+        `  Location: ${
+          location ? `${location.lat}, ${location.lon}` : "not set"
         }`
       );
-      console.log(`  Address: ${data.home?.address || "not set"}`);
+      console.log(`  Address: ${location?.address || "not set"}`);
+      console.log(`  Legacy Home: ${
+          data.home ? `${data.home.lat}, ${data.home.lon}` : "not set"
+        }`);
       console.log(`  Radius: ${data.radiusKm || 100} km`);
       console.log(`  Distance Unit: ${data.distanceUnit || "km"}`);
       console.log(

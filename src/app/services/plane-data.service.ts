@@ -8,7 +8,11 @@ import { UnknownListService } from './unknown-list.service';
 import { OperatorCallSignService } from './operator-call-sign.service';
 import { HelicopterIdentificationService } from './helicopter-identification.service';
 import { AircraftCountryService } from '../services/aircraft-country.service';
-import { isMilitaryOperator, looksMilitary } from '@plane-alert/shared';
+import {
+  isMilitaryOperator,
+  looksMilitary,
+  getAircraftTypeName,
+} from '@plane-alert/shared';
 import {
   AircraftDbService,
   AircraftRecord,
@@ -112,16 +116,6 @@ export class PlaneDataService {
       // Store flight data for route enrichment
       this.routeCache.updateFromFlightData(flightData);
 
-      console.log('Fetched aircraft data from Firestore', {
-        location: `${centerLat.toFixed(2)},${centerLon.toFixed(2)}`,
-        radiusKm,
-        count: aircraft.length,
-        flightDataCount: Object.keys(flightData).length,
-        lastUpdate: new Date(
-          this.aircraftSnapshot.getLastUpdate()
-        ).toLocaleTimeString(),
-      });
-
       return aircraft;
     } catch (err) {
       console.warn('Firestore aircraft data unavailable:', err);
@@ -162,8 +156,11 @@ export class PlaneDataService {
       ac.type !== undefined && ac.type !== null ? String(ac.type).trim() : '';
     const typeDescription = rawTypeDescription || null;
 
-    // Fetch DB record
+    // Fetch DB record from user database only (no longer loads 607k main DB)
     const dbAircraft = getAircraftInfo(id);
+
+    // Note: dbAircraft is now only for user-added aircraft
+    // API provides most data, so missing dbAircraft is fine
 
     // Determine military status using shared looksMilitary() function (same logic as backend)
     // This checks: mil flag OR dbFlags AND filters boring aircraft types
@@ -302,7 +299,13 @@ export class PlaneDataService {
     // Prefer API-derived operator (opicao) first; then explicit DB operator; then callsign fallback.
     let operator =
       safeOpIcaoOperator ?? dbAircraft?.ownop ?? safePrefixOperator ?? '';
-    let model = apiModel || dbAircraft?.model || apiIcaoType || '';
+    
+    // Model priority: API description > DB model > ICAO type code (converted to readable name)
+    let model = apiModel || dbAircraft?.model || '';
+    if (!model && apiIcaoType) {
+      // Convert ICAO type code (e.g., "B738") to readable name (e.g., "Boeing 737-800")
+      model = getAircraftTypeName(apiIcaoType);
+    }
 
     // Fallback: US military flights often omit an operator string.
     // If we’ve already classified as military and the country is US, default to US Air Force.
@@ -330,8 +333,11 @@ export class PlaneDataService {
     // Check if this is an A380 for visual highlighting
     const isA380 = model && /a\s*-?\s*380/i.test(model);
 
-    // Add unknown aircraft to database
-    if (!dbAircraft) {
+    // Add unknown aircraft to USER database (not the huge main one)
+    // Only add if truly missing data from both API and user DB
+    if (!dbAircraft && !apiModel && !operator) {
+      // Only store aircraft that are completely unknown
+      // Don't pollute user DB with aircraft that have API data
       let dbModel = apiModel || '';
       if (
         !dbModel &&

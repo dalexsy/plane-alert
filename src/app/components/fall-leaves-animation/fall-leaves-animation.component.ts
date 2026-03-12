@@ -7,6 +7,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { PerformanceService } from '../../services/performance.service';
 
 interface Leaf {
   id: number;
@@ -40,7 +41,12 @@ export class FallLeavesAnimationComponent
   private readonly baseFallSpeed = 0.0003; // Base falling speed per frame (much slower)
   private readonly baseSwaySpeed = 0.001; // Much slower rotation speed
 
+  constructor(private performance: PerformanceService) {}
+
   ngOnInit(): void {
+    if (this.performance.disableDecorativeAnimations) {
+      return;
+    }
     if (this.isAutumn && this.animationsEnabled) {
       this.initializeLeaves();
       this.startAnimation();
@@ -52,6 +58,12 @@ export class FallLeavesAnimationComponent
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (this.performance.disableDecorativeAnimations) {
+      if (this.animationFrameId) {
+        this.stopAnimation();
+      }
+      return;
+    }
     if (changes['isAutumn'] || changes['animationsEnabled']) {
       if (this.isAutumn && this.animationsEnabled) {
         if (this.leaves.length === 0) {

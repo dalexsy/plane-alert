@@ -30,9 +30,21 @@ export const testProximityTargeting = deviceFunctions.testProximityTargeting;
 import { createAircraftCollectionFunction } from './aircraft-collection';
 export const collectAircraftData = createAircraftCollectionFunction(db);
 
+// On-demand aircraft collection (used by frontend when snapshots are missing/stale)
+import { createAircraftOnDemandFunction } from './aircraft-collection';
+export const collectAircraftOnDemand = createAircraftOnDemandFunction(db);
+
 // Import and create notification processor function
 import { createNotificationProcessorFunction } from './notification-processor';
 export const processPlanes = createNotificationProcessorFunction(db);
 
 // Import OpenSky proxy function
 export { openskyProxy } from './opensky-proxy';
+
+// Import user key recovery function
+import { createRecoverUserKeyFunction } from './recover-userkey';
+export const recoverUserKey = createRecoverUserKeyFunction(db);
+
+// Import cooldown clearing function
+import { createClearCooldownsFunction } from './clear-cooldowns';
+export const clearCooldowns = createClearCooldownsFunction(db);

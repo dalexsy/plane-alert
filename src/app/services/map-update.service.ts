@@ -19,6 +19,8 @@ import { haversineDistance } from '../utils/geo-utils';
 })
 export class MapUpdateService {
   private _initialScanDone = false;
+  private lastUpdateSignature: string | null = null;
+  private lastUpdateAt = 0;
 
   constructor(
     private settings: SettingsService,
@@ -54,13 +56,25 @@ export class MapUpdateService {
       mainRadius = 500;
     }
 
+    const effectiveZoom = zoomLevel != null ? zoomLevel : map.getZoom();
+    const updateSignature = `${lat.toFixed(2)}_${lon.toFixed(2)}_${mainRadius}_${effectiveZoom}`;
+    const now = Date.now();
+    if (
+      this.lastUpdateSignature === updateSignature &&
+      now - this.lastUpdateAt < 1500
+    ) {
+      return;
+    }
+    this.lastUpdateSignature = updateSignature;
+    this.lastUpdateAt = now;
+
     // DON'T save coordinates here - they should only be saved together with address
     // using settings.setLocationWithAddress() to prevent sync issues
     // Only save radius since it's independent
     this.settings.setRadius(mainRadius);
 
     // Update map view
-    const targetZoom = zoomLevel != null ? zoomLevel : map.getZoom();
+    const targetZoom = effectiveZoom;
     map.setView([lat, lon], targetZoom);
 
     // Draw main radius

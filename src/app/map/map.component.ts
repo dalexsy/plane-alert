@@ -466,8 +466,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     this.settings.load();
-    // Load aircraft database
-    await this.aircraftDb.load();
+    // PERFORMANCE: Don't load 607k aircraft database on startup - load lazily on first lookup
+    // This dramatically improves startup time and reduces memory from 550MB to ~50MB
+    // await this.aircraftDb.load();
     // showDateTime is now managed by UiStateService
 
     // Load clicked airports from settings

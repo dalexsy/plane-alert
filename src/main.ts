@@ -7,25 +7,51 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 enableProdMode();
 
+async function registerServiceWorkerSafely(): Promise<void> {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  try {
+    const swResponse = await fetch('/sw.js', { cache: 'no-store' });
+    if (!swResponse.ok) {
+      console.warn('Service worker script not available, skipping registration');
+      return;
+    }
+  } catch {
+    console.warn('Service worker precheck failed, skipping registration');
+    return;
+  }
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('🔄 Service Worker updated - reloading to clear old cache...');
+    window.location.reload();
+  });
+
+  try {
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      updateViaCache: 'none',
+    });
+    console.log('Service Worker registered:', registration);
+    registration.update();
+    setInterval(() => {
+      registration.update();
+    }, 60 * 60 * 1000);
+  } catch (error) {
+    console.warn('Service Worker registration skipped:', error);
+  }
+}
+
 bootstrapApplication(AppComponent, {
   providers: [
     importProvidersFrom(HttpClientModule, BrowserAnimationsModule),
     Title,
   ],
 })
-  .then(() => {
-    // Register service worker for PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration);
-        })
-        .catch((error) => {
-          console.log('Service Worker registration failed:', error);
-        });
-    }
+  .then(async () => {
+    await registerServiceWorkerSafely();
   })
   .catch((err) => {
-    // Error handling removed - errors will be thrown naturally
+    console.error('Angular bootstrap failed:', err);
+    throw err;
   });

@@ -63,3 +63,10 @@ export type { AircraftDbEntry, AircraftDbMetadata } from './aircraft-db-loader';
 // Export military types for filtering
 export { COMMON_MILITARY_TYPES } from './military-types';
 export type { MilitaryAircraftType } from './military-types';
+
+// Export aircraft type name mapping
+export {
+  AIRCRAFT_TYPE_NAMES,
+  getAircraftTypeName,
+} from './aircraft-type-names';
+export type { AircraftTypeName } from './aircraft-type-names';

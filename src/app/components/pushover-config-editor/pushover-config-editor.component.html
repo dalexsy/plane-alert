@@ -41,15 +41,27 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div class="loading-section" *ngIf="isVerifyingKey && devices.length === 0">
+      <p>Loading devices...</p>
+    </div>
+
+    <!-- No Devices Message -->
+    <div class="no-devices-section" *ngIf="!isVerifyingKey && keyValidated && devices.length === 0">
+      <p>No devices found. Make sure you have the Pushover app installed and logged in with this user key.</p>
+    </div>
+
     <!-- Device List -->
     <div class="devices-section" *ngIf="devices.length > 0">
       <h4>Devices</h4>
+      <p class="help-text">
+        Click any location to set a different address for that device.
+      </p>
       <div class="device-list">
         <div
           *ngFor="let device of devices"
           class="device-item"
           [class.selected]="selectedDevice === device"
-          [class.orphaned]="!device.isRegisteredInPushover"
           (click)="selectDevice(device)"
         >
           <div class="device-info">
@@ -57,24 +69,32 @@
               <span class="device-name">{{
                 formatDeviceName(device.name)
               }}</span>
-              <span
-                *ngIf="!device.isRegisteredInPushover"
-                class="orphan-warning"
-                title="This device is not registered in Pushover and cannot receive notifications"
-              >
-                <app-icon icon="warning" size="small"></app-icon>
-                Not in Pushover
-              </span>
-              <span
-                class="device-location"
-                *ngIf="formatLocation(device) !== 'No location set'"
-              >
-                <app-icon
-                  icon="location_on"
-                  variant="sharp"
-                  size="small"
-                ></app-icon>
-                {{ formatLocation(device) }}
+            </div>
+            <div 
+              class="device-location-display" 
+              *ngIf="selectedDevice !== device || !isEditingLocation"
+              (click)="startEditingLocation(device); $event.stopPropagation()"
+              title="Click to edit location"
+            >
+              <app-icon
+                icon="location_on"
+                variant="sharp"
+                size="small"
+              ></app-icon>
+              <span class="location-text">{{ getLocationDisplay(device) }}</span>
+            </div>
+            <div class="device-location-editor" *ngIf="selectedDevice === device && isEditingLocation">
+              <app-input
+                [value]="locationSearchQuery"
+                (inputChange)="locationSearchQuery = $event"
+                (enterPressed)="saveLocationEdit(device)"
+                (blurEvent)="saveLocationEdit(device)"
+                placeholder="Enter city or address..."
+                size="small"
+                #locationInput
+              ></app-input>
+              <span class="location-hint" *ngIf="locationError">
+                {{ locationError }}
               </span>
             </div>
             <div class="device-controls">

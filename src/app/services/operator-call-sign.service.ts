@@ -124,11 +124,8 @@ export class OperatorCallSignService {
         logPrefix !== 'VFR' &&
         logPrefix !== 'IFR'
       ) {
-        // Add new prefix then output entire set formatted for JSON
+        // Add new prefix silently (avoid expensive hot-path console output)
         this.unknownCallSigns.add(logPrefix);
-        console.log(
-          [...this.unknownCallSigns].map((p) => `"${p}": ""`).join(', ')
-        );
       }
     }
 

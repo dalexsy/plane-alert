@@ -6,7 +6,7 @@
  * for Plane Alert frontend and backend systems
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.COMMON_MILITARY_TYPES = exports.isMilitaryAircraft = exports.isAircraftMilitary = exports.createAircraftLookupMap = exports.getCountryFlagEmoji = exports.getArrowForDirection = exports.formatNotificationTitle = exports.formatNotificationBody = exports.formatDistance = exports.bearingToCardinal = exports.computeBearing = exports.haversineDistanceKm = exports.toDegrees = exports.toRadians = exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = exports.isMilitaryOperator = exports.isMilitaryCallsign = exports.normalizeCallsign = exports.looksMilitary = exports.ICAO_LOOKUP_CONFIG = exports.isKnownCountry = exports.getRegistrationPrefixesForCountry = exports.getAircraftCountry = exports.getCountryFromRegistration = exports.getCountryFromIcaoHex = void 0;
+exports.getAircraftTypeName = exports.AIRCRAFT_TYPE_NAMES = exports.COMMON_MILITARY_TYPES = exports.isMilitaryAircraft = exports.isAircraftMilitary = exports.createAircraftLookupMap = exports.getCountryFlagEmoji = exports.getArrowForDirection = exports.formatNotificationTitle = exports.formatNotificationBody = exports.formatDistance = exports.bearingToCardinal = exports.computeBearing = exports.haversineDistanceKm = exports.toDegrees = exports.toRadians = exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = exports.isMilitaryOperator = exports.isMilitaryCallsign = exports.normalizeCallsign = exports.looksMilitary = exports.ICAO_LOOKUP_CONFIG = exports.isKnownCountry = exports.getRegistrationPrefixesForCountry = exports.getAircraftCountry = exports.getCountryFromRegistration = exports.getCountryFromIcaoHex = void 0;
 // Export country detection functions
 var country_detection_1 = require("./country-detection");
 Object.defineProperty(exports, "getCountryFromIcaoHex", { enumerable: true, get: function () { return country_detection_1.getCountryFromIcaoHex; } });
@@ -46,4 +46,8 @@ Object.defineProperty(exports, "isMilitaryAircraft", { enumerable: true, get: fu
 // Export military types for filtering
 var military_types_1 = require("./military-types");
 Object.defineProperty(exports, "COMMON_MILITARY_TYPES", { enumerable: true, get: function () { return military_types_1.COMMON_MILITARY_TYPES; } });
+// Export aircraft type name mapping
+var aircraft_type_names_1 = require("./aircraft-type-names");
+Object.defineProperty(exports, "AIRCRAFT_TYPE_NAMES", { enumerable: true, get: function () { return aircraft_type_names_1.AIRCRAFT_TYPE_NAMES; } });
+Object.defineProperty(exports, "getAircraftTypeName", { enumerable: true, get: function () { return aircraft_type_names_1.getAircraftTypeName; } });
 //# sourceMappingURL=index.js.map

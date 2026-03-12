@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { PerformanceService } from './performance.service';
 
 /**
  * Configuration interface for rain animation parameters
@@ -119,7 +120,7 @@ export class RainService {
   private animationFrameId: number | null = null;
   private lastUpdateTime = 0;
 
-  constructor() {
+  constructor(private performance: PerformanceService) {
     this.initializeRainDrops();
   }
 
@@ -164,6 +165,11 @@ export class RainService {
     temperature: number = 288.15,
     visibility: number = 10000
   ): void {
+    // Disable decorative animations on low-power devices
+    if (this.performance.disableDecorativeAnimations) {
+      return;
+    }
+
     const condition = weatherCondition?.toLowerCase() || '';
     const description = weatherDescription?.toLowerCase() || '';
 
@@ -229,6 +235,12 @@ export class RainService {
    * @param config Rain configuration parameters
    */
   public startRain(config?: Partial<RainConfiguration>): void {
+    // Disable decorative animations on low-power devices
+    if (this.performance.disableDecorativeAnimations) {
+      console.log('🐌 Rain animation disabled (low-power mode)');
+      return;
+    }
+
     const newConfig = { ...this.defaultConfig, ...config };
     this.currentConfig$.next(newConfig);
     this.isRaining$.next(true);
@@ -406,11 +418,14 @@ export class RainService {
     humidity: number
   ): number {
     // Check if it's snow - snow falls much slower than rain
-    const isSnow = condition.includes('snow') || description.includes('snow') || description.includes('flurries');
-    
+    const isSnow =
+      condition.includes('snow') ||
+      description.includes('snow') ||
+      description.includes('flurries');
+
     // Base fall speed from configuration
     let fallSpeed = this.defaultConfig.fallSpeed;
-    
+
     if (isSnow) {
       // Snow should feel like a drift, not rain.
       // Use a much lower baseline than rain and keep it tightly clamped.
@@ -445,7 +460,10 @@ export class RainService {
     const humidityFactor = Math.max(0.95, 1 - (humidity - 50) * 0.002);
     fallSpeed *= humidityFactor;
 
-    return Math.max(isSnow ? 20 : 400, Math.min(isSnow ? 120 : 1200, fallSpeed));
+    return Math.max(
+      isSnow ? 20 : 400,
+      Math.min(isSnow ? 120 : 1200, fallSpeed)
+    );
   }
 
   /**
@@ -671,7 +689,11 @@ export class RainService {
     visibility: number
   ): string {
     // Check if it's snow first
-    if (condition.includes('snow') || description.includes('snow') || description.includes('flurries')) {
+    if (
+      condition.includes('snow') ||
+      description.includes('snow') ||
+      description.includes('flurries')
+    ) {
       // Snow: keep it subtle so it doesn't read like bright white streaks.
       const baseSnowColor = { r: 245, g: 248, b: 255, a: 0.45 };
 

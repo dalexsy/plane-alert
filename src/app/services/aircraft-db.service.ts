@@ -22,23 +22,56 @@ export class AircraftDbService {
   private db: Map<string, AircraftRecord> = new Map();
   private userDb: Map<string, AircraftRecord> = new Map();
   private readonly USER_DB_KEY = 'plane-alert-user-aircraft-db';
+  private isLoading = false;
+  private isLoaded = false;
+  private loadPromise: Promise<void> | null = null;
   // Global reference for development access
   public currentUserDbJson = '';
   // Debounce file writes
   private saveTimeout: any = null;
+  private localStorageSaveTimeout: any = null;
   private lastFileWrite = 0;
   private readonly MIN_WRITE_INTERVAL = 60000; // Write max once per 60 seconds
+  private readonly LOCAL_SAVE_DEBOUNCE_MS = 1000;
 
   constructor(private http: HttpClient) {
     // Make service globally accessible for console access
     if (typeof window !== 'undefined') {
       (window as any).aircraftDbService = this;
     }
+    // Load user DB immediately (much smaller), defer main DB
+    this.loadUserDataOnly();
   }
 
-  load(): Promise<void> {
+  /**
+   * Lazy load full database - only for admin/debugging
+   * Normal operation no longer needs this
+   */
+  async loadFullDatabase(): Promise<void> {
+    if (this.isLoaded) {
+      console.log('✅ Database already loaded');
+      return;
+    }
+    console.log('⚠️ Loading full 607k aircraft database (for admin use only)...');
+    await this.load();
+  }
+
+  /**
+   * Lazy load the full aircraft database
+   * Returns immediately if already loaded or loading
+   */
+  private load(): Promise<void> {
+    if (this.isLoaded) {
+      return Promise.resolve();
+    }
+    if (this.loadPromise) {
+      return this.loadPromise;
+    }
+    this.isLoading = true;
+    console.log('📦 Loading aircraft database (this may take a moment)...');
+    
     // Load split database files and merge
-    return Promise.all([
+    this.loadPromise = Promise.all([
       this.http
         .get('/assets/basic-ac-db1.json', { responseType: 'text' })
         .toPromise(),
@@ -91,11 +124,38 @@ export class AircraftDbService {
         records.forEach((rec) => this.db.set(rec.icao.toLowerCase(), rec));
         console.log(`✅ Loaded ${this.db.size} aircraft from main database`);
         this.loadUserData();
+        this.isLoaded = true;
+        this.isLoading = false;
       })
       .catch((error) => {
-        // Error loading aircraft DB fragments
+        console.error('❌ Failed to load aircraft database:', error);
+        this.isLoading = false;
+        this.loadPromise = null;
         throw error;
       });
+    
+    return this.loadPromise;
+  }
+
+  /**
+   * Load only user database from localStorage (fast, small dataset)
+   */
+  private loadUserDataOnly(): void {
+    const stored = localStorage.getItem(this.USER_DB_KEY);
+    if (stored) {
+      try {
+        const records: AircraftRecord[] = JSON.parse(stored);
+        records.forEach((rec) => {
+          const icao = rec.icao.toLowerCase();
+          this.userDb.set(icao, rec);
+        });
+        console.log(`✅ Loaded ${this.userDb.size} user aircraft from localStorage (main 607k DB NOT loaded - using API data instead)`);
+      } catch (e) {
+        console.error('Error loading user aircraft data:', e);
+      }
+    } else {
+      console.log('📊 No user aircraft database found (main 607k DB NOT loaded - using API data instead)');
+    }
   }
 
   private loadUserData(): void {
@@ -124,27 +184,38 @@ export class AircraftDbService {
   }
 
   private saveUserData(): void {
-    const records = Array.from(this.userDb.values());
-    localStorage.setItem(this.USER_DB_KEY, JSON.stringify(records));
-
-    // Make current database available globally for easy access
-    if (typeof window !== 'undefined') {
-      (window as any).planeAlertUserDb = this.exportUserRecordsAsJsonArray();
+    if (this.localStorageSaveTimeout) {
+      clearTimeout(this.localStorageSaveTimeout);
+      this.localStorageSaveTimeout = null;
     }
 
-    // Debounce file writes to prevent constant refreshes
-    this.debouncedSaveToFile();
+    this.localStorageSaveTimeout = setTimeout(() => {
+      const records = Array.from(this.userDb.values());
+      localStorage.setItem(this.USER_DB_KEY, JSON.stringify(records));
+
+      // Make current database available globally for easy access
+      if (typeof window !== 'undefined') {
+        (window as any).planeAlertUserDb = this.exportUserRecordsAsJsonArray();
+      }
+
+      // Debounce file writes to prevent constant refreshes
+      this.debouncedSaveToFile();
+    }, this.LOCAL_SAVE_DEBOUNCE_MS);
   }
 
   private updateGlobalJson(): void {
     this.currentUserDbJson = this.exportUserRecordsAsJsonArray();
   }
 
+  /**
+   * Look up aircraft by ICAO hex
+   * Only checks user database (no lazy loading of 607k main DB)
+   */
   lookup(icaoHex: string): AircraftRecord | undefined {
     const lower = icaoHex.toLowerCase();
-    // Check main database first - it has accurate data
-    // Only fall back to user database if not found in main DB
-    return this.db.get(lower) || this.userDb.get(lower);
+    
+    // Only check user database - no longer load the massive main database
+    return this.userDb.get(lower);
   }
 
   addRecord(record: AircraftRecord): void {

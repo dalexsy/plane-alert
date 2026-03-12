@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError, switchMap, shareReplay } from 'rxjs/operators';
+import { PerformanceService } from './performance.service';
 
 export interface AircraftImage {
   url: string;
@@ -16,7 +17,7 @@ export interface AircraftImage {
 export class AircraftImageService {
   private cache = new Map<string, Observable<AircraftImage | null>>();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private performance: PerformanceService) {}
 
   /**
    * Get aircraft image for a given registration or hex using Planespotters.net API
@@ -25,12 +26,15 @@ export class AircraftImageService {
     registration?: string,
     hex?: string
   ): Observable<AircraftImage | null> {
-    console.log('getAircraftImage called with', { registration, hex });
+    // Skip image loading on low-power devices to reduce network overhead
+    if (this.performance.isLowPowerMode) {
+      return of(null);
+    }
+
     if (
       (!registration || registration.trim() === '') &&
       (!hex || hex.trim() === '')
     ) {
-      console.log('No valid registration or hex provided');
       return of(null);
     }
 
@@ -84,7 +88,6 @@ export class AircraftImageService {
 
           return this.http.get<any>(url).pipe(
             map((data) => {
-              console.log('Planespotters API response for', value, ':', data);
               if (data.photos && data.photos.length > 0) {
                 const photo = data.photos[0];
                 // Extract URL from thumbnail_large, thumbnail, or photo objects

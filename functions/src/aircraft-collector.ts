@@ -54,20 +54,23 @@ export async function fetchAircraft(
   radiusKm: number
 ): Promise<AdsBPlane[]> {
   const radiusNm = radiusKm / 1.852;
-  const url = `https://api.adsb.one/v2/point/${home.lat}/${
+  const baseUrl =
+    process.env.ADSB_POINT_API_BASE_URL?.trim() || 'https://api.adsb.lol';
+  const url = `${baseUrl.replace(/\/$/, '')}/v2/point/${home.lat}/${
     home.lon
   }/${radiusNm.toFixed(2)}`;
 
   const ORIGIN_HEADER = process.env.ORIGIN_HEADER || 'plane-alert.surge.sh';
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
   const response = await fetch(url, {
     headers: {
       'User-Agent': ORIGIN_HEADER,
       Accept: 'application/json',
     },
-    // @ts-ignore - fetch timeout option
-    timeout: 5000,
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timer));
 
   if (!response.ok) {
     logger.warn('ADS-B API error', response.status, response.statusText);

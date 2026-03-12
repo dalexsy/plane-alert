@@ -85,7 +85,7 @@ export class AirportService {
     lat: number,
     lon: number,
     radiusKm: number,
-    showLabels: boolean
+    showLabels: boolean,
   ): Promise<void> {
     // Check if location has meaningfully changed (>1km)
     const locationChanged =
@@ -254,7 +254,7 @@ export class AirportService {
             lat: circle.getLatLng().lat,
             lon: circle.getLatLng().lng,
             hasIata: !!this.airportData.get(id)?.code,
-          })
+          }),
         );
 
         // Compute bbox covering all airports plus margin
@@ -294,7 +294,7 @@ export class AirportService {
                 start.lat,
                 start.lon,
                 end.lat,
-                end.lon
+                end.lon,
               );
 
               // Find nearest airport center
@@ -305,7 +305,7 @@ export class AirportService {
                   a.lat,
                   a.lon,
                   (start.lat + end.lat) / 2,
-                  (start.lon + end.lon) / 2
+                  (start.lon + end.lon) / 2,
                 );
                 if (d < bestDist) {
                   bestDist = d;
@@ -327,8 +327,8 @@ export class AirportService {
                 maxLen > 0
                   ? maxLen / 2 + 0.5
                   : a.hasIata
-                  ? MAJOR_AIRPORT_RADIUS_KM
-                  : MINOR_AIRPORT_RADIUS_KM;
+                    ? MAJOR_AIRPORT_RADIUS_KM
+                    : MINOR_AIRPORT_RADIUS_KM;
               this.airportRadiusCache.set(a.id, radius);
               if (circle) circle.setRadius(radius * 1000);
             });
@@ -343,7 +343,7 @@ export class AirportService {
 
       // Increase opacity of all airport circles after resizing
       this.airportCircles.forEach((circle) =>
-        circle.setStyle({ fillOpacity: 0.3 })
+        circle.setStyle({ fillOpacity: 0.3 }),
       );
 
       // Hide loading indicator inside Angular zone

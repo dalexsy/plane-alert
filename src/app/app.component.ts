@@ -7,6 +7,8 @@ import {
   NotificationStatusInfo,
 } from './services/notification.service';
 import { FirebaseMessagingService } from './services/firebase-messaging.service';
+import { VersionCheckService } from './services/version-check.service';
+import { PerformanceService } from './services/performance.service';
 
 @Component({
   selector: 'app-root',
@@ -21,8 +23,13 @@ export class AppComponent implements OnInit {
   constructor(
     private noonRefreshService: NoonRefreshService,
     private notificationService: NotificationService,
-    private firebaseMessaging: FirebaseMessagingService
-  ) {}
+    private firebaseMessaging: FirebaseMessagingService,
+    private versionCheck: VersionCheckService,
+    private performance: PerformanceService
+  ) {
+    // VersionCheckService constructor runs automatically to check version
+    // PerformanceService constructor runs automatically to detect device capabilities
+  }
 
   ngOnInit() {
     this.noonRefreshService.start();

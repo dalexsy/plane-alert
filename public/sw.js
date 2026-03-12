@@ -19,13 +19,15 @@ const messaging = firebase.messaging();
 
 // Minimal service worker focused on runtime caching of fetched assets
 // NOTE: CACHE_NAME is auto-bumped by scripts/post-build.js during deploy builds.
-const CACHE_NAME = "plane-alert-v8";
+const CACHE_NAME = "plane-alert-v9-no-db";
 const PRECACHE_URLS = ["/", "/index.html", "/assets/favicon/favicon.ico"];
 
+// Force immediate activation
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
+  // Skip waiting to activate immediately
   self.skipWaiting();
 });
 
@@ -34,15 +36,19 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames.map((cacheName) => {
+          // Delete ALL old caches, especially ones with the old database
           if (cacheName !== CACHE_NAME) {
+            console.log('🗑️ Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
           return undefined;
         })
-      )
+      ).then(() => {
+        // Force immediate control of all clients
+        return self.clients.claim();
+      })
     )
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -58,6 +64,13 @@ self.addEventListener("fetch", (event) => {
   }
 
   const isNavigation = request.mode === "navigate";
+  
+  // NEVER cache the huge aircraft database files
+  const isAircraftDb = url.pathname.includes('basic-ac-db');
+  if (isAircraftDb) {
+    event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
 
   event.respondWith(
     (async () => {

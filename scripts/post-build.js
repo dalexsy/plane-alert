@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+const zlib = require("zlib");
 
 // Copy index.html to 200.html for Surge SPA routing
 const distPath = path.join(__dirname, "../dist/plane-alert/browser");
@@ -42,3 +43,27 @@ if (fs.existsSync(swPath)) {
     console.warn("⚠ sw.js CACHE_NAME not updated (pattern not found)");
   }
 }
+
+// Gzip large JSON files to fix ERR_INCOMPLETE_CHUNKED_ENCODING on Surge
+const assetsPath = path.join(distPath, "assets");
+const largeJsonFiles = ["basic-ac-db1.json", "basic-ac-db2.json"];
+
+console.log("🗜️  Compressing large JSON files...");
+largeJsonFiles.forEach((filename) => {
+  const filePath = path.join(assetsPath, filename);
+  const gzipPath = filePath + ".gz";
+
+  if (fs.existsSync(filePath)) {
+    const fileBuffer = fs.readFileSync(filePath);
+    const gzipBuffer = zlib.gzipSync(fileBuffer, { level: 9 });
+    fs.writeFileSync(gzipPath, gzipBuffer);
+
+    const originalSize = (fileBuffer.length / 1024 / 1024).toFixed(2);
+    const compressedSize = (gzipBuffer.length / 1024 / 1024).toFixed(2);
+    const ratio = ((1 - gzipBuffer.length / fileBuffer.length) * 100).toFixed(1);
+
+    console.log(
+      `✓ ${filename}: ${originalSize}MB → ${compressedSize}MB (${ratio}% smaller)`
+    );
+  }
+});

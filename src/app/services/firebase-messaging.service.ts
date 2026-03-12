@@ -23,8 +23,13 @@ export class FirebaseMessagingService {
 
     const home = this.settings.getHomeLocation();
     if (!home) {
-      console.warn(
-        'Home location unavailable; cannot register push notifications.'
+      console.error(
+        '❌ No home location set. Double-tap the map to set your location before enabling notifications.'
+      );
+      alert(
+        'Please set your home location first:\n\n' +
+        '1. Double-tap on the map at your location\n' +
+        '2. Then try enabling notifications again'
       );
       return false;
     }
@@ -84,10 +89,12 @@ export class FirebaseMessagingService {
   async updateCurrentLocation(lat: number, lon: number): Promise<boolean> {
     const userKey = this.getStoredUserKey();
     if (!userKey) {
-      // Not registered yet, skip
+      console.log('⏭️ No user key stored, skipping location update');
       return false;
     }
 
+    console.log('📍 Updating backend location:', { lat, lon });
+    
     const radius = this.settings.radius ?? 100;
     const deviceName = this.getOrCreateDeviceName();
     const payload = {
@@ -106,10 +113,10 @@ export class FirebaseMessagingService {
           headers: { 'Content-Type': 'application/json' },
         })
       );
-      console.log('✅ Updated backend location:', { lat, lon });
+      console.log('✅ Backend location updated successfully:', { lat, lon });
       return true;
     } catch (error) {
-      console.warn('Failed to update backend location:', error);
+      console.error('❌ Failed to update backend location:', error);
       return false;
     }
   }

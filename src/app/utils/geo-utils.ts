@@ -103,3 +103,53 @@ export async function reverseGeocode(
     return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
   }
 }
+
+export interface ForwardGeocodeResult {
+  lat: number;
+  lon: number;
+  displayName: string;
+}
+
+export async function forwardGeocode(
+  query: string
+): Promise<ForwardGeocodeResult | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=1`,
+      {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'PlaneAlert/1.0' },
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data && data.length > 0) {
+      const result = data[0];
+      return {
+        lat: parseFloat(result.lat),
+        lon: parseFloat(result.lon),
+        displayName: result.display_name,
+      };
+    }
+
+    return null;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.warn('Forward geocoding request timed out.');
+    } else {
+      console.warn('Forward geocoding failed:', error);
+    }
+    return null;
+  }
+}

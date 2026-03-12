@@ -1,5 +1,11 @@
 /* src/app/services/settings.service.ts */
-import { Injectable, EventEmitter, Inject, Optional } from '@angular/core';
+import {
+  Injectable,
+  EventEmitter,
+  Inject,
+  Optional,
+  Injector,
+} from '@angular/core';
 
 export interface ViewConeConfig {
   startAngle: number;
@@ -11,7 +17,7 @@ export interface ViewConeConfig {
   providedIn: 'root',
 })
 export class SettingsService {
-  constructor() {
+  constructor(private injector: Injector) {
     // Set mobile-specific defaults
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     if (isMobile) {
@@ -292,11 +298,10 @@ export class SettingsService {
     localStorage.setItem('currentAddress', address);
 
     // Update backend notification location
-    const firebaseMessaging = (await import('./firebase-messaging.service'))
-      .FirebaseMessagingService;
-    const injector = (await import('@angular/core')).inject;
     try {
-      const messagingService = injector(firebaseMessaging);
+      const firebaseMessaging = (await import('./firebase-messaging.service'))
+        .FirebaseMessagingService;
+      const messagingService = this.injector.get(firebaseMessaging);
       await messagingService.updateCurrentLocation(lat, lon);
     } catch (error) {
       console.warn('Failed to update backend location:', error);
@@ -409,20 +414,26 @@ export class SettingsService {
       homeData.address = address;
     }
     localStorage.setItem(this.homeLocationKey, JSON.stringify(homeData));
+    
+    console.log('🏠 Home location updated:', { lat, lon, address });
 
     // Update backend notification location (only if push notifications are enabled)
     try {
       const firebaseMessaging = (await import('./firebase-messaging.service'))
         .FirebaseMessagingService;
-      const injector = (await import('@angular/core')).inject;
-      const messagingService = injector(firebaseMessaging);
+      const messagingService = this.injector.get(firebaseMessaging);
 
       // Only update if there's an active token (push notifications enabled)
       if (messagingService.hasActiveToken()) {
-        await messagingService.updateCurrentLocation(lat, lon);
+        const updated = await messagingService.updateCurrentLocation(lat, lon);
+        if (updated) {
+          console.log('✅ Backend location synchronized for push notifications');
+        } else {
+          console.warn('⚠️ Failed to sync location with backend');
+        }
       }
     } catch (error) {
-      // Silently ignore - this is optional for push notifications
+      console.warn('⚠️ Could not update backend location:', error);
     }
   }
 
@@ -435,12 +446,8 @@ export class SettingsService {
         return null;
       }
     }
-    // Default home location: Berlin Brandenburg Airport (BER)
-    return {
-      lat: 52.3667,
-      lon: 13.5033,
-      address: 'Berlin Brandenburg Airport, Schönefeld, Germany',
-    };
+    // No default fallback - user must explicitly set their location for push notifications
+    return null;
   }
 
   /** Whether airport labels are permanently visible or only on hover */

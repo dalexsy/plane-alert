@@ -92,28 +92,38 @@ export class TemperatureComponent implements OnInit, OnDestroy {
     // Using OpenWeatherMap API (same as animations for consistency)
     const apiKey = 'ffcc03a274b2d049bf4633584e7b5699';
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
-    
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
         this.temperature = data.main?.temp ?? null;
         this.highTemp = data.main?.temp_max ?? null;
         this.lowTemp = data.main?.temp_min ?? null;
-        
+
         // Map OpenWeatherMap condition to Material Icon
         if (data.weather && data.weather.length > 0) {
           const condition = data.weather[0].main?.toLowerCase() || '';
           const description = data.weather[0].description?.toLowerCase() || '';
-          
+
           if (condition.includes('clear')) {
             this.weatherIcon = 'wb_sunny';
-          } else if (condition.includes('snow') || description.includes('snow')) {
+          } else if (
+            condition.includes('snow') ||
+            description.includes('snow')
+          ) {
             this.weatherIcon = 'ac_unit';
-          } else if (condition.includes('rain') || condition.includes('drizzle')) {
+          } else if (
+            condition.includes('rain') ||
+            condition.includes('drizzle')
+          ) {
             this.weatherIcon = 'rainy';
           } else if (condition.includes('thunderstorm')) {
             this.weatherIcon = 'thunderstorm';
-          } else if (condition.includes('mist') || condition.includes('fog') || condition.includes('haze')) {
+          } else if (
+            condition.includes('mist') ||
+            condition.includes('fog') ||
+            condition.includes('haze')
+          ) {
             this.weatherIcon = 'foggy';
           } else if (condition.includes('cloud')) {
             this.weatherIcon = 'wb_cloudy';
@@ -121,7 +131,7 @@ export class TemperatureComponent implements OnInit, OnDestroy {
             this.weatherIcon = 'wb_cloudy'; // default
           }
         }
-        
+
         this.loading = false;
       })
       .catch((error) => {

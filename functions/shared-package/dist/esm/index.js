@@ -16,4 +16,6 @@ export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, 
 export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from './aircraft-db-loader';
 // Export military types for filtering
 export { COMMON_MILITARY_TYPES } from './military-types';
+// Export aircraft type name mapping
+export { AIRCRAFT_TYPE_NAMES, getAircraftTypeName, } from './aircraft-type-names';
 //# sourceMappingURL=index.js.map

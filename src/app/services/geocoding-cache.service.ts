@@ -70,11 +70,8 @@ export class GeocodingCacheService {
   /**
    * Get geocoded address with caching and request deduplication
    */ public async reverseGeocode(lat: number, lon: number): Promise<string> {
-    console.log('Geocoding coordinates:', lat, lon);
-
     // If geocoding is disabled, return coordinates immediately
     if (!this.geocodingEnabled) {
-      console.log('Geocoding disabled, returning coordinates');
       return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
     }
 
@@ -110,9 +107,6 @@ export class GeocodingCacheService {
     const fetchPromise = this.ngZone
       .runOutsideAngular(() => this.performRequest(roundedLat, roundedLon))
       .then((address) => {
-        if (!address || address.trim() === '') {
-          console.log('Empty geocoding result:', address, 'for key:', key);
-        }
         this.cache.set(key, { address, timestamp: Date.now() });
         this.lastRequestTime = Date.now();
         return address;
@@ -131,7 +125,6 @@ export class GeocodingCacheService {
     lon: number,
     retryCount = 0
   ): Promise<string> {
-    console.log('Making geocoding API call for:', lat, lon);
     const maxRetries = 2;
 
     try {

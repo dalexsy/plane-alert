@@ -18,6 +18,8 @@ import {
   createAircraftLookupMap,
   looksMilitary,
   formatNotificationTitle,
+  BORING_AIRCRAFT_TYPES,
+  getAircraftTypeName,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from './types';
 import {
@@ -52,21 +54,33 @@ import {
 } from './services/pushover-client';
 import { batchGetFlightData } from './services/flight-data-cache';
 
-// Import user aircraft database
+// Import user aircraft database (not used for military detection - only for special aircraft)
 import userAircraftDb from './data/user-aircraft-db.json';
 
-// Create a lookup map for user aircraft database using shared utility
-const userAircraftLookup = createAircraftLookupMap(
-  userAircraftDb as Array<AircraftDbEntry | AircraftDbMetadata>
-);
+// Create a lookup map for user aircraft database using shared utility (not used for military detection)
+// const userAircraftLookup = createAircraftLookupMap(
+//   userAircraftDb as Array<AircraftDbEntry | AircraftDbMetadata>,
+// );
+
+function getTimestampMillis(value: any): number {
+  if (!value) return 0;
+  if (typeof value === 'number') return value;
+  if (typeof value?.toMillis === 'function') return value.toMillis();
+  if (typeof value?.seconds === 'number') return value.seconds * 1000;
+  return 0;
+}
 
 async function notifyForDevice(
   db: admin.firestore.Firestore,
   device: any,
   data: DeviceRegistration,
-  docId: string
+  docId: string,
 ): Promise<void> {
   try {
+    const broadcastAllDevices =
+      String(process.env.PUSHOVER_BROADCAST_ALL_DEVICES || '').toLowerCase() ===
+      'true';
+
     // Support both new 'location' field and legacy 'home' field
     const deviceLocation = data.location || (data as any).home;
     if (!data.pushoverUserKey || !deviceLocation) {
@@ -81,7 +95,7 @@ async function notifyForDevice(
           deviceName: inferredDeviceName,
           deviceSlug: slug,
         },
-        { merge: true }
+        { merge: true },
       );
       data.deviceName = inferredDeviceName;
       data.deviceSlug = slug;
@@ -91,10 +105,16 @@ async function notifyForDevice(
       docId,
       userKey: data.pushoverUserKey.slice(0, 8),
       deviceName: data.deviceName,
+      broadcastAllDevices,
       radiusKm: data.radiusKm,
       notifyProximity: data.notifyProximity,
       ignoredTypesCount: data.ignoredTypes?.length || 0,
     });
+
+    const cooldownDeviceName = broadcastAllDevices ? '' : data.deviceName || '';
+    const pushoverTargetDeviceName = broadcastAllDevices
+      ? ''
+      : data.deviceName || '';
 
     const radiusKm = clampRadius(data.radiusKm);
     const aircraft = await fetchAircraft(deviceLocation, radiusKm);
@@ -112,17 +132,13 @@ async function notifyForDevice(
     // Fetch flight data for MILITARY aircraft only (cost control)
     // Note: AeroAPI often has no data for many ADS-B callsigns; querying everything is prohibitively expensive.
     const planesWithFlight = aircraft.filter((plane) =>
-      Boolean(plane.flight && plane.flight.trim())
+      Boolean(plane.flight && plane.flight.trim()),
     );
     const militaryPlanesWithFlight = planesWithFlight.filter((plane) => {
-      const icao = plane.hex?.toUpperCase();
-      const userDbEntry = icao ? userAircraftLookup.get(icao) : undefined;
-      return userDbEntry !== undefined
-        ? userDbEntry.mil === true
-        : looksMilitary(plane);
+      return plane.mil === true || plane.dbFlags === 1;
     });
     const callsigns = militaryPlanesWithFlight.map((plane) =>
-      plane.flight!.trim()
+      plane.flight!.trim(),
     );
 
     logger.info('Selecting callsigns for flight data', {
@@ -154,7 +170,7 @@ async function notifyForDevice(
     const now = Date.now();
 
     const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
-      icao.toUpperCase()
+      icao.toUpperCase(),
     );
 
     let militaryCount = 0;
@@ -185,37 +201,39 @@ async function notifyForDevice(
 
       const isSpecialPlane = specialIcaos.includes(icao);
 
-      const userDbEntry = userAircraftLookup.get(icao);
-      const isFlaggedMilitary =
-        userDbEntry?.mil === true || plane.mil === true || plane.dbFlags === 1;
-
-      const isMilitary =
-        userDbEntry !== undefined
-          ? userDbEntry.mil === true
-          : looksMilitary(plane);
+      // Trust ONLY the ADS-B API military flags - don't use user database for military detection
+      const isMilitary = plane.mil === true || plane.dbFlags === 1;
 
       if (!isMilitary && !isSpecialPlane) {
-        if (plane.mil === true || plane.dbFlags === 1) {
-          boringCount++;
-          logger.info('Boring military aircraft filtered', {
-            docId,
-            hex: plane.hex,
-            type: plane.t,
-            desc: plane.desc,
-            callsign: plane.flight,
-            mil: plane.mil,
-            dbFlags: plane.dbFlags,
-          });
-        }
         continue;
       }
 
-      const aircraftType = (plane.t || plane.desc || '').toUpperCase();
+      // Filter out boring military types (transports, trainers, commercial aircraft used by military)
+      const aircraftType = (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+      const isBoringMilitary = BORING_AIRCRAFT_TYPES.some((boring) => 
+        aircraftType.includes(boring.toUpperCase())
+      );
+
+      if (isBoringMilitary && !isSpecialPlane) {
+        boringCount++;
+        logger.info('Boring military aircraft filtered', {
+          docId,
+          hex: plane.hex,
+          type: plane.t,
+          desc: plane.desc,
+          callsign: plane.flight,
+          mil: plane.mil,
+          dbFlags: plane.dbFlags,
+        });
+        continue;
+      }
+
+      const aircraftType2 = (plane.t || plane.desc || '').toUpperCase();
       const ignoredTypes = data.ignoredTypes || [];
       const isIgnored = ignoredTypes.some((ignoredType) => {
         const upperIgnored = ignoredType.toUpperCase();
         return (
-          aircraftType.includes(upperIgnored) ||
+          aircraftType2.includes(upperIgnored) ||
           (plane.desc && plane.desc.toUpperCase().includes(upperIgnored))
         );
       });
@@ -245,7 +263,7 @@ async function notifyForDevice(
         deviceLocation.lat,
         deviceLocation.lon,
         plane.lat,
-        plane.lon
+        plane.lon,
       );
       if (distanceKm > radiusKm) {
         logger.info('Military aircraft outside radius', {
@@ -262,9 +280,9 @@ async function notifyForDevice(
       const shouldNotify = await checkAndMarkNotified(
         db,
         data.pushoverUserKey,
-        data.deviceName || '',
+        cooldownDeviceName,
         icao,
-        RECENT_NOTIFICATION_TTL_MS
+        RECENT_NOTIFICATION_TTL_MS,
       );
 
       if (!shouldNotify) {
@@ -276,12 +294,12 @@ async function notifyForDevice(
         deviceLocation.lat,
         deviceLocation.lon,
         plane.lat,
-        plane.lon
+        plane.lon,
       );
       const direction = bearingToCardinal(bearing);
       const distance = formatDistance(
         distanceKm,
-        data.distanceUnit === 'miles' ? 'miles' : 'km'
+        data.distanceUnit === 'miles' ? 'miles' : 'km',
       );
 
       const rawCountry = (plane as any).ctry ?? (plane as any).countryCode;
@@ -289,7 +307,7 @@ async function notifyForDevice(
         plane.r,
         plane.hex,
         rawCountry,
-        isMilitary
+        isMilitary,
       );
 
       const countryCode =
@@ -300,7 +318,8 @@ async function notifyForDevice(
 
       const icaoUpper = plane.hex.toUpperCase();
       const callsign = normalizeCallsign(plane.flight || plane.callsign);
-      const model = userDbEntry?.model || plane.desc || plane.t;
+      // Convert ICAO type code to readable name (e.g., "B738" -> "Boeing 737-800")
+      const model = plane.desc || (plane.t ? getAircraftTypeName(plane.t) : plane.t);
 
       // Get flight data if available for this aircraft (AeroAPI enrichment)
       const flightData = callsign
@@ -316,7 +335,7 @@ async function notifyForDevice(
         bearing,
         data.distanceUnit === 'miles' ? 'miles' : 'km',
         skipCallsignInBody,
-        flightData
+        flightData,
       );
 
       // Use shared formatting function for consistent title format
@@ -324,7 +343,7 @@ async function notifyForDevice(
         flagEmoji,
         model,
         callsign,
-        icaoUpper
+        icaoUpper,
       );
 
       // Add special emoji prefixes for specific aircraft
@@ -366,7 +385,7 @@ async function notifyForDevice(
 
     // Proximity notifications
     const lastProximityNotified = pruneOldNotifications(
-      data.lastProximityNotified ?? {}
+      data.lastProximityNotified ?? {},
     );
     const PROXIMITY_THRESHOLD_KM = 3.0;
     const PROXIMITY_NOTIFICATION_COOLDOWN_MS = 5 * 60 * 1000;
@@ -389,9 +408,9 @@ async function notifyForDevice(
         const shouldNotify = await checkAndMarkNotified(
           db,
           data.pushoverUserKey,
-          data.deviceName || '',
+          cooldownDeviceName,
           `proximity_${icao}`,
-          PROXIMITY_NOTIFICATION_COOLDOWN_MS
+          PROXIMITY_NOTIFICATION_COOLDOWN_MS,
         );
 
         if (!shouldNotify) {
@@ -408,7 +427,7 @@ async function notifyForDevice(
           deviceLocation.lat,
           deviceLocation.lon,
           plane.lat,
-          plane.lon
+          plane.lon,
         );
 
         if (distanceKm <= PROXIMITY_THRESHOLD_KM) {
@@ -422,14 +441,15 @@ async function notifyForDevice(
           const callsign =
             normalizeCallsign(plane.flight || plane.callsign) ||
             plane.hex.toUpperCase();
-          const model = plane.desc || plane.t || 'Aircraft';
+          // Convert ICAO type code to readable name
+          const model = plane.desc || (plane.t ? getAircraftTypeName(plane.t) : null) || 'Aircraft';
           const distanceM = Math.round(distanceKm * 1000);
 
           const bearing = computeBearing(
             deviceLocation.lat,
             deviceLocation.lon,
             plane.lat,
-            plane.lon
+            plane.lon,
           );
           const direction = bearingToCardinal(bearing);
 
@@ -470,7 +490,7 @@ async function notifyForDevice(
     if (!messages.length) {
       await device.set(
         { lastNotified, lastProximityNotified },
-        { merge: true }
+        { merge: true },
       );
       return;
     }
@@ -478,9 +498,9 @@ async function notifyForDevice(
     // Send via Pushover API using service
     await sendPushoverNotifications(
       data.pushoverUserKey,
-      data.deviceName || '',
+      pushoverTargetDeviceName,
       messages,
-      docId
+      docId,
     );
 
     await device.set(
@@ -489,7 +509,7 @@ async function notifyForDevice(
         lastProximityNotified,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
-      { merge: true }
+      { merge: true },
     );
   } catch (error: any) {
     logger.error('notifyForDevice exception', {
@@ -502,35 +522,90 @@ async function notifyForDevice(
 }
 
 export function createNotificationProcessorFunction(
-  db: admin.firestore.Firestore
+  db: admin.firestore.Firestore,
 ) {
   return onSchedule(
     {
-      schedule: 'every 3 minutes',
+      schedule: '* * * * *', // Every minute (cron format)
       timeZone: 'Etc/UTC',
     },
     async () => {
+      const broadcastAllDevices =
+        String(process.env.PUSHOVER_BROADCAST_ALL_DEVICES || '').toLowerCase() ===
+        'true';
+
       const snapshot = await db.collection(DEVICE_COLLECTION).get();
       if (snapshot.empty) {
         logger.info('No registered devices.');
         return;
       }
 
-      const tasks = snapshot.docs.map((doc: any) =>
-        notifyForDevice(
-          db,
-          doc.ref,
-          doc.data() as DeviceRegistration,
-          doc.id
-        ).catch((error) =>
-          logger.error('notifyForDevice failed', {
-            docId: doc.id,
+      if (!broadcastAllDevices) {
+        const tasks = snapshot.docs.map((doc: any) =>
+          notifyForDevice(
+            db,
+            doc.ref,
+            doc.data() as DeviceRegistration,
+            doc.id,
+          ).catch((error) =>
+            logger.error('notifyForDevice failed', {
+              docId: doc.id,
+              error,
+            }),
+          ),
+        );
+        await Promise.all(tasks);
+        return;
+      }
+
+      // Broadcast mode: process one (latest) config per Pushover user key,
+      // and send notifications without targeting a specific device.
+      const bestDocByUserKey = new Map<
+        string,
+        {
+          ref: any;
+          id: string;
+          data: DeviceRegistration;
+          updatedAtMs: number;
+        }
+      >();
+
+      for (const doc of snapshot.docs as any[]) {
+        const data = doc.data() as DeviceRegistration;
+        const userKey = data?.pushoverUserKey;
+        if (!userKey) continue;
+
+        const updatedAtMs = Math.max(
+          getTimestampMillis((data as any).updatedAt),
+          getTimestampMillis((data as any).createdAt),
+        );
+
+        const existing = bestDocByUserKey.get(userKey);
+        if (!existing || updatedAtMs > existing.updatedAtMs) {
+          bestDocByUserKey.set(userKey, {
+            ref: doc.ref,
+            id: doc.id,
+            data,
+            updatedAtMs,
+          });
+        }
+      }
+
+      logger.info('Broadcast mode: processing users', {
+        userCount: bestDocByUserKey.size,
+      });
+
+      const tasks = Array.from(bestDocByUserKey.values()).map((entry) =>
+        notifyForDevice(db, entry.ref, entry.data, entry.id).catch((error) =>
+          logger.error('notifyForUser failed', {
+            docId: entry.id,
+            userKey: entry.data.pushoverUserKey?.slice(0, 8),
             error,
-          })
-        )
+          }),
+        ),
       );
 
       await Promise.all(tasks);
-    }
+    },
   );
 }
