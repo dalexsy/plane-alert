@@ -42,6 +42,7 @@ import {
 import { IconComponent } from '../ui/icon.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
 import { PushoverConfigEditorComponent } from '../pushover-config-editor/pushover-config-editor.component';
+import { MilitaryHistoryPanelComponent } from '../military-history-panel/military-history-panel.component';
 import * as L from 'leaflet';
 
 export interface PlaneLogEntry {
@@ -93,6 +94,7 @@ export interface PlaneLogEntry {
     PlaneListItemComponent,
     TooltipDirective,
     PushoverConfigEditorComponent,
+    MilitaryHistoryPanelComponent,
   ],
   templateUrl: './results-overlay.component.html',
   styleUrls: ['./results-overlay.component.scss'],
@@ -996,5 +998,16 @@ export class ResultsOverlayComponent
   }): void {
     console.log('Pushover config saved:', config);
     this.showPushoverConfig = false;
+  }
+
+  /** Show Military History panel */
+  showMilitaryHistory = false;
+
+  onOpenMilitaryHistory(): void {
+    this.showMilitaryHistory = true;
+  }
+
+  closeMilitaryHistory(): void {
+    this.showMilitaryHistory = false;
   }
 }

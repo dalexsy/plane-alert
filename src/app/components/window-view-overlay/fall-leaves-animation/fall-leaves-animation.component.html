@@ -1,4 +1,4 @@
-<div class="fall-leaves-container">
+<div class="fall-leaves-container" [class.spring-petals]="isSpringPetals">
   <div
     *ngFor="let leaf of leaves; trackBy: trackByLeafId"
     class="leaf"

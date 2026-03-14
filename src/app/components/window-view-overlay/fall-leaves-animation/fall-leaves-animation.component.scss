@@ -1,8 +1,8 @@
 // =============================================================================
-// Fall Leaves Animation Component - Seasonal Autumn Effect
+// Fall Leaves Animation Component - Seasonal Autumn/Spring Effect
 // =============================================================================
 
-// Define scalable size variables for leaves
+// Define scalable size variables for leaves/petals
 $leaf-scale: 0.3 !default;
 $leaf-width: 1.5rem * $leaf-scale;
 $leaf-height: 2rem * $leaf-scale;
@@ -10,7 +10,7 @@ $fall-duration: 25s;
 $sway-duration: 4s;
 $rotation-duration: 6s;
 
-// Container for the falling leaves
+// Container for the falling leaves/petals
 .fall-leaves-container {
   position: fixed;
   left: 0;
@@ -45,15 +45,28 @@ $rotation-duration: 6s;
   }
 }
 
-// Different leaf colors for variety
+// Fall/Autumn leaf colors (September-November)
 .leaf.red {
   color: #dd7b37;
 }
 .leaf.orange {
   color: #ce5145;
 }
-.leaf.yellow {
+.leaf.brown {
   color: #e3883d;
+}
+
+// Spring cherry blossom petal colors (March-June)
+.spring-petals {
+  .leaf.red {
+    color: #ffb7d5;
+  }
+  .leaf.orange {
+    color: #ffd4e5;
+  }
+  .leaf.brown {
+    color: #ff9ec7;
+  }
 }
 
 // Animation keyframes for falling motion

@@ -13,6 +13,7 @@ import {
   looksMilitary,
   getAircraftTypeName,
 } from '@plane-alert/shared';
+import { getDefaultMilitaryOperator } from '../config/military-operators.config';
 import {
   AircraftDbService,
   AircraftRecord,
@@ -28,6 +29,8 @@ import {
 } from './plane-data/plane-geo.util';
 import { PlaneRouteCacheService } from './plane-data/plane-route-cache.service';
 import { UnknownCountryLoggerService } from './plane-data/unknown-country-logger.service';
+import { MilitaryHistoryService } from './military-history.service';
+import { FirebaseMessagingService } from './firebase-messaging.service';
 
 export interface ProcessedPlaneData {
   id: string;
@@ -70,6 +73,8 @@ export interface ProcessedPlaneData {
   providedIn: 'root',
 })
 export class PlaneDataService {
+  private savedMilitaryPlanes = new Set<string>(); // Track saved planes this session
+
   constructor(
     private newPlaneService: NewPlaneService,
     private helicopterListService: HelicopterListService,
@@ -83,6 +88,8 @@ export class PlaneDataService {
     private openskyRouteService: OpenskyRouteService,
     private routeCache: PlaneRouteCacheService,
     private unknownCountryLogger: UnknownCountryLoggerService,
+    private militaryHistory: MilitaryHistoryService,
+    private firebaseMessaging: FirebaseMessagingService,
   ) {}
 
   async refreshLists(manualUpdate: boolean): Promise<void> {
@@ -307,10 +314,13 @@ export class PlaneDataService {
       model = getAircraftTypeName(apiIcaoType);
     }
 
-    // Fallback: US military flights often omit an operator string.
-    // If we’ve already classified as military and the country is US, default to US Air Force.
-    if (isMilitary && (!operator || !operator.trim()) && origin === 'US') {
-      operator = 'US Air Force';
+    // Fallback: Military flights often omit an operator string.
+    // Use country-based default military operator name when available.
+    if (isMilitary && (!operator || !operator.trim()) && origin) {
+      const defaultOperator = getDefaultMilitaryOperator(origin);
+      if (defaultOperator) {
+        operator = defaultOperator;
+      }
     }
 
     if (
@@ -393,6 +403,37 @@ export class PlaneDataService {
 
     // Get cached route data if available - check by callsign first (AeroAPI), then by ICAO (OpenSky)
     const cachedRoute = this.routeCache.get(callsign, id);
+
+    // Save military plane to history (once per session)
+    if (isMilitary && !this.savedMilitaryPlanes.has(id)) {
+      this.savedMilitaryPlanes.add(id);
+      const userKey = this.firebaseMessaging.getStoredUserKey();
+      if (userKey) {
+        // Calculate bearing and cardinal direction from observer to plane
+        const bearing = computeBearingDeg(centerLat, centerLon, lat, lon);
+        const cardinal = bearingToCardinal(bearing);
+        
+        console.log(`🎖️ Saving military aircraft to history: ${callsign || id} (${model})`);
+        this.militaryHistory
+          .saveSighting(userKey, {
+            icao: id,
+            callsign,
+            model,
+            operator,
+            country: origin,
+            registration: reg,
+            lat,
+            lon,
+            altitude: altitude ?? undefined,
+            bearing,
+            cardinal,
+          })
+          .then(() => console.log(`✓ Military sighting saved: ${callsign || id}`))
+          .catch((err) => console.error('✗ Failed to save military sighting:', err));
+      } else {
+        console.warn(`⚠️ Military aircraft detected (${callsign || id}) but no Pushover key configured. Configure notifications to enable history tracking.`);
+      }
+    }
 
     return {
       id,

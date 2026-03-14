@@ -398,6 +398,19 @@
   color: #ff6161;
 }
 
+// Backdrop for modal panels
+.pushover-config-backdrop,
+.military-history-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+  backdrop-filter: blur(0.25rem);
+}
+
 .none-callsign {
   color: gray;
 }

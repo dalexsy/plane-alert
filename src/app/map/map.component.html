@@ -99,6 +99,12 @@
   ></app-results-overlay
 >
 
+<!-- Status indicators positioned above window view -->
+<app-status-indicators
+  [animationsEnabled]="animationsEnabled"
+  (toggleAnimations)="onToggleAnimations(true)"
+></app-status-indicators>
+
 <!-- Angle overlay above clock and temperature -->
 <div
   class="info-wrapper"

@@ -39,6 +39,9 @@ export class AppComponent implements OnInit {
 
   private async checkNotificationSupport() {
     try {
+      // First sync location from backend to ensure all devices have current location
+      await this.firebaseMessaging.syncDeviceLocationFromBackend();
+
       const status: NotificationStatusInfo =
         await this.notificationService.evaluateStatus();
 

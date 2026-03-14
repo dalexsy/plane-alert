@@ -1,0 +1,47 @@
+// ============================================================================
+// SHARED DESIGN TOKENS
+// ============================================================================
+// These variables are used across multiple components to maintain consistency
+
+// Typography
+$font-family-mono: "JetBrains Mono", monospace;
+$font-size-small: 0.75rem;
+$font-size-base: 1rem;
+$font-weight-normal: 320;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+
+// Color System
+$color-military: #89d138;
+$color-airport: gold;
+$color-followed: #00ffff;
+$color-new-plane: #ff6161;
+$color-text-muted: #aaa;
+$color-border: rgba(255, 255, 255, 0.4);
+$color-background-white: white;
+$color-text-dark: black;
+
+// Spacing System
+$space-xs: 0.25rem;
+$space-sm: 0.5rem;
+$space-md: 1rem;
+$space-lg: 1.5rem;
+$space-xl: 2rem;
+
+// Border System
+$border-width-thin: 1px;
+$border-width-medium: 2px;
+$border-width-thick: 3px;
+$border-width-airport-tag: 1.5px;
+
+// Animation & Effects
+$transition-standard: 0.2s ease;
+$hover-opacity: 0.8;
+$blur-subtle: 0.5px;
+$grayscale-faded: 0.7;
+
+// Layout Constants
+$grid-button-width: 2rem;
+$grid-flag-width: 1.75rem;
+$grid-direction-icon-size: 1.75rem;
+$grid-spacing: $space-xs;

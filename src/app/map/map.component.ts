@@ -88,6 +88,7 @@ import { EnvironmentalDataService } from '../services/environmental-data.service
 import { PlaneVisualizationService } from '../services/plane-visualization.service';
 import { PlaneDataService } from '../services/plane-data.service';
 import { FirebaseMessagingService } from '../services/firebase-messaging.service';
+import { StatusIndicatorsComponent } from '../components/status-indicators/status-indicators.component';
 
 @Component({
   selector: 'app-map',
@@ -105,6 +106,7 @@ import { FirebaseMessagingService } from '../services/firebase-messaging.service
     WindowViewOverlayComponent,
     AngleOverlayComponent,
     ApiStatusOverlayComponent,
+    StatusIndicatorsComponent,
   ],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
@@ -131,6 +133,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   // API status tracking
   apiDataUnavailable = false;
   lastSuccessfulUpdate = '';
+  lastUpdateTimestamp = 0;
 
   currentLocationMarker!: L.Marker;
   // airportCircle!: L.Circle; // REMOVED - Replaced by dynamic airport circles
@@ -1223,12 +1226,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
           this.lastSuccessfulUpdate = new Date(
             snapshotTimestamp,
           ).toLocaleTimeString();
+          this.lastUpdateTimestamp = snapshotTimestamp;
         } else {
           this.apiDataUnavailable = false;
           if (!hasNoPlanes) {
             this.lastSuccessfulUpdate = new Date(
               snapshotTimestamp,
             ).toLocaleTimeString();
+            this.lastUpdateTimestamp = snapshotTimestamp;
           }
         }
 

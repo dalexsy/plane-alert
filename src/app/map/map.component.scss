@@ -151,6 +151,11 @@ app-map.map-panning app-input-overlay {
     align-self: flex-end;
     pointer-events: all;
   }
+
+  > app-status-indicators {
+    align-self: flex-start;
+    pointer-events: all;
+  }
 }
 
 // Arrange clock and temperature side by side

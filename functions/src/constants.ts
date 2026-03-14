@@ -1,6 +1,7 @@
 export const DEVICE_COLLECTION = 'deviceTokens';
 export const COOLDOWN_COLLECTION = 'notification-cooldowns';
 export const AIRCRAFT_SNAPSHOTS_COLLECTION = 'aircraft-snapshots';
+export const MILITARY_HISTORY_COLLECTION = 'military-history';
 export const DEFAULT_RADIUS_KM = 100;
 export const MIN_RADIUS_KM = 10;
 export const MAX_RADIUS_KM = 200;

@@ -129,6 +129,17 @@
           tooltipPosition="left"
           (click)="onConfigurePushover()"
         ></app-button>
+        <!-- Military history button -->
+        <app-button
+          class="military-history"
+          icon="history"
+          type="tertiary"
+          size="medium"
+          ariaLabel="View military aircraft history"
+          appTooltip="View military aircraft history"
+          tooltipPosition="left"
+          (click)="onOpenMilitaryHistory()"
+        ></app-button>
         <!-- Window view overlay toggle button -->
         <app-button
           class="window-view-toggle"
@@ -326,3 +337,14 @@
   (closeEditor)="closePushoverConfig()"
   (configSaved)="onPushoverConfigSaved($event)"
 ></app-pushover-config-editor>
+
+<!-- Military History Panel -->
+<div
+  class="military-history-backdrop"
+  *ngIf="showMilitaryHistory"
+  (click)="closeMilitaryHistory()"
+></div>
+<app-military-history-panel
+  *ngIf="showMilitaryHistory"
+  (close)="closeMilitaryHistory()"
+></app-military-history-panel>

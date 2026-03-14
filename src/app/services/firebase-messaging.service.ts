@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { pushRegistrationEndpoint } from '../config/firebase.config';
+import {
+  pushRegistrationEndpoint,
+  checkDeviceEndpoint,
+} from '../config/firebase.config';
 import { SettingsService } from './settings.service';
 
 @Injectable({
@@ -14,6 +17,90 @@ export class FirebaseMessagingService {
     private http: HttpClient,
     private settings: SettingsService,
   ) {}
+
+  /**
+   * Sync device location from backend to localStorage
+   * Called on app load to ensure location is up-to-date across devices
+   */
+  async syncDeviceLocationFromBackend(): Promise<boolean> {
+    const userKey = this.getStoredUserKey();
+    if (!userKey) {
+      return false;
+    }
+
+    try {
+      const response: any = await firstValueFrom(
+        this.http.post(
+          checkDeviceEndpoint,
+          { pushoverUserKey: userKey },
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+
+      if (!response?.devices || response.devices.length === 0) {
+        console.log('📍 No devices registered in backend');
+        return false;
+      }
+
+      // Get current device name to match backend registration
+      const currentDeviceName = this.getOrCreateDeviceName();
+
+      // Find this device's registration in backend
+      const thisDevice = response.devices.find(
+        (d: any) => d.deviceName === currentDeviceName,
+      );
+
+      // If this device is registered, use its location
+      // Otherwise use most recently updated device's location
+      const deviceToSync =
+        thisDevice ||
+        response.devices.sort((a: any, b: any) => {
+          const aTime =
+            a.config?.updatedAt?.toMillis?.() ||
+            a.config?.updatedAt?._seconds * 1000 ||
+            0;
+          const bTime =
+            b.config?.updatedAt?.toMillis?.() ||
+            b.config?.updatedAt?._seconds * 1000 ||
+            0;
+          return bTime - aTime;
+        })[0];
+
+      const backendLocation = deviceToSync?.config?.location;
+      if (
+        !backendLocation ||
+        typeof backendLocation.lat !== 'number' ||
+        typeof backendLocation.lon !== 'number'
+      ) {
+        console.log('📍 No valid location in backend device registration');
+        return false;
+      }
+
+      // Check if we should update localStorage
+      const currentHome = this.settings.getHomeLocation();
+      const shouldUpdate =
+        !currentHome ||
+        Math.abs(currentHome.lat - backendLocation.lat) > 0.01 ||
+        Math.abs(currentHome.lon - backendLocation.lon) > 0.01;
+
+      if (shouldUpdate) {
+        console.log('📍 Syncing location from backend:', backendLocation);
+        await this.settings.setHomeLocation(
+          backendLocation.lat,
+          backendLocation.lon,
+          backendLocation.address || undefined,
+        );
+        console.log('✅ Location synced from backend');
+        return true;
+      } else {
+        console.log('📍 Local location matches backend, no sync needed');
+        return false;
+      }
+    } catch (error) {
+      console.warn('Failed to sync location from backend:', error);
+      return false;
+    }
+  }
 
   /**
    * Register Pushover user key with backend

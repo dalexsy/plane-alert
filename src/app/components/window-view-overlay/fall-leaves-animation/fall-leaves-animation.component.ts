@@ -74,7 +74,7 @@ export interface FallLeavesConfig {
 export class FallLeavesAnimationComponent
   implements OnInit, OnChanges, OnDestroy
 {
-  @Input() isAutumn: boolean = true; // Always true for fall season
+  @Input() isAutumn: boolean = true; // True for fall/spring season
   @Input() animationsEnabled: boolean = true;
   @Input() windSpeed: number = 0; // Wind speed in m/s
   @Input() windStat: number = 0; // Wind intensity level 0-3
@@ -94,16 +94,19 @@ export class FallLeavesAnimationComponent
   private lastUpdateTime = 0;
   private spawnTimer: number | null = null;
   public isActive = false;
+  public isSpringPetals = false; // Cherry blossom mode for spring
 
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    this.updateSeasonalMode();
     if (this.animationsEnabled && this.isAutumn && this.isHighWind()) {
       this.startAnimation();
     }
   }
 
   ngOnChanges(): void {
+    this.updateSeasonalMode();
     if (
       this.isAutumn &&
       this.animationsEnabled &&
@@ -122,6 +125,16 @@ export class FallLeavesAnimationComponent
     if (this.isActive) {
       this.updateLeafSpeeds();
     }
+  }
+
+  /**
+   * Determine if we should show cherry blossom petals (spring) or fall leaves
+   */
+  private updateSeasonalMode(): void {
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+    // Spring mode: March (3) through June (6)
+    this.isSpringPetals = month >= 3 && month <= 6;
   }
 
   ngOnDestroy(): void {
