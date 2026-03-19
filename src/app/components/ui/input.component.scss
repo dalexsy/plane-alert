@@ -30,7 +30,9 @@
     font-family: "JetBrains Mono", monospace;
     font-size: 1rem; /* Mobile-first: larger text */
     padding: 1rem 1.25rem; /* Mobile-first: larger padding */
-    transition: background 0.2s ease, outline 0.2s ease;
+    transition:
+      background 0.2s ease,
+      outline 0.2s ease;
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.6);
@@ -77,6 +79,59 @@
     }
   }
 
+  &.modal {
+    height: auto;
+    gap: 0.3125rem;
+
+    .input-label {
+      color: #ddd;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .input-field {
+      border: 1px solid #555;
+      border-radius: 0.25rem;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+
+      &::placeholder {
+        color: #888;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.125rem rgba(0, 123, 255, 0.25);
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      &.textarea {
+        border-radius: 0.25rem;
+        min-height: 2.5rem;
+        height: auto;
+        flex: none;
+      }
+    }
+
+    &.small .input-field,
+    &.medium .input-field {
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+    }
+
+    &.large .input-field {
+      font-size: 1rem;
+      padding: 0.625rem 0.875rem;
+    }
+  }
+
   // Desktop and larger screens - reduce sizes
   @media (min-width: 601px) {
     height: auto; /* Desktop: don't force full height */
@@ -103,6 +158,26 @@
         &:focus {
           outline: 2px solid white; /* Thinner outline */
         }
+      }
+    }
+
+    &.modal {
+      gap: 0.3125rem;
+
+      .input-label {
+        font-size: 0.85rem;
+      }
+
+      .input-field,
+      &.small .input-field,
+      &.medium .input-field {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+      }
+
+      &.large .input-field {
+        font-size: 1rem;
+        padding: 0.625rem 0.875rem;
       }
     }
   }

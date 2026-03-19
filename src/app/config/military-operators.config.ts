@@ -23,7 +23,7 @@ export const MILITARY_OPERATOR_NAMES: Record<string, string> = {
  * Returns null if no default is configured for the country
  */
 export function getDefaultMilitaryOperator(
-  countryCode?: string
+  countryCode?: string,
 ): string | null {
   if (!countryCode) {
     return null;

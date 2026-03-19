@@ -48,6 +48,20 @@ button {
     color: inherit;
   }
 
+  &.modal-close {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border-radius: 0.25rem;
+    color: #fff;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   &:hover {
     opacity: 0.9;
     transform: scale(1.02);
@@ -103,5 +117,10 @@ button {
 
   &.large .material-symbols-sharp {
     font-size: 2rem;
+  }
+
+  &.modal-close.icon {
+    width: 2rem;
+    padding: 0;
   }
 }

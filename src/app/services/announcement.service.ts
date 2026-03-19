@@ -253,9 +253,11 @@ export class AnnouncementService {
     const model = plane.model?.toLowerCase().trim();
     if (!model) return false;
 
-    // Check for special aircraft models (handle variants with/without hyphens)
-    const specialModels = ['hercules', 'a400', 'a-400'];
-    return specialModels.some((specialModel) => model.includes(specialModel));
+    // Check for special aircraft models using word boundaries to avoid false positives
+    // e.g. "JA-400 Skyleader" should NOT match A400
+    if (/\bhercules\b/.test(model)) return true;
+    if (/(?:^|[^a-z])a-?400(?:[^a-z0-9]|$)/.test(model)) return true;
+    return false;
   }
 
   /**

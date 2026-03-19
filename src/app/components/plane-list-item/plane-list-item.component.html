@@ -195,31 +195,13 @@
       </a>
     </ng-template>
 
-    <!-- Aircraft Image Tooltip -->
-    <div
-      class="aircraft-image-tooltip"
-      [class.visible]="showImageTooltip"
-      [class.loading]="isLoadingImage"
-      [style.left.px]="tooltipPosition.x + 10"
-      [style.top.px]="tooltipPosition.y + 10"
-      [style.display]="showImageTooltip ? 'block' : 'none'"
-    >
-      <div *ngIf="isLoadingImage" class="loading-spinner">
-        <span class="material-symbols-sharp">refresh</span>
-        Loading image...
-      </div>
-      <div *ngIf="!isLoadingImage && aircraftImage" class="image-container">
-        <img
-          [src]="aircraftImage.thumbnail"
-          [alt]="aircraftImage.description"
-          loading="lazy"
-        />
-        <div class="image-source">{{ aircraftImage.description }}</div>
-      </div>
-      <div *ngIf="!isLoadingImage && !aircraftImage" class="no-image">
-        No image available
-      </div>
-    </div>
+    <app-aircraft-image-tooltip
+      [visible]="showImageTooltip"
+      [loading]="isLoadingImage"
+      [image]="aircraftImage"
+      [position]="tooltipPosition"
+      [zIndex]="1006"
+    ></app-aircraft-image-tooltip>
   </span>
 </span>
 

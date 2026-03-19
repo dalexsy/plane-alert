@@ -5,11 +5,11 @@ import {
   OnInit,
   ChangeDetectorRef,
   HostListener,
-  ElementRef,
-  Renderer2,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AircraftImageTooltipComponent } from '../ui/aircraft-image-tooltip.component';
 import { ButtonComponent } from '../ui/button.component';
+import { InputComponent } from '../ui/input.component';
 import { CountryService } from '../../services/country.service';
 import { OperatorTooltipService } from '../../services/operator-tooltip.service';
 import { OperatorSymbolConfig } from '../../config/operator-symbols.config';
@@ -24,14 +24,24 @@ import {
 import { FirebaseMessagingService } from '../../services/firebase-messaging.service';
 import { getDefaultMilitaryOperator } from '../../config/military-operators.config';
 
-
-type SortField = 'lastSeen' | 'model' | 'country' | 'operator' | 'sightingCount' | 'callsign';
+type SortField =
+  | 'lastSeen'
+  | 'model'
+  | 'country'
+  | 'operator'
+  | 'sightingCount'
+  | 'callsign';
 type SortDirection = 'asc' | 'desc';
 
 @Component({
   selector: 'app-military-history-panel',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [
+    AircraftImageTooltipComponent,
+    CommonModule,
+    ButtonComponent,
+    InputComponent,
+  ],
   templateUrl: './military-history-panel.component.html',
   styleUrls: ['./military-history-panel.component.scss'],
 })
@@ -50,7 +60,7 @@ export class MilitaryHistoryPanelComponent implements OnInit {
 
   sortField: SortField = 'lastSeen';
   sortDirection: SortDirection = 'desc';
-  
+
   searchQuery = '';
 
   // Aircraft image tooltip
@@ -59,7 +69,6 @@ export class MilitaryHistoryPanelComponent implements OnInit {
   aircraftImage: AircraftImage | null = null;
   tooltipPosition = { x: 0, y: 0 };
   private imageLoadTimeout?: number;
-  private tooltipElement: HTMLElement | null = null;
 
   constructor(
     private militaryHistory: MilitaryHistoryService,
@@ -68,8 +77,6 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     private operatorTooltipService: OperatorTooltipService,
     private aircraftImageService: AircraftImageService,
     private cdr: ChangeDetectorRef,
-    private elementRef: ElementRef,
-    private renderer: Renderer2
   ) {}
 
   async ngOnInit() {
@@ -79,7 +86,8 @@ export class MilitaryHistoryPanelComponent implements OnInit {
   async loadHistory() {
     const userKey = this.firebaseMessaging.getStoredUserKey();
     if (!userKey) {
-      this.error = 'No Pushover key found. Enable notifications to track history.';
+      this.error =
+        'No Pushover key found. Enable notifications to track history.';
       this.loading = false;
       return;
     }
@@ -111,9 +119,8 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     this.applyFiltersAndSort();
   }
 
-  onSearch(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery = input.value.toLowerCase();
+  onSearchChange(value: string) {
+    this.searchQuery = value.toLowerCase();
     this.applyFiltersAndSort();
   }
 
@@ -199,7 +206,9 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     return this.countryService.getFlagHTML(country || '');
   }
 
-  getOperatorSymbol(sighting: MilitaryHistorySighting): OperatorSymbolConfig | null {
+  getOperatorSymbol(
+    sighting: MilitaryHistorySighting,
+  ): OperatorSymbolConfig | null {
     return this.operatorTooltipService.getSymbolConfig({
       icao: sighting.icao,
       callsign: sighting.callsign,
@@ -214,9 +223,15 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     const now = new Date();
 
     // Compare calendar dates, not just time difference
-    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dateDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
     const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const diffDays = Math.floor((nowDay.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(
+      (nowDay.getTime() - dateDay.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     // Format time as 12-hour with AM/PM
     const timeStr = date.toLocaleTimeString('en-US', {
@@ -256,9 +271,6 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     this.isLoadingImage = true;
     this.aircraftImage = null;
 
-    // Move tooltip to document body to escape overflow hidden containers
-    this.moveTooltipToBody();
-
     // Debounce image loading
     if (this.imageLoadTimeout) {
       clearTimeout(this.imageLoadTimeout);
@@ -292,9 +304,6 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     this.showImageTooltip = false;
     this.isLoadingImage = false;
     this.aircraftImage = null;
-
-    // Move tooltip back to component
-    this.moveTooltipBack();
 
     this.cdr.detectChanges();
   }
@@ -330,30 +339,4 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     return getDefaultMilitaryOperator(sighting.country) || '—';
   }
 
-  private moveTooltipToBody(): void {
-    if (!this.tooltipElement) {
-      // Find the tooltip element in the component
-      const tooltipEl = this.elementRef.nativeElement.querySelector(
-        '.aircraft-image-tooltip'
-      );
-      if (tooltipEl) {
-        this.tooltipElement = tooltipEl;
-        // Append to document body
-        this.renderer.appendChild(document.body, this.tooltipElement);
-      }
-    }
-  }
-
-  private moveTooltipBack(): void {
-    if (this.tooltipElement) {
-      // Move back to the component's original location
-      const tableWrapper = this.elementRef.nativeElement.querySelector(
-        '.history-table-wrapper'
-      );
-      if (tableWrapper) {
-        this.renderer.appendChild(tableWrapper, this.tooltipElement);
-      }
-      this.tooltipElement = null;
-    }
-  }
 }

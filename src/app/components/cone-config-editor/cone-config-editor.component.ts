@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ButtonComponent } from '../ui/button.component';
+import { InputComponent } from '../ui/input.component';
 
 export interface ViewConeConfig {
   startAngle: number;
@@ -11,7 +13,7 @@ export interface ViewConeConfig {
 @Component({
   selector: 'app-cone-config-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ButtonComponent, InputComponent],
   templateUrl: './cone-config-editor.component.html',
   styleUrl: './cone-config-editor.component.scss',
 })
@@ -41,7 +43,7 @@ export class ConeConfigEditorComponent {
   onConeChange(
     index: number,
     field: keyof ViewConeConfig,
-    value: string | number
+    value: string | number,
   ): void {
     const updatedCone = { ...this.cones[index], [field]: value };
     this.updateCone(index, updatedCone);

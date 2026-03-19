@@ -12,6 +12,7 @@ import {
   BORING_AIRCRAFT_TYPES,
   type MilitaryAircraftType,
 } from '@plane-alert/shared';
+import { ButtonComponent } from '../ui/button.component';
 import { IconComponent } from '../ui/icon.component';
 import { InputComponent } from '../ui/input.component';
 import {
@@ -64,7 +65,13 @@ interface DeviceListItem {
 @Component({
   selector: 'app-pushover-config-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, InputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ButtonComponent,
+    IconComponent,
+    InputComponent,
+  ],
   templateUrl: './pushover-config-editor.component.html',
   styleUrls: ['./pushover-config-editor.component.scss'],
 })

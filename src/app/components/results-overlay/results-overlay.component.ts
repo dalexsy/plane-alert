@@ -109,10 +109,10 @@ export interface PlaneLogEntry {
             style({ opacity: 0, transform: 'translateX(-10px)' }),
             animate(
               '200ms ease-out',
-              style({ opacity: 1, transform: 'translateX(0)' })
+              style({ opacity: 1, transform: 'translateX(0)' }),
             ),
           ],
-          { optional: true }
+          { optional: true },
         ),
         // animate items leaving
         query(
@@ -120,10 +120,10 @@ export interface PlaneLogEntry {
           [
             animate(
               '200ms ease-in',
-              style({ opacity: 0, transform: 'translateX(10px)' })
+              style({ opacity: 0, transform: 'translateX(10px)' }),
             ),
           ],
-          { optional: true }
+          { optional: true },
         ),
       ]),
     ]),
@@ -144,7 +144,7 @@ export class ResultsOverlayComponent
     private autoFollowService: AutoFollowService,
     private followCoordinatorService: FollowCoordinatorService,
     private operatorCallSignService: OperatorCallSignService,
-    private urlParameterService: UrlParameterService
+    private urlParameterService: UrlParameterService,
   ) {
     this.specialListService.specialListUpdated$.subscribe(() => {
       this.resultsUpdated = true;
@@ -346,7 +346,7 @@ export class ResultsOverlayComponent
         this.nearestMode = modes.nearest;
 
         this.cdr.detectChanges();
-      }
+      },
     );
   }
 
@@ -372,7 +372,7 @@ export class ResultsOverlayComponent
   // --- Keep hover handlers in parent for now ---
   onHoverPlane(
     plane: PlaneLogEntry,
-    listType: 'sky' | 'airport' | 'seen'
+    listType: 'sky' | 'airport' | 'seen',
   ): void {
     if (listType === 'sky') this.hoveredSkyPlaneIcao = plane.icao;
     else if (listType === 'airport') this.hoveredAirportPlaneIcao = plane.icao;
@@ -383,7 +383,7 @@ export class ResultsOverlayComponent
 
   onUnhoverPlane(
     plane: PlaneLogEntry,
-    listType: 'sky' | 'airport' | 'seen'
+    listType: 'sky' | 'airport' | 'seen',
   ): void {
     if (listType === 'sky') this.hoveredSkyPlaneIcao = null;
     else if (listType === 'airport') this.hoveredAirportPlaneIcao = null;
@@ -525,7 +525,7 @@ export class ResultsOverlayComponent
     // Bring manually followed plane to top
     if (this.highlightedPlaneIcao) {
       const idx = this.filteredSkyPlaneLog.findIndex(
-        (p) => p.icao === this.highlightedPlaneIcao
+        (p) => p.icao === this.highlightedPlaneIcao,
       );
       if (idx > 0) {
         const [followed] = this.filteredSkyPlaneLog.splice(idx, 1);
@@ -617,7 +617,7 @@ export class ResultsOverlayComponent
         (p) =>
           `${p.icao}:${p.model || ''}:${p.isMilitary ? 1 : 0}:${
             p.filteredOut ? 1 : 0
-          }`
+          }`,
       )
       .join(',');
   }
@@ -792,7 +792,7 @@ export class ResultsOverlayComponent
     this.lastToggleTime = now;
     // Toggle shuffle mode through coordinator service
     const newShuffleState = this.followCoordinatorService.toggleShuffleMode(
-      this.filteredSkyPlaneLog
+      this.filteredSkyPlaneLog,
     );
 
     // Update local state to match coordinator decision
@@ -818,7 +818,7 @@ export class ResultsOverlayComponent
     this.lastToggleTime = now;
     // Toggle nearest mode through coordinator service
     const newNearestState = this.followCoordinatorService.toggleNearestMode(
-      this.filteredSkyPlaneLog
+      this.filteredSkyPlaneLog,
     );
 
     // Update local state to match coordinator decision
@@ -848,7 +848,7 @@ export class ResultsOverlayComponent
       if (this.shuffleMode) {
         // Let coordinator handle re-shuffle with new military priority
         this.followCoordinatorService.updateAutomaticModes(
-          this.filteredSkyPlaneLog
+          this.filteredSkyPlaneLog,
         );
       }
     }
@@ -868,7 +868,7 @@ export class ResultsOverlayComponent
     if (this.highlightedPlaneIcao) {
       this.followCoordinatorService.handlePlaneDisappearance(
         this.highlightedPlaneIcao,
-        this.filteredSkyPlaneLog
+        this.filteredSkyPlaneLog,
       );
     } else if (this.shuffleMode) {
       // Fallback: if no specific plane but shuffle mode is active, trigger new shuffle
@@ -910,7 +910,7 @@ export class ResultsOverlayComponent
           plane.lat!,
           plane.lon!,
           airportCenter.lat,
-          airportCenter.lng
+          airportCenter.lng,
         );
 
         if (distance <= radiusKm) {

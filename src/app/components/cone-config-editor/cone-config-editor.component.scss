@@ -34,26 +34,6 @@
     h3 {
       margin: 0;
     }
-
-    .close-btn {
-      background: transparent;
-      border: none;
-      color: #fff;
-      font-size: 1.5em;
-      cursor: pointer;
-      padding: 0;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-    }
   }
 
   .description {
@@ -94,23 +74,8 @@
         font-weight: 500;
       }
 
-      input {
-        padding: 8px 12px;
-        border: 1px solid #555;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        font-size: 0.9em;
-
-        &:focus {
-          outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-        }
-
-        &::placeholder {
-          color: #888;
-        }
+      app-input {
+        width: 100%;
       }
     }
 

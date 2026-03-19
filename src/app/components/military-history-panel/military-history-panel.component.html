@@ -1,22 +1,23 @@
 <div class="military-history-panel">
   <div class="panel-header">
-    <h2>Military Aircraft History</h2>
+    <h3>Military Aircraft History</h3>
     <app-button
-      icon="close"
       type="tertiary"
-      size="medium"
-      ariaLabel="Close panel"
+      appearance="modal-close"
+      size="small"
+      icon="close"
+      ariaLabel="Close"
       (click)="onClose()"
     ></app-button>
   </div>
 
   <div class="panel-controls">
-    <input
-      type="text"
-      class="search-input"
+    <app-input
+      appearance="modal"
+      [value]="searchQuery"
       placeholder="Search by model, country, operator..."
-      (input)="onSearch($event)"
-    />
+      (inputChange)="onSearchChange($event)"
+    ></app-input>
   </div>
 
   <div class="panel-content" *ngIf="!loading && !error">
@@ -27,7 +28,7 @@
             <th class="sortable" (click)="onSort('country')">
               <div class="th-content">
                 <span class="sort-icon material-symbols-sharp">{{
-                  getSortIcon('country')
+                  getSortIcon("country")
                 }}</span>
               </div>
             </th>
@@ -35,7 +36,7 @@
               <div class="th-content">
                 <span>Callsign</span>
                 <span class="sort-icon material-symbols-sharp">{{
-                  getSortIcon('callsign')
+                  getSortIcon("callsign")
                 }}</span>
               </div>
             </th>
@@ -43,7 +44,7 @@
               <div class="th-content">
                 <span>Model</span>
                 <span class="sort-icon material-symbols-sharp">{{
-                  getSortIcon('model')
+                  getSortIcon("model")
                 }}</span>
               </div>
             </th>
@@ -51,7 +52,7 @@
               <div class="th-content">
                 <span>Operator</span>
                 <span class="sort-icon material-symbols-sharp">{{
-                  getSortIcon('operator')
+                  getSortIcon("operator")
                 }}</span>
               </div>
             </th>
@@ -59,7 +60,7 @@
               <div class="th-content">
                 <span>Sightings</span>
                 <span class="sort-icon material-symbols-sharp">{{
-                  getSortIcon('sightingCount')
+                  getSortIcon("sightingCount")
                 }}</span>
               </div>
             </th>
@@ -67,7 +68,7 @@
               <div class="th-content">
                 <span>Last Seen</span>
                 <span class="sort-icon material-symbols-sharp">{{
-                  getSortIcon('lastSeen')
+                  getSortIcon("lastSeen")
                 }}</span>
               </div>
             </th>
@@ -84,7 +85,6 @@
             <td class="callsign-cell">
               <a
                 *ngIf="sighting.callsign; else noCallsign"
-
                 href="https://globe.adsbexchange.com/?icao={{ sighting.icao }}"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -96,14 +96,14 @@
               </ng-template>
             </td>
             <td class="model-cell">
-              <span
-                *ngIf="isGenericModel(sighting.model); else specificModel"
-              >
-                {{ sighting.model || 'Unknown' }}
+              <span *ngIf="isGenericModel(sighting.model); else specificModel">
+                {{ sighting.model || "Unknown" }}
               </span>
               <ng-template #specificModel>
                 <a
-                  href="https://www.bing.com/search?q={{ getBingSearchQuery(sighting) }}"
+                  href="https://www.bing.com/search?q={{
+                    getBingSearchQuery(sighting)
+                  }}"
                   target="_blank"
                   rel="noopener noreferrer"
                   (mouseenter)="onModelMouseEnter($event, sighting)"
@@ -118,14 +118,21 @@
                 <span class="operator-logo" *ngIf="getOperatorSymbol(sighting)">
                   <span class="operator-symbol">
                     <img
-                      [src]="'assets/operator-logos/' + getOperatorSymbol(sighting)!.key + '.svg'"
+                      [src]="
+                        'assets/operator-logos/' +
+                        getOperatorSymbol(sighting)!.key +
+                        '.svg'
+                      "
                       [alt]="getOperatorSymbol(sighting)!.key"
                       width="16"
                       height="16"
                     />
                   </span>
                 </span>
-                <span class="operator-text" [class.unknown-operator]="!sighting.operator">
+                <span
+                  class="operator-text"
+                  [class.unknown-operator]="!sighting.operator"
+                >
                   {{ getOperatorDisplayName(sighting) }}
                 </span>
               </div>
@@ -134,7 +141,10 @@
             <td class="date-cell">
               <div class="date-content">
                 <span>{{ formatDate(sighting.lastSeen) }}</span>
-                <span class="cardinal-direction" *ngIf="sighting.cardinal && sighting.bearing != null">
+                <span
+                  class="cardinal-direction"
+                  *ngIf="sighting.cardinal && sighting.bearing != null"
+                >
                   <span>{{ sighting.cardinal }}</span>
                   <span
                     class="material-symbols-sharp direction-icon"
@@ -149,31 +159,12 @@
         </tbody>
       </table>
 
-      <!-- Aircraft Image Tooltip -->
-      <div
-        class="aircraft-image-tooltip"
-        [class.visible]="showImageTooltip"
-        [class.loading]="isLoadingImage"
-        [style.left.px]="tooltipPosition.x + 10"
-        [style.top.px]="tooltipPosition.y + 10"
-        [style.display]="showImageTooltip ? 'block' : 'none'"
-      >
-        <div *ngIf="isLoadingImage" class="loading-spinner">
-          <span class="material-symbols-sharp">refresh</span>
-          Loading image...
-        </div>
-        <div *ngIf="!isLoadingImage && aircraftImage" class="image-container">
-          <img
-            [src]="aircraftImage.thumbnail"
-            [alt]="aircraftImage.description"
-            loading="lazy"
-          />
-          <div class="image-source">{{ aircraftImage.description }}</div>
-        </div>
-        <div *ngIf="!isLoadingImage && !aircraftImage" class="no-image">
-          No image available
-        </div>
-      </div>
+      <app-aircraft-image-tooltip
+        [visible]="showImageTooltip"
+        [loading]="isLoadingImage"
+        [image]="aircraftImage"
+        [position]="tooltipPosition"
+      ></app-aircraft-image-tooltip>
 
       <div class="empty-state" *ngIf="filteredHistory.length === 0">
         <p *ngIf="searchQuery">No results found for "{{ searchQuery }}"</p>

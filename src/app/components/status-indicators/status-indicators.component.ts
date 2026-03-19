@@ -64,16 +64,15 @@ import { TooltipDirective } from '../../directives/tooltip.directive';
   `,
   styleUrls: ['./status-indicators.component.scss'],
 })
-export class StatusIndicatorsComponent
-  implements OnInit, OnDestroy, OnChanges
-{
+export class StatusIndicatorsComponent implements OnInit, OnDestroy, OnChanges {
   @Input() animationsEnabled = true;
   @Output() toggleAnimations = new EventEmitter<void>();
 
   animationsDismissed = false;
   showAnimationsEnabled = false;
   animationsEnabledFading = false;
-  private animationsDismissalKey = 'plane-alert:animations-notification-dismissed';
+  private animationsDismissalKey =
+    'plane-alert:animations-notification-dismissed';
   private animationsEnabledTimeout?: number;
   private fadeTimeout?: number;
 
@@ -89,7 +88,7 @@ export class StatusIndicatorsComponent
     if (changes['animationsEnabled']) {
       const prev = changes['animationsEnabled'].previousValue;
       const curr = changes['animationsEnabled'].currentValue;
-      
+
       if (prev === false && curr === true) {
         this.clearAnimationsDismissal();
         this.showAnimationsEnabledConfirmation();
@@ -128,7 +127,7 @@ export class StatusIndicatorsComponent
     }
     this.showAnimationsEnabled = false;
     this.animationsEnabledFading = false;
-    
+
     // Toggle back off
     this.toggleAnimations.emit();
   }
@@ -137,12 +136,12 @@ export class StatusIndicatorsComponent
   private showAnimationsEnabledConfirmation() {
     this.showAnimationsEnabled = true;
     this.animationsEnabledFading = false;
-    
+
     // Start fade after 2.5 seconds
     this.fadeTimeout = window.setTimeout(() => {
       this.animationsEnabledFading = true;
     }, 2500);
-    
+
     // Hide after 3 seconds
     this.animationsEnabledTimeout = window.setTimeout(() => {
       this.showAnimationsEnabled = false;

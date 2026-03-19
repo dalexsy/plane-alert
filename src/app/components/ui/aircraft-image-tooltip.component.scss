@@ -1,0 +1,83 @@
+@use '../../styles/variables' as *;
+
+:host {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.5rem;
+  padding: $space-sm;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6);
+  max-width: 18.75rem;
+  min-width: 12.5rem;
+  pointer-events: none;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  backdrop-filter: blur(0.5rem);
+
+  &.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  &.loading {
+    min-height: 6.25rem;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-xs;
+  color: #fff;
+  font-size: $font-size-small;
+
+  .material-symbols-sharp {
+    animation: aircraft-tooltip-spin 1s linear infinite;
+    font-size: 1.5rem;
+  }
+}
+
+.image-container {
+  img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+    margin-bottom: $space-xs;
+  }
+}
+
+.image-source {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+.no-image {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: $font-size-small;
+  text-align: center;
+  padding: $space-md;
+}
+
+@keyframes aircraft-tooltip-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 48rem) {
+  :host {
+    max-width: 15.625rem;
+    min-width: 9.375rem;
+  }
+}

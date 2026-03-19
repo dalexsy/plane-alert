@@ -110,11 +110,12 @@ $rotation-duration: 6s;
 
 // Combine animations with dynamic scaling
 .leaf {
-  animation: fall $fall-duration linear infinite,
+  animation:
+    fall $fall-duration linear infinite,
     sway $sway-duration ease-in-out infinite,
     rotate $rotation-duration linear infinite;
-  animation-delay: var(--fall-delay, 0s), var(--sway-delay, 0s),
-    var(--rotate-delay, 0s);
+  animation-delay:
+    var(--fall-delay, 0s), var(--sway-delay, 0s), var(--rotate-delay, 0s);
   transform: scale(calc(var(--base-scale, 1) * var(--dynamic-scale, 1)));
 }
 

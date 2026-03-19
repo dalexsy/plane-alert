@@ -98,7 +98,9 @@
 
 @media (max-width: 600px) {
   .status-indicators {
-    bottom: calc(4rem + 1rem); // Mobile window-view height (4rem) + spacing + gap
+    bottom: calc(
+      4rem + 1rem
+    ); // Mobile window-view height (4rem) + spacing + gap
     left: 0.25rem;
     gap: 0.25rem;
     min-width: 10rem; // Smaller on mobile

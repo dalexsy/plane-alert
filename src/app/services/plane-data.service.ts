@@ -412,8 +412,10 @@ export class PlaneDataService {
         // Calculate bearing and cardinal direction from observer to plane
         const bearing = computeBearingDeg(centerLat, centerLon, lat, lon);
         const cardinal = bearingToCardinal(bearing);
-        
-        console.log(`🎖️ Saving military aircraft to history: ${callsign || id} (${model})`);
+
+        console.log(
+          `🎖️ Saving military aircraft to history: ${callsign || id} (${model})`,
+        );
         this.militaryHistory
           .saveSighting(userKey, {
             icao: id,
@@ -428,10 +430,16 @@ export class PlaneDataService {
             bearing,
             cardinal,
           })
-          .then(() => console.log(`✓ Military sighting saved: ${callsign || id}`))
-          .catch((err) => console.error('✗ Failed to save military sighting:', err));
+          .then(() =>
+            console.log(`✓ Military sighting saved: ${callsign || id}`),
+          )
+          .catch((err) =>
+            console.error('✗ Failed to save military sighting:', err),
+          );
       } else {
-        console.warn(`⚠️ Military aircraft detected (${callsign || id}) but no Pushover key configured. Configure notifications to enable history tracking.`);
+        console.warn(
+          `⚠️ Military aircraft detected (${callsign || id}) but no Pushover key configured. Configure notifications to enable history tracking.`,
+        );
       }
     }
 

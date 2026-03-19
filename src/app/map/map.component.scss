@@ -20,8 +20,15 @@
   .material-symbols-outlined {
     color: #4caf50; // Green color for home icon
     font-size: 2rem;
-    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 48;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+    font-variation-settings:
+      "FILL" 1,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 48;
+    text-shadow:
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
       1px 1px 0 #000;
   }
 }
@@ -34,7 +41,11 @@
   .material-symbols-outlined {
     color: #2196f3; // Blue color for location icon
     font-size: 2rem;
-    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 48;
+    font-variation-settings:
+      "FILL" 1,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 48;
     filter: drop-shadow(0px 0px 2px #000);
   }
 }
@@ -48,7 +59,9 @@ app-map.map-panning app-input-overlay {
 
 /* Cloud layer sky color synchronization styles */
 .cloud-layer {
-  transition: filter 0.5s ease-in-out, mix-blend-mode 0.3s ease;
+  transition:
+    filter 0.5s ease-in-out,
+    mix-blend-mode 0.3s ease;
 
   // Enhanced blending for atmospheric effects
   &.sky-synchronized {
@@ -124,7 +137,9 @@ app-map.map-panning app-input-overlay {
   z-index: 1000;
   pointer-events: none;
   justify-content: flex-end;
-  transition: padding-left 0.3s ease, padding-right 0.3s ease;
+  transition:
+    padding-left 0.3s ease,
+    padding-right 0.3s ease;
 
   // When window view is visible, adjust height to account for overlays
   &:not(.window-view-hidden) {

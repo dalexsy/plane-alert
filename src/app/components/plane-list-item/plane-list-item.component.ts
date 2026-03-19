@@ -12,8 +12,6 @@ import {
   OnChanges,
   OnDestroy,
   SimpleChanges,
-  ElementRef,
-  Renderer2,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -34,6 +32,7 @@ import { PlaneStyleService } from '../../services/plane-style.service';
 import { AnnouncementService } from '../../services/announcement.service';
 import { OperatorTooltipService } from '../../services/operator-tooltip.service';
 import { OperatorSymbolConfig } from '../../config/operator-symbols.config';
+import { AircraftImageTooltipComponent } from '../ui/aircraft-image-tooltip.component';
 import {
   AircraftImageService,
   AircraftImage,
@@ -42,7 +41,12 @@ import {
 @Component({
   selector: 'app-plane-list-item',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TooltipDirective],
+  imports: [
+    AircraftImageTooltipComponent,
+    CommonModule,
+    ButtonComponent,
+    TooltipDirective,
+  ],
   templateUrl: './plane-list-item.component.html',
   styleUrls: ['./plane-list-item.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush, // Use OnPush for performance
@@ -251,7 +255,6 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
   showImageTooltip = false;
   isLoadingImage = false;
   tooltipPosition = { x: 0, y: 0 };
-  private tooltipElement: HTMLElement | null = null;
 
   @Output() centerPlane = new EventEmitter<PlaneLogEntry>();
   @Output() centerAirport = new EventEmitter<{ lat: number; lon: number }>();
@@ -267,9 +270,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     private announcementService: AnnouncementService,
     private operatorTooltipService: OperatorTooltipService,
     private aircraftImageService: AircraftImageService,
-    private cdr: ChangeDetectorRef,
-    private elementRef: ElementRef,
-    private renderer: Renderer2
+    private cdr: ChangeDetectorRef
   ) {
     // Subscribe to distance unit changes to trigger change detection
     this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(
@@ -281,13 +282,6 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.distanceUnitSubscription?.unsubscribe();
-    // Clean up tooltip if it's still attached to body
-    if (
-      this.tooltipElement &&
-      this.tooltipElement.parentNode === document.body
-    ) {
-      this.renderer.removeChild(document.body, this.tooltipElement);
-    }
   }
 
   // Make the whole item clickable: clicking the host emits centerPlane
@@ -380,7 +374,6 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     // If we already have the image cached, just show it
     if (this.aircraftImage) {
       this.showImageTooltip = true;
-      this.moveTooltipToBody();
       return;
     }
 
@@ -415,9 +408,6 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     this.isLoadingImage = true;
     this.showImageTooltip = true;
 
-    // Move tooltip to document body to escape overflow hidden containers
-    this.moveTooltipToBody();
-
     this.aircraftImageService
       .getAircraftImage(this.plane.r, this.plane.icao)
       .subscribe({
@@ -440,35 +430,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     // Keep aircraftImage cached - don't clear it
     this.isLoadingImage = false;
 
-    // Move tooltip back to component
-    this.moveTooltipBack();
-
     this.cdr.detectChanges();
-  }
-
-  private moveTooltipToBody(): void {
-    if (!this.tooltipElement) {
-      // Find the tooltip element in the component
-      const tooltipEl = this.elementRef.nativeElement.querySelector(
-        '.aircraft-image-tooltip'
-      );
-      if (tooltipEl) {
-        this.tooltipElement = tooltipEl;
-        // Append to document body
-        this.renderer.appendChild(document.body, this.tooltipElement);
-      }
-    }
-  }
-
-  private moveTooltipBack(): void {
-    if (this.tooltipElement) {
-      // Move back to the component's original location
-      const modelEl = this.elementRef.nativeElement.querySelector('.model');
-      if (modelEl) {
-        this.renderer.appendChild(modelEl, this.tooltipElement);
-      }
-      this.tooltipElement = null;
-    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {

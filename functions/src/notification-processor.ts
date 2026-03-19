@@ -384,39 +384,53 @@ async function notifyForDevice(
 
       // Save to military history when notifying (backend-authoritative record)
       const historyDocId = `${data.pushoverUserKey}__${icao.toLowerCase()}`;
-      const historyRef = db.collection(MILITARY_HISTORY_COLLECTION).doc(historyDocId);
+      const historyRef = db
+        .collection(MILITARY_HISTORY_COLLECTION)
+        .doc(historyDocId);
       const existingSighting = await historyRef.get();
       if (existingSighting.exists) {
         const existing = existingSighting.data()!;
-        historyRef.update({
-          lastSeen: now,
-          sightingCount: (existing.sightingCount || 1) + 1,
-          ...(plane.lat != null && { lat: plane.lat }),
-          ...(plane.lon != null && { lon: plane.lon }),
-          ...(plane.alt_baro != null && { altitude: plane.alt_baro }),
-          ...(bearing != null && { bearing }),
-          ...(direction && { cardinal: direction }),
-          ...(callsign && { callsign }),
-          ...(model && { model }),
-          ...(countryCode && { country: countryCode }),
-          ...(plane.r && { registration: plane.r }),
-        }).catch((err: Error) => logger.warn('Failed to update military history', { err: err.message }));
+        historyRef
+          .update({
+            lastSeen: now,
+            sightingCount: (existing.sightingCount || 1) + 1,
+            ...(plane.lat != null && { lat: plane.lat }),
+            ...(plane.lon != null && { lon: plane.lon }),
+            ...(plane.alt_baro != null && { altitude: plane.alt_baro }),
+            ...(bearing != null && { bearing }),
+            ...(direction && { cardinal: direction }),
+            ...(callsign && { callsign }),
+            ...(model && { model }),
+            ...(countryCode && { country: countryCode }),
+            ...(plane.r && { registration: plane.r }),
+          })
+          .catch((err: Error) =>
+            logger.warn('Failed to update military history', {
+              err: err.message,
+            }),
+          );
       } else {
-        historyRef.set({
-          icao: icao.toLowerCase(),
-          firstSeen: now,
-          lastSeen: now,
-          sightingCount: 1,
-          ...(callsign && { callsign }),
-          ...(model && { model }),
-          ...(countryCode && { country: countryCode }),
-          ...(plane.r && { registration: plane.r }),
-          ...(plane.lat != null && { lat: plane.lat }),
-          ...(plane.lon != null && { lon: plane.lon }),
-          ...(plane.alt_baro != null && { altitude: plane.alt_baro }),
-          ...(bearing != null && { bearing }),
-          ...(direction && { cardinal: direction }),
-        }).catch((err: Error) => logger.warn('Failed to save military history', { err: err.message }));
+        historyRef
+          .set({
+            icao: icao.toLowerCase(),
+            firstSeen: now,
+            lastSeen: now,
+            sightingCount: 1,
+            ...(callsign && { callsign }),
+            ...(model && { model }),
+            ...(countryCode && { country: countryCode }),
+            ...(plane.r && { registration: plane.r }),
+            ...(plane.lat != null && { lat: plane.lat }),
+            ...(plane.lon != null && { lon: plane.lon }),
+            ...(plane.alt_baro != null && { altitude: plane.alt_baro }),
+            ...(bearing != null && { bearing }),
+            ...(direction && { cardinal: direction }),
+          })
+          .catch((err: Error) =>
+            logger.warn('Failed to save military history', {
+              err: err.message,
+            }),
+          );
       }
 
       if (messages.length >= MAX_NOTIFICATIONS_PER_DEVICE) {

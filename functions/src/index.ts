@@ -52,5 +52,6 @@ export const clearCooldowns = createClearCooldownsFunction(db);
 // Import military history functions
 import { createMilitaryHistoryFunctions } from './military-history';
 const militaryHistoryFunctions = createMilitaryHistoryFunctions(db);
-export const saveMilitarySighting = militaryHistoryFunctions.saveMilitarySighting;
+export const saveMilitarySighting =
+  militaryHistoryFunctions.saveMilitarySighting;
 export const getMilitaryHistory = militaryHistoryFunctions.getMilitaryHistory;

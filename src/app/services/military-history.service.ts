@@ -47,7 +47,7 @@ export class MilitaryHistoryService {
       altitude?: number;
       bearing?: number;
       cardinal?: string;
-    }
+    },
   ): Promise<boolean> {
     try {
       await firstValueFrom(
@@ -57,8 +57,8 @@ export class MilitaryHistoryService {
             pushoverUserKey,
             ...plane,
           },
-          { headers: { 'Content-Type': 'application/json' } }
-        )
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
       );
       return true;
     } catch (error) {
@@ -71,15 +71,15 @@ export class MilitaryHistoryService {
    * Get all military sightings for a pushover key
    */
   async getHistory(
-    pushoverUserKey: string
+    pushoverUserKey: string,
   ): Promise<MilitaryHistorySighting[]> {
     try {
       const response: any = await firstValueFrom(
         this.http.post(
           this.getHistoryEndpoint,
           { pushoverUserKey },
-          { headers: { 'Content-Type': 'application/json' } }
-        )
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
       );
       return response.history || [];
     } catch (error) {

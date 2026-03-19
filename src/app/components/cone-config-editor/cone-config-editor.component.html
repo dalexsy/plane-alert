@@ -1,10 +1,16 @@
 <div class="cone-config-editor">
   <div class="header">
     <h3>View Cone Configuration</h3>
-    <button type="button" class="close-btn" (click)="close()" title="Close">
-      ✕
-    </button>
+    <app-button
+      type="tertiary"
+      appearance="modal-close"
+      size="small"
+      icon="close"
+      ariaLabel="Close"
+      (click)="close()"
+    ></app-button>
   </div>
+
   <p class="description">
     Configure the viewing angles and labels for your location. Each cone
     represents a direction you can see planes from.
@@ -18,43 +24,40 @@
       <div class="cone-fields">
         <div class="field-group">
           <label>Label:</label>
-          <input
+          <app-input
+            appearance="modal"
             type="text"
             [value]="cone.label"
-            (input)="onConeChange(i, 'label', $any($event.target).value)"
+            (inputChange)="onConeChange(i, 'label', $event)"
             placeholder="e.g., Balcony, Window, etc."
-          />
+          ></app-input>
         </div>
 
         <div class="field-group">
           <label>Start Angle (°):</label>
-          <input
+          <app-input
+            appearance="modal"
             type="number"
             [value]="cone.startAngle"
-            (input)="onConeChange(i, 'startAngle', +$any($event.target).value)"
-            min="0"
-            max="360"
-            step="1"
-          />
+            (inputChange)="onConeChange(i, 'startAngle', +$event)"
+          ></app-input>
         </div>
 
         <div class="field-group">
           <label>End Angle (°):</label>
-          <input
+          <app-input
+            appearance="modal"
             type="number"
             [value]="cone.endAngle"
-            (input)="onConeChange(i, 'endAngle', +$any($event.target).value)"
-            min="0"
-            max="360"
-            step="1"
-          />
+            (inputChange)="onConeChange(i, 'endAngle', +$event)"
+          ></app-input>
         </div>
 
         <button
           type="button"
           class="remove-btn"
-          (click)="removeCone(i)"
           [disabled]="cones.length <= 1"
+          (click)="removeCone(i)"
           title="Remove this view cone"
         >
           ✕

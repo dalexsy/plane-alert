@@ -1,9 +1,14 @@
 ﻿<div class="pushover-config-editor">
   <div class="header-fixed">
     <h3>Push Notification Configuration</h3>
-    <button type="button" class="close-btn" (click)="close()" title="Close">
-      <app-icon icon="close" size="small"></app-icon>
-    </button>
+    <app-button
+      type="tertiary"
+      appearance="modal-close"
+      size="small"
+      icon="close"
+      ariaLabel="Close"
+      (click)="close()"
+    ></app-button>
   </div>
 
   <div class="content-scrollable">
@@ -15,14 +20,12 @@
     <div class="key-section">
       <label for="pushover-key">Pushover User Key</label>
       <div class="key-input-group">
-        <input
-          id="pushover-key"
-          type="text"
-          [(ngModel)]="pushoverUserKey"
-          (ngModelChange)="onPushoverKeyChange($event)"
+        <app-input
+          appearance="modal"
+          [value]="pushoverUserKey"
           placeholder="Enter your Pushover user key"
-          class="key-input"
-        />
+          (inputChange)="onPushoverKeyChange($event)"
+        ></app-input>
         <span *ngIf="keyValidated" class="status-icon" title="Key validated">
           <app-icon icon="check_circle" size="small"></app-icon>
         </span>
@@ -96,12 +99,12 @@
               *ngIf="selectedDevice === device && isEditingLocation"
             >
               <app-input
+                appearance="modal"
                 [value]="locationSearchQuery"
                 (inputChange)="locationSearchQuery = $event"
                 (enterPressed)="saveLocationEdit(device)"
                 (blurEvent)="saveLocationEdit(device)"
                 placeholder="Enter city or address..."
-                size="small"
                 #locationInput
               ></app-input>
               <span class="location-hint" *ngIf="locationError">

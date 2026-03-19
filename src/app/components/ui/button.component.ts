@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 
 export type ButtonType = 'primary' | 'secondary' | 'tertiary';
+export type ButtonAppearance = 'default' | 'modal-close';
 
 @Component({
   selector: 'app-button',
@@ -24,7 +25,9 @@ export type ButtonType = 'primary' | 'secondary' | 'tertiary';
         (icon ? ' icon' : '') +
         (icon && text ? ' has-text' : '') +
         ' ' +
-        size
+        size +
+        ' ' +
+        appearance
       "
       [attr.aria-label]="ariaLabel"
       [type]="nativeType"
@@ -44,6 +47,7 @@ export class ButtonComponent implements OnChanges {
   @Input() nativeType: 'button' | 'submit' | 'reset' = 'button';
   @Input() type: ButtonType = 'primary';
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
+  @Input() appearance: ButtonAppearance = 'default';
   @Input() disabled: boolean = false;
   @Output() click = new EventEmitter<Event>();
 

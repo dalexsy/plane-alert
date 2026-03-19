@@ -14,13 +14,15 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 export type InputType = 'text' | 'number' | 'textarea';
 export type InputSize = 'small' | 'medium' | 'large';
+export type InputAppearance = 'default' | 'modal';
+export type InputValue = string | number;
 
 @Component({
   selector: 'app-input',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="input-wrapper" [class]="size">
+    <div class="input-wrapper" [class]="size + ' ' + appearance">
       <label *ngIf="label" [for]="inputId" class="input-label">
         {{ label }}
       </label>
@@ -73,9 +75,10 @@ export class InputComponent implements OnInit, ControlValueAccessor {
   @Input() placeholder: string = '';
   @Input() disabled: boolean = false;
   @Input() size: InputSize = 'medium';
+  @Input() appearance: InputAppearance = 'default';
   @Input() rows: number = 2; // For textarea
   @Input() autocomplete: string = 'off';
-  @Input() value: string = ''; // Add value input
+  @Input() value: InputValue = ''; // Add value input
 
   @Output() inputChange = new EventEmitter<string>();
   @Output() focusEvent = new EventEmitter<FocusEvent>();
@@ -130,10 +133,10 @@ export class InputComponent implements OnInit, ControlValueAccessor {
   }
 
   // ControlValueAccessor methods
-  writeValue(value: string): void {
+  writeValue(value: InputValue | null | undefined): void {
     this.value = value || '';
     if (this.inputElementRef) {
-      this.inputElementRef.nativeElement.value = this.value;
+      this.inputElementRef.nativeElement.value = String(this.value);
     }
   }
 
@@ -164,12 +167,12 @@ export class InputComponent implements OnInit, ControlValueAccessor {
   }
 
   // Public method to set the value
-  setValue(value: string): void {
+  setValue(value: InputValue): void {
     this.writeValue(value);
   }
 
   // Public method to get the current value
-  getValue(): string {
+  getValue(): InputValue {
     return this.value;
   }
 }
