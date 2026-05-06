@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, timeout } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface FlightRoute {
   origin?: string; // ICAO airport code
@@ -15,8 +16,7 @@ export interface FlightRoute {
 })
 export class OpenskyRouteService {
   // Use Firebase Cloud Function proxy to bypass CORS
-  private readonly PROXY_URL =
-    'https://us-central1-plane-alert-800ff.cloudfunctions.net/openskyProxy';
+  private readonly PROXY_URL = environment.endpoints.openskyProxy;
   private readonly CACHE_DURATION_MS = 3600000; // 1 hour
   private readonly CACHE_PREFIX = 'opensky_route_';
   private readonly REQUEST_TIMEOUT_MS = 10000; // 10 second timeout

@@ -1,5 +1,4 @@
 <div
-  *ngIf="!loading"
   class="temperature-container"
   [class.window-view-hidden]="windowViewHidden"
 >
@@ -11,8 +10,22 @@
       class="weather-icon"
       ariaLabel="Current weather"
     ></app-icon>
-    <div class="temp-high">{{ displayHighTemp }}°</div>
-    <div class="temp-low">{{ displayLowTemp }}°</div>
+    <div class="temperature-meta">
+      <div class="cloud-ceiling">
+        <app-icon
+          icon="wb_cloudy"
+          variant="outlined"
+          size="small"
+          class="cloud-ceiling-icon"
+          ariaLabel="Cloud ceiling"
+        ></app-icon>
+        <span class="cloud-ceiling-value">{{ displayCloudCeiling }}</span>
+      </div>
+      <div class="temperature-range-row">
+        <div class="temp-high">{{ displayHighTemp }}°</div>
+        <div class="temp-low">{{ displayLowTemp }}°</div>
+      </div>
+    </div>
   </div>
   <div class="temperature-current">{{ displayTemperature }}°</div>
 </div>

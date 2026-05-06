@@ -24,6 +24,42 @@
     display: flex;
     flex-direction: row;
 
+    .temperature-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+    }
+
+    .cloud-ceiling {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.4rem;
+      font-size: 1.4vw;
+      letter-spacing: -0.03vw;
+      opacity: 0.95;
+
+      .cloud-ceiling-icon {
+        ::ng-deep span.icon {
+          font-size: 1.6vw;
+          font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0,
+            "opsz" 20;
+        }
+      }
+
+      .cloud-ceiling-value {
+        white-space: nowrap;
+      }
+    }
+
+    .temperature-range-row {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+    }
+
     .weather-icon {
       font-size: 6vw;
       line-height: 1;

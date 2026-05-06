@@ -221,8 +221,16 @@
 
     .date-content {
       display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+
+      .date-primary-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
 
       .cardinal-direction {
         display: flex;
@@ -234,6 +242,13 @@
           font-size: var(--font-size-lg);
           color: rgba(255, 255, 255, 0.6);
         }
+      }
+
+      .notification-source {
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.3;
+        word-break: break-word;
       }
     }
   }

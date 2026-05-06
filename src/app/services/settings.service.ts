@@ -50,6 +50,8 @@ export class SettingsService {
   private resultsOverlayCollapsedKey = 'resultsOverlayCollapsed';
   private militaryMuteKey = 'militaryMute';
   private _militaryMute: boolean = true;
+  private mutedIcaosKey = 'mutedIcaos';
+  private _mutedIcaos: Set<string> = new Set();
   private dateTimeOverlayKey = 'showDateTimeOverlay';
   private _showDateTimeOverlay: boolean = false;
   private dateTimeOverlayMobileKey = 'showDateTimeOverlayMobile';
@@ -91,6 +93,9 @@ export class SettingsService {
   // Key and backing store for animations enabled/disabled
   private animationsEnabledKey = 'animationsEnabled';
   private _animationsEnabled: boolean = true;
+  // Key and backing store for ghost position (onion skin) overlay
+  private showGhostPositionKey = 'showGhostPosition';
+  private _showGhostPosition: boolean = false;
   // Key for clicked airports persistence
   private clickedAirportsKey = 'clickedAirports';
 
@@ -256,6 +261,27 @@ export class SettingsService {
     }
   }
 
+  /** Whether a specific ICAO is muted */
+  isMutedIcao(icao: string): boolean {
+    return this._mutedIcaos.has(icao.toUpperCase());
+  }
+
+  /** Get all muted ICAOs */
+  getMutedIcaos(): string[] {
+    return Array.from(this._mutedIcaos);
+  }
+
+  /** Mute or unmute a specific ICAO */
+  toggleMutedIcao(icao: string): void {
+    const key = icao.toUpperCase();
+    if (this._mutedIcaos.has(key)) {
+      this._mutedIcaos.delete(key);
+    } else {
+      this._mutedIcaos.add(key);
+    }
+    localStorage.setItem(this.mutedIcaosKey, JSON.stringify(Array.from(this._mutedIcaos)));
+  }
+
   // Event emitted when exclude discount setting changes
   excludeDiscountChanged = new EventEmitter<boolean>();
 
@@ -302,7 +328,7 @@ export class SettingsService {
       const firebaseMessaging = (await import('./firebase-messaging.service'))
         .FirebaseMessagingService;
       const messagingService = this.injector.get(firebaseMessaging);
-      await messagingService.updateCurrentLocation(lat, lon);
+      await messagingService.updateCurrentLocation(lat, lon, address);
     } catch (error) {
       console.warn('Failed to update backend location:', error);
     }
@@ -425,7 +451,11 @@ export class SettingsService {
 
       // Only update if there's an active token (push notifications enabled)
       if (messagingService.hasActiveToken()) {
-        const updated = await messagingService.updateCurrentLocation(lat, lon);
+        const updated = await messagingService.updateCurrentLocation(
+          lat,
+          lon,
+          address,
+        );
         if (updated) {
           console.log(
             '✅ Backend location synchronized for push notifications',
@@ -496,6 +526,16 @@ export class SettingsService {
   setAnimationsEnabled(value: boolean): void {
     this._animationsEnabled = value;
     localStorage.setItem(this.animationsEnabledKey, value.toString());
+  }
+
+  /** Whether ghost position (onion skin) overlay is shown */
+  get showGhostPosition(): boolean {
+    return this._showGhostPosition;
+  }
+  /** Persist ghost position overlay preference */
+  setShowGhostPosition(value: boolean): void {
+    this._showGhostPosition = value;
+    localStorage.setItem(this.showGhostPositionKey, value.toString());
   }
 
   /** Whether brightness auto-dimming mode is enabled */
@@ -602,6 +642,11 @@ export class SettingsService {
     if (animationsStr !== null) {
       this._animationsEnabled = animationsStr === 'true';
     }
+    // Load ghost position overlay preference
+    const ghostStr = localStorage.getItem(this.showGhostPositionKey);
+    if (ghostStr !== null) {
+      this._showGhostPosition = ghostStr === 'true';
+    }
     // Try to load from unified location object first
     const unifiedLocation = localStorage.getItem(this.locationKey);
     let lat: number,
@@ -675,6 +720,18 @@ export class SettingsService {
     const muteStr = localStorage.getItem(this.militaryMuteKey);
     if (muteStr !== null) {
       this._militaryMute = muteStr === 'true';
+    }
+    // Load muted ICAOs
+    const mutedIcaosStr = localStorage.getItem(this.mutedIcaosKey);
+    if (mutedIcaosStr !== null) {
+      try {
+        const arr = JSON.parse(mutedIcaosStr);
+        if (Array.isArray(arr)) {
+          this._mutedIcaos = new Set(arr.map((v: string) => v.toUpperCase()));
+        }
+      } catch {
+        this._mutedIcaos = new Set();
+      }
     }
     // Load show/hide date-time overlay preference
     const dtStr = localStorage.getItem(this.dateTimeOverlayKey);

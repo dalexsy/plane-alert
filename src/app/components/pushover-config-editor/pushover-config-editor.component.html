@@ -64,7 +64,7 @@
     <div class="devices-section" *ngIf="devices.length > 0">
       <h4>Devices</h4>
       <p class="help-text">
-        Click any location to set a different address for that device.
+        Select a device and click its location to edit.
       </p>
       <div class="device-list">
         <div
@@ -97,19 +97,44 @@
             <div
               class="device-location-editor"
               *ngIf="selectedDevice === device && isEditingLocation"
+              (click)="$event.stopPropagation()"
             >
               <app-input
                 appearance="modal"
                 [value]="locationSearchQuery"
                 (inputChange)="locationSearchQuery = $event"
-                (enterPressed)="saveLocationEdit(device)"
-                (blurEvent)="saveLocationEdit(device)"
+                (keydownEvent)="onLocationEditorKeydown($event, device)"
                 placeholder="Enter city or address..."
                 #locationInput
               ></app-input>
-              <span class="location-hint" *ngIf="locationError">
-                {{ locationError }}
-              </span>
+              <div class="location-editor-footer">
+                <span
+                  class="location-hint error"
+                  *ngIf="locationError"
+                >
+                  {{ locationError }}
+                </span>
+                <div class="location-actions">
+                  <app-button
+                    type="tertiary"
+                    size="small"
+                    icon="check"
+                    ariaLabel="Save location"
+                    [disabled]="
+                      isGeocodingLocation || !locationSearchQuery.trim()
+                    "
+                    (click)="saveLocationEdit(device)"
+                  ></app-button>
+                  <app-button
+                    type="tertiary"
+                    size="small"
+                    icon="close"
+                    ariaLabel="Cancel location edit"
+                    [disabled]="isGeocodingLocation"
+                    (click)="cancelLocationEdit()"
+                  ></app-button>
+                </div>
+              </div>
             </div>
             <div class="device-controls">
               <label class="toggle-label" (click)="$event.stopPropagation()">

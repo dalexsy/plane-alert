@@ -95,7 +95,10 @@ export class AircraftImageTooltipComponent
       return;
     }
 
-    this.renderer.appendChild(this.originalParent, this.elementRef.nativeElement);
+    this.renderer.appendChild(
+      this.originalParent,
+      this.elementRef.nativeElement,
+    );
     this.appendedToBody = false;
   }
 }

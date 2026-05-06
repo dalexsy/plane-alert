@@ -5,6 +5,7 @@
 
 import { logger } from 'firebase-functions/v2';
 import fetch from 'node-fetch';
+import { reverseGeocode } from './geocoding';
 
 const AEROAPI_BASE_URL = 'https://aeroapi.flightaware.com/aeroapi';
 
@@ -173,24 +174,34 @@ export async function fetchFlightData(
       aircraftType: flight.aircraft_type,
       registration: flight.registration,
       origin: flight.origin
-        ? {
-            code: flight.origin.code_icao || flight.origin.code || '',
-            codeIcao: flight.origin.code_icao,
-            codeIata: flight.origin.code_iata,
-            name: flight.origin.name,
-            city: flight.origin.city,
-            timezone: flight.origin.timezone,
-          }
+        ? (() => {
+            const rawCode = flight.origin.code_icao || flight.origin.code || '';
+            const isCoord = looksLikeCoordinate(rawCode);
+            return {
+              code: isCoord ? '' : rawCode,
+              codeIcao: isCoord ? undefined : flight.origin.code_icao,
+              codeIata: isCoord ? undefined : flight.origin.code_iata,
+              name: flight.origin.name,
+              city: flight.origin.city,
+              timezone: flight.origin.timezone,
+              _rawCoordCode: isCoord ? rawCode : undefined,
+            } as AirportInfo & { _rawCoordCode?: string };
+          })()
         : undefined,
       destination: flight.destination
-        ? {
-            code: flight.destination.code_icao || flight.destination.code || '',
-            codeIcao: flight.destination.code_icao,
-            codeIata: flight.destination.code_iata,
-            name: flight.destination.name,
-            city: flight.destination.city,
-            timezone: flight.destination.timezone,
-          }
+        ? (() => {
+            const rawCode = flight.destination.code_icao || flight.destination.code || '';
+            const isCoord = looksLikeCoordinate(rawCode);
+            return {
+              code: isCoord ? '' : rawCode,
+              codeIcao: isCoord ? undefined : flight.destination.code_icao,
+              codeIata: isCoord ? undefined : flight.destination.code_iata,
+              name: flight.destination.name,
+              city: flight.destination.city,
+              timezone: flight.destination.timezone,
+              _rawCoordCode: isCoord ? rawCode : undefined,
+            } as AirportInfo & { _rawCoordCode?: string };
+          })()
         : undefined,
       scheduledOut: flight.scheduled_out,
       estimatedOut: flight.estimated_out,
@@ -212,6 +223,9 @@ export async function fetchFlightData(
       arrivalDelay: flight.arrival_delay,
     };
 
+    // Resolve any coordinate-based origin/destination to human-readable city names
+    await resolveCoordinateEndpoints(flightData);
+
     logger.info('AeroAPI flight data retrieved', {
       callsign,
       origin: flightData.origin?.code,
@@ -227,6 +241,112 @@ export async function fetchFlightData(
     });
     return null;
   }
+}
+
+/**
+ * For flight endpoints that were coordinate waypoints (ARINC-424, lat/lon), resolve
+ * them to a human-readable city + country string via reverse geocoding.
+ * Mutates the flightData object in place.
+ */
+async function resolveCoordinateEndpoints(flightData: FlightData): Promise<void> {
+  const endpoints = [flightData.origin, flightData.destination] as Array<
+    (AirportInfo & { _rawCoordCode?: string }) | undefined
+  >;
+
+  await Promise.all(
+    endpoints.map(async (endpoint) => {
+      if (!endpoint?._rawCoordCode) return;
+      const coords = parseCoordinateCode(endpoint._rawCoordCode);
+      if (!coords) return;
+
+      const placeName = await reverseGeocode(coords.lat, coords.lon);
+      if (placeName) {
+        endpoint.city = placeName;
+        endpoint.name = placeName;
+      }
+      // Clean up the internal marker
+      delete endpoint._rawCoordCode;
+    }),
+  );
+}
+
+/**
+ * Detect whether a string looks like a geographic coordinate or waypoint rather
+ * than a real airport code. AeroAPI sometimes returns ARINC-424 lat/lon fixes,
+ * FAA coordinate waypoints, or raw lat/lon strings as the `code` field for
+ * non-airport destinations (common in military flight plans).
+ *
+ * Patterns matched:
+ *  - ARINC-424: "3000N07000W", "N4719W11231"
+ *  - Decimal: "52.1234,13.5678", "52.1234/13.5678", "52.1234 13.5678"
+ *  - Signed decimal: "-52.1234,13.5678"
+ *  - FAA fix: "4730N/01230E"
+ */
+function looksLikeCoordinate(code: string): boolean {
+  if (!code) return false;
+  const c = code.trim().toUpperCase();
+  // ARINC-424 fixed-width waypoint, e.g. "3000N07000W" or "N4719W11231"
+  if (/^\d{4}[NS]\d{5}[EW]$/.test(c)) return true;
+  if (/^[NS]\d{4,6}[EW]\d{4,6}$/.test(c)) return true;
+  // FAA-style "4730N/01230E"
+  if (/^\d{2,4}[NS]\/\d{3,5}[EW]$/.test(c)) return true;
+  // Decimal lat,lon or lat/lon
+  if (/^-?\d{1,3}\.\d+[,\/ ]\s*-?\d{1,3}\.\d+$/.test(c)) return true;
+  return false;
+}
+
+/**
+ * Parse a coordinate-like code string to { lat, lon } decimal degrees.
+ * Returns null if the string cannot be parsed.
+ */
+function parseCoordinateCode(code: string): { lat: number; lon: number } | null {
+  const c = code.trim().toUpperCase();
+
+  // ARINC-424: "3000N07000W" => DDMM[NS]DDDMM[EW]
+  const arinc = c.match(/^(\d{2})(\d{2})([NS])(\d{3})(\d{2})([EW])$/);
+  if (arinc) {
+    const latDeg = parseInt(arinc[1], 10) + parseInt(arinc[2], 10) / 60;
+    const lonDeg = parseInt(arinc[4], 10) + parseInt(arinc[5], 10) / 60;
+    return {
+      lat: arinc[3] === 'S' ? -latDeg : latDeg,
+      lon: arinc[6] === 'W' ? -lonDeg : lonDeg,
+    };
+  }
+
+  // "N4719W11231" => [NS]DDMM[EW]DDDMM
+  const nsew = c.match(/^([NS])(\d{2})(\d{2})([EW])(\d{3})(\d{2})$/);
+  if (nsew) {
+    const latDeg = parseInt(nsew[2], 10) + parseInt(nsew[3], 10) / 60;
+    const lonDeg = parseInt(nsew[5], 10) + parseInt(nsew[6], 10) / 60;
+    return {
+      lat: nsew[1] === 'S' ? -latDeg : latDeg,
+      lon: nsew[4] === 'W' ? -lonDeg : lonDeg,
+    };
+  }
+
+  // FAA-style "4730N/01230E"
+  const faa = c.match(/^(\d{2,4})([NS])\/(\d{3,5})([EW])$/);
+  if (faa) {
+    const rawLat = faa[1].padStart(4, '0');
+    const rawLon = faa[3].padStart(5, '0');
+    const latDeg = parseInt(rawLat.slice(0, 2), 10) + parseInt(rawLat.slice(2), 10) / 60;
+    const lonDeg = parseInt(rawLon.slice(0, 3), 10) + parseInt(rawLon.slice(3), 10) / 60;
+    return {
+      lat: faa[2] === 'S' ? -latDeg : latDeg,
+      lon: faa[4] === 'W' ? -lonDeg : lonDeg,
+    };
+  }
+
+  // Decimal: "52.1234,13.5678" or "52.1234/13.5678"
+  const decimal = c.match(/^(-?\d{1,3}\.\d+)[,\/ ]\s*(-?\d{1,3}\.\d+)$/);
+  if (decimal) {
+    return {
+      lat: parseFloat(decimal[1]),
+      lon: parseFloat(decimal[2]),
+    };
+  }
+
+  return null;
 }
 
 /**

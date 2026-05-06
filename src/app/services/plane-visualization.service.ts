@@ -11,7 +11,6 @@ import {
 import {
   createOrUpdatePlaneMarker,
   cancelMarkerAnimation,
-  removeLeftMarkerFromPlane,
   resumeMidFlightAnimation,
 } from '../utils/plane-marker';
 import { AltitudeColorService } from './altitude-color.service';
@@ -33,14 +32,7 @@ export class PlaneVisualizationService {
   ) {}
 
   removePlaneVisuals(plane: PlaneModel, map: L.Map): void {
-    if (plane.marker) {
-      removeLeftMarkerFromPlane(plane.marker, map);
-    }
-
-    plane.marker?.remove();
-    plane.path?.remove();
-    plane.predictedPathArrowhead?.remove();
-    plane.removeHistoryTrailSegments(map);
+    plane.removeVisuals(map);
   }
 
   cancelMarkerAnimations(planes: Iterable<PlaneModel>): void {
@@ -195,7 +187,8 @@ export class PlaneVisualizationService {
       this.operatorTooltipService,
       planeData,
       this.settings.animationsEnabled,
-      animationTimestamp
+      animationTimestamp,
+      this.settings.showGhostPosition
     );
 
     // Apply altitude border styling

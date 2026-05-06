@@ -61,7 +61,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
       lat,
       lon,
       this.plane.lat,
-      this.plane.lon
+      this.plane.lon,
     );
     const unit = this.settings.distanceUnit as DistanceUnit;
     return Math.round(convertFromKm(distanceInKm, unit) * 10) / 10;
@@ -80,31 +80,51 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
 
   private formatAirportTooltip(
     name: string | undefined,
-    code: string | undefined
+    code: string | undefined,
   ): string {
     if (typeof name === 'string' && name.trim()) return name.trim();
     if (typeof code === 'string' && code.trim()) return code.trim();
     return '';
   }
 
+  /** Returns true if a string looks like a lat/lon coordinate rather than an airport code. */
+  private looksLikeCoordinate(code: string): boolean {
+    if (!code) return false;
+    const c = code.trim().toUpperCase();
+    if (/^\d{4}[NS]\d{5}[EW]$/.test(c)) return true;
+    if (/^[NS]\d{4,6}[EW]\d{4,6}$/.test(c)) return true;
+    if (/^\d{2,4}[NS]\/\d{3,5}[EW]$/.test(c)) return true;
+    if (/^-?\d{1,3}\.\d+[,\/ ]\s*-?\d{1,3}\.\d+$/.test(c)) return true;
+    return false;
+  }
+
   get routeOriginDisplay(): string {
-    return this.plane.routeOriginIata || this.plane.routeOrigin || '?';
+    const raw = this.plane.routeOriginIata || this.plane.routeOrigin;
+    if (raw && this.looksLikeCoordinate(raw)) return '?';
+    if (raw) return raw;
+    // No airport code — use resolved place name if available (e.g. reverse-geocoded waypoint)
+    if (this.plane.routeOriginName) return this.plane.routeOriginName;
+    return '?';
   }
 
   get routeDestinationDisplay(): string {
-    return (
-      this.plane.routeDestinationIata || this.plane.routeDestination || '?'
-    );
+    const raw =
+      this.plane.routeDestinationIata || this.plane.routeDestination;
+    if (raw && this.looksLikeCoordinate(raw)) return '?';
+    if (raw) return raw;
+    // No airport code — use resolved place name if available (e.g. reverse-geocoded waypoint)
+    if (this.plane.routeDestinationName) return this.plane.routeDestinationName;
+    return '?';
   }
 
   get routeTooltip(): string {
     const originText = this.formatAirportTooltip(
       this.plane.routeOriginName,
-      this.routeOriginDisplay
+      this.routeOriginDisplay,
     );
     const destText = this.formatAirportTooltip(
       this.plane.routeDestinationName,
-      this.routeDestinationDisplay
+      this.routeDestinationDisplay,
     );
 
     if (originText && destText) return `${originText} → ${destText}`;
@@ -144,8 +164,8 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
         now.getUTCMonth(),
         now.getUTCDate(),
         utcHours,
-        utcMinutes
-      )
+        utcMinutes,
+      ),
     );
 
     // Convert to local time and format
@@ -220,7 +240,7 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
             this.plane.lat!,
             this.plane.lon!,
             airportCenter.lat,
-            airportCenter.lng
+            airportCenter.lng,
           ) * 1000; // convert km to meters
 
         if (distance <= airportRadius) {
@@ -270,13 +290,13 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
     private announcementService: AnnouncementService,
     private operatorTooltipService: OperatorTooltipService,
     private aircraftImageService: AircraftImageService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {
     // Subscribe to distance unit changes to trigger change detection
     this.distanceUnitSubscription = this.settings.distanceUnitChanged.subscribe(
       () => {
         this.cdr.markForCheck();
-      }
+      },
     );
   }
 
@@ -322,12 +342,22 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
 
   onFilter(event: Event): void {
     event.stopPropagation();
-    this.filterPrefix.emit(this.plane);
+    if (this.plane.isMilitary) {
+      // Military planes bypass the callsign prefix filter; toggle ICAO mute instead
+      this.settings.toggleMutedIcao(this.plane.icao);
+      this.cdr.markForCheck();
+    } else {
+      this.filterPrefix.emit(this.plane);
+    }
   }
 
   onToggleSpecial(event: Event): void {
     event.stopPropagation();
     this.toggleSpecial.emit(this.plane);
+  }
+
+  get isMuted(): boolean {
+    return this.settings.isMutedIcao(this.plane.icao);
   }
 
   onCenterAirport(event: Event): void {

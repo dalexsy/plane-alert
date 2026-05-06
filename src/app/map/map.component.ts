@@ -163,6 +163,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   get animationsEnabled() {
     return this.uiState.animationsEnabled;
   }
+  get showGhostPosition() {
+    return this.uiState.showGhostPosition;
+  }
   get showWindowView() {
     return this.uiState.showWindowView;
   }
@@ -1709,6 +1712,12 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     // Apply animation setting to document body for CSS animation control
     this.planeDisplayService.applyAnimationSetting(enabled, this.document);
 
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle ghost position (onion skin) overlay on/off */
+  onToggleGhostPosition(enabled: boolean): void {
+    this.uiState.setShowGhostPosition(enabled);
     this.cdr.detectChanges();
   }
 

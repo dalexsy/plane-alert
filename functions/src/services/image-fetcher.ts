@@ -1,6 +1,25 @@
 import { logger } from 'firebase-functions/v2';
 import fetch from 'node-fetch';
 
+function normalizeImageUrl(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+
+  if (value && typeof value === 'object') {
+    const candidate = value as Record<string, unknown>;
+    const possibleKeys = ['src', 'url', 'path'];
+    for (const key of possibleKeys) {
+      const nextValue = candidate[key];
+      if (typeof nextValue === 'string' && nextValue.trim()) {
+        return nextValue.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Fetch aircraft image from Planespotters.net API
  */
@@ -31,8 +50,9 @@ export async function fetchAircraftImage(
       if (data.photos && data.photos.length > 0) {
         // Prefer large thumbnail or full photo
         const photo = data.photos[0];
-        const imageUrl =
-          photo.thumbnail_large || photo.photo || photo.thumbnail;
+        const imageUrl = normalizeImageUrl(
+          photo.thumbnail_large || photo.photo || photo.thumbnail
+        );
         if (imageUrl) {
           return imageUrl;
         }

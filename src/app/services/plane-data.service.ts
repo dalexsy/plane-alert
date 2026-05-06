@@ -10,6 +10,7 @@ import { HelicopterIdentificationService } from './helicopter-identification.ser
 import { AircraftCountryService } from '../services/aircraft-country.service';
 import {
   isMilitaryOperator,
+  isMilitaryCallsign,
   looksMilitary,
   getAircraftTypeName,
 } from '@plane-alert/shared';
@@ -29,8 +30,6 @@ import {
 } from './plane-data/plane-geo.util';
 import { PlaneRouteCacheService } from './plane-data/plane-route-cache.service';
 import { UnknownCountryLoggerService } from './plane-data/unknown-country-logger.service';
-import { MilitaryHistoryService } from './military-history.service';
-import { FirebaseMessagingService } from './firebase-messaging.service';
 
 export interface ProcessedPlaneData {
   id: string;
@@ -73,8 +72,6 @@ export interface ProcessedPlaneData {
   providedIn: 'root',
 })
 export class PlaneDataService {
-  private savedMilitaryPlanes = new Set<string>(); // Track saved planes this session
-
   constructor(
     private newPlaneService: NewPlaneService,
     private helicopterListService: HelicopterListService,
@@ -88,8 +85,6 @@ export class PlaneDataService {
     private openskyRouteService: OpenskyRouteService,
     private routeCache: PlaneRouteCacheService,
     private unknownCountryLogger: UnknownCountryLoggerService,
-    private militaryHistory: MilitaryHistoryService,
-    private firebaseMessaging: FirebaseMessagingService,
   ) {}
 
   async refreshLists(manualUpdate: boolean): Promise<void> {
@@ -169,9 +164,32 @@ export class PlaneDataService {
     // Note: dbAircraft is now only for user-added aircraft
     // API provides most data, so missing dbAircraft is fine
 
-    // Determine military status using shared looksMilitary() function (same logic as backend)
-    // This checks: mil flag OR dbFlags AND filters boring aircraft types
-    const isMilitary = looksMilitary(ac);
+    // Collect operator hints early so military classification can use them too.
+    const opIcao: string =
+      typeof ac.opicao === 'string' ? ac.opicao.trim() : '';
+    const opIcaoOperator = opIcao
+      ? this.operatorCallSignService.getOperator(opIcao)
+      : undefined;
+    const canUseCallsignOperatorFallback =
+      !!callsign && !!categoryCode && categoryCode.startsWith('A');
+    const prefixOperator = canUseCallsignOperatorFallback
+      ? this.operatorCallSignService.getOperatorWithLogging(callsign)
+      : undefined;
+
+    // Determine military status using both source flags and strong heuristics.
+    // This catches known military flights (e.g., MMF/NATO tankers) that may lack
+    // explicit mil/dbFlags in some feeds.
+    const baseIsMilitary = looksMilitary(ac);
+    const hasMilitaryHeuristic =
+      isMilitaryCallsign(callsign) ||
+      isMilitaryOperator(opIcaoOperator) ||
+      isMilitaryOperator(prefixOperator) ||
+      isMilitaryOperator(dbAircraft?.ownop) ||
+      /\bNATO\b/i.test(opIcaoOperator || '') ||
+      /\bNATO\b/i.test(prefixOperator || '') ||
+      /\bNATO\b/i.test(dbAircraft?.ownop || '') ||
+      /^MMF\d+/i.test(callsign);
+    const isMilitary = baseIsMilitary || hasMilitaryHeuristic;
 
     // Derive country using the aircraft country service
     const rawCountry = ac.ctry ?? ac.countryCode;
@@ -277,19 +295,6 @@ export class PlaneDataService {
 
     // ADS-B One sometimes provides operator ICAO separately (even when callsign/flight is blank).
     // This is a no-cost enrichment that can improve operator name + logo matching.
-    const opIcao: string =
-      typeof ac.opicao === 'string' ? ac.opicao.trim() : '';
-    const opIcaoOperator = opIcao
-      ? this.operatorCallSignService.getOperator(opIcao)
-      : undefined;
-
-    // Fallback: callsign-prefix mapping is useful when opicao is missing,
-    // but it can mislabel ground vehicles and other emitters.
-    const canUseCallsignOperatorFallback =
-      !!callsign && !!categoryCode && categoryCode.startsWith('A');
-    const prefixOperator = canUseCallsignOperatorFallback
-      ? this.operatorCallSignService.getOperatorWithLogging(callsign)
-      : undefined;
 
     // Prevent bogus civilian airline names from showing on military aircraft.
     // Example: callsign prefix mappings can incorrectly label military flights.
@@ -403,45 +408,6 @@ export class PlaneDataService {
 
     // Get cached route data if available - check by callsign first (AeroAPI), then by ICAO (OpenSky)
     const cachedRoute = this.routeCache.get(callsign, id);
-
-    // Save military plane to history (once per session)
-    if (isMilitary && !this.savedMilitaryPlanes.has(id)) {
-      this.savedMilitaryPlanes.add(id);
-      const userKey = this.firebaseMessaging.getStoredUserKey();
-      if (userKey) {
-        // Calculate bearing and cardinal direction from observer to plane
-        const bearing = computeBearingDeg(centerLat, centerLon, lat, lon);
-        const cardinal = bearingToCardinal(bearing);
-
-        console.log(
-          `🎖️ Saving military aircraft to history: ${callsign || id} (${model})`,
-        );
-        this.militaryHistory
-          .saveSighting(userKey, {
-            icao: id,
-            callsign,
-            model,
-            operator,
-            country: origin,
-            registration: reg,
-            lat,
-            lon,
-            altitude: altitude ?? undefined,
-            bearing,
-            cardinal,
-          })
-          .then(() =>
-            console.log(`✓ Military sighting saved: ${callsign || id}`),
-          )
-          .catch((err) =>
-            console.error('✗ Failed to save military sighting:', err),
-          );
-      } else {
-        console.warn(
-          `⚠️ Military aircraft detected (${callsign || id}) but no Pushover key configured. Configure notifications to enable history tracking.`,
-        );
-      }
-    }
 
     return {
       id,

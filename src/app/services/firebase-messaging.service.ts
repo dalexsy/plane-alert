@@ -6,6 +6,7 @@ import {
   checkDeviceEndpoint,
 } from '../config/firebase.config';
 import { SettingsService } from './settings.service';
+import { resolveTimezoneForCoordinates } from '../utils/timezone.util';
 
 @Injectable({
   providedIn: 'root',
@@ -126,12 +127,15 @@ export class FirebaseMessagingService {
 
     const radius = this.settings.radius ?? 100;
     const deviceName = this.getOrCreateDeviceName();
+    const timezone =
+      (await resolveTimezoneForCoordinates(home.lat, home.lon))?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
     const payload = {
       pushoverUserKey: pushoverUserKey.trim(),
       platform: navigator.userAgent,
       distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
       radiusKm: typeof radius === 'number' ? radius : 100,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone,
       location: home,
       deviceName,
       specialIcaos: [],
@@ -176,7 +180,11 @@ export class FirebaseMessagingService {
   /**
    * Update current location in backend for proximity notifications
    */
-  async updateCurrentLocation(lat: number, lon: number): Promise<boolean> {
+  async updateCurrentLocation(
+    lat: number,
+    lon: number,
+    address?: string,
+  ): Promise<boolean> {
     const userKey = this.getStoredUserKey();
     if (!userKey) {
       console.log('⏭️ No user key stored, skipping location update');
@@ -187,13 +195,26 @@ export class FirebaseMessagingService {
 
     const radius = this.settings.radius ?? 100;
     const deviceName = this.getOrCreateDeviceName();
+    const homeLocation = this.settings.getHomeLocation();
+    const effectiveAddress =
+      address?.trim() ||
+      homeLocation?.address?.trim() ||
+      this.settings.currentAddress?.trim() ||
+      undefined;
+    const timezone =
+      (await resolveTimezoneForCoordinates(lat, lon))?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
     const payload = {
       pushoverUserKey: userKey,
       platform: navigator.userAgent,
       distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
       radiusKm: typeof radius === 'number' ? radius : 100,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      location: { lat, lon },
+      timezone,
+      location: {
+        lat,
+        lon,
+        ...(effectiveAddress && { address: effectiveAddress }),
+      },
       deviceName,
     };
 

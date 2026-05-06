@@ -12,6 +12,7 @@ import {
 } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { GeocodingCacheService } from './geocoding-cache.service';
+import { resolveTimezoneForCoordinates } from '../utils/timezone.util';
 
 export interface GeocodeResult {
   lat: number;
@@ -97,6 +98,7 @@ export class LocationContextService {
 
   // Distance threshold: only update if moved more than ~1km (approximately 0.009 degrees)
   private readonly MIN_DISTANCE_THRESHOLD = 0.009;
+
   constructor(
     private http: HttpClient,
     private geocodingCache: GeocodingCacheService
@@ -376,11 +378,6 @@ export class LocationContextService {
    * Get timezone for location with caching and rate limiting
    */
   private updateTimezone(lat: number, lon: number): void {
-    // Skip geocoding for default locations
-    if (this._currentLocation.value.source === 'default') {
-      return;
-    }
-
     const cacheKey = `${lat.toFixed(3)},${lon.toFixed(3)}`;
     const cached = this.timezoneCache.get(cacheKey);
 
@@ -397,85 +394,54 @@ export class LocationContextService {
     }
     this.lastTimezoneRequest = now;
 
-    // Use browser's timezone database to get accurate timezone for coordinates
-    // This uses the Intl.DateTimeFormat to determine timezone from coordinates
-    try {
-      // Use a known coordinate-to-timezone lookup for major cities
-      const nearestTimezone = this.findNearestTimezone(lat, lon);
+    void resolveTimezoneForCoordinates(lat, lon)
+      .then((resolvedTimezone) => {
+        if (resolvedTimezone) {
+          this.timezoneCache.set(cacheKey, {
+            data: resolvedTimezone,
+            timestamp: Date.now(),
+          });
+          this._timezone.next(resolvedTimezone);
+          return;
+        }
 
-      if (nearestTimezone) {
-        // Get current time in that timezone
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: nearestTimezone,
-          hour12: false,
-          hour: 'numeric',
-          minute: 'numeric',
-          second: 'numeric',
-        });
-
-        // Use the browser's built-in offset calculation for the timezone
-        const tempDate = new Date();
-        const utc1 = tempDate.getTime() + tempDate.getTimezoneOffset() * 60000;
-        const utc2 = new Date(utc1 + 0 * 3600000); // UTC time
-
-        // Get the formatted time in the target timezone
-        const timeInZone = new Intl.DateTimeFormat('en-CA', {
-          timeZone: nearestTimezone,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }).format(tempDate);
-
-        // Parse the formatted time back to a Date
-        const zonedTime = new Date(
-          timeInZone.replace(
-            /(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2}):(\d{2})/,
-            '$1-$2-$3T$4:$5:$6'
-          )
-        );
-
-        // Calculate the offset in hours
-        const offsetHours =
-          (zonedTime.getTime() - utc2.getTime()) / (1000 * 60 * 60);
-
-        const timezone = {
-          timezone: nearestTimezone,
-          utcOffset: offsetHours,
-          dst: this.isDSTActive(lat, lon, offsetHours),
-        };
-
+        const fallbackTimezone = this.buildFallbackTimezone(lat, lon);
         this.timezoneCache.set(cacheKey, {
-          data: timezone,
+          data: fallbackTimezone,
           timestamp: Date.now(),
         });
-        this._timezone.next(timezone);
-        return;
-      }
-    } catch (error) {
-      console.warn('Browser timezone detection failed');
+        this._timezone.next(fallbackTimezone);
+      })
+      .catch(() => {
+        const fallbackTimezone = this.buildFallbackTimezone(lat, lon);
+        this.timezoneCache.set(cacheKey, {
+          data: fallbackTimezone,
+          timestamp: Date.now(),
+        });
+        this._timezone.next(fallbackTimezone);
+      });
+  }
+
+  private buildFallbackTimezone(lat: number, lon: number): TimezoneData {
+    const nearestTimezone = this.findNearestTimezone(lat, lon);
+
+    if (nearestTimezone) {
+      return {
+        timezone: nearestTimezone,
+        utcOffset: lon / 15,
+        dst: false,
+      };
     }
 
-    // Fallback to simple longitude calculation
     let estimatedOffset = lon / 15;
     estimatedOffset = Math.round(estimatedOffset * 2) / 2;
     estimatedOffset = Math.max(-12, Math.min(14, estimatedOffset));
 
-    const timezone = {
+    return {
       timezone: `UTC${estimatedOffset >= 0 ? '+' : ''}${estimatedOffset}`,
       utcOffset: estimatedOffset,
       dst: false,
     };
-
-    this.timezoneCache.set(cacheKey, {
-      data: timezone,
-      timestamp: Date.now(),
-    });
-    this._timezone.next(timezone);
   }
 
   /**
@@ -538,9 +504,7 @@ export class LocationContextService {
     if (timezone.timezone && timezone.timezone.includes('/')) {
       try {
         const now = new Date();
-
-        // Get the time in the target timezone as a formatted string
-        const timeString = new Intl.DateTimeFormat('en-CA', {
+        const parts = new Intl.DateTimeFormat('en-CA', {
           timeZone: timezone.timezone,
           year: 'numeric',
           month: '2-digit',
@@ -549,12 +513,22 @@ export class LocationContextService {
           minute: '2-digit',
           second: '2-digit',
           hour12: false,
-        }).format(now);
+        }).formatToParts(now);
 
-        // Convert back to Date object
-        const [datePart, timePart] = timeString.split(', ');
-        const isoString = `${datePart}T${timePart}`;
-        return new Date(isoString);
+        const getPart = (type: Intl.DateTimeFormatPartTypes): number =>
+          Number.parseInt(
+            parts.find((part) => part.type === type)?.value ?? '0',
+            10,
+          );
+
+        return new Date(
+          getPart('year'),
+          getPart('month') - 1,
+          getPart('day'),
+          getPart('hour'),
+          getPart('minute'),
+          getPart('second'),
+        );
       } catch (error) {
         console.warn(
           'Failed to use timezone name, falling back to offset calculation'
@@ -575,14 +549,21 @@ export class LocationContextService {
    * Format time for current location
    */
   formatTimeForLocation(options?: Intl.DateTimeFormatOptions): string {
-    const locationTime = this.getCurrentTimeForLocation();
     const defaultOptions: Intl.DateTimeFormatOptions = {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     };
 
-    return locationTime.toLocaleTimeString('en-GB', {
+    if (this.timezone?.timezone && this.timezone.timezone.includes('/')) {
+      return new Intl.DateTimeFormat('en-GB', {
+        ...defaultOptions,
+        ...options,
+        timeZone: this.timezone.timezone,
+      }).format(new Date());
+    }
+
+    return this.getCurrentTimeForLocation().toLocaleTimeString('en-GB', {
       ...defaultOptions,
       ...options,
     });
@@ -592,16 +573,21 @@ export class LocationContextService {
    * Format date for current location
    */
   formatDateForLocation(options?: Intl.DateTimeFormatOptions): string {
-    const locationTime = this.getCurrentTimeForLocation();
-    const defaultOptions: Intl.DateTimeFormatOptions = {
+    const defaultOptions: Intl.DateTimeFormatOptions = options ?? {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
     };
 
-    return locationTime.toLocaleDateString('en-GB', {
+    if (this.timezone?.timezone && this.timezone.timezone.includes('/')) {
+      return new Intl.DateTimeFormat('en-GB', {
+        ...defaultOptions,
+        timeZone: this.timezone.timezone,
+      }).format(new Date());
+    }
+
+    return this.getCurrentTimeForLocation().toLocaleDateString('en-GB', {
       ...defaultOptions,
-      ...options,
     });
   }
 

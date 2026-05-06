@@ -13,6 +13,7 @@ export class UiStateService {
   public showWindDirection = true;
   public showSunDirection = true;
   public animationsEnabled = true;
+  public showGhostPosition = false;
   public showWindowView = true;
 
   // Weather layer toggles
@@ -34,6 +35,7 @@ export class UiStateService {
     this.showWindDirection = this.settings.showWindDirection;
     this.showSunDirection = this.settings.showSunDirection;
     this.animationsEnabled = this.settings.animationsEnabled;
+    this.showGhostPosition = this.settings.showGhostPosition;
     this.showWindowView = this.settings.showWindowView;
     this.coneVisible = this.settings.showViewAxes;
     this.cloudVisible = this.settings.showCloudCover;
@@ -80,6 +82,12 @@ export class UiStateService {
   public toggleAnimations(): void {
     this.animationsEnabled = !this.animationsEnabled;
     this.settings.setAnimationsEnabled(this.animationsEnabled);
+  }
+
+  // Ghost position toggle
+  public toggleGhostPosition(): void {
+    this.showGhostPosition = !this.showGhostPosition;
+    this.settings.setShowGhostPosition(this.showGhostPosition);
   }
 
   // Window view toggle
@@ -136,6 +144,12 @@ export class UiStateService {
   public setAnimationsEnabled(enabled: boolean): void {
     this.animationsEnabled = enabled;
     this.settings.setAnimationsEnabled(enabled);
+  }
+
+  // Set ghost position directly (for programmatic control)
+  public setShowGhostPosition(enabled: boolean): void {
+    this.showGhostPosition = enabled;
+    this.settings.setShowGhostPosition(enabled);
   }
 
   // Set wind direction directly (for programmatic control)

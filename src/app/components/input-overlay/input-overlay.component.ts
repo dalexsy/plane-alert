@@ -84,6 +84,9 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Whether animations are enabled */
   @Input() animationsEnabled = true;
   @Output() animationsEnabledChange = new EventEmitter<boolean>();
+  /** Whether ghost position overlay is enabled */
+  @Input() showGhostPosition = false;
+  @Output() ghostPositionChange = new EventEmitter<boolean>();
 
   scanButtonText = '';
   private sub!: Subscription;
@@ -362,6 +365,11 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
     this.animationsEnabledChange.emit(this.animationsEnabled);
   }
 
+  onToggleGhostPosition(): void {
+    this.showGhostPosition = !this.showGhostPosition;
+    this.ghostPositionChange.emit(this.showGhostPosition);
+  }
+
   onConeConfig(): void {
     this.coneConfigChange.emit();
   }
@@ -480,6 +488,13 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Get animations toggle tooltip text */
   get animationsTooltip(): string {
     return this.animationsEnabled ? 'Disable animations' : 'Enable animations';
+  }
+
+  /** Get ghost position toggle tooltip text */
+  get ghostPositionTooltip(): string {
+    return this.showGhostPosition
+      ? 'Hide actual position'
+      : 'Show actual position';
   }
 
   /** Get force scan tooltip text */

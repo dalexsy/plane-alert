@@ -14,9 +14,7 @@ export const BORING_AIRCRAFT_TYPES = [
   'A20N', // Airbus A320neo (commercial airliner)
   'A321', // Airbus A321 (commercial airliner)
   'A21N', // Airbus A321neo (commercial airliner)
-  'A359', // Airbus A350-900 (commercial airliner)
-  'A35K', // Airbus A350-1000 (commercial airliner)
-  'B737', // Boeing 737 (commercial airliner)
+  'A330', // Airbus A330 (commercial airliner)
   'A332', // Airbus A330-200
   'A333', // Airbus A330-300
   'A339', // Airbus A330-900neo
@@ -38,6 +36,10 @@ export const BORING_AIRCRAFT_TYPES = [
   'B788', // Boeing 787-8
   'B789', // Boeing 787-9
   'B78X', // Boeing 787-10
+  'B190', // Beechcraft 1900
+  'B200', // Beechcraft Super King Air 200 (alternate ICAO code)
+  'B300', // Beechcraft Super King Air 300 (alternate ICAO code)
+  'B350', // Beechcraft King Air 350 (alternate ICAO code)
   'BE20', // Beechcraft King Air (trainer/transport)
   'BE30', // Beechcraft Super King Air
   'BE35', // Beechcraft Bonanza
@@ -96,10 +98,34 @@ export const BORING_AIRCRAFT_TYPES = [
   'P28A', // Piper PA-28 Cherokee (basic trainer)
   'PC12', // Pilatus PC-12 (utility)
   'PC21', // Pilatus PC-21 (trainer)
+  'PC24', // Pilatus PC-24 (jet trainer)
   'PC6', // Pilatus Porter (utility)
   'PC9', // Pilatus PC-9 (trainer)
+  'SF50', // Cirrus SF50 Vision Jet
   'T134', // Tupolev Tu-134 (old transport)
   'T154', // Tupolev Tu-154 (old transport)
+  // Helicopters — liaison/training/utility types used by military (not combat)
+  'AS50', // Aérospatiale AS350 Ecureuil / H125 (utility)
+  'AS55', // Aérospatiale AS355 Twin Ecureuil (utility)
+  'AS65', // Aérospatiale AS365 Dauphin / HH-65 (liaison)
+  'B06',  // Bell 206 JetRanger (training/liaison)
+  'B212', // Bell 212 (utility transport)
+  'B407', // Bell 407 (utility)
+  'BK17', // MBB/Airbus BK117 (utility/liaison)
+  'EC20', // SA341/SA342 Gazelle (old trainer/liaison)
+  'EC35', // Eurocopter EC135 / H135 (training/police)
+  'EC45', // Eurocopter EC145 / H145 (utility/liaison)
+  'EC55', // Eurocopter EC155 / H155 (medium utility)
+  'H125', // Airbus H125 (utility)
+  'H135', // Airbus H135 (training)
+  'H145', // Airbus H145 (utility/liaison)
+  'MD52', // MD520N (utility)
+  'MD53', // MD530 (utility)
+  'R22',  // Robinson R22 (basic trainer)
+  'R44',  // Robinson R44 (trainer)
+  'R66',  // Robinson R66 (trainer)
+  'S300', // Schweizer 300 (training)
+  'S76',  // Sikorsky S-76 (VIP/liaison)
 ];
 
 /**

@@ -137,7 +137,7 @@ async function fetchAircraft(
           Accept: 'application/json',
         },
       },
-      5000,
+      2000,
     );
 
     if (!response.ok) {
@@ -173,9 +173,11 @@ export function createAircraftCollectionFunction(
 ) {
   return onSchedule(
     {
-      schedule: '* * * * *', // Every minute (cron format)
+      schedule: '*/2 * * * *', // Every 2 minutes
       timeZone: 'Etc/UTC',
       memory: '256MiB',
+      maxInstances: 1,
+      region: 'europe-west3',
     },
     async () => {
       try {
@@ -519,7 +521,7 @@ async function collectAircraftForLocation(
 export { collectAircraftForLocation };
 
 export function createAircraftOnDemandFunction(db: admin.firestore.Firestore) {
-  return onRequest(async (req, res) => {
+  return onRequest({ region: 'europe-west3' }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');

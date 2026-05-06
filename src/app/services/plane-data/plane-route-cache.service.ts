@@ -14,6 +14,20 @@ export interface RouteMetadata {
   diverted?: boolean;
 }
 
+/**
+ * Detect coordinate-like strings that should never appear as airport identifiers.
+ * AeroAPI can return ARINC-424 waypoints or lat/lon strings for military destinations.
+ */
+function looksLikeCoordinate(code: string): boolean {
+  if (!code) return false;
+  const c = code.trim().toUpperCase();
+  if (/^\d{4}[NS]\d{5}[EW]$/.test(c)) return true;
+  if (/^[NS]\d{4,6}[EW]\d{4,6}$/.test(c)) return true;
+  if (/^\d{2,4}[NS]\/\d{3,5}[EW]$/.test(c)) return true;
+  if (/^-?\d{1,3}\.\d+[,\/ ]\s*-?\d{1,3}\.\d+$/.test(c)) return true;
+  return false;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -57,6 +71,14 @@ export class PlaneRouteCacheService {
           ? destinationObj.code
           : undefined;
 
+      // Reject coordinate-like strings — they are waypoints, not airport codes
+      const safeOriginCode =
+        originCode && !looksLikeCoordinate(originCode) ? originCode : undefined;
+      const safeDestinationCode =
+        destinationCode && !looksLikeCoordinate(destinationCode)
+          ? destinationCode
+          : undefined;
+
       const etaIso =
         data?.estimatedIn ??
         data?.scheduledIn ??
@@ -72,12 +94,15 @@ export class PlaneRouteCacheService {
       const diverted =
         typeof data?.diverted === 'boolean' ? data.diverted : undefined;
 
-      if (originCode || destinationCode) {
+      const safeOriginName = typeof originObj?.name === 'string' ? originObj.name : undefined;
+      const safeDestinationName = typeof destinationObj?.name === 'string' ? destinationObj.name : undefined;
+
+      if (safeOriginCode || safeDestinationCode || safeOriginName || safeDestinationName || etaUtc || status) {
         const existing = this.routeDataCache.get(callsign) ?? {};
         this.routeDataCache.set(callsign, {
           ...existing,
-          origin: originCode,
-          destination: destinationCode,
+          origin: safeOriginCode,
+          destination: safeDestinationCode,
           originIata:
             typeof originObj?.codeIata === 'string'
               ? originObj.codeIata
@@ -86,14 +111,8 @@ export class PlaneRouteCacheService {
             typeof destinationObj?.codeIata === 'string'
               ? destinationObj.codeIata
               : existing.destinationIata,
-          originName:
-            typeof originObj?.name === 'string'
-              ? originObj.name
-              : existing.originName,
-          destinationName:
-            typeof destinationObj?.name === 'string'
-              ? destinationObj.name
-              : existing.destinationName,
+          originName: safeOriginName ?? existing.originName,
+          destinationName: safeDestinationName ?? existing.destinationName,
           etaUtc: etaUtc ?? existing.etaUtc,
           status: status ?? existing.status,
           arrivalDelay: arrivalDelay ?? existing.arrivalDelay,

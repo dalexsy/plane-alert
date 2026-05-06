@@ -12,7 +12,7 @@ import {
 } from './utils';
 
 export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
-  const registerDevice = onRequest(async (req, res) => {
+  const registerDevice = onRequest({ region: 'europe-west3' }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -83,13 +83,33 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
       const existing = await deviceRef.get();
       const timestamp = admin.firestore.FieldValue.serverTimestamp();
 
+      const existingData = existing.exists
+        ? (existing.data() as DeviceRegistration)
+        : undefined;
+      const existingLocation = existingData?.location || (existingData as any)?.home;
+      const isSameLocation =
+        !!existingLocation &&
+        typeof existingLocation.lat === 'number' &&
+        typeof existingLocation.lon === 'number' &&
+        Math.abs(existingLocation.lat - location.lat) < 0.000001 &&
+        Math.abs(existingLocation.lon - location.lon) < 0.000001;
+      const normalizedLocation: Location = {
+        lat: location.lat,
+        lon: location.lon,
+        ...((location.address && location.address.trim())
+          ? { address: location.address.trim() }
+          : isSameLocation && existingLocation?.address
+            ? { address: existingLocation.address }
+            : {}),
+      };
+
       const doc: DeviceRegistration = {
         pushoverUserKey,
         platform,
         distanceUnit: distanceUnit === 'miles' ? 'miles' : 'km',
         radiusKm: clampRadius(radiusKm),
         timezone,
-        location,
+        location: normalizedLocation,
         specialIcaos: Array.isArray(specialIcaos) ? specialIcaos : [],
         notifyProximity: notifyProximity === true,
         ignoredTypes: Array.isArray(ignoredTypes) ? ignoredTypes : [],
@@ -123,7 +143,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     }
   });
 
-  const checkDevice = onRequest(async (req, res) => {
+  const checkDevice = onRequest({ region: 'europe-west3' }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -280,7 +300,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     }
   });
 
-  const listAllDevices = onRequest(async (req, res) => {
+  const listAllDevices = onRequest({ region: 'europe-west3' }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -369,7 +389,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     }
   });
 
-  const unsubscribeDevice = onRequest(async (req, res) => {
+  const unsubscribeDevice = onRequest({ region: 'europe-west3' }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -415,7 +435,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     }
   });
 
-  const debugListTokens = onRequest(async (req: any, res: any) => {
+  const debugListTokens = onRequest({ region: 'europe-west3' }, async (req: any, res: any) => {
     const secret = process.env.DEBUG_TOKEN_SECRET;
     if (!secret || req.query.secret !== secret) {
       res.status(403).json({ error: 'forbidden' });
@@ -431,7 +451,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     res.json({ count: tokens.length, tokens });
   });
 
-  const debugSendToken = onRequest(async (req: any, res: any) => {
+  const debugSendToken = onRequest({ region: 'europe-west3' }, async (req: any, res: any) => {
     const secret = process.env.DEBUG_TOKEN_SECRET;
     if (!secret || req.query.secret !== secret) {
       res.status(403).json({ error: 'forbidden' });
@@ -457,7 +477,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
     });
   });
 
-  const testProximityTargeting = onRequest(async (req: any, res: any) => {
+  const testProximityTargeting = onRequest({ region: 'europe-west3' }, async (req: any, res: any) => {
     res.set('Access-Control-Allow-Origin', '*');
 
     const PUSHOVER_API_TOKEN = process.env.PUSHOVER_API_TOKEN;

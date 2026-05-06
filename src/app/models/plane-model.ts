@@ -1,6 +1,9 @@
 import * as L from 'leaflet';
 import { Plane } from '../types/plane';
-import { removeLeftMarkerFromPlane } from '../utils/plane-marker';
+import {
+  removeGhostMarkerFromPlane,
+  removeLeftMarkerFromPlane,
+} from '../utils/plane-marker';
 
 // Position history entry with timestamp
 export interface PositionHistory {
@@ -142,6 +145,7 @@ export class PlaneModel implements Plane {
     // Remove left marker if it exists
     if (this.marker) {
       removeLeftMarkerFromPlane(this.marker, map);
+      removeGhostMarkerFromPlane(this.marker, map);
     }
 
     this.marker?.remove();

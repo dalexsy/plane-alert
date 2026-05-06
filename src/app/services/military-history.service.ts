@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface MilitaryHistorySighting {
   icao: string;
@@ -9,6 +10,15 @@ export interface MilitaryHistorySighting {
   operator?: string;
   country?: string;
   registration?: string;
+  notificationDelivered?: boolean;
+  notifiedDeviceName?: string;
+  notifiedDeviceCount?: number;
+  notifiedDeviceNames?: string[];
+  notificationLocation?: {
+    lat: number;
+    lon: number;
+    address?: string;
+  };
   firstSeen: number;
   lastSeen: number;
   sightingCount: number;
@@ -24,48 +34,11 @@ export interface MilitaryHistorySighting {
 })
 export class MilitaryHistoryService {
   private readonly saveSightingEndpoint =
-    'https://savemilitarysighting-wmktwp72xq-uc.a.run.app';
+    environment.endpoints.saveMilitarySighting;
   private readonly getHistoryEndpoint =
-    'https://getmilitaryhistory-wmktwp72xq-uc.a.run.app';
+    environment.endpoints.getMilitaryHistory;
 
   constructor(private http: HttpClient) {}
-
-  /**
-   * Save a military plane sighting
-   */
-  async saveSighting(
-    pushoverUserKey: string,
-    plane: {
-      icao: string;
-      callsign?: string;
-      model?: string;
-      operator?: string;
-      country?: string;
-      registration?: string;
-      lat?: number;
-      lon?: number;
-      altitude?: number;
-      bearing?: number;
-      cardinal?: string;
-    },
-  ): Promise<boolean> {
-    try {
-      await firstValueFrom(
-        this.http.post(
-          this.saveSightingEndpoint,
-          {
-            pushoverUserKey,
-            ...plane,
-          },
-          { headers: { 'Content-Type': 'application/json' } },
-        ),
-      );
-      return true;
-    } catch (error) {
-      console.error('Failed to save military sighting:', error);
-      return false;
-    }
-  }
 
   /**
    * Get all military sightings for a pushover key

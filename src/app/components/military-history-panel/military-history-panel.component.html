@@ -140,19 +140,24 @@
             <td class="count-cell">{{ sighting.sightingCount }}</td>
             <td class="date-cell">
               <div class="date-content">
-                <span>{{ formatDate(sighting.lastSeen) }}</span>
-                <span
-                  class="cardinal-direction"
-                  *ngIf="sighting.cardinal && sighting.bearing != null"
-                >
-                  <span>{{ sighting.cardinal }}</span>
+                <div class="date-primary-row">
+                  <span>{{ formatDate(sighting.lastSeen) }}</span>
                   <span
-                    class="material-symbols-sharp direction-icon"
-                    [style.transform]="'rotate(' + sighting.bearing + 'deg)'"
+                    class="cardinal-direction"
+                    *ngIf="sighting.cardinal && sighting.bearing != null"
                   >
-                    navigation
+                    <span>{{ sighting.cardinal }}</span>
+                    <span
+                      class="material-symbols-sharp direction-icon"
+                      [style.transform]="'rotate(' + sighting.bearing + 'deg)'"
+                    >
+                      navigation
+                    </span>
                   </span>
-                </span>
+                </div>
+                <div class="notification-source">
+                  {{ getNotificationSourceLabel(sighting) }}
+                </div>
               </div>
             </td>
           </tr>

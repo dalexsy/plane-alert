@@ -144,6 +144,9 @@ export class MilitaryHistoryPanelComponent implements OnInit {
           s.operator,
           s.country,
           s.registration,
+          s.notifiedDeviceName,
+          s.notifiedDeviceNames?.join(' '),
+          s.notificationLocation?.address,
         ]
           .filter((v) => v)
           .join(' ')
@@ -339,4 +342,79 @@ export class MilitaryHistoryPanelComponent implements OnInit {
     return getDefaultMilitaryOperator(sighting.country) || '—';
   }
 
+  getNotificationLocationDisplay(sighting: MilitaryHistorySighting): string {
+    const location = sighting.notificationLocation;
+    const address = location?.address?.trim();
+
+    if (address) {
+      return this.getCondensedLocation(address);
+    }
+
+    if (location) {
+      return `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`;
+    }
+
+    return 'Location unavailable';
+  }
+
+  private getCondensedLocation(address: string): string {
+    const cleanedParts = address
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .filter((part) => !/^\d+[A-Za-z-]*$/.test(part))
+      .filter((part) => !/^\d{4,6}$/.test(part))
+      .filter(
+        (part) =>
+          !/\b(street|straße|strasse|road|avenue|boulevard|drive|lane)\b/i.test(
+            part,
+          ),
+      )
+      .filter(
+        (part) =>
+          !/\b(county|state district|administrative area|region)\b/i.test(
+            part,
+          ),
+      );
+
+    const uniqueParts = cleanedParts.filter(
+      (part, index) =>
+        cleanedParts.findIndex(
+          (candidate) => candidate.toLowerCase() === part.toLowerCase(),
+        ) === index,
+    );
+
+    if (uniqueParts.length <= 3) {
+      return uniqueParts.join(', ');
+    }
+
+    if (uniqueParts.length >= 5) {
+      return [uniqueParts[uniqueParts.length - 4], ...uniqueParts.slice(-3)].join(
+        ', ',
+      );
+    }
+
+    return uniqueParts.slice(-3).join(', ');
+  }
+
+  getNotificationSourceLabel(sighting: MilitaryHistorySighting): string {
+    const locationLabel = this.getNotificationLocationDisplay(sighting);
+    if ((sighting.notifiedDeviceCount || 0) > 1) {
+      return `${sighting.notifiedDeviceCount} devices · ${locationLabel}`;
+    }
+
+    if (sighting.notifiedDeviceName) {
+      return `${this.formatDeviceName(sighting.notifiedDeviceName)} · ${locationLabel}`;
+    }
+
+    return locationLabel;
+  }
+
+  private formatDeviceName(deviceName: string): string {
+    return deviceName
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
 }

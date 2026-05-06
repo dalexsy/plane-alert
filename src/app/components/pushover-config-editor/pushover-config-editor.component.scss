@@ -224,6 +224,23 @@
         .location-hint {
           font-size: 0.75em;
           color: #ffa726;
+
+          &.error {
+            color: #ff8a80;
+          }
+        }
+
+        .location-editor-footer {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .location-actions {
+          display: flex;
+          gap: 0.5rem;
         }
       }
 

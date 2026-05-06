@@ -156,19 +156,23 @@ export class PlaneUpdateService {
     exclude: boolean
   ): void {
     const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
+    // Exclude individually muted ICAOs from alert processing
+    const newVisibleUnmuted = newVisible.filter(
+      (p) => !this.settings.isMutedIcao(p.icao)
+    );
 
     // Determine what types of new planes we have
-    const hasHercules = newVisible.some((p) =>
+    const hasHercules = newVisibleUnmuted.some((p) =>
       p.model?.toLowerCase().includes('hercules')
     );
-    const hasA400 = newVisible.some((p) => p.model?.match(/a\s*-?\s*400/i));
-    const hasA380 = newVisible.some((p) => p.model?.match(/a\s*-?\s*380/i));
-    const hasAlertPlanes = newVisible.some(
+    const hasA400 = newVisibleUnmuted.some((p) => p.model?.match(/a\s*-?\s*400/i));
+    const hasA380 = newVisibleUnmuted.some((p) => p.model?.match(/a\s*-?\s*380/i));
+    const hasAlertPlanes = newVisibleUnmuted.some(
       (p) => p.isMilitary === true || p.isSpecial === true
     );
 
     // Get military planes for notifications
-    const militaryPlanes = newVisible.filter((p) => p.isMilitary === true);
+    const militaryPlanes = newVisibleUnmuted.filter((p) => p.isMilitary === true);
 
     // Play only one alert sound per scan, prioritizing specific aircraft types
     if (!this.settings.militaryMute) {

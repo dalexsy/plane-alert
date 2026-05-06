@@ -10,6 +10,18 @@
     [cloudFilter]="cloudFilter"
     [cloudBacklightClass]="cloudBacklightClass"
   ></app-sky-background>
+  <div
+    *ngIf="windowCloudUrl && cloudBandBottomPercent !== null"
+    class="cloud-height-band-overlay"
+    [style.backgroundImage]="'url(' + windowCloudUrl + ')'"
+    [style.bottom.%]="cloudBandBottomPercent"
+    [attr.data-cloud-band-bottom-percent]="cloudBandBottomPercent.toFixed(1)"
+    [attr.data-cloud-band-debug]="cloudBandDebugLabel"
+  ></div>
+  <div
+    *ngIf="cloudBandDebugEnabled"
+    class="cloud-height-band-debug"
+  >{{ cloudBandDebugLabel || 'cloud band waiting...' }}</div>
   <!-- Sun sky gradient positioned to follow the sun -->
   <div
     *ngIf="getSunObject()"

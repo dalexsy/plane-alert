@@ -81,6 +81,7 @@ export const openskyProxy = onRequest(
   {
     cors: true,
     timeoutSeconds: 10,
+    region: 'europe-west3',
   },
   async (req, res) => {
     // Only allow GET requests

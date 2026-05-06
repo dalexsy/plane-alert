@@ -255,7 +255,8 @@ export function createOrUpdatePlaneMarker(
   operatorTooltipService?: OperatorTooltipService, // Service for operator-specific tooltips
   planeData?: any, // Complete plane data for operator checks
   animationsEnabled: boolean = true, // Whether animations are enabled
-  lastUpdateTimestamp?: number // Timestamp of the last backend update for calculating animation progress
+  lastUpdateTimestamp?: number, // Timestamp of the last backend update for calculating animation progress
+  showGhostPosition: boolean = false // Whether to show ghost marker at actual reported position
 ): { marker: L.Marker; isNewMarker: boolean } {
   const effectiveAnimationsEnabled =
     animationsEnabled && !(planeData?.isStale === true);
@@ -322,6 +323,9 @@ export function createOrUpdatePlaneMarker(
     isUnknown ? ' unknown-plane' : ''
   }${followed ? ' followed-plane' : ''}`;
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
+    isCopter ? 0 : rotation
+  }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
+  const ghostMarkerHtml = `<div class="${classString} ghost-plane-marker" style="transform: rotate(${ 
     isCopter ? 0 : rotation
   }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
 
@@ -638,6 +642,15 @@ export function createOrUpdatePlaneMarker(
     });
     // --- End Event Handling ---
 
+    updateGhostMarker(
+      oldMarker,
+      map,
+      lat,
+      lon,
+      showGhostPosition,
+      effectiveAnimationsEnabled,
+      ghostMarkerHtml
+    );
     return { marker: oldMarker, isNewMarker: false };
   } else {
     // Creating a new marker - check if we need to animate from a previous position
@@ -746,6 +759,15 @@ export function createOrUpdatePlaneMarker(
     });
     // --- End Event Handling ---
 
+    updateGhostMarker(
+      marker,
+      map,
+      lat,
+      lon,
+      showGhostPosition,
+      effectiveAnimationsEnabled,
+      ghostMarkerHtml
+    );
     return { marker, isNewMarker: true };
   }
 } // End of createOrUpdatePlaneMarker function
@@ -763,6 +785,51 @@ export function removeLeftMarkerFromPlane(marker: L.Marker, map: L.Map): void {
   if (syncFn) {
     marker.off('move', syncFn);
     delete (marker as any).__syncLeftMarker;
+  }
+}
+
+// Manage a ghost marker at the actual reported position for onion-skin mode
+function updateGhostMarker(
+  mainMarker: L.Marker,
+  map: L.Map,
+  lat: number,
+  lon: number,
+  showGhost: boolean,
+  animationsActive: boolean,
+  ghostMarkerHtml: string
+): void {
+  const shouldShow = showGhost && animationsActive;
+  const existing: L.Marker | undefined = (mainMarker as any).__paGhostMarker;
+
+  if (!shouldShow) {
+    if (existing) {
+      map.removeLayer(existing);
+      delete (mainMarker as any).__paGhostMarker;
+    }
+    return;
+  }
+
+  const ghostIcon = L.divIcon({
+    className: 'plane-marker-container ghost-position-marker',
+    html: ghostMarkerHtml,
+  });
+
+  if (existing) {
+    existing.setLatLng([lat, lon]);
+    existing.setIcon(ghostIcon);
+  } else {
+    const ghost = L.marker([lat, lon], { icon: ghostIcon, interactive: false });
+    ghost.addTo(map);
+    (mainMarker as any).__paGhostMarker = ghost;
+  }
+}
+
+// Export function to clean up ghost marker for external use (called on plane removal)
+export function removeGhostMarkerFromPlane(marker: L.Marker, map: L.Map): void {
+  const ghostMarker = (marker as any).__paGhostMarker;
+  if (ghostMarker) {
+    map.removeLayer(ghostMarker);
+    delete (marker as any).__paGhostMarker;
   }
 }
 

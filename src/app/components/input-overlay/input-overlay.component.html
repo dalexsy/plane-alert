@@ -102,6 +102,17 @@
           [appTooltip]="animationsTooltip"
           (click)="onToggleAnimations()"
         ></app-button>
+        <!-- Ghost position toggle (only relevant when animations are on) -->
+        <app-button
+          *ngIf="animationsEnabled"
+          class="toggle-ghost-position"
+          [icon]="showGhostPosition ? 'gps_fixed' : 'gps_not_fixed'"
+          type="tertiary"
+          size="medium"
+          [ariaLabel]="ghostPositionTooltip"
+          [appTooltip]="ghostPositionTooltip"
+          (click)="onToggleGhostPosition()"
+        ></app-button>
         <app-button
           class="go-home"
           icon="home"

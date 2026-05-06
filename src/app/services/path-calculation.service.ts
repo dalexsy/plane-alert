@@ -53,17 +53,15 @@ export class PathCalculationService {
     altitude: number | null,
     isGrounded: boolean
   ): L.Polyline | undefined {
-    // Remove predicted path for grounded planes or those without track/velocity data
+    // Remove predicted path only when we cannot compute movement.
+    // Grounded planes can still taxi; if they have track + positive velocity,
+    // render a path so their ghost marker remains visually associated.
     if (
       track == null ||
       velocity == null ||
-      isGrounded ||
       (velocity !== null && velocity <= 0)
     ) {
       this.removePredictedPath(plane, map);
-      if (isGrounded) {
-        plane.removeHistoryTrailSegments(map);
-      }
       return undefined;
     }
 
@@ -429,11 +427,7 @@ export class PathCalculationService {
     altitude: number | null,
     isGrounded: boolean
   ): void {
-    if (
-      !plane.positionHistory ||
-      plane.positionHistory.length < 2 ||
-      isGrounded
-    ) {
+    if (!plane.positionHistory || plane.positionHistory.length < 2) {
       plane.removeHistoryTrailSegments(map);
       return;
     }

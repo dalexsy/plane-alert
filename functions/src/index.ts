@@ -40,6 +40,7 @@ export const processPlanes = createNotificationProcessorFunction(db);
 
 // Import OpenSky proxy function
 export { openskyProxy } from './opensky-proxy';
+export { weatherCeilingProxy } from './weather-ceiling-proxy';
 
 // Import user key recovery function
 import { createRecoverUserKeyFunction } from './recover-userkey';

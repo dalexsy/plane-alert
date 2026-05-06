@@ -28,6 +28,7 @@ import {
   MILITARY_HISTORY_COLLECTION,
   MAX_NOTIFICATIONS_PER_DEVICE,
   RECENT_NOTIFICATION_TTL_MS,
+  AIRCRAFT_SNAPSHOTS_COLLECTION,
 } from './constants';
 import {
   clampRadius,
@@ -35,6 +36,7 @@ import {
   sanitizeDeviceName,
   pruneOldNotifications,
   isSpecialAircraft,
+  validatePushoverUserKey,
 } from './utils';
 // Import service modules
 import { fetchAircraft } from './services/aircraft-fetcher';
@@ -47,10 +49,12 @@ import {
   getOperatorFromCallsign,
   buildNotificationBody,
 } from './services/notification-builder';
-import { checkAndMarkNotified } from './services/notification-cooldown';
+import {
+  checkAndMarkNotified,
+  releaseNotificationClaim,
+} from './services/notification-cooldown';
 import {
   sendPushoverNotification,
-  sendPushoverNotifications,
   type PushoverMessage,
 } from './services/pushover-client';
 import { batchGetFlightData } from './services/flight-data-cache';
@@ -71,11 +75,29 @@ function getTimestampMillis(value: any): number {
   return 0;
 }
 
+interface PendingNotification {
+  icao: string;
+  message: PushoverMessage;
+  deviceName: string;
+  location: Location;
+  callsign?: string;
+  model?: string;
+  countryCode?: string | null;
+  registration?: string;
+  lat?: number;
+  lon?: number;
+  altitude?: number;
+  bearing?: number;
+  cardinal?: string;
+}
+
 async function notifyForDevice(
   db: admin.firestore.Firestore,
   device: any,
   data: DeviceRegistration,
   docId: string,
+  registeredPushoverDevices?: Set<string> | null,
+  preloadedAircraft?: AdsBPlane[],
 ): Promise<void> {
   try {
     const broadcastAllDevices =
@@ -102,6 +124,19 @@ async function notifyForDevice(
       data.deviceSlug = slug;
     }
 
+    const normalizedDeviceName = (data.deviceName || '').trim().toLowerCase();
+    const isRegisteredPushoverDevice =
+      registeredPushoverDevices?.has(normalizedDeviceName) === true;
+
+    if (!broadcastAllDevices && !isRegisteredPushoverDevice) {
+      logger.info('Skipping device not registered in Pushover', {
+        docId,
+        userKey: data.pushoverUserKey.slice(0, 8),
+        deviceName: data.deviceName,
+      });
+      return;
+    }
+
     logger.info('Processing device', {
       docId,
       userKey: data.pushoverUserKey.slice(0, 8),
@@ -118,7 +153,7 @@ async function notifyForDevice(
       : data.deviceName || '';
 
     const radiusKm = clampRadius(data.radiusKm);
-    const aircraft = await fetchAircraft(deviceLocation, radiusKm);
+    const aircraft = preloadedAircraft ?? await fetchAircraft(deviceLocation, radiusKm);
 
     logger.info('Fetched aircraft', {
       docId,
@@ -167,7 +202,7 @@ async function notifyForDevice(
     }
 
     const lastNotified = pruneOldNotifications(data.lastNotified ?? {});
-    const messages: PushoverMessage[] = [];
+    const pendingNotifications: PendingNotification[] = [];
     const now = Date.now();
 
     const specialIcaos = (data.specialIcaos ?? []).map((icao) =>
@@ -213,6 +248,21 @@ async function notifyForDevice(
       const aircraftType = (plane.t || plane.type || '')
         .toUpperCase()
         .replace(/[-\s]/g, '');
+
+      // If no type code at all, filter conservatively — can't confirm it's interesting
+      if (!aircraftType && !isSpecialPlane) {
+        boringCount++;
+        logger.info('Military aircraft with unknown type filtered', {
+          docId,
+          hex: plane.hex,
+          desc: plane.desc,
+          callsign: plane.flight,
+          mil: plane.mil,
+          dbFlags: plane.dbFlags,
+        });
+        continue;
+      }
+
       const isBoringMilitary = BORING_AIRCRAFT_TYPES.some((boring) =>
         aircraftType.includes(boring.toUpperCase()),
       );
@@ -368,72 +418,37 @@ async function notifyForDevice(
         : 'favicon/military';
       const iconUrl = `https://plane-alert.surge.sh/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
 
-      messages.push({
-        title: title,
-        message: body,
-        url: `https://plane-alert.surge.sh/?lat=${plane.lat}&lon=${plane.lon}&zoom=12`,
-        url_title: 'View Location',
-        icon: iconUrl,
-        model: plane.t || plane.desc,
-        operator: plane.desc,
-        registration: plane.r,
-        hex: plane.hex,
+      pendingNotifications.push({
+        icao,
+        deviceName: pushoverTargetDeviceName,
+        location: {
+          lat: deviceLocation.lat,
+          lon: deviceLocation.lon,
+          ...(deviceLocation.address && { address: deviceLocation.address }),
+        },
+        message: {
+          title: title,
+          message: body,
+          url: `https://plane-alert.surge.sh/?lat=${plane.lat}&lon=${plane.lon}&zoom=12`,
+          url_title: 'View Location',
+          icon: iconUrl,
+          model: plane.t || plane.desc,
+          operator: plane.desc,
+          registration: plane.r,
+          hex: plane.hex,
+        },
+        ...(callsign && { callsign }),
+        ...(model && { model }),
+        ...(countryCode && { countryCode }),
+        ...(plane.r && { registration: plane.r }),
+        ...(plane.lat != null && { lat: plane.lat }),
+        ...(plane.lon != null && { lon: plane.lon }),
+        ...(typeof plane.alt_baro === 'number' && { altitude: plane.alt_baro }),
+        ...(bearing != null && { bearing }),
+        ...(direction && { cardinal: direction }),
       });
 
-      lastNotified[icao] = now;
-
-      // Save to military history when notifying (backend-authoritative record)
-      const historyDocId = `${data.pushoverUserKey}__${icao.toLowerCase()}`;
-      const historyRef = db
-        .collection(MILITARY_HISTORY_COLLECTION)
-        .doc(historyDocId);
-      const existingSighting = await historyRef.get();
-      if (existingSighting.exists) {
-        const existing = existingSighting.data()!;
-        historyRef
-          .update({
-            lastSeen: now,
-            sightingCount: (existing.sightingCount || 1) + 1,
-            ...(plane.lat != null && { lat: plane.lat }),
-            ...(plane.lon != null && { lon: plane.lon }),
-            ...(plane.alt_baro != null && { altitude: plane.alt_baro }),
-            ...(bearing != null && { bearing }),
-            ...(direction && { cardinal: direction }),
-            ...(callsign && { callsign }),
-            ...(model && { model }),
-            ...(countryCode && { country: countryCode }),
-            ...(plane.r && { registration: plane.r }),
-          })
-          .catch((err: Error) =>
-            logger.warn('Failed to update military history', {
-              err: err.message,
-            }),
-          );
-      } else {
-        historyRef
-          .set({
-            icao: icao.toLowerCase(),
-            firstSeen: now,
-            lastSeen: now,
-            sightingCount: 1,
-            ...(callsign && { callsign }),
-            ...(model && { model }),
-            ...(countryCode && { country: countryCode }),
-            ...(plane.r && { registration: plane.r }),
-            ...(plane.lat != null && { lat: plane.lat }),
-            ...(plane.lon != null && { lon: plane.lon }),
-            ...(plane.alt_baro != null && { altitude: plane.alt_baro }),
-            ...(bearing != null && { bearing }),
-            ...(direction && { cardinal: direction }),
-          })
-          .catch((err: Error) =>
-            logger.warn('Failed to save military history', {
-              err: err.message,
-            }),
-          );
-      }
-
-      if (messages.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
+      if (pendingNotifications.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
         break;
       }
     }
@@ -511,14 +526,28 @@ async function notifyForDevice(
           );
           const direction = bearingToCardinal(bearing);
 
-          messages.push({
-            title: `✈️ Plane Nearby: ${callsign}`,
-            message: `${model} • ${direction} • ${distanceM}m away`,
-            url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
-            url_title: 'View on Map',
-            icon: `https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png?v=${Date.now()}`,
-            registration: plane.r,
-            hex: plane.hex,
+          pendingNotifications.push({
+            icao,
+            deviceName: pushoverTargetDeviceName,
+            location: {
+              lat: deviceLocation.lat,
+              lon: deviceLocation.lon,
+              ...(deviceLocation.address && { address: deviceLocation.address }),
+            },
+            message: {
+              title: `✈️ Plane Nearby: ${callsign}`,
+              message: `${model} • ${direction} • ${distanceM}m away`,
+              url: `https://plane-alert.surge.sh/?icao=${icao}&follow=1`,
+              url_title: 'View on Map',
+              icon: `https://plane-alert.surge.sh/assets/favicon/android-chrome-192x192.png?v=${Date.now()}`,
+              registration: plane.r,
+              hex: plane.hex,
+            },
+            ...(plane.r && { registration: plane.r }),
+            ...(plane.lat != null && { lat: plane.lat }),
+            ...(plane.lon != null && { lon: plane.lon }),
+            ...(bearing != null && { bearing }),
+            ...(direction && { cardinal: direction }),
           });
 
           lastProximityNotified[icao] = now;
@@ -530,7 +559,7 @@ async function notifyForDevice(
         proximityChecked,
         proximityWithin2km,
         proximityNotificationsSent:
-          messages.length - (militaryCount + specialCount),
+          pendingNotifications.length - (militaryCount + specialCount),
       });
     }
 
@@ -542,10 +571,10 @@ async function notifyForDevice(
       boringMilitary: boringCount,
       specialCount,
       recentlyNotifiedCount,
-      messagesToSend: messages.length,
+      messagesToSend: pendingNotifications.length,
     });
 
-    if (!messages.length) {
+    if (!pendingNotifications.length) {
       await device.set(
         { lastNotified, lastProximityNotified },
         { merge: true },
@@ -553,13 +582,68 @@ async function notifyForDevice(
       return;
     }
 
-    // Send via Pushover API using service
-    await sendPushoverNotifications(
-      data.pushoverUserKey,
-      pushoverTargetDeviceName,
-      messages,
-      docId,
-    );
+    for (const pending of pendingNotifications) {
+      const sent = await sendPushoverNotification(
+        data.pushoverUserKey,
+        pending.deviceName,
+        pending.message,
+        docId,
+      );
+
+      if (!sent) {
+        await releaseNotificationClaim(
+          db,
+          data.pushoverUserKey,
+          cooldownDeviceName,
+          pending.icao,
+        );
+        continue;
+      }
+
+      if (pending.message.hex && !pending.message.title.startsWith('✈️ Plane Nearby')) {
+        lastNotified[pending.icao] = now;
+
+        const historyDocId = `${data.pushoverUserKey}__${pending.icao.toLowerCase()}`;
+        const historyRef = db
+          .collection(MILITARY_HISTORY_COLLECTION)
+          .doc(historyDocId);
+        const existingSighting = await historyRef.get();
+
+        const historyPayload = {
+          lastSeen: now,
+          notificationDelivered: true,
+          notifiedDeviceName: data.deviceName,
+          notificationLocation: pending.location,
+          ...(pending.callsign && { callsign: pending.callsign }),
+          ...(pending.model && { model: pending.model }),
+          ...(pending.countryCode && { country: pending.countryCode }),
+          ...(pending.registration && { registration: pending.registration }),
+          ...(pending.lat != null && { lat: pending.lat }),
+          ...(pending.lon != null && { lon: pending.lon }),
+          ...(pending.altitude != null && { altitude: pending.altitude }),
+          ...(pending.bearing != null && { bearing: pending.bearing }),
+          ...(pending.cardinal && { cardinal: pending.cardinal }),
+        };
+
+        if (existingSighting.exists) {
+          const existing = existingSighting.data()!;
+          await historyRef.set(
+            {
+              ...historyPayload,
+              sightingCount: (existing.sightingCount || 1) + 1,
+            },
+            { merge: true },
+          );
+        } else {
+          await historyRef.set({
+            icao: pending.icao.toLowerCase(),
+            firstSeen: now,
+            sightingCount: 1,
+            ...historyPayload,
+          });
+        }
+      }
+    }
 
     await device.set(
       {
@@ -584,8 +668,10 @@ export function createNotificationProcessorFunction(
 ) {
   return onSchedule(
     {
-      schedule: '* * * * *', // Every minute (cron format)
+      schedule: '*/2 * * * *', // Every 2 minutes
       timeZone: 'Etc/UTC',
+      maxInstances: 1,
+      region: 'europe-west3',
     },
     async () => {
       const broadcastAllDevices =
@@ -600,19 +686,99 @@ export function createNotificationProcessorFunction(
       }
 
       if (!broadcastAllDevices) {
-        const tasks = snapshot.docs.map((doc: any) =>
-          notifyForDevice(
+        const pushoverDeviceCache = new Map<string, Set<string> | null>();
+
+        const getRegisteredPushoverDevices = async (userKey: string) => {
+          if (pushoverDeviceCache.has(userKey)) {
+            return pushoverDeviceCache.get(userKey)!;
+          }
+
+          const validation = await validatePushoverUserKey(userKey);
+          if (!validation.valid) {
+            pushoverDeviceCache.set(userKey, null);
+            return null;
+          }
+
+          const devices = new Set(
+            validation.devices
+              .filter(
+                (name): name is string =>
+                  typeof name === 'string' && name.trim().length > 0,
+              )
+              .map((name) => name.trim().toLowerCase()),
+          );
+
+          pushoverDeviceCache.set(userKey, devices);
+          return devices;
+        };
+
+        // Load Firestore snapshots once per unique location instead of calling ADS-B API per device
+        const locationAircraftCache = new Map<string, AdsBPlane[]>();
+        const uniqueLocationKeys = [
+          ...new Set(
+            snapshot.docs
+              .map((doc: any) => {
+                const data = doc.data() as DeviceRegistration;
+                const deviceLocation = data.location || (data as any).home;
+                if (!deviceLocation) return null;
+                const lat = Math.round(deviceLocation.lat * 100) / 100;
+                const lon = Math.round(deviceLocation.lon * 100) / 100;
+                return `${lat}_${lon}_${clampRadius(data.radiusKm)}`;
+              })
+              .filter((key): key is string => key !== null),
+          ),
+        ];
+        await Promise.all(
+          uniqueLocationKeys.map(async (key) => {
+            const snapDoc = await db
+              .collection(AIRCRAFT_SNAPSHOTS_COLLECTION)
+              .doc(key)
+              .get();
+            if (snapDoc.exists) {
+              const snapData = snapDoc.data() as any;
+              if (Array.isArray(snapData?.aircraft)) {
+                locationAircraftCache.set(key, snapData.aircraft as AdsBPlane[]);
+              }
+            }
+          }),
+        );
+
+        logger.info('Loaded aircraft snapshots for notification processing', {
+          uniqueLocations: uniqueLocationKeys.length,
+          cachedLocations: locationAircraftCache.size,
+        });
+
+        const tasks = snapshot.docs.map(async (doc: any) => {
+          const data = doc.data() as DeviceRegistration;
+          const deviceLocation = data.location || (data as any).home;
+          const userKey = data?.pushoverUserKey;
+          const registeredPushoverDevices = userKey
+            ? await getRegisteredPushoverDevices(userKey)
+            : undefined;
+
+          let preloadedAircraft: AdsBPlane[] | undefined;
+          if (deviceLocation) {
+            const lat = Math.round(deviceLocation.lat * 100) / 100;
+            const lon = Math.round(deviceLocation.lon * 100) / 100;
+            preloadedAircraft = locationAircraftCache.get(
+              `${lat}_${lon}_${clampRadius(data.radiusKm)}`,
+            );
+          }
+
+          return notifyForDevice(
             db,
             doc.ref,
-            doc.data() as DeviceRegistration,
+            data,
             doc.id,
+            registeredPushoverDevices,
+            preloadedAircraft,
           ).catch((error) =>
             logger.error('notifyForDevice failed', {
               docId: doc.id,
               error,
             }),
-          ),
-        );
+          );
+        });
         await Promise.all(tasks);
         return;
       }
@@ -654,15 +820,49 @@ export function createNotificationProcessorFunction(
         userCount: bestDocByUserKey.size,
       });
 
-      const tasks = Array.from(bestDocByUserKey.values()).map((entry) =>
-        notifyForDevice(db, entry.ref, entry.data, entry.id).catch((error) =>
+      // Load Firestore snapshots once per unique location for broadcast mode too
+      const broadcastAircraftCache = new Map<string, AdsBPlane[]>();
+      await Promise.all(
+        [...new Set(
+          Array.from(bestDocByUserKey.values()).map((entry) => {
+            const deviceLocation = entry.data.location || (entry.data as any).home;
+            if (!deviceLocation) return null;
+            const lat = Math.round(deviceLocation.lat * 100) / 100;
+            const lon = Math.round(deviceLocation.lon * 100) / 100;
+            return `${lat}_${lon}_${clampRadius(entry.data.radiusKm)}`;
+          }).filter((key): key is string => key !== null),
+        )].map(async (key) => {
+          const snapDoc = await db
+            .collection(AIRCRAFT_SNAPSHOTS_COLLECTION)
+            .doc(key)
+            .get();
+          if (snapDoc.exists) {
+            const snapData = snapDoc.data() as any;
+            if (Array.isArray(snapData?.aircraft)) {
+              broadcastAircraftCache.set(key, snapData.aircraft as AdsBPlane[]);
+            }
+          }
+        }),
+      );
+
+      const tasks = Array.from(bestDocByUserKey.values()).map((entry) => {
+        const deviceLocation = entry.data.location || (entry.data as any).home;
+        let preloadedAircraft: AdsBPlane[] | undefined;
+        if (deviceLocation) {
+          const lat = Math.round(deviceLocation.lat * 100) / 100;
+          const lon = Math.round(deviceLocation.lon * 100) / 100;
+          preloadedAircraft = broadcastAircraftCache.get(
+            `${lat}_${lon}_${clampRadius(entry.data.radiusKm)}`,
+          );
+        }
+        return notifyForDevice(db, entry.ref, entry.data, entry.id, undefined, preloadedAircraft).catch((error) =>
           logger.error('notifyForUser failed', {
             docId: entry.id,
             userKey: entry.data.pushoverUserKey?.slice(0, 8),
             error,
           }),
-        ),
-      );
+        );
+      });
 
       await Promise.all(tasks);
     },

@@ -19,7 +19,11 @@ import {
   checkDeviceEndpoint,
   pushRegistrationEndpoint,
 } from '../../config/firebase.config';
+import { environment } from '../../../environments/environment';
 import { forwardGeocode, reverseGeocode } from '../../utils/geo-utils';
+import { resolveTimezoneForCoordinates } from '../../utils/timezone.util';
+import { SettingsService } from '../../services/settings.service';
+import { LocationContextService } from '../../services/location-context.service';
 
 interface BackendDeviceConfig {
   radiusKm?: number;
@@ -76,6 +80,8 @@ interface DeviceListItem {
   styleUrls: ['./pushover-config-editor.component.scss'],
 })
 export class PushoverConfigEditorComponent implements OnInit {
+  private readonly deviceNameKey = 'plane-alert-device-name';
+
   @Output() closeEditor = new EventEmitter<void>();
   @Output() configSaved = new EventEmitter<{
     ignoredTypes: string[];
@@ -106,6 +112,11 @@ export class PushoverConfigEditorComponent implements OnInit {
   locationError = '';
 
   @ViewChild('locationInput') locationInputRef?: InputComponent;
+
+  constructor(
+    private settings: SettingsService,
+    private locationContext: LocationContextService,
+  ) {}
 
   ngOnInit(): void {
     this.loadConfiguration();
@@ -196,9 +207,31 @@ export class PushoverConfigEditorComponent implements OnInit {
     }, 50);
   }
 
+  cancelLocationEdit(): void {
+    this.isEditingLocation = false;
+    this.locationSearchQuery = '';
+    this.locationError = '';
+  }
+
+  onLocationEditorKeydown(
+    event: KeyboardEvent,
+    device: DeviceListItem,
+  ): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void this.saveLocationEdit(device);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelLocationEdit();
+    }
+  }
+
   async saveLocationEdit(device: DeviceListItem): Promise<void> {
     if (!this.locationSearchQuery.trim()) {
-      this.isEditingLocation = false;
+      this.locationError = 'Enter a city, airport, or address.';
       return;
     }
 
@@ -219,11 +252,11 @@ export class PushoverConfigEditorComponent implements OnInit {
         this.statusIcon = 'sync';
 
         await this.saveDevice(device, true);
+        await this.syncLocalLocationForCurrentDevice(device);
 
         this.statusMessage = 'Location saved';
         this.statusIcon = 'check_circle';
-        this.isEditingLocation = false;
-        this.locationSearchQuery = '';
+        this.cancelLocationEdit();
 
         setTimeout(() => {
           this.statusMessage = '';
@@ -237,6 +270,41 @@ export class PushoverConfigEditorComponent implements OnInit {
       this.locationError = 'Failed to find location. Please try again.';
     } finally {
       this.isGeocodingLocation = false;
+    }
+  }
+
+  private isCurrentBrowserDevice(device: DeviceListItem): boolean {
+    const currentDeviceName = localStorage.getItem(this.deviceNameKey)?.trim();
+
+    if (currentDeviceName) {
+      return currentDeviceName === device.name;
+    }
+
+    return device.name === 'default';
+  }
+
+  private async syncLocalLocationForCurrentDevice(
+    device: DeviceListItem,
+  ): Promise<void> {
+    if (!device.location || !this.isCurrentBrowserDevice(device)) {
+      return;
+    }
+
+    await this.settings.setHomeLocation(
+      device.location.lat,
+      device.location.lon,
+      device.location.address,
+    );
+
+    this.locationContext.setLocation(
+      device.location.lat,
+      device.location.lon,
+      device.location.address || `${device.location.lat}, ${device.location.lon}`,
+      'home',
+    );
+
+    if (device.location.address) {
+      this.locationContext.setAddress(device.location.address);
     }
   }
 
@@ -358,7 +426,7 @@ export class PushoverConfigEditorComponent implements OnInit {
 
     try {
       const response = await fetch(
-        'https://us-central1-plane-alert-800ff.cloudfunctions.net/unsubscribeDevice',
+        environment.endpoints.unsubscribeDevice,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -662,13 +730,17 @@ export class PushoverConfigEditorComponent implements OnInit {
       locationData.address = address;
     }
 
+    const timezone =
+      (await resolveTimezoneForCoordinates(lat, lon))?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     const deviceData = {
       pushoverUserKey: this.pushoverUserKey.trim(),
       deviceName: device.name,
       platform: navigator?.userAgent || 'browser',
       distanceUnit: 'km' as const,
       radiusKm: 100,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone,
       location: locationData,
       specialIcaos: [],
       notifyProximity: device.proximityEnabled,

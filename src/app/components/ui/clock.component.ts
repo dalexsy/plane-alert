@@ -72,21 +72,17 @@ export class ClockComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private updateTime(): void {
-    const locationTime = this.locationContext.getCurrentTimeForLocation();
-
-    this.weekday = locationTime.toLocaleDateString('en-GB', {
+    this.weekday = this.locationContext.formatDateForLocation({
       weekday: 'long',
     });
-    this.dayMonth = locationTime.toLocaleDateString('en-GB', {
+    this.dayMonth = this.locationContext.formatDateForLocation({
       day: 'numeric',
       month: 'long',
     });
-    // Use default locale, only hour and minute, strip AM/PM
-    let timeString = locationTime.toLocaleTimeString([], {
+    this.currentTime = this.locationContext.formatTimeForLocation({
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     });
-    timeString = timeString.replace(/\s*AM|\s*PM|\s*a\.m\.|\s*p\.m\./gi, '');
-    this.currentTime = timeString.trim();
   }
 }

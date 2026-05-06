@@ -3,7 +3,7 @@ import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
 export function createClearCooldownsFunction(db: admin.firestore.Firestore) {
-  return onRequest(async (req, res) => {
+  return onRequest({ region: 'europe-west3' }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
 
     try {

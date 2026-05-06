@@ -81,3 +81,30 @@ export async function checkAndMarkNotified(
     return false;
   }
 }
+
+export async function releaseNotificationClaim(
+  db: admin.firestore.Firestore,
+  userKey: string,
+  deviceName: string,
+  icao: string
+): Promise<void> {
+  const cooldownId = deviceName
+    ? `${userKey}__${deviceName}__${icao}`
+    : `${userKey}__${icao}`;
+
+  try {
+    await db.collection(COOLDOWN_COLLECTION).doc(cooldownId).delete();
+    logger.info('Released notification claim', {
+      userKey: userKey.slice(0, 8),
+      deviceName,
+      icao,
+    });
+  } catch (error: any) {
+    logger.error('Failed to release notification claim', {
+      userKey: userKey.slice(0, 8),
+      deviceName,
+      icao,
+      error,
+    });
+  }
+}

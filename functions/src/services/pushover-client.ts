@@ -48,7 +48,7 @@ export async function sendPushoverNotification(
       if (imageUrl) {
         logger.info('Found image URL, downloading', {
           docId,
-          url: imageUrl.substring(0, 100),
+          url: String(imageUrl).substring(0, 100),
         });
         attachmentBase64 = await downloadAndEncodeImage(imageUrl);
         if (attachmentBase64) {
@@ -125,8 +125,12 @@ export async function sendPushoverNotifications(
   deviceName: string,
   messages: PushoverMessage[],
   docId: string
-): Promise<void> {
+): Promise<boolean[]> {
+  const results: boolean[] = [];
   for (const msg of messages) {
-    await sendPushoverNotification(userKey, deviceName, msg, docId);
+    results.push(
+      await sendPushoverNotification(userKey, deviceName, msg, docId)
+    );
   }
+  return results;
 }

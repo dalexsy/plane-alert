@@ -32,7 +32,7 @@ export class AnnouncementService {
     private aircraftCountryService: AircraftCountryService,
     private langSwitch: LanguageSwitchService,
     private settings: SettingsService,
-    private operatorCallSignService: OperatorCallSignService
+    private operatorCallSignService: OperatorCallSignService,
   ) {}
   /**
    * Handle announcements for new aircraft based on priority:
@@ -43,7 +43,7 @@ export class AnnouncementService {
    * CRITICAL: Each aircraft gets exactly ONE announcement to prevent TTS chaos
    */ announceNewAircraft(
     plane: PlaneLogEntry,
-    context: AnnouncementContext
+    context: AnnouncementContext,
   ): void {
     if (!plane.isNew) {
       return;
@@ -60,16 +60,16 @@ export class AnnouncementService {
     // Use a single TTS key per aircraft to prevent overlapping announcements
     const baseKey = `aircraft-${plane.icao}`; // Special model announcements (highest priority - Hercules is rarer)
     if (this.isSpecialModel(plane)) {
-      // Check if military mute is enabled for special military aircraft
-      if (plane.isMilitary && this.settings.militaryMute) {
+      // Check if military mute is enabled or ICAO is individually muted
+      if (plane.isMilitary && (this.settings.militaryMute || this.settings.isMutedIcao(plane.icao))) {
         return; // Skip announcement if military mute is enabled
       }
       this.announceSpecialModel(plane, baseKey);
       return; // Exit early to prevent multiple announcements
     } // Military aircraft announcements (medium priority) - queue by country to prioritize operators
     else if (plane.isMilitary) {
-      // Check if military mute is enabled
-      if (this.settings.militaryMute) {
+      // Check if military mute is enabled or ICAO is individually muted
+      if (this.settings.militaryMute || this.settings.isMutedIcao(plane.icao)) {
         return; // Skip announcement if military mute is enabled
       }
       this.queueMilitaryAircraft(plane, baseKey);
@@ -88,7 +88,7 @@ export class AnnouncementService {
    * @param baseKey The base TTS key to prevent overlapping announcements
    */ private announceMilitaryAircraft(
     plane: PlaneLogEntry,
-    baseKey: string
+    baseKey: string,
   ): void {
     // Try to get operator from database first, then fallback to callsign lookup
     let operator = plane.operator?.trim();
@@ -338,7 +338,7 @@ export class AnnouncementService {
       const countryResult =
         this.aircraftCountryService.getCountryFromCoordinates(
           plane.airportLat,
-          plane.airportLon
+          plane.airportLon,
         );
 
       if (countryResult.countryCode !== 'Unknown') {
@@ -491,7 +491,7 @@ export class AnnouncementService {
   private announceOperatorGroup(
     operator: string,
     planes: PlaneLogEntry[],
-    countryKey: string
+    countryKey: string,
   ): void {
     if (planes.length === 0) return;
 
@@ -522,7 +522,7 @@ export class AnnouncementService {
       const models = planes
         .map((plane) => plane.model?.trim())
         .filter(
-          (model): model is string => model !== undefined && model.length > 0
+          (model): model is string => model !== undefined && model.length > 0,
         );
 
       // Remove duplicates while preserving order
@@ -611,7 +611,7 @@ export class AnnouncementService {
    */
   private buildCountryAnnouncement(
     countryKey: string,
-    aircraft: PlaneLogEntry[]
+    aircraft: PlaneLogEntry[],
   ): string {
     if (aircraft.length === 0) return `${countryKey} military`;
 
@@ -640,7 +640,7 @@ export class AnnouncementService {
     // If multiple operators but one dominant operator, use that
     if (operatorGroups.size > 0) {
       const largestGroup = Array.from(operatorGroups.entries()).sort(
-        ([, a], [, b]) => b.length - a.length
+        ([, a], [, b]) => b.length - a.length,
       )[0];
 
       if (largestGroup[1].length >= aircraft.length * 0.7) {
@@ -663,7 +663,7 @@ export class AnnouncementService {
    */
   private buildOperatorAnnouncement(
     operator: string,
-    aircraft: PlaneLogEntry[]
+    aircraft: PlaneLogEntry[],
   ): string {
     if (aircraft.length === 1) {
       const model = aircraft[0].model?.trim();
@@ -674,7 +674,7 @@ export class AnnouncementService {
     const models = aircraft
       .map((plane) => plane.model?.trim())
       .filter(
-        (model): model is string => model !== undefined && model.length > 0
+        (model): model is string => model !== undefined && model.length > 0,
       );
 
     const uniqueModels = [...new Set(models)];

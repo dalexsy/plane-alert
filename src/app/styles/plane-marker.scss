@@ -139,3 +139,16 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
 .predicted-path-line {
   border-style: dashed;
 }
+
+// Ghost position marker - shows actual reported position when animations are running
+.ghost-position-marker {
+  pointer-events: none;
+
+  .ghost-plane-marker {
+    opacity: 0.35;
+  }
+
+  .ghost-plane-marker.followed-plane {
+    stroke: none;
+  }
+}

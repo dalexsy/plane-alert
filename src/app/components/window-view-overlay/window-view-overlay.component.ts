@@ -9,8 +9,11 @@ import {
   OnDestroy,
   HostListener,
   ElementRef,
+  Inject,
+  PLATFORM_ID,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { Subscription, timeout, catchError, of } from 'rxjs';
 import { EngineIconType } from '../../utils/plane-icons';
@@ -29,6 +32,7 @@ import { RainOverlayComponent } from '../rain-overlay/rain-overlay.component';
 import { ScanService } from '../../services/scan.service';
 import { SettingsService } from '../../services/settings.service';
 import { calculateTiltAngle } from '../../utils/vertical-rate.util';
+import { weatherCeilingEndpoint } from '../../config/firebase.config';
 
 // Import child components
 import { SkyBackgroundComponent } from './sky-background/sky-background.component';
@@ -160,6 +164,11 @@ export class WindowViewOverlayComponent
     ''; /** Individual sky color components for template access */
   public skyBottomColor: string = 'rgb(135, 206, 235)'; // Default sky blue
   public skyTopColor: string = 'rgb(25, 25, 112)'; // Default midnight blue
+  public cloudBandBottomPercent: number | null = null;
+  public cloudBandDebugLabel: string = '';
+  public cloudBandDebugEnabled: boolean = false;
+  private cloudBandDebugFeetOverride: number | null = null;
+  private cloudBandDebugKindOverride: string | null = null;
   /** Prevent multiple simultaneous weather updates */
   private isUpdatingWeather: boolean = false;
   /** Current wind speed from weather API for dynamic animations */
@@ -239,9 +248,11 @@ export class WindowViewOverlayComponent
     private scanService: ScanService,
     private stormPressureService: StormPressureService,
     private brightnessService: BrightnessService,
-    private settings: SettingsService
+    private settings: SettingsService,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
   ngOnInit(): void {
+    this.readCloudBandDebugOverrides();
     this.altitudeTicks = this.computeAltitudeTicks();
     // Set initial animation timing based on scan interval
     this.updateAnimationTiming();
@@ -311,6 +322,7 @@ export class WindowViewOverlayComponent
       this.updateWindowCloud();
       // fetch weather which will update sky background
       this.updateWeather();
+      this.updateCloudBandHeight();
       // compute marker spans for dimming
       this.computeSpans();
       this.setCompassBackground();
@@ -430,6 +442,110 @@ export class WindowViewOverlayComponent
           this.isUpdatingWeather = false;
         }
       );
+  }
+
+  private updateCloudBandHeight(): void {
+    if (!Number.isFinite(this.observerLat) || !Number.isFinite(this.observerLon)) {
+      this.cloudBandBottomPercent = null;
+      return;
+    }
+
+    const url = `${weatherCeilingEndpoint}?lat=${this.observerLat}&lon=${this.observerLon}`;
+    this.http
+      .get<any>(url)
+      .pipe(
+        timeout(10000),
+        catchError(() => of(null))
+      )
+      .subscribe(async (data) => {
+        const apiKind = typeof data?.kind === 'string' ? data.kind : 'unavailable';
+        const apiFeet = Number.isFinite(data?.feet) ? Number(data.feet) : null;
+        const kind = this.cloudBandDebugKindOverride ?? apiKind;
+        let feet = this.cloudBandDebugFeetOverride ?? apiFeet;
+
+        // If METAR only gives a lower bound (or no height), use model profile
+        // to place the band closer to where visible clouds actually sit.
+        if (feet == null || kind === 'above-threshold') {
+          const modelMeters = await this.fetchModelCloudBaseMeters(
+            this.observerLat,
+            this.observerLon
+          );
+          if (modelMeters != null) {
+            feet = Math.round(modelMeters * 3.28084);
+          } else if (feet == null && kind === 'above-threshold') {
+            // Keep a conservative floor if neither METAR nor model can resolve height.
+            feet = 5000;
+          }
+        }
+
+        if (feet == null) {
+          this.cloudBandBottomPercent = null;
+          this.cloudBandDebugLabel = `${kind} / no-height`;
+          return;
+        }
+
+        const meters = feet * 0.3048;
+        const normalized = (meters / this.viewMaxAltitude) * 100;
+        this.cloudBandBottomPercent = Math.max(0, Math.min(90, normalized));
+        this.cloudBandDebugLabel = `${Math.round(feet)}ft / ${Math.round(meters)}m / ${this.cloudBandBottomPercent.toFixed(1)}% / ${kind}`;
+      });
+  }
+
+  private async fetchModelCloudBaseMeters(
+    latitude: number,
+    longitude: number
+  ): Promise<number | null> {
+    try {
+      const url =
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+        `&current=cloud_base,cloud_cover_low,cloud_cover_mid,cloud_cover_high`;
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json();
+      const current = data?.current || {};
+      const cloudBaseMeters = Number(current.cloud_base);
+      if (Number.isFinite(cloudBaseMeters) && cloudBaseMeters > 0) {
+        return cloudBaseMeters;
+      }
+
+      const low = Number(current.cloud_cover_low);
+      const mid = Number(current.cloud_cover_mid);
+      const high = Number(current.cloud_cover_high);
+
+      // Heuristic fallback by dominant cloud deck when explicit base is absent.
+      if (Number.isFinite(low) && low >= 35) return 1500;
+      if (Number.isFinite(mid) && mid >= 35) return 4500;
+      if (Number.isFinite(high) && high >= 35) return 9000;
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private readCloudBandDebugOverrides(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    this.cloudBandDebugEnabled = params.get('debugCloudBand') === '1';
+
+    const feetRaw = params.get('cloudBandFeet');
+    const feetParsed = feetRaw === null ? Number.NaN : Number(feetRaw);
+    this.cloudBandDebugFeetOverride = Number.isFinite(feetParsed)
+      ? Math.max(0, feetParsed)
+      : null;
+
+    const kindRaw = params.get('cloudBandKind');
+    this.cloudBandDebugKindOverride =
+      typeof kindRaw === 'string' && kindRaw.trim().length > 0
+        ? kindRaw.trim()
+        : null;
   }
   /** Update rain system based on weather API data */
   private updateRainSystem(weatherData: any): void {

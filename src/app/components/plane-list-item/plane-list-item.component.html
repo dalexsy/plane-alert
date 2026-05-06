@@ -129,7 +129,7 @@
       >
         navigation
       </span>
-      <span>{{ distanceKm | number : "1.1-1" }} {{ distanceUnit }}</span>
+      <span>{{ distanceKm | number: "1.1-1" }} {{ distanceUnit }}</span>
     </span>
   </ng-container>
   <ng-container *ngIf="listType === 'seen'">
@@ -146,7 +146,7 @@
     <!-- Visibility Button -->
     <app-button
       [icon]="
-        planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary)
+        (plane.isMilitary ? isMuted : planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary))
           ? 'visibility_off'
           : 'visibility'
       "
@@ -211,7 +211,9 @@
     plane.routeOrigin ||
     plane.routeDestination ||
     plane.routeOriginIata ||
-    plane.routeDestinationIata
+    plane.routeDestinationIata ||
+    plane.routeOriginName ||
+    plane.routeDestinationName
   "
 >
   <span class="operator-visibility">
