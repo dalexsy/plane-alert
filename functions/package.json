@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "gcp-build": "npm run build",
     "clean": "rimraf lib",
     "lint": "eslint --ext .ts src",
     "serve": "firebase emulators:start --only functions",
