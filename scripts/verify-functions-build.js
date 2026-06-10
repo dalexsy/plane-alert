@@ -2,6 +2,7 @@ const { execSync } = require("child_process");
 const path = require("path");
 const functionsDir = path.join(__dirname, "..", "functions");
 const criticalModules = [
+  "lib/index.js",
   "lib/services/build-military-notification.js",
   "lib/services/collect-military-notifications.js",
   "lib/services/notify-for-device.js",

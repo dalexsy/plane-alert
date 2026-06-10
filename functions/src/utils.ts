@@ -27,7 +27,11 @@ export function shouldBroadcastToAllDevices(): boolean {
   return flag === 'true' || flag === '1';
 }
 
-/** Map Firestore deviceName to a live Pushover device when names drift (e.g. pixel5 → pixel10). */
+/**
+ * Map Firestore deviceName to a live Pushover device when names drift (e.g. pixel5 → pixel10).
+ * Returns '' to broadcast to all Pushover devices when the Firestore label cannot be matched
+ * (browsers register names like "mobile-android" that Pushover does not know).
+ */
 export function resolvePushoverDeviceName(
   firestoreName: string,
   registeredDevices: Set<string> | null | undefined,
@@ -37,7 +41,7 @@ export function resolvePushoverDeviceName(
     return null;
   }
   if (!registeredDevices?.size) {
-    return trimmed;
+    return '';
   }
   const normalized = trimmed.toLowerCase();
   if (registeredDevices.has(normalized)) {
@@ -49,7 +53,7 @@ export function resolvePushoverDeviceName(
       return pixel;
     }
   }
-  return null;
+  return '';
 }
 export function isSpecialAircraft(icao: string): boolean {
   return SPECIAL_ICAOS.includes(icao.toLowerCase());
