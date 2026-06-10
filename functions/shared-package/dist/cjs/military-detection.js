@@ -85,7 +85,14 @@ exports.BORING_AIRCRAFT_TYPES = [
     'FA10', // Dassault Falcon 10
     'FA20', // Dassault Falcon 20
     'FA50', // Dassault Falcon 50
+    'FA8X', // Dassault Falcon 8X
     'FA2T', // Dassault Falcon 2000
+    'F2TH', // Dassault Falcon 2000 (alternate ICAO code)
+    'F900', // Dassault Falcon 900
+    'E35L', // Embraer Legacy 600/650
+    'GLF2', // Gulfstream II
+    'GLF3', // Gulfstream III
+    'H25B', // Hawker 800
     'GL5T', // Gulfstream V
     'GLEX', // Bombardier Global Express
     'GLF4', // Gulfstream IV
