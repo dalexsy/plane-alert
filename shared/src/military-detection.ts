@@ -3,6 +3,7 @@
  */
 
 import type { AdsBPlane } from './types';
+import { getAircraftTypeName } from './aircraft-type-names';
 
 /**
  * Boring aircraft types to skip (trainers, transports, business jets used by military)
@@ -242,6 +243,47 @@ export function shouldSkipBoringMilitaryFilter(plane: AdsBPlane): boolean {
   return callsign.startsWith('MMF');
 }
 
+function getNormalizedTypeCode(plane: AdsBPlane): string {
+  return (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+}
+
+/**
+ * Returns true when a military-flagged aircraft is a trainer, transport,
+ * business jet, or other type that should not trigger push notifications.
+ */
+export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
+  if (shouldSkipBoringMilitaryFilter(plane)) {
+    return false;
+  }
+
+  const normalizedType = getNormalizedTypeCode(plane);
+  if (
+    normalizedType &&
+    BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))
+  ) {
+    return true;
+  }
+
+  const desc = (plane.desc || '').trim();
+  if (!desc) {
+    return false;
+  }
+
+  const descUpper = desc.toUpperCase();
+  const descNormalized = descUpper.replace(/[-\s]/g, '');
+  if (BORING_AIRCRAFT_TYPES.some((boring) => descNormalized.includes(boring))) {
+    return true;
+  }
+
+  return BORING_AIRCRAFT_TYPES.some((boring) => {
+    const modelName = getAircraftTypeName(boring);
+    if (!modelName || modelName === boring) {
+      return false;
+    }
+    return descUpper.includes(modelName.toUpperCase());
+  });
+}
+
 export function looksMilitary(plane: AdsBPlane): boolean {
   // Check mil flag OR dbFlags (dbFlags: 1 indicates military aircraft in database)
   // Reject if NEITHER flag indicates military
@@ -249,18 +291,7 @@ export function looksMilitary(plane: AdsBPlane): boolean {
     return false;
   }
 
-  // Skip boring aircraft types (trainers, transports, business jets, commercial airliners)
-  const aircraftType = plane.t || plane.type || plane.desc || '';
-  const normalizedType = aircraftType.toUpperCase().replace(/[-\s]/g, ''); // Remove dashes and spaces
-
-  if (
-    BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring)) &&
-    !shouldSkipBoringMilitaryFilter(plane)
-  ) {
-    return false;
-  }
-
-  return true;
+  return !isBoringMilitaryAircraft(plane);
 }
 
 /**
