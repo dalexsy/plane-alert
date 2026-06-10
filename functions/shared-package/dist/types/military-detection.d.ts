@@ -26,6 +26,11 @@ export declare function normalizeCallsign(value?: string | null): string;
  * should stay filtered).
  */
 export declare function shouldSkipBoringMilitaryFilter(plane: AdsBPlane): boolean;
+/**
+ * Returns true when a military-flagged aircraft is a trainer, transport,
+ * business jet, or other type that should not trigger push notifications.
+ */
+export declare function isBoringMilitaryAircraft(plane: AdsBPlane): boolean;
 export declare function looksMilitary(plane: AdsBPlane): boolean;
 /**
  * Checks if a callsign matches known military prefixes

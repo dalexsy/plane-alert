@@ -7,7 +7,7 @@
 // Export country detection functions
 export { getCountryFromIcaoHex, getCountryFromRegistration, getAircraftCountry, getRegistrationPrefixesForCountry, isKnownCountry, ICAO_LOOKUP_CONFIG, } from './country-detection';
 // Export military detection functions
-export { looksMilitary, normalizeCallsign, isMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
+export { looksMilitary, isBoringMilitaryAircraft, normalizeCallsign, isMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
 // Export geo utilities
 export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';
 // Export notification formatting
