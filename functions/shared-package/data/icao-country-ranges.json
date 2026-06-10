@@ -1,0 +1,1342 @@
+[
+  {
+    "startHex": "004000",
+    "finishHex": "0043FF",
+    "isMilitary": false,
+    "countryISO2": "ZW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "006000",
+    "finishHex": "006FFF",
+    "isMilitary": false,
+    "countryISO2": "MZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "008000",
+    "finishHex": "00FFFF",
+    "isMilitary": false,
+    "countryISO2": "ZA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "010000",
+    "finishHex": "017FFF",
+    "isMilitary": false,
+    "countryISO2": "EG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "018000",
+    "finishHex": "01FFFF",
+    "isMilitary": false,
+    "countryISO2": "LY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "020000",
+    "finishHex": "027FFF",
+    "isMilitary": false,
+    "countryISO2": "MA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "028000",
+    "finishHex": "02FFFF",
+    "isMilitary": false,
+    "countryISO2": "TN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "030000",
+    "finishHex": "0303FF",
+    "isMilitary": false,
+    "countryISO2": "BW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "032000",
+    "finishHex": "032FFF",
+    "isMilitary": false,
+    "countryISO2": "BI",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "034000",
+    "finishHex": "034FFF",
+    "isMilitary": false,
+    "countryISO2": "CM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "035000",
+    "finishHex": "0353FF",
+    "isMilitary": false,
+    "countryISO2": "KM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "036000",
+    "finishHex": "036FFF",
+    "isMilitary": false,
+    "countryISO2": "CG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "038000",
+    "finishHex": "038FFF",
+    "isMilitary": false,
+    "countryISO2": "CI",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "03E000",
+    "finishHex": "03EFFF",
+    "isMilitary": false,
+    "countryISO2": "GA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "040000",
+    "finishHex": "040FFF",
+    "isMilitary": false,
+    "countryISO2": "ET",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "042000",
+    "finishHex": "042FFF",
+    "isMilitary": false,
+    "countryISO2": "GQ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "044000",
+    "finishHex": "044FFF",
+    "isMilitary": false,
+    "countryISO2": "GH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "046000",
+    "finishHex": "046FFF",
+    "isMilitary": false,
+    "countryISO2": "GN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "048000",
+    "finishHex": "0483FF",
+    "isMilitary": false,
+    "countryISO2": "GW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "04A000",
+    "finishHex": "04A3FF",
+    "isMilitary": false,
+    "countryISO2": "LS",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "04C000",
+    "finishHex": "04CFFF",
+    "isMilitary": false,
+    "countryISO2": "KE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "050000",
+    "finishHex": "050FFF",
+    "isMilitary": false,
+    "countryISO2": "LR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "054000",
+    "finishHex": "054FFF",
+    "isMilitary": false,
+    "countryISO2": "MG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "058000",
+    "finishHex": "058FFF",
+    "isMilitary": false,
+    "countryISO2": "MW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "05A000",
+    "finishHex": "05A3FF",
+    "isMilitary": false,
+    "countryISO2": "MV",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "05C000",
+    "finishHex": "05CFFF",
+    "isMilitary": false,
+    "countryISO2": "ML",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "05E000",
+    "finishHex": "05E3FF",
+    "isMilitary": false,
+    "countryISO2": "MR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "060000",
+    "finishHex": "0603FF",
+    "isMilitary": false,
+    "countryISO2": "MU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "062000",
+    "finishHex": "062FFF",
+    "isMilitary": false,
+    "countryISO2": "NE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "064000",
+    "finishHex": "064FFF",
+    "isMilitary": false,
+    "countryISO2": "NG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "068000",
+    "finishHex": "068FFF",
+    "isMilitary": false,
+    "countryISO2": "UG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "06A000",
+    "finishHex": "06A3FF",
+    "isMilitary": false,
+    "countryISO2": "QA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "06C000",
+    "finishHex": "06CFFF",
+    "isMilitary": false,
+    "countryISO2": "CF",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "06E000",
+    "finishHex": "06EFFF",
+    "isMilitary": false,
+    "countryISO2": "RW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "070000",
+    "finishHex": "070FFF",
+    "isMilitary": false,
+    "countryISO2": "SN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "074000",
+    "finishHex": "0743FF",
+    "isMilitary": false,
+    "countryISO2": "SC",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "076000",
+    "finishHex": "0763FF",
+    "isMilitary": false,
+    "countryISO2": "SL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "078000",
+    "finishHex": "078FFF",
+    "isMilitary": false,
+    "countryISO2": "SO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "07A000",
+    "finishHex": "07A3FF",
+    "isMilitary": false,
+    "countryISO2": "SZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "07C000",
+    "finishHex": "07CFFF",
+    "isMilitary": false,
+    "countryISO2": "SD",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "080000",
+    "finishHex": "080FFF",
+    "isMilitary": false,
+    "countryISO2": "TZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "084000",
+    "finishHex": "084FFF",
+    "isMilitary": false,
+    "countryISO2": "TD",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "088000",
+    "finishHex": "088FFF",
+    "isMilitary": false,
+    "countryISO2": "TG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "08A000",
+    "finishHex": "08AFFF",
+    "isMilitary": false,
+    "countryISO2": "ZM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "08C000",
+    "finishHex": "08CFFF",
+    "isMilitary": false,
+    "countryISO2": "CD",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "090000",
+    "finishHex": "090FFF",
+    "isMilitary": false,
+    "countryISO2": "AO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "094000",
+    "finishHex": "0943FF",
+    "isMilitary": false,
+    "countryISO2": "BJ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "096000",
+    "finishHex": "0963FF",
+    "isMilitary": false,
+    "countryISO2": "CV",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "098000",
+    "finishHex": "0983FF",
+    "isMilitary": false,
+    "countryISO2": "DJ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "09A000",
+    "finishHex": "09AFFF",
+    "isMilitary": false,
+    "countryISO2": "GM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "09C000",
+    "finishHex": "09CFFF",
+    "isMilitary": false,
+    "countryISO2": "BF",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "09E000",
+    "finishHex": "09E3FF",
+    "isMilitary": false,
+    "countryISO2": "ST",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0A0000",
+    "finishHex": "0A7FFF",
+    "isMilitary": false,
+    "countryISO2": "DZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0A8000",
+    "finishHex": "0A8FFF",
+    "isMilitary": false,
+    "countryISO2": "BS",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0AA000",
+    "finishHex": "0AA3FF",
+    "isMilitary": false,
+    "countryISO2": "BB",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0AB000",
+    "finishHex": "0AB3FF",
+    "isMilitary": false,
+    "countryISO2": "BZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0AC000",
+    "finishHex": "0ACFFF",
+    "isMilitary": false,
+    "countryISO2": "CO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0AE000",
+    "finishHex": "0AEFFF",
+    "isMilitary": false,
+    "countryISO2": "CR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0B0000",
+    "finishHex": "0B0FFF",
+    "isMilitary": false,
+    "countryISO2": "CU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0B2000",
+    "finishHex": "0B2FFF",
+    "isMilitary": false,
+    "countryISO2": "SV",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0B4000",
+    "finishHex": "0B4FFF",
+    "isMilitary": false,
+    "countryISO2": "GT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0B6000",
+    "finishHex": "0B6FFF",
+    "isMilitary": false,
+    "countryISO2": "GY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0B8000",
+    "finishHex": "0B8FFF",
+    "isMilitary": false,
+    "countryISO2": "HT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0BA000",
+    "finishHex": "0BAFFF",
+    "isMilitary": false,
+    "countryISO2": "HN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0BC000",
+    "finishHex": "0BC3FF",
+    "isMilitary": false,
+    "countryISO2": "VC",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0BE000",
+    "finishHex": "0BEFFF",
+    "isMilitary": false,
+    "countryISO2": "JM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0C0000",
+    "finishHex": "0C0FFF",
+    "isMilitary": false,
+    "countryISO2": "NI",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0C2000",
+    "finishHex": "0C2FFF",
+    "isMilitary": false,
+    "countryISO2": "PA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0C4000",
+    "finishHex": "0C4FFF",
+    "isMilitary": false,
+    "countryISO2": "DO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0C6000",
+    "finishHex": "0C6FFF",
+    "isMilitary": false,
+    "countryISO2": "TT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0C8000",
+    "finishHex": "0C8FFF",
+    "isMilitary": false,
+    "countryISO2": "SR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0CA000",
+    "finishHex": "0CA3FF",
+    "isMilitary": false,
+    "countryISO2": "AG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0CC000",
+    "finishHex": "0CC3FF",
+    "isMilitary": false,
+    "countryISO2": "GD",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0D0000",
+    "finishHex": "0D7FFF",
+    "isMilitary": false,
+    "countryISO2": "MX",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "0D8000",
+    "finishHex": "0DFFFF",
+    "isMilitary": false,
+    "countryISO2": "VE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "100000",
+    "finishHex": "1FFFFF",
+    "isMilitary": false,
+    "countryISO2": "RU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "201000",
+    "finishHex": "2013FF",
+    "isMilitary": false,
+    "countryISO2": "NA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "202000",
+    "finishHex": "2023FF",
+    "isMilitary": false,
+    "countryISO2": "ER",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "2F4000",
+    "finishHex": "2F4FFF",
+    "isMilitary": false,
+    "countryISO2": "US",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "300000",
+    "finishHex": "33FFFF",
+    "isMilitary": false,
+    "countryISO2": "IT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "340000",
+    "finishHex": "37FFFF",
+    "isMilitary": false,
+    "countryISO2": "ES",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "380000",
+    "finishHex": "3BFFFF",
+    "isMilitary": false,
+    "countryISO2": "FR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "3C0000",
+    "finishHex": "3FFFFF",
+    "isMilitary": false,
+    "countryISO2": "DE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "400000",
+    "finishHex": "43FFFF",
+    "isMilitary": false,
+    "countryISO2": "GB",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "440000",
+    "finishHex": "447FFF",
+    "isMilitary": false,
+    "countryISO2": "AT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "448000",
+    "finishHex": "44FFFF",
+    "isMilitary": false,
+    "countryISO2": "BE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "450000",
+    "finishHex": "457FFF",
+    "isMilitary": false,
+    "countryISO2": "BG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "458000",
+    "finishHex": "45FFFF",
+    "isMilitary": false,
+    "countryISO2": "DK",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "460000",
+    "finishHex": "467FFF",
+    "isMilitary": false,
+    "countryISO2": "FI",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "468000",
+    "finishHex": "46FFFF",
+    "isMilitary": false,
+    "countryISO2": "GR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "470000",
+    "finishHex": "477FFF",
+    "isMilitary": false,
+    "countryISO2": "HU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "478000",
+    "finishHex": "47FFFF",
+    "isMilitary": false,
+    "countryISO2": "NO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "480000",
+    "finishHex": "487FFF",
+    "isMilitary": false,
+    "countryISO2": "NL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "488000",
+    "finishHex": "48FFFF",
+    "isMilitary": false,
+    "countryISO2": "PL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "490000",
+    "finishHex": "497FFF",
+    "isMilitary": false,
+    "countryISO2": "PT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "498000",
+    "finishHex": "49FFFF",
+    "isMilitary": false,
+    "countryISO2": "CZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4A0000",
+    "finishHex": "4A7FFF",
+    "isMilitary": false,
+    "countryISO2": "RO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4A8000",
+    "finishHex": "4AFFFF",
+    "isMilitary": false,
+    "countryISO2": "SE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4B0000",
+    "finishHex": "4B7FFF",
+    "isMilitary": false,
+    "countryISO2": "CH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4B8000",
+    "finishHex": "4BFFFF",
+    "isMilitary": false,
+    "countryISO2": "TR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4C0000",
+    "finishHex": "4C7FFF",
+    "isMilitary": false,
+    "countryISO2": "YU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4C8000",
+    "finishHex": "4C83FF",
+    "isMilitary": false,
+    "countryISO2": "CY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4CA000",
+    "finishHex": "4CAFFF",
+    "isMilitary": false,
+    "countryISO2": "IE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4CC000",
+    "finishHex": "4CCFFF",
+    "isMilitary": false,
+    "countryISO2": "IS",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4D0000",
+    "finishHex": "4D03FF",
+    "isMilitary": false,
+    "countryISO2": "LU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4D2000",
+    "finishHex": "4D23FF",
+    "isMilitary": false,
+    "countryISO2": "MT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "4D4000",
+    "finishHex": "4D43FF",
+    "isMilitary": false,
+    "countryISO2": "MC",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "500000",
+    "finishHex": "5004FF",
+    "isMilitary": false,
+    "countryISO2": "SM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "500500",
+    "finishHex": "5008FF",
+    "startDec": 5244160,
+    "finishDec": 5245183,
+    "isMilitary": false,
+    "countryISO2": "ME",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "500900",
+    "finishHex": "500CFF",
+    "startDec": 5245184,
+    "finishDec": 5246207,
+    "isMilitary": false,
+    "countryISO2": "RS",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "500D00",
+    "finishHex": "5010FF",
+    "startDec": 5246208,
+    "finishDec": 5247231,
+    "isMilitary": false,
+    "countryISO2": "BG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "501000",
+    "finishHex": "5013FF",
+    "isMilitary": false,
+    "countryISO2": "AL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "501400",
+    "finishHex": "5017FF",
+    "startDec": 5248000,
+    "finishDec": 5249023,
+    "isMilitary": false,
+    "countryISO2": "RO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "501800",
+    "finishHex": "501BFF",
+    "startDec": 5249024,
+    "finishDec": 5250047,
+    "isMilitary": false,
+    "countryISO2": "CZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "501C00",
+    "finishHex": "501FFF",
+    "isMilitary": false,
+    "countryISO2": "HR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "502C00",
+    "finishHex": "502FFF",
+    "isMilitary": false,
+    "countryISO2": "LV",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "503C00",
+    "finishHex": "503FFF",
+    "isMilitary": false,
+    "countryISO2": "LT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "504C00",
+    "finishHex": "504FFF",
+    "isMilitary": false,
+    "countryISO2": "MD",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "505C00",
+    "finishHex": "505FFF",
+    "isMilitary": false,
+    "countryISO2": "SK",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "506C00",
+    "finishHex": "506FFF",
+    "isMilitary": false,
+    "countryISO2": "SI",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "507C00",
+    "finishHex": "507FFF",
+    "isMilitary": false,
+    "countryISO2": "UZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "508000",
+    "finishHex": "50FFFF",
+    "isMilitary": false,
+    "countryISO2": "UA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "510000",
+    "finishHex": "5103FF",
+    "isMilitary": false,
+    "countryISO2": "BY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "511000",
+    "finishHex": "5113FF",
+    "isMilitary": false,
+    "countryISO2": "EE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "512000",
+    "finishHex": "5123FF",
+    "isMilitary": false,
+    "countryISO2": "MK",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "513000",
+    "finishHex": "5133FF",
+    "isMilitary": false,
+    "countryISO2": "BA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "514000",
+    "finishHex": "5143FF",
+    "isMilitary": false,
+    "countryISO2": "GE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "515000",
+    "finishHex": "5153FF",
+    "isMilitary": false,
+    "countryISO2": "TJ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "600000",
+    "finishHex": "6003FF",
+    "isMilitary": false,
+    "countryISO2": "AM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "600800",
+    "finishHex": "600BFF",
+    "isMilitary": false,
+    "countryISO2": "AZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "601000",
+    "finishHex": "6013FF",
+    "isMilitary": false,
+    "countryISO2": "KG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "601800",
+    "finishHex": "601BFF",
+    "isMilitary": false,
+    "countryISO2": "TM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "680000",
+    "finishHex": "6803FF",
+    "isMilitary": false,
+    "countryISO2": "BT",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "681000",
+    "finishHex": "6813FF",
+    "isMilitary": false,
+    "countryISO2": "FM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "682000",
+    "finishHex": "6823FF",
+    "isMilitary": false,
+    "countryISO2": "MN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "683000",
+    "finishHex": "6833FF",
+    "isMilitary": false,
+    "countryISO2": "KZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "684000",
+    "finishHex": "6843FF",
+    "isMilitary": false,
+    "countryISO2": "PW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "700000",
+    "finishHex": "700FFF",
+    "isMilitary": false,
+    "countryISO2": "AF",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "702000",
+    "finishHex": "702FFF",
+    "isMilitary": false,
+    "countryISO2": "BD",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "704000",
+    "finishHex": "704FFF",
+    "isMilitary": false,
+    "countryISO2": "MM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "706000",
+    "finishHex": "706FFF",
+    "isMilitary": false,
+    "countryISO2": "KW",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "708000",
+    "finishHex": "708FFF",
+    "isMilitary": false,
+    "countryISO2": "LA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "70A000",
+    "finishHex": "70AFFF",
+    "isMilitary": false,
+    "countryISO2": "NP",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "70C000",
+    "finishHex": "70C3FF",
+    "isMilitary": false,
+    "countryISO2": "OM",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "70E000",
+    "finishHex": "70EFFF",
+    "isMilitary": false,
+    "countryISO2": "KH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "710000",
+    "finishHex": "717FFF",
+    "isMilitary": false,
+    "countryISO2": "SA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "728000",
+    "finishHex": "72FFFF",
+    "isMilitary": false,
+    "countryISO2": "IQ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "730000",
+    "finishHex": "737FFF",
+    "isMilitary": false,
+    "countryISO2": "IR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "738000",
+    "finishHex": "73FFFF",
+    "isMilitary": false,
+    "countryISO2": "IL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "740000",
+    "finishHex": "747FFF",
+    "isMilitary": false,
+    "countryISO2": "JO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "748000",
+    "finishHex": "74FFFF",
+    "isMilitary": false,
+    "countryISO2": "LB",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "750000",
+    "finishHex": "757FFF",
+    "isMilitary": false,
+    "countryISO2": "MY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "758000",
+    "finishHex": "75FFFF",
+    "isMilitary": false,
+    "countryISO2": "PH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "760000",
+    "finishHex": "767FFF",
+    "isMilitary": false,
+    "countryISO2": "PK",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "768000",
+    "finishHex": "76FFFF",
+    "isMilitary": false,
+    "countryISO2": "SG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "770000",
+    "finishHex": "777FFF",
+    "isMilitary": false,
+    "countryISO2": "LK",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "778000",
+    "finishHex": "77FFFF",
+    "isMilitary": false,
+    "countryISO2": "SY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "780000",
+    "finishHex": "7BFFFF",
+    "isMilitary": false,
+    "countryISO2": "CN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "7C0000",
+    "finishHex": "7FFFFF",
+    "isMilitary": false,
+    "countryISO2": "AU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "800000",
+    "finishHex": "83FFFF",
+    "isMilitary": false,
+    "countryISO2": "IN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "840000",
+    "finishHex": "87FFFF",
+    "isMilitary": false,
+    "countryISO2": "JP",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "880000",
+    "finishHex": "887FFF",
+    "isMilitary": false,
+    "countryISO2": "TH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "888000",
+    "finishHex": "88FFFF",
+    "isMilitary": false,
+    "countryISO2": "VN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "890000",
+    "finishHex": "890FFF",
+    "isMilitary": false,
+    "countryISO2": "YE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "894000",
+    "finishHex": "894FFF",
+    "isMilitary": false,
+    "countryISO2": "BH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "895000",
+    "finishHex": "8953FF",
+    "isMilitary": false,
+    "countryISO2": "BN",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "896000",
+    "finishHex": "896FFF",
+    "isMilitary": false,
+    "countryISO2": "AE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "897000",
+    "finishHex": "8973FF",
+    "isMilitary": false,
+    "countryISO2": "SB",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "898000",
+    "finishHex": "898FFF",
+    "isMilitary": false,
+    "countryISO2": "PG",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "8A0000",
+    "finishHex": "8A7FFF",
+    "isMilitary": false,
+    "countryISO2": "ID",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "900000",
+    "finishHex": "9003FF",
+    "isMilitary": false,
+    "countryISO2": "MH",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "901000",
+    "finishHex": "9013FF",
+    "isMilitary": false,
+    "countryISO2": "CK",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "902000",
+    "finishHex": "9023FF",
+    "isMilitary": false,
+    "countryISO2": "WS",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "A00000",
+    "finishHex": "AFFFFF",
+    "isMilitary": false,
+    "countryISO2": "US",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C00000",
+    "finishHex": "C3FFFF",
+    "isMilitary": false,
+    "countryISO2": "CA",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C80000",
+    "finishHex": "C87FFF",
+    "isMilitary": false,
+    "countryISO2": "NZ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C88000",
+    "finishHex": "C88FFF",
+    "isMilitary": false,
+    "countryISO2": "FJ",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C8A000",
+    "finishHex": "C8A3FF",
+    "isMilitary": false,
+    "countryISO2": "NR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C8C000",
+    "finishHex": "C8C3FF",
+    "isMilitary": false,
+    "countryISO2": "LC",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C8D000",
+    "finishHex": "C8D3FF",
+    "isMilitary": false,
+    "countryISO2": "TO",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C8E000",
+    "finishHex": "C8E3FF",
+    "isMilitary": false,
+    "countryISO2": "KI",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "C90000",
+    "finishHex": "C903FF",
+    "isMilitary": false,
+    "countryISO2": "VU",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E00000",
+    "finishHex": "E3FFFF",
+    "isMilitary": false,
+    "countryISO2": "AR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E40000",
+    "finishHex": "E7FFFF",
+    "isMilitary": false,
+    "countryISO2": "BR",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E80000",
+    "finishHex": "E80FFF",
+    "isMilitary": false,
+    "countryISO2": "CL",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E84000",
+    "finishHex": "E84FFF",
+    "isMilitary": false,
+    "countryISO2": "EC",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E88000",
+    "finishHex": "E88FFF",
+    "isMilitary": false,
+    "countryISO2": "PY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E8C000",
+    "finishHex": "E8CFFF",
+    "isMilitary": false,
+    "countryISO2": "PE",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E90000",
+    "finishHex": "E90FFF",
+    "isMilitary": false,
+    "countryISO2": "UY",
+    "significantBitmask": "FFFF00"
+  },
+  {
+    "startHex": "E94000",
+    "finishHex": "E94FFF",
+    "isMilitary": false,
+    "countryISO2": "BO",
+    "significantBitmask": "FFFF00"
+  }
+]

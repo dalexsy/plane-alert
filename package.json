@@ -7,7 +7,7 @@
     "server": "node server.js",
     "build": "ng build && node scripts/post-build.js",
     "lint:ui": "npm run build --prefix shared && npm run build --prefix functions",
-    "deploy:fast": "firebase deploy --only functions",
+    "deploy:fast": "npm run build --prefix shared && node scripts/prepare-functions-shared.js && firebase deploy --only functions",
     "build:surge": "npm run build && surge dist/plane-alert/browser plane-alert.surge.sh",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
