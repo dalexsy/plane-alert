@@ -6,9 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = void 0;
 exports.normalizeCallsign = normalizeCallsign;
 exports.shouldSkipBoringMilitaryFilter = shouldSkipBoringMilitaryFilter;
+exports.isBoringMilitaryAircraft = isBoringMilitaryAircraft;
 exports.looksMilitary = looksMilitary;
 exports.isMilitaryCallsign = isMilitaryCallsign;
 exports.isMilitaryOperator = isMilitaryOperator;
+const aircraft_type_names_1 = require("./aircraft-type-names");
 /**
  * Boring aircraft types to skip (trainers, transports, business jets used by military)
  * These are not interesting for notifications even though they might be military-operated
@@ -238,20 +240,46 @@ function shouldSkipBoringMilitaryFilter(plane) {
     }
     return callsign.startsWith('MMF');
 }
+function getNormalizedTypeCode(plane) {
+    return (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+}
+/**
+ * Returns true when a military-flagged aircraft is a trainer, transport,
+ * business jet, or other type that should not trigger push notifications.
+ */
+function isBoringMilitaryAircraft(plane) {
+    if (shouldSkipBoringMilitaryFilter(plane)) {
+        return false;
+    }
+    const normalizedType = getNormalizedTypeCode(plane);
+    if (normalizedType &&
+        exports.BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
+        return true;
+    }
+    const desc = (plane.desc || '').trim();
+    if (!desc) {
+        return false;
+    }
+    const descUpper = desc.toUpperCase();
+    const descNormalized = descUpper.replace(/[-\s]/g, '');
+    if (exports.BORING_AIRCRAFT_TYPES.some((boring) => descNormalized.includes(boring))) {
+        return true;
+    }
+    return exports.BORING_AIRCRAFT_TYPES.some((boring) => {
+        const modelName = (0, aircraft_type_names_1.getAircraftTypeName)(boring);
+        if (!modelName || modelName === boring) {
+            return false;
+        }
+        return descUpper.includes(modelName.toUpperCase());
+    });
+}
 function looksMilitary(plane) {
     // Check mil flag OR dbFlags (dbFlags: 1 indicates military aircraft in database)
     // Reject if NEITHER flag indicates military
     if (!(plane.mil === true || plane.dbFlags === 1)) {
         return false;
     }
-    // Skip boring aircraft types (trainers, transports, business jets, commercial airliners)
-    const aircraftType = plane.t || plane.type || plane.desc || '';
-    const normalizedType = aircraftType.toUpperCase().replace(/[-\s]/g, ''); // Remove dashes and spaces
-    if (exports.BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring)) &&
-        !shouldSkipBoringMilitaryFilter(plane)) {
-        return false;
-    }
-    return true;
+    return !isBoringMilitaryAircraft(plane);
 }
 /**
  * Checks if a callsign matches known military prefixes

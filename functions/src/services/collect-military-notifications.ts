@@ -3,10 +3,9 @@ import * as admin from 'firebase-admin';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   haversineDistanceKm,
-  BORING_AIRCRAFT_TYPES,
   looksMilitary,
   isMilitaryCallsign,
-  shouldSkipBoringMilitaryFilter,
+  isBoringMilitaryAircraft,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from '../types';
 import {
@@ -86,30 +85,13 @@ export async function collectMilitaryNotifications(
 
     const isSpecialPlane = specialIcaos.includes(icao);
     const callsign = plane.flight || plane.callsign;
-    const isMilitary =
+    const isMilitaryCandidate =
       looksMilitary(plane) ||
       isMilitaryCallsign(callsign) ||
       plane.mil === true ||
       plane.dbFlags === 1;
 
-    if (!isMilitary && !isSpecialPlane) {
-      continue;
-    }
-
-    const aircraftType = (plane.t || plane.type || plane.desc || '')
-      .toUpperCase()
-      .replace(/[-\s]/g, '');
-
-    if (!aircraftType && !isSpecialPlane && !isMilitary) {
-      stats.boringCount++;
-      logger.info('Military aircraft with unknown type filtered', {
-        docId,
-        hex: plane.hex,
-        desc: plane.desc,
-        callsign: plane.flight,
-        mil: plane.mil,
-        dbFlags: plane.dbFlags,
-      });
+    if (!isMilitaryCandidate && !isSpecialPlane) {
       continue;
     }
 
@@ -117,11 +99,7 @@ export async function collectMilitaryNotifications(
       continue;
     }
 
-    const isBoringMilitary = BORING_AIRCRAFT_TYPES.some((boring) =>
-      aircraftType.includes(boring.toUpperCase()),
-    );
-
-    if (isBoringMilitary && !isSpecialPlane && !shouldSkipBoringMilitaryFilter(plane)) {
+    if (isBoringMilitaryAircraft(plane) && !isSpecialPlane) {
       stats.boringCount++;
       logger.info('Boring military aircraft filtered', {
         docId,
@@ -134,6 +112,8 @@ export async function collectMilitaryNotifications(
       });
       continue;
     }
+
+    const isMilitary = isMilitaryCandidate;
 
     const aircraftType2 = (plane.t || plane.desc || '').toUpperCase();
     const ignoredTypes = data.ignoredTypes || [];

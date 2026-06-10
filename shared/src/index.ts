@@ -25,6 +25,7 @@ export {
 // Export military detection functions
 export {
   looksMilitary,
+  isBoringMilitaryAircraft,
   normalizeCallsign,
   isMilitaryCallsign,
   isMilitaryOperator,
