@@ -1,6 +1,8 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { FirebaseMessagingService } from '../../services/firebase-messaging.service';
+import { SettingsService } from '../../services/settings.service';
 
 interface MilitaryAircraftType {
   code: string;
@@ -53,15 +55,18 @@ export class PushoverConfigEditorComponent implements OnInit {
   statusMessage = '';
   pushoverUserKey = '';
 
+  constructor(
+    private firebaseMessaging: FirebaseMessagingService,
+    private settings: SettingsService
+  ) {}
+
   ngOnInit(): void {
     this.loadConfiguration();
   }
 
   private loadConfiguration(): void {
-    // Load Pushover user key
-    this.pushoverUserKey = localStorage.getItem('pushover-user-key') || '';
+    this.pushoverUserKey = this.firebaseMessaging.getStoredUserKey() || '';
 
-    // Load from localStorage
     const saved = localStorage.getItem('pushover-config');
     if (saved) {
       try {
@@ -70,7 +75,6 @@ export class PushoverConfigEditorComponent implements OnInit {
         this.radiusKm = config.radiusKm || 100;
         this.distanceUnit = config.distanceUnit || 'km';
 
-        // Populate custom ignore list (types not in common list)
         const customTypes = Array.from(this.ignoredTypes).filter(
           (type) =>
             !this.commonMilitaryTypes.some(
@@ -83,9 +87,7 @@ export class PushoverConfigEditorComponent implements OnInit {
       }
     }
 
-    // Try to get distance unit from existing device registration
-    const pushoverKey = localStorage.getItem('pushover-user-key');
-    if (pushoverKey) {
+    if (this.pushoverUserKey) {
       const deviceConfig = localStorage.getItem('pushover-device-config');
       if (deviceConfig) {
         try {
@@ -113,13 +115,11 @@ export class PushoverConfigEditorComponent implements OnInit {
   }
 
   onCustomFilterChange(): void {
-    // Parse custom ignore list and add to ignoredTypes
     const customTypes = this.customIgnoreList
       .split('\n')
       .map((line) => line.trim().toUpperCase())
       .filter((line) => line.length > 0);
 
-    // Remove old custom types
     const commonCodes = new Set(
       this.commonMilitaryTypes.map((mt) => mt.code.toUpperCase())
     );
@@ -129,7 +129,6 @@ export class PushoverConfigEditorComponent implements OnInit {
       }
     });
 
-    // Add new custom types
     customTypes.forEach((type) => this.ignoredTypes.add(type));
   }
 
@@ -138,17 +137,12 @@ export class PushoverConfigEditorComponent implements OnInit {
   }
 
   async save(): Promise<void> {
-    // Validate Pushover key
     if (!this.pushoverUserKey || this.pushoverUserKey.trim().length === 0) {
       this.statusMessage = '⚠ Please enter your Pushover user key';
       setTimeout(() => (this.statusMessage = ''), 3000);
       return;
     }
 
-    // Save Pushover key
-    localStorage.setItem('pushover-user-key', this.pushoverUserKey.trim());
-
-    // Merge custom types from textarea
     this.onCustomFilterChange();
 
     const config = {
@@ -157,59 +151,44 @@ export class PushoverConfigEditorComponent implements OnInit {
       distanceUnit: this.distanceUnit,
     };
 
-    // Save to localStorage
     localStorage.setItem('pushover-config', JSON.stringify(config));
 
-    // Register/update device on Firebase
-    try {
-      const latitude = parseFloat(localStorage.getItem('user-latitude') || '0');
-      const longitude = parseFloat(
-        localStorage.getItem('user-longitude') || '0'
-      );
+    const home = this.settings.getHomeLocation();
+    if (!home?.lat || !home?.lon) {
+      this.statusMessage =
+        '⚠ Please set your location first (click the crosshair button)';
+      setTimeout(() => (this.statusMessage = ''), 4000);
+      return;
+    }
 
-      if (!latitude || !longitude) {
-        this.statusMessage =
-          '⚠ Please set your location first (click the crosshair button)';
-        setTimeout(() => (this.statusMessage = ''), 4000);
-        return;
-      }
-
-      const deviceData = {
+    localStorage.setItem(
+      'pushover-device-config',
+      JSON.stringify({
         userKey: this.pushoverUserKey.trim(),
-        latitude,
-        longitude,
+        latitude: home.lat,
+        longitude: home.lon,
         radiusKm: this.radiusKm,
         distanceUnit: this.distanceUnit,
         ignoredTypes: config.ignoredTypes,
-      };
+      })
+    );
 
-      // Save device config for future updates
-      localStorage.setItem(
-        'pushover-device-config',
-        JSON.stringify(deviceData)
-      );
-
-      const response = await fetch(
-        'https://us-central1-plane-alert-800ff.cloudfunctions.net/registerDevice',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(deviceData),
-        }
-      );
-
-      if (response.ok) {
-        this.statusMessage = '✓ Push notifications configured successfully!';
-        setTimeout(() => (this.statusMessage = ''), 3000);
-      } else {
-        const error = await response.text();
-        this.statusMessage = `⚠ Server error: ${error}`;
-        setTimeout(() => (this.statusMessage = ''), 4000);
+    const registered = await this.firebaseMessaging.registerDevice(
+      this.pushoverUserKey.trim(),
+      {
+        radiusKm: this.radiusKm,
+        distanceUnit: this.distanceUnit,
+        ignoredTypes: config.ignoredTypes,
       }
-    } catch (error) {
-      console.error('Failed to register device:', error);
-      this.statusMessage = '⚠ Failed to connect to server';
+    );
+
+    if (registered) {
+      this.statusMessage = '✓ Push notifications configured successfully!';
       setTimeout(() => (this.statusMessage = ''), 3000);
+    } else {
+      this.statusMessage =
+        '⚠ Failed to register with server. Check your location and try again.';
+      setTimeout(() => (this.statusMessage = ''), 4000);
     }
 
     this.configSaved.emit(config);

@@ -4,16 +4,28 @@ import { firstValueFrom } from 'rxjs';
 import { pushRegistrationEndpoint } from '../config/firebase.config';
 import { SettingsService } from './settings.service';
 
+export interface PushRegistrationOptions {
+  radiusKm?: number;
+  distanceUnit?: 'km' | 'miles';
+  ignoredTypes?: string[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class FirebaseMessagingService {
+  private readonly deviceNameKey = 'plane-alert-device-name';
+  private readonly pushoverKeyKey = 'plane-alert-pushover-key';
+
   constructor(private http: HttpClient, private settings: SettingsService) {}
 
   /**
    * Register Pushover user key with backend
    */
-  async registerDevice(pushoverUserKey: string): Promise<boolean> {
+  async registerDevice(
+    pushoverUserKey: string,
+    options: PushRegistrationOptions = {}
+  ): Promise<boolean> {
     if (!pushoverUserKey || !pushoverUserKey.trim()) {
       console.warn('Pushover user key is required');
       return false;
@@ -27,14 +39,22 @@ export class FirebaseMessagingService {
       return false;
     }
 
-    const radius = this.settings.radius ?? 100;
+    const radius = options.radiusKm ?? this.settings.radius ?? 100;
+    const distanceUnit =
+      options.distanceUnit ??
+      (this.settings.distanceUnit === 'miles' ? 'miles' : 'km');
+    const deviceName = this.getOrCreateDeviceName();
     const payload = {
       pushoverUserKey: pushoverUserKey.trim(),
       platform: navigator.userAgent,
-      distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
+      distanceUnit,
       radiusKm: typeof radius === 'number' ? radius : 100,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      home,
+      location: home,
+      deviceName,
+      specialIcaos: [],
+      notifyProximity: false,
+      ignoredTypes: options.ignoredTypes ?? [],
     };
 
     try {
@@ -43,7 +63,12 @@ export class FirebaseMessagingService {
           headers: { 'Content-Type': 'application/json' },
         })
       );
-      localStorage.setItem('plane-alert-pushover-key', pushoverUserKey.trim());
+      this.storeUserKey(pushoverUserKey.trim());
+      try {
+        localStorage.setItem(this.deviceNameKey, deviceName);
+      } catch (err) {
+        console.debug('Unable to persist device name', err);
+      }
       console.log('✅ Registered Pushover user key with backend.');
       return true;
     } catch (error) {
@@ -56,7 +81,21 @@ export class FirebaseMessagingService {
    * Get stored Pushover user key
    */
   getStoredUserKey(): string | null {
-    return localStorage.getItem('plane-alert-pushover-key');
+    const primary = localStorage.getItem(this.pushoverKeyKey);
+    if (primary) {
+      return primary;
+    }
+
+    const legacyKeys = ['pushover-user-key', 'pushoverUserKey'];
+    for (const key of legacyKeys) {
+      const legacy = localStorage.getItem(key);
+      if (legacy) {
+        this.storeUserKey(legacy);
+        return legacy;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -65,18 +104,24 @@ export class FirebaseMessagingService {
   async updateHomeLocation(lat: number, lon: number): Promise<boolean> {
     const userKey = this.getStoredUserKey();
     if (!userKey) {
-      // Not registered yet, skip
       return false;
     }
 
     const radius = this.settings.radius ?? 100;
+    const homeLocation = this.settings.getHomeLocation();
+    const deviceName = this.getOrCreateDeviceName();
     const payload = {
       pushoverUserKey: userKey,
       platform: navigator.userAgent,
       distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
       radiusKm: typeof radius === 'number' ? radius : 100,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      home: { lat, lon },
+      location: {
+        lat,
+        lon,
+        ...(homeLocation?.address ? { address: homeLocation.address } : {}),
+      },
+      deviceName,
     };
 
     try {
@@ -91,5 +136,47 @@ export class FirebaseMessagingService {
       console.warn('Failed to update backend location:', error);
       return false;
     }
+  }
+
+  private storeUserKey(userKey: string): void {
+    localStorage.setItem(this.pushoverKeyKey, userKey);
+    localStorage.setItem('pushover-user-key', userKey);
+  }
+
+  private getOrCreateDeviceName(): string {
+    if (typeof window === 'undefined') {
+      return 'browser-device';
+    }
+
+    const stored = localStorage.getItem(this.deviceNameKey);
+    if (stored && stored.trim().length > 0) {
+      return stored.trim();
+    }
+
+    const generated = this.generateDefaultDeviceName();
+    try {
+      localStorage.setItem(this.deviceNameKey, generated);
+    } catch (err) {
+      console.debug('Unable to persist generated device name', err);
+    }
+    return generated;
+  }
+
+  private generateDefaultDeviceName(): string {
+    const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+    const platform =
+      ((nav as any)?.userAgentData?.platform as string | undefined) ||
+      nav?.platform ||
+      '';
+    const userAgent = nav?.userAgent || '';
+    const isMobile = /mobile|android|iphone|ipad|ipod/i.test(userAgent);
+    const base = isMobile ? 'mobile' : 'browser';
+    const raw = `${base}-${platform || 'device'}`;
+    const normalized = raw
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    return normalized || `${base}-device`;
   }
 }

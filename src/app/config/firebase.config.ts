@@ -20,4 +20,4 @@ export const firebaseVapidKey =
   'BEsZsblwDqmgC1mKRQzv6cQ9rqAvdfXEpsoK7XeVL8PdYOwiJANmvpnaFBwZn4vFKdPgrs75iomO6mA4vdWwadU';
 
 export const pushRegistrationEndpoint =
-  'https://us-central1-plane-alert-800ff.cloudfunctions.net/registerDevice';
+  'https://europe-west3-plane-alert-800ff.cloudfunctions.net/registerDevice';
