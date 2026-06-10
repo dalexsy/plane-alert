@@ -14,12 +14,28 @@ export const BORING_AIRCRAFT_TYPES = [
   'A20N', // Airbus A320neo (commercial airliner)
   'A321', // Airbus A321 (commercial airliner)
   'A21N', // Airbus A321neo (commercial airliner)
+  'A330', // Airbus A330 (commercial airliner)
+  'A332', // Airbus A330-200
+  'A333', // Airbus A330-300
+  'A339', // Airbus A330-900neo
+  'A350', // Airbus A350 (commercial airliner)
+  'A359', // Airbus A350-900
+  'A35K', // Airbus A350-1000
   'B737', // Boeing 737 (commercial airliner)
   'B738', // Boeing 737-800 (commercial airliner)
   'B739', // Boeing 737-900 (commercial airliner)
   'B37M', // Boeing 737 MAX (commercial airliner)
   'B38M', // Boeing 737 MAX 8 (commercial airliner)
   'B39M', // Boeing 737 MAX 9 (commercial airliner)
+  'B763', // Boeing 767-300
+  'B764', // Boeing 767-400
+  'B772', // Boeing 777-200
+  'B773', // Boeing 777-300
+  'B77L', // Boeing 777-200LR
+  'B77W', // Boeing 777-300ER
+  'B788', // Boeing 787-8
+  'B789', // Boeing 787-9
+  'B78X', // Boeing 787-10
   'BE20', // Beechcraft King Air (trainer/transport)
   'BE30', // Beechcraft Super King Air
   'BE35', // Beechcraft Bonanza
@@ -80,7 +96,7 @@ export const BORING_AIRCRAFT_TYPES = [
   'PC21', // Pilatus PC-21 (trainer)
   'PC6', // Pilatus Porter (utility)
   'PC9', // Pilatus PC-9 (trainer)
-  'SF50', // Cirrus SF50 Vision Jet
+  'SF50', // Cirrus SF50 Vision Jet (business jet)
   'T134', // Tupolev Tu-134 (old transport)
   'T154', // Tupolev Tu-154 (old transport)
 ];
@@ -177,9 +193,11 @@ export function looksMilitary(plane: AdsBPlane): boolean {
     return false;
   }
 
-  // Skip boring aircraft types (trainers, transports, business jets)
+  // Skip boring aircraft types (trainers, transports, business jets, commercial airliners)
   const aircraftType = plane.t || plane.type || '';
-  if (BORING_AIRCRAFT_TYPES.includes(aircraftType.toUpperCase())) {
+  const normalizedType = aircraftType.toUpperCase().replace(/[-\s]/g, ''); // Remove dashes and spaces
+
+  if (BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
     return false;
   }
 

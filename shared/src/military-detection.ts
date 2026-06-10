@@ -36,6 +36,10 @@ export const BORING_AIRCRAFT_TYPES = [
   'B788', // Boeing 787-8
   'B789', // Boeing 787-9
   'B78X', // Boeing 787-10
+  'B190', // Beechcraft 1900
+  'B200', // Beechcraft Super King Air 200 (alternate ICAO code)
+  'B300', // Beechcraft Super King Air 300 (alternate ICAO code)
+  'B350', // Beechcraft King Air 350 (alternate ICAO code)
   'BE20', // Beechcraft King Air (trainer/transport)
   'BE30', // Beechcraft Super King Air
   'BE35', // Beechcraft Bonanza
@@ -76,7 +80,14 @@ export const BORING_AIRCRAFT_TYPES = [
   'FA10', // Dassault Falcon 10
   'FA20', // Dassault Falcon 20
   'FA50', // Dassault Falcon 50
+  'FA8X', // Dassault Falcon 8X
   'FA2T', // Dassault Falcon 2000
+  'F2TH', // Dassault Falcon 2000 (alternate ICAO code)
+  'F900', // Dassault Falcon 900
+  'E35L', // Embraer Legacy 600/650
+  'GLF2', // Gulfstream II
+  'GLF3', // Gulfstream III
+  'H25B', // Hawker 800
   'GL5T', // Gulfstream V
   'GLEX', // Bombardier Global Express
   'GLF4', // Gulfstream IV
@@ -94,10 +105,34 @@ export const BORING_AIRCRAFT_TYPES = [
   'P28A', // Piper PA-28 Cherokee (basic trainer)
   'PC12', // Pilatus PC-12 (utility)
   'PC21', // Pilatus PC-21 (trainer)
+  'PC24', // Pilatus PC-24 (jet trainer)
   'PC6', // Pilatus Porter (utility)
   'PC9', // Pilatus PC-9 (trainer)
+  'SF50', // Cirrus SF50 Vision Jet
   'T134', // Tupolev Tu-134 (old transport)
   'T154', // Tupolev Tu-154 (old transport)
+  // Helicopters — liaison/training/utility types used by military (not combat)
+  'AS50', // Aérospatiale AS350 Ecureuil / H125 (utility)
+  'AS55', // Aérospatiale AS355 Twin Ecureuil (utility)
+  'AS65', // Aérospatiale AS365 Dauphin / HH-65 (liaison)
+  'B06',  // Bell 206 JetRanger (training/liaison)
+  'B212', // Bell 212 (utility transport)
+  'B407', // Bell 407 (utility)
+  'BK17', // MBB/Airbus BK117 (utility/liaison)
+  'EC20', // SA341/SA342 Gazelle (old trainer/liaison)
+  'EC35', // Eurocopter EC135 / H135 (training/police)
+  'EC45', // Eurocopter EC145 / H145 (utility/liaison)
+  'EC55', // Eurocopter EC155 / H155 (medium utility)
+  'H125', // Airbus H125 (utility)
+  'H135', // Airbus H135 (training)
+  'H145', // Airbus H145 (utility/liaison)
+  'MD52', // MD520N (utility)
+  'MD53', // MD530 (utility)
+  'R22',  // Robinson R22 (basic trainer)
+  'R44',  // Robinson R44 (trainer)
+  'R66',  // Robinson R66 (trainer)
+  'S300', // Schweizer 300 (training)
+  'S76',  // Sikorsky S-76 (VIP/liaison)
 ];
 
 /**
@@ -126,6 +161,7 @@ export const MIL_CALLSIGN_PREFIXES = [
   'LNX',
   'MAF',
   'MAM',
+  'MMF',
   'MFG',
   'NAF',
   'NAVY',
@@ -185,6 +221,27 @@ export function normalizeCallsign(value?: string | null): string {
  * @param plane Aircraft data from ADS-B API
  * @returns true if aircraft is interesting military, false otherwise
  */
+/** Tankers, MRTTs, and similar types share ICAO codes with commercial airliners. */
+const INTERESTING_BORING_OVERRIDE_DESC =
+  /KC-?30|MRTT|TANKER|REFUEL|AWACS|SENTRY|E-3|E-6|MARITIME PATROL|P-8|POSEIDON/i;
+
+/**
+ * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO
+ * type is usually a civilian airframe (A332, GLEX, CL35, …). Skip only for roles that
+ * are interesting despite the type code — not every military callsign (GAF VIP jets
+ * should stay filtered).
+ */
+export function shouldSkipBoringMilitaryFilter(plane: AdsBPlane): boolean {
+  const desc = (plane.desc || '').toUpperCase();
+  const callsign = normalizeCallsign(plane.flight || plane.callsign);
+
+  if (INTERESTING_BORING_OVERRIDE_DESC.test(desc)) {
+    return true;
+  }
+
+  return callsign.startsWith('MMF');
+}
+
 export function looksMilitary(plane: AdsBPlane): boolean {
   // Check mil flag OR dbFlags (dbFlags: 1 indicates military aircraft in database)
   // Reject if NEITHER flag indicates military
@@ -193,10 +250,13 @@ export function looksMilitary(plane: AdsBPlane): boolean {
   }
 
   // Skip boring aircraft types (trainers, transports, business jets, commercial airliners)
-  const aircraftType = plane.t || plane.type || '';
+  const aircraftType = plane.t || plane.type || plane.desc || '';
   const normalizedType = aircraftType.toUpperCase().replace(/[-\s]/g, ''); // Remove dashes and spaces
 
-  if (BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
+  if (
+    BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring)) &&
+    !shouldSkipBoringMilitaryFilter(plane)
+  ) {
     return false;
   }
 

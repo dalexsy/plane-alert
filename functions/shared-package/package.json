@@ -1,0 +1,23 @@
+{
+  "name": "@plane-alert/shared",
+  "version": "1.0.0",
+  "description": "Shared aircraft detection and classification logic for Plane Alert",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "aircraft",
+    "aviation",
+    "icao",
+    "military",
+    "adsb"
+  ]
+}

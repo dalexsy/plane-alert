@@ -1,0 +1,21 @@
+/**
+ * @plane-alert/shared
+ *
+ * Shared aircraft detection and classification logic
+ * for Plane Alert frontend and backend systems
+ */
+// Export country detection functions
+export { getCountryFromIcaoHex, getCountryFromRegistration, getAircraftCountry, getRegistrationPrefixesForCountry, isKnownCountry, ICAO_LOOKUP_CONFIG, } from './country-detection';
+// Export military detection functions
+export { looksMilitary, normalizeCallsign, isMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
+// Export geo utilities
+export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';
+// Export notification formatting
+export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, getCountryFlagEmoji, } from './notification-formatter';
+// Export aircraft database utilities
+export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from './aircraft-db-loader';
+// Export military types for filtering
+export { COMMON_MILITARY_TYPES } from './military-types';
+// Export aircraft type name mapping
+export { AIRCRAFT_TYPE_NAMES, getAircraftTypeName, } from './aircraft-type-names';
+//# sourceMappingURL=index.js.map
