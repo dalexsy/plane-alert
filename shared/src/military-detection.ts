@@ -96,6 +96,7 @@ export const BORING_AIRCRAFT_TYPES = [
   'PC21', // Pilatus PC-21 (trainer)
   'PC6', // Pilatus Porter (utility)
   'PC9', // Pilatus PC-9 (trainer)
+  'SF50', // Cirrus SF50 Vision Jet (business jet)
   'T134', // Tupolev Tu-134 (old transport)
   'T154', // Tupolev Tu-154 (old transport)
 ];
