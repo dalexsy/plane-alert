@@ -31,11 +31,14 @@ export async function checkAndMarkNotified(
       const doc = await transaction.get(cooldownRef);
       const now = Date.now();
 
+      const isInCooldown = (lastSent: number) =>
+        now - lastSent < cooldownMs;
+
       if (doc.exists) {
         const data = doc.data();
         const lastSent = data?.lastSent || 0;
 
-        if (now - lastSent < cooldownMs) {
+        if (isInCooldown(lastSent)) {
           logger.info('Aircraft in cooldown, skipping', {
             userKey: userKey.slice(0, 8),
             icao,
@@ -43,6 +46,26 @@ export async function checkAndMarkNotified(
             cooldownMs,
           });
           return false;
+        }
+      }
+
+      if (deviceName) {
+        const userWideRef = db
+          .collection(COOLDOWN_COLLECTION)
+          .doc(`${userKey}__${icao}`);
+        const userWideDoc = await transaction.get(userWideRef);
+        if (userWideDoc.exists) {
+          const lastSent = userWideDoc.data()?.lastSent || 0;
+          if (isInCooldown(lastSent)) {
+            logger.info('Aircraft in user-wide cooldown, skipping', {
+              userKey: userKey.slice(0, 8),
+              deviceName,
+              icao,
+              timeSinceLastMs: now - lastSent,
+              cooldownMs,
+            });
+            return false;
+          }
         }
       }
 
