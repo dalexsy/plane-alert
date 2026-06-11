@@ -137,10 +137,10 @@ export async function notifyForDevice(
       ignoredTypesCount: data.ignoredTypes?.length || 0,
     });
 
-    const cooldownDeviceName = deliverToAllDevices ? '' : data.deviceName || '';
     const pushoverTargetDeviceName = deliverToAllDevices
       ? ''
       : pushoverTargetName || '';
+    const cooldownDeviceName = pushoverTargetDeviceName;
 
     const radiusKm = clampRadius(data.radiusKm);
     const aircraft = await resolveAircraftForNotification(
@@ -227,7 +227,16 @@ export async function notifyForDevice(
         militaryAndSpecialCount: stats.militaryCount + stats.specialCount,
       });
 
-    const pendingNotifications = [...militaryPending, ...proximityPending];
+    const seenIcaos = new Set<string>();
+    const pendingNotifications = [...militaryPending, ...proximityPending].filter(
+      (pending) => {
+        if (seenIcaos.has(pending.icao)) {
+          return false;
+        }
+        seenIcaos.add(pending.icao);
+        return true;
+      },
+    );
 
     logger.info('Aircraft filtering results', {
       docId,
