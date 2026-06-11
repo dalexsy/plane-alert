@@ -14,6 +14,7 @@ import {
   AircraftRecord,
 } from '../services/aircraft-db.service';
 import { filterPlaneByPrefix } from '../utils/plane-log';
+import { adsbPointProxyUrl } from '../config/firebase.config';
 
 export interface ProcessedPlaneData {
   id: string;
@@ -80,15 +81,20 @@ export class PlaneDataService {
     radiusKm: number
   ): Promise<any[]> {
     try {
-      const radiusNm = radiusKm / 1.852;
-      const url = `https://api.adsb.one/v2/point/${centerLat}/${centerLon}/${radiusNm}`;
+      const params = new URLSearchParams({
+        lat: String(centerLat),
+        lon: String(centerLon),
+        radiusKm: String(radiusKm),
+      });
+      const url = `${adsbPointProxyUrl}?${params}`;
       const response = await fetch(url);
 
       if (!response.ok) {
+        const body = await response.text().catch(() => '');
         console.warn(
-          `ADS-B One API error ${response.status}: ${response.statusText}. Using cached data.`
+          `adsbPointProxy HTTP ${response.status}: ${body.slice(0, 120)}`
         );
-        throw new Error(`ADSB One API fetch error ${response.status}`);
+        throw new Error(`adsbPointProxy HTTP ${response.status}`);
       }
 
       const data = await response.json();
