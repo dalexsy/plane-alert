@@ -44,6 +44,7 @@ export const notificationHealthWatchdog = createNotificationHealthWatchdog(db);
 // Import OpenSky proxy function
 export { openskyProxy } from './opensky-proxy';
 export { weatherCeilingProxy } from './weather-ceiling-proxy';
+export { adsbPointProxy } from './adsb-point-proxy';
 
 // Import user key recovery function
 import { createRecoverUserKeyFunction } from './recover-userkey';
