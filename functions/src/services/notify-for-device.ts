@@ -140,7 +140,8 @@ export async function notifyForDevice(
     const pushoverTargetDeviceName = deliverToAllDevices
       ? ''
       : pushoverTargetName || '';
-    const cooldownDeviceName = pushoverTargetDeviceName;
+    // One cooldown per user+ICAO so duplicate Firestore registrations cannot double-notify.
+    const cooldownDeviceName = '';
 
     const radiusKm = clampRadius(data.radiusKm);
     const aircraft = await resolveAircraftForNotification(
