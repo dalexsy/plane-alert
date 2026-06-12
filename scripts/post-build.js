@@ -13,3 +13,20 @@ if (fs.existsSync(indexPath)) {
   console.error("✗ index.html not found in dist/plane-alert/browser");
   process.exit(1);
 }
+
+// Auth-gated nginx serves /assets/favicon/* without SSO — keep probe paths in dist.
+const probeFiles = ["site.webmanifest", "favicon.ico"];
+const publicProbeDir = path.join(__dirname, "../public/assets/favicon");
+const distProbeDir = path.join(distPath, "assets/favicon");
+
+if (fs.existsSync(publicProbeDir)) {
+  fs.mkdirSync(distProbeDir, { recursive: true });
+  for (const file of probeFiles) {
+    const src = path.join(publicProbeDir, file);
+    const dest = path.join(distProbeDir, file);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dest);
+    }
+  }
+  console.log("✓ Synced auth-probe favicon assets to dist");
+}
