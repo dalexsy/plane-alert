@@ -1,0 +1,16 @@
+---
+description: Read repo debugging notes; do not repeat failed experiments
+alwaysApply: true
+---
+
+# Repo debugging notes
+
+Before debugging or redeploying in **this repo**, read `.cursor/rules/debugging.md` if it exists.
+
+- **Failed experiments** — do not retry listed approaches.
+- **Current working approach** — prefer documented patterns.
+- After a failed fix attempt, **append** a bullet under Failed experiments (date + symptom + what not to repeat).
+
+Deploy success in the log is not enough for dryl.io apps — run `node ../directory/scripts/verify-dryl-app.mjs` when applicable (see `Repos/directory/.cursor/rules/deploy-verify-loop.mdc`).
+
+**How we work (mandatory):** Read `.cursor/rules/ecosystem-health.mdc` (synced from `Repos/speculation/.cursor/rules/ecosystem-health.mdc`) — survival instinct, definition of done, fleet handoff. **Stack/UI law:** `Repos/speculation/master-spec.md` via Read tool at task start. **Per-repo failures:** `.cursor/rules/debugging.md` only.
