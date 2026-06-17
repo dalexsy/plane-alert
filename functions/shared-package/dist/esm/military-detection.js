@@ -107,6 +107,12 @@ export const BORING_AIRCRAFT_TYPES = [
     'PC6', // Pilatus Porter (utility)
     'PC9', // Pilatus PC-9 (trainer)
     'SF50', // Cirrus SF50 Vision Jet
+    'SW4', // Fairchild Swearingen Metroliner / C-26
+    'TEX2', // Raytheon/Beechcraft T-6 Texan II (trainer)
+    'C295', // Airbus C295 transport
+    'D328', // Dornier 328
+    'E110', // Embraer Bandeirante
+    'CN35', // CASA CN-235 transport
     'T134', // Tupolev Tu-134 (old transport)
     'T154', // Tupolev Tu-154 (old transport)
     // Helicopters — liaison/training/utility types used by military (not combat)
@@ -218,6 +224,11 @@ export function normalizeCallsign(value) {
 /** Tankers, MRTTs, and similar types share ICAO codes with commercial airliners. */
 const INTERESTING_BORING_OVERRIDE_DESC = /KC-?30|MRTT|TANKER|REFUEL|AWACS|SENTRY|E-3|E-6|MARITIME PATROL|P-8|POSEIDON/i;
 /**
+ * Military designators in ADS-B desc often omit ICAO type codes (e.g. "T-6A Texan II"
+ * with t=TEX2, or desc-only "Beech C-12U Huron"). Match common boring roles by name.
+ */
+const BORING_MIL_DESC_PATTERN = /\b(?:C|UC|TC)-12\b|\bHURON\b|\bT-1A?\s*JAYHAWK\b|\bT-6[AB]?\b|TEXAN\s*(?:II|T\.?\s*1\b)|\bMC-12|\bC-21\b|\bC-37|\bC-40|\bUC-35|\bC-26\b|\bU-28\b|METROLINER|CN-?235|\bC295\b/i;
+/**
  * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO
  * type is usually a civilian airframe (A332, GLEX, CL35, …). Skip only for roles that
  * are interesting despite the type code — not every military callsign (GAF VIP jets
@@ -249,9 +260,12 @@ export function isBoringMilitaryAircraft(plane) {
     }
     const desc = (plane.desc || '').trim();
     if (!desc) {
-        return false;
+        return (!normalizedType && (plane.mil === true || plane.dbFlags === 1));
     }
     const descUpper = desc.toUpperCase();
+    if (BORING_MIL_DESC_PATTERN.test(descUpper)) {
+        return true;
+    }
     const descNormalized = descUpper.replace(/[-\s]/g, '');
     if (BORING_AIRCRAFT_TYPES.some((boring) => descNormalized.includes(boring))) {
         return true;
