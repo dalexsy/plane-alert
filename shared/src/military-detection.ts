@@ -279,9 +279,7 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
 
   const desc = (plane.desc || '').trim();
   if (!desc) {
-    return (
-      !normalizedType && (plane.mil === true || plane.dbFlags === 1)
-    );
+    return false;
   }
 
   const descUpper = desc.toUpperCase();
