@@ -1,6 +1,10 @@
 import { logger } from 'firebase-functions/v2';
 import fetch from 'node-fetch';
 import {
+  matchPushoverDeviceName,
+  resolvePushoverDeliveryTarget,
+} from '@plane-alert/shared';
+import {
   SPECIAL_ICAOS,
   DEFAULT_RADIUS_KM,
   MIN_RADIUS_KM,
@@ -8,6 +12,8 @@ import {
   RECENT_NOTIFICATION_TTL_MS,
 } from './constants';
 import type { DeviceRegistration } from './types';
+
+export { matchPushoverDeviceName } from '@plane-alert/shared';
 
 /**
  * Get Pushover API token from environment
@@ -28,33 +34,24 @@ export function shouldBroadcastToAllDevices(): boolean {
 }
 
 /**
- * Map Firestore deviceName to a live Pushover device when names drift (e.g. pixel5 → pixel10).
- * Returns '' to broadcast to all Pushover devices when the Firestore label cannot be matched
- * (browsers register names like "mobile-android" that Pushover does not know).
+ * Map a Firestore registration to a Pushover device for delivery.
+ * Returns null when unmatched — callers must skip (never broadcast).
  */
 export function resolvePushoverDeviceName(
   firestoreName: string,
   registeredDevices: Set<string> | null | undefined,
+  platform?: string,
 ): string | null {
-  const trimmed = (firestoreName ?? '').trim();
-  if (!trimmed) {
+  if (!registeredDevices?.size) {
     return null;
   }
-  if (!registeredDevices?.size) {
-    return '';
-  }
-  const normalized = trimmed.toLowerCase();
-  if (registeredDevices.has(normalized)) {
-    return trimmed;
-  }
-  if (normalized.includes('pixel')) {
-    const pixel = [...registeredDevices].find((name) => name.includes('pixel'));
-    if (pixel) {
-      return pixel;
-    }
-  }
-  return '';
+  return resolvePushoverDeliveryTarget(
+    firestoreName,
+    platform,
+    [...registeredDevices],
+  );
 }
+
 export function isSpecialAircraft(icao: string): boolean {
   return SPECIAL_ICAOS.includes(icao.toLowerCase());
 }

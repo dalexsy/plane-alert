@@ -17,75 +17,44 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// Minimal service worker focused on runtime caching of fetched assets
-const CACHE_NAME = "plane-alert-v2";
-const PRECACHE_URLS = ["/", "/index.html", "/assets/favicon/favicon.ico"];
+// Minimal service worker — push notifications only; do not cache the SPA shell.
+// Caching / and /index.html caused white screens after the daily noon refresh.
+const CACHE_NAME = "plane-alert-v3";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
   self.skipWaiting();
+  event.waitUntil(Promise.resolve());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-          return undefined;
-        })
-      )
-    )
+        cacheNames.map((cacheName) => caches.delete(cacheName)),
+      ),
+    ).then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-
   if (request.method !== "GET") {
     return;
   }
 
   const url = new URL(request.url);
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
+  if (url.origin !== self.location.origin) {
     return;
   }
 
-  event.respondWith(
-    (async () => {
-      try {
-        const response = await fetch(request);
-        const shouldCache =
-          response.status === 200 && response.type === "basic";
-
-        if (shouldCache) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(request, response.clone());
-        }
-
-        return response;
-      } catch (error) {
-        const cached = await caches.match(request);
-        if (cached) {
-          return cached;
-        }
-
-        if (request.mode === "navigate") {
-          const fallback = await caches.match("/");
-          if (fallback) {
-            return fallback;
-          }
-        }
-
-        return Response.error();
-      }
-    })()
-  );
+  // Never intercept navigations or the app shell — always hit the network.
+  if (
+    request.mode === "navigate" ||
+    url.pathname === "/" ||
+    url.pathname === "/index.html"
+  ) {
+    return;
+  }
 });
 
 messaging.onBackgroundMessage((payload) => {

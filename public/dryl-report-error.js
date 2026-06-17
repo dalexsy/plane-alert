@@ -83,10 +83,13 @@
     return location.hostname || "";
   }
 
-  function shouldMirrorOnlyReporting() {
-    if (window.__DRYL_DISABLE_FIRESTORE_REPORTER__ === true) return true;
-    var host = hostName().toLowerCase();
-    return host === "dryl.io" || host.endsWith(".dryl.io");
+  function isFirestoreQuotaMessage(message) {
+    var msg = String(message || "");
+    return (
+      /resource-exhausted/i.test(msg) ||
+      /quota exceeded/i.test(msg) ||
+      /firestore quota exceeded/i.test(msg)
+    );
   }
 
   function normalizeMessage(value) {
@@ -119,6 +122,7 @@
   function isNoiseError(message, stack) {
     var msg = String(message || "").trim();
     var st = String(stack || "");
+    if (isFirestoreQuotaMessage(msg)) return false;
     if (/^failed to fetch\.?$/i.test(msg)) return true;
     if (/networkerror|load failed|network request failed/i.test(msg)) return true;
     if (/failed to fetch/i.test(msg) && /chrome-extension:\/\//i.test(st)) {
@@ -243,23 +247,19 @@
     }
   }
 
-  function reportToFirestore(entry) {
-    if (typeof window.__drylReportToFirestore === "function") {
-      window.__drylReportToFirestore(entry);
-    }
-  }
-
   function report(value, context, level) {
     var norm = normalizeMessage(value);
     var resolvedLevel = level || "error";
-    var explicit = isExplicitReport(context || {});
-    if (!explicit && isNoiseError(norm.message, norm.stack)) return;
-    if (!shouldReport(resolvedLevel, norm.message, context)) return;
-
-    var entry = buildEntry(resolvedLevel, norm.message, norm.stack, context);
-    if (!shouldMirrorOnlyReporting()) {
-      reportToFirestore(entry);
+    var ctx = context || {};
+    if (isFirestoreQuotaMessage(norm.message)) {
+      ctx.source = ctx.source || "app-report-firestore-quota";
+      resolvedLevel = resolvedLevel === "info" ? "warn" : resolvedLevel;
     }
+    var explicit = isExplicitReport(ctx);
+    if (!explicit && isNoiseError(norm.message, norm.stack)) return;
+    if (!shouldReport(resolvedLevel, norm.message, ctx)) return;
+
+    var entry = buildEntry(resolvedLevel, norm.message, norm.stack, ctx);
     postHttp(entry, true);
   }
 

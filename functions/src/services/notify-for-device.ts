@@ -91,18 +91,25 @@ export async function notifyForDevice(
 
     const pushoverTargetName = broadcastAllDevices
       ? ''
-      : resolvePushoverDeviceName(data.deviceName || '', registeredPushoverDevices);
+      : resolvePushoverDeviceName(
+          data.deviceName || '',
+          registeredPushoverDevices,
+          data.platform,
+        );
 
     if (!broadcastAllDevices && pushoverTargetName === null) {
-      logger.info('Skipping device with no Firestore device name', {
+      logger.info('Skipping device — no matching Pushover device', {
         docId,
         userKey: data.pushoverUserKey.slice(0, 8),
+        firestoreDeviceName: data.deviceName,
+        pushoverDevices: registeredPushoverDevices
+          ? [...registeredPushoverDevices]
+          : [],
       });
       return;
     }
 
-    const deliverToAllDevices =
-      broadcastAllDevices || pushoverTargetName === '';
+    const deliverToAllDevices = broadcastAllDevices;
 
     if (
       !broadcastAllDevices &&
@@ -113,17 +120,6 @@ export async function notifyForDevice(
         docId,
         firestoreDeviceName: data.deviceName,
         pushoverDeviceName: pushoverTargetName,
-      });
-    }
-
-    if (deliverToAllDevices && !broadcastAllDevices) {
-      logger.info('Broadcasting to all Pushover devices for registration', {
-        docId,
-        userKey: data.pushoverUserKey.slice(0, 8),
-        firestoreDeviceName: data.deviceName,
-        pushoverDevices: registeredPushoverDevices
-          ? [...registeredPushoverDevices]
-          : [],
       });
     }
 

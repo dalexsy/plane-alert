@@ -1,10 +1,45 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
+import {
+  autoMatchPushoverDevice,
+  matchPushoverDeviceName,
+  PUSHOVER_UNRELIABLE_DEVICE_NAMES,
+} from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
-import { sanitizeDeviceName, getDeviceDocId, clampRadius } from './utils';
+import {
+  sanitizeDeviceName,
+  getDeviceDocId,
+  clampRadius,
+  validatePushoverUserKey,
+} from './utils';
+import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
+
+function resolveRegistrationDeviceName(
+  requestedName: string | undefined,
+  platform: string | undefined,
+  clientModel: string | undefined,
+  pushoverDevices: string[],
+): string | null {
+  const trimmed = requestedName?.trim();
+  if (trimmed) {
+    const exact = matchPushoverDeviceName(trimmed, pushoverDevices);
+    if (
+      exact &&
+      !PUSHOVER_UNRELIABLE_DEVICE_NAMES.has(exact.toLowerCase())
+    ) {
+      return exact;
+    }
+  }
+
+  return autoMatchPushoverDevice({
+    userAgent: platform ?? '',
+    model: clientModel,
+    pushoverDevices,
+  });
+}
 
 export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
   return onRequest(
@@ -24,6 +59,7 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
         const {
           pushoverUserKey,
           platform,
+          clientModel,
           distanceUnit,
           radiusKm,
           timezone,
@@ -35,6 +71,7 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
         } = req.body as {
           pushoverUserKey?: string;
           platform?: string;
+          clientModel?: string;
           distanceUnit?: 'km' | 'miles';
           radiusKm?: number;
           timezone?: string;
@@ -50,17 +87,6 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           return;
         }
 
-        if (!deviceName || typeof deviceName !== 'string') {
-          res.status(400).json({ error: 'deviceName is required' });
-          return;
-        }
-
-        const normalizedDeviceName = deviceName.trim();
-        if (!normalizedDeviceName) {
-          res.status(400).json({ error: 'deviceName must not be empty' });
-          return;
-        }
-
         if (
           !location ||
           typeof location.lat !== 'number' ||
@@ -70,8 +96,34 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           return;
         }
 
-        const deviceSlug = sanitizeDeviceName(normalizedDeviceName);
-        const docId = getDeviceDocId(pushoverUserKey, normalizedDeviceName);
+        const validation = await validatePushoverUserKey(pushoverUserKey);
+        if (!validation.valid || !validation.devices.length) {
+          res.status(400).json({
+            error: 'Invalid Pushover user key or no devices on account',
+            availableDevices: validation.devices,
+          });
+          return;
+        }
+
+        const pushoverDeviceName = resolveRegistrationDeviceName(
+          deviceName,
+          platform,
+          clientModel,
+          validation.devices,
+        );
+
+        if (!pushoverDeviceName) {
+          res.status(200).json({
+            success: false,
+            skipped: true,
+            reason: 'no_matching_pushover_device',
+            availableDevices: validation.devices,
+          });
+          return;
+        }
+
+        const deviceSlug = sanitizeDeviceName(pushoverDeviceName);
+        const docId = getDeviceDocId(pushoverUserKey, pushoverDeviceName);
         const deviceRef = db.collection(DEVICE_COLLECTION).doc(docId);
         const existing = await deviceRef.get();
         const timestamp = admin.firestore.FieldValue.serverTimestamp();
@@ -107,7 +159,7 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           specialIcaos: Array.isArray(specialIcaos) ? specialIcaos : [],
           notifyProximity: notifyProximity === true,
           ignoredTypes: Array.isArray(ignoredTypes) ? ignoredTypes : [],
-          deviceName: normalizedDeviceName,
+          deviceName: pushoverDeviceName,
           deviceSlug,
           updatedAt: timestamp as any,
         };
@@ -125,11 +177,25 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
 
         await deviceRef.set(payload, { merge: true });
 
+        const pruned = await pruneOrphanDeviceRegistrations(
+          db,
+          pushoverUserKey,
+          validation.devices,
+        );
+
+        logger.info('registerDevice success', {
+          userKey: pushoverUserKey.slice(0, 8),
+          deviceName: pushoverDeviceName,
+          pruned,
+        });
+
         res.status(200).json({
           success: true,
           deviceId: deviceRef.id,
-          deviceName: normalizedDeviceName,
+          deviceName: pushoverDeviceName,
           deviceSlug,
+          prunedOrphans: pruned,
+          availableDevices: validation.devices,
         });
       } catch (error: any) {
         logger.error('registerDevice failed', error);

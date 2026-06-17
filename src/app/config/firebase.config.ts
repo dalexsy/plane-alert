@@ -22,5 +22,8 @@ export const firebaseVapidKey =
 export const pushRegistrationEndpoint =
   'https://europe-west3-plane-alert-800ff.cloudfunctions.net/registerDevice';
 
+export const pushCheckDeviceEndpoint =
+  'https://europe-west3-plane-alert-800ff.cloudfunctions.net/checkDevice';
+
 export const adsbPointProxyUrl =
   'https://europe-west3-plane-alert-800ff.cloudfunctions.net/adsbPointProxy';

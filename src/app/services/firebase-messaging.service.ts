@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { pushRegistrationEndpoint } from '../config/firebase.config';
+import {
+  pushCheckDeviceEndpoint,
+  pushRegistrationEndpoint,
+} from '../config/firebase.config';
 import { SettingsService } from './settings.service';
 
 export interface PushRegistrationOptions {
@@ -10,84 +13,104 @@ export interface PushRegistrationOptions {
   ignoredTypes?: string[];
 }
 
+interface RegisterDeviceResponse {
+  success: boolean;
+  skipped?: boolean;
+  reason?: string;
+  deviceName?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class FirebaseMessagingService {
-  private readonly deviceNameKey = 'plane-alert-device-name';
+  private readonly pushoverDeviceKey = 'plane-alert-pushover-device';
   private readonly pushoverKeyKey = 'plane-alert-pushover-key';
+  private readonly deviceNameKey = 'plane-alert-device-name';
 
   constructor(private http: HttpClient, private settings: SettingsService) {}
 
   /**
-   * Register Pushover user key with backend
+   * Register with backend — device is inferred automatically from this browser.
    */
   async registerDevice(
     pushoverUserKey: string,
     options: PushRegistrationOptions = {}
   ): Promise<boolean> {
-    if (!pushoverUserKey || !pushoverUserKey.trim()) {
-      console.warn('Pushover user key is required');
+    if (!pushoverUserKey?.trim()) {
       return false;
     }
 
     const home = this.settings.getHomeLocation();
     if (!home) {
-      console.warn(
-        'Home location unavailable; cannot register push notifications.'
-      );
       return false;
     }
 
+    const clientModel = await this.readClientModel();
     const radius = options.radiusKm ?? this.settings.radius ?? 100;
     const distanceUnit =
       options.distanceUnit ??
       (this.settings.distanceUnit === 'miles' ? 'miles' : 'km');
-    const deviceName = this.getOrCreateDeviceName();
     const payload = {
       pushoverUserKey: pushoverUserKey.trim(),
       platform: navigator.userAgent,
+      clientModel,
       distanceUnit,
       radiusKm: typeof radius === 'number' ? radius : 100,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       location: home,
-      deviceName,
-      specialIcaos: [],
+      specialIcaos: [] as string[],
       notifyProximity: false,
       ignoredTypes: options.ignoredTypes ?? [],
     };
 
     try {
-      await firstValueFrom(
-        this.http.post(pushRegistrationEndpoint, payload, {
+      const result = await firstValueFrom(
+        this.http.post<RegisterDeviceResponse>(pushRegistrationEndpoint, payload, {
           headers: { 'Content-Type': 'application/json' },
         })
       );
-      this.storeUserKey(pushoverUserKey.trim());
-      try {
-        localStorage.setItem(this.deviceNameKey, deviceName);
-      } catch (err) {
-        console.debug('Unable to persist device name', err);
+
+      if (!result.success) {
+        return false;
       }
-      console.log('✅ Registered Pushover user key with backend.');
+
+      this.storeUserKey(pushoverUserKey.trim());
+      if (result.deviceName) {
+        this.storePushoverDeviceName(result.deviceName);
+      }
       return true;
-    } catch (error) {
-      console.warn('Failed to register Pushover user key with backend:', error);
+    } catch {
       return false;
     }
   }
 
-  /**
-   * Get stored Pushover user key
-   */
+  async fetchPushoverDevices(pushoverUserKey: string) {
+    if (!pushoverUserKey?.trim()) {
+      return null;
+    }
+    try {
+      return await firstValueFrom(
+        this.http.post<{
+          availableDevices: string[];
+        }>(
+          pushCheckDeviceEndpoint,
+          { pushoverUserKey: pushoverUserKey.trim() },
+          { headers: { 'Content-Type': 'application/json' } }
+        )
+      );
+    } catch {
+      return null;
+    }
+  }
+
   getStoredUserKey(): string | null {
     const primary = localStorage.getItem(this.pushoverKeyKey);
     if (primary) {
       return primary;
     }
 
-    const legacyKeys = ['pushover-user-key', 'pushoverUserKey'];
-    for (const key of legacyKeys) {
+    for (const key of ['pushover-user-key', 'pushoverUserKey']) {
       const legacy = localStorage.getItem(key);
       if (legacy) {
         this.storeUserKey(legacy);
@@ -98,43 +121,41 @@ export class FirebaseMessagingService {
     return null;
   }
 
-  /**
-   * Update home location in backend (silent update, no need for full re-registration)
-   */
+  getStoredPushoverDeviceName(): string | null {
+    const stored = localStorage.getItem(this.pushoverDeviceKey);
+    if (stored?.trim()) {
+      return stored.trim();
+    }
+    const legacy = localStorage.getItem(this.deviceNameKey);
+    return legacy?.trim() || null;
+  }
+
   async updateHomeLocation(lat: number, lon: number): Promise<boolean> {
     const userKey = this.getStoredUserKey();
     if (!userKey) {
       return false;
     }
 
-    const radius = this.settings.radius ?? 100;
-    const homeLocation = this.settings.getHomeLocation();
-    const deviceName = this.getOrCreateDeviceName();
-    const payload = {
-      pushoverUserKey: userKey,
-      platform: navigator.userAgent,
-      distanceUnit: this.settings.distanceUnit === 'miles' ? 'miles' : 'km',
-      radiusKm: typeof radius === 'number' ? radius : 100,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      location: {
-        lat,
-        lon,
-        ...(homeLocation?.address ? { address: homeLocation.address } : {}),
-      },
-      deviceName,
-    };
+    return this.registerDevice(userKey);
+  }
 
+  private async readClientModel(): Promise<string | undefined> {
     try {
-      await firstValueFrom(
-        this.http.post(pushRegistrationEndpoint, payload, {
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
-      console.log('✅ Updated backend location:', { lat, lon });
-      return true;
-    } catch (error) {
-      console.warn('Failed to update backend location:', error);
-      return false;
+      const nav = navigator as Navigator & {
+        userAgentData?: {
+          getHighEntropyValues?: (
+            hints: string[]
+          ) => Promise<{ model?: string }>;
+        };
+      };
+      const getValues = nav.userAgentData?.getHighEntropyValues;
+      if (!getValues) {
+        return undefined;
+      }
+      const hints = await getValues.call(nav.userAgentData, ['model']);
+      return hints.model?.trim() || undefined;
+    } catch {
+      return undefined;
     }
   }
 
@@ -143,40 +164,8 @@ export class FirebaseMessagingService {
     localStorage.setItem('pushover-user-key', userKey);
   }
 
-  private getOrCreateDeviceName(): string {
-    if (typeof window === 'undefined') {
-      return 'browser-device';
-    }
-
-    const stored = localStorage.getItem(this.deviceNameKey);
-    if (stored && stored.trim().length > 0) {
-      return stored.trim();
-    }
-
-    const generated = this.generateDefaultDeviceName();
-    try {
-      localStorage.setItem(this.deviceNameKey, generated);
-    } catch (err) {
-      console.debug('Unable to persist generated device name', err);
-    }
-    return generated;
-  }
-
-  private generateDefaultDeviceName(): string {
-    const nav = typeof navigator !== 'undefined' ? navigator : undefined;
-    const platform =
-      ((nav as any)?.userAgentData?.platform as string | undefined) ||
-      nav?.platform ||
-      '';
-    const userAgent = nav?.userAgent || '';
-    const isMobile = /mobile|android|iphone|ipad|ipod/i.test(userAgent);
-    const base = isMobile ? 'mobile' : 'browser';
-    const raw = `${base}-${platform || 'device'}`;
-    const normalized = raw
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 40);
-    return normalized || `${base}-device`;
+  private storePushoverDeviceName(deviceName: string): void {
+    localStorage.setItem(this.pushoverDeviceKey, deviceName);
+    localStorage.setItem(this.deviceNameKey, deviceName);
   }
 }

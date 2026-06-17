@@ -23,6 +23,7 @@ _(none yet — add entries when something fails in production or deploy.)_
 ## Deploy & verify
 
 - **Deploy:** `npm run deploy:dryl`
+- **Kiosk install/restart:** `npm run kiosk:planes` / `npm run kiosk:restart`
 - **Pre-deploy:** `npm run verify:dist` _(when wired)_
 - **Post-deploy:** `npm run verify:console` _(when wired)_
 - **drylApi sites:** `node ../directory/scripts/verify-dryl-app.mjs https://<hostname> <site-id>`
@@ -36,6 +37,9 @@ Replace this table with symptoms **specific to plane-alert**. Fleet-generic chec
 
 | Symptom | Likely cause | Command / fix |
 |--------|----------------|---------------|
+| White screen after noon refresh | Service worker cached stale `index.html` | Fixed in `public/sw.js` + `NoonRefreshService` unregisters SW before reload |
+| Kiosk stuck on admin.dryl.io / login | SSO sent admins to apps hub; kiosk opened login URL | `dryl-auth` login guard uses `/api/auth/next`; kiosk always starts at `planes.dryl.io` |
+| Watchdog left desktop visible | session-stale killed working Chromium; 5min cooldown; restart timed out at 35s | Fixed: session strikes, fast cooldown, 90s wait, quick-start skips blocking curl/session |
 | Deploy log `[ok]` but app broken in browser | Smoke hit login redirect only | `npm run verify:console` |
 | `custom-token` 503 / CORS | dryl-auth down or sites.json stale | Redeploy `dryl-auth`; re-run verify |
 | Public 502 / 522 / 530 | Pi service, tunnel, or DNS | See directory debugging notes |

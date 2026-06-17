@@ -72,3 +72,13 @@ export {
   getAircraftTypeName,
 } from './aircraft-type-names';
 export type { AircraftTypeName } from './aircraft-type-names';
+
+// Pushover device matching (client + Cloud Functions)
+export {
+  PUSHOVER_UNRELIABLE_DEVICE_NAMES,
+  autoMatchPushoverDevice,
+  matchPushoverDeviceName,
+  resolvePushoverDeliveryTarget,
+  isValidDeviceRegistration,
+} from './pushover-device-match';
+export type { PushoverDeviceMatchInput } from './pushover-device-match';

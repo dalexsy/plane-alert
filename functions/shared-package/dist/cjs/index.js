@@ -6,7 +6,7 @@
  * for Plane Alert frontend and backend systems
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAircraftTypeName = exports.AIRCRAFT_TYPE_NAMES = exports.COMMON_MILITARY_TYPES = exports.isMilitaryAircraft = exports.isAircraftMilitary = exports.createAircraftLookupMap = exports.getCountryFlagEmoji = exports.getArrowForDirection = exports.formatNotificationTitle = exports.formatNotificationBody = exports.formatDistance = exports.bearingToCardinal = exports.computeBearing = exports.haversineDistanceKm = exports.toDegrees = exports.toRadians = exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = exports.shouldSkipBoringMilitaryFilter = exports.isMilitaryOperator = exports.isMilitaryCallsign = exports.normalizeCallsign = exports.isBoringMilitaryAircraft = exports.looksMilitary = exports.ICAO_LOOKUP_CONFIG = exports.isKnownCountry = exports.getRegistrationPrefixesForCountry = exports.getAircraftCountry = exports.getCountryFromRegistration = exports.getCountryFromIcaoHex = void 0;
+exports.isValidDeviceRegistration = exports.resolvePushoverDeliveryTarget = exports.matchPushoverDeviceName = exports.autoMatchPushoverDevice = exports.PUSHOVER_UNRELIABLE_DEVICE_NAMES = exports.getAircraftTypeName = exports.AIRCRAFT_TYPE_NAMES = exports.COMMON_MILITARY_TYPES = exports.isMilitaryAircraft = exports.isAircraftMilitary = exports.createAircraftLookupMap = exports.getCountryFlagEmoji = exports.getArrowForDirection = exports.formatNotificationTitle = exports.formatNotificationBody = exports.formatDistance = exports.bearingToCardinal = exports.computeBearing = exports.haversineDistanceKm = exports.toDegrees = exports.toRadians = exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = exports.shouldSkipBoringMilitaryFilter = exports.isMilitaryOperator = exports.isMilitaryCallsign = exports.normalizeCallsign = exports.isBoringMilitaryAircraft = exports.looksMilitary = exports.ICAO_LOOKUP_CONFIG = exports.isKnownCountry = exports.getRegistrationPrefixesForCountry = exports.getAircraftCountry = exports.getCountryFromRegistration = exports.getCountryFromIcaoHex = void 0;
 // Export country detection functions
 var country_detection_1 = require("./country-detection");
 Object.defineProperty(exports, "getCountryFromIcaoHex", { enumerable: true, get: function () { return country_detection_1.getCountryFromIcaoHex; } });
@@ -52,4 +52,11 @@ Object.defineProperty(exports, "COMMON_MILITARY_TYPES", { enumerable: true, get:
 var aircraft_type_names_1 = require("./aircraft-type-names");
 Object.defineProperty(exports, "AIRCRAFT_TYPE_NAMES", { enumerable: true, get: function () { return aircraft_type_names_1.AIRCRAFT_TYPE_NAMES; } });
 Object.defineProperty(exports, "getAircraftTypeName", { enumerable: true, get: function () { return aircraft_type_names_1.getAircraftTypeName; } });
+// Pushover device matching (client + Cloud Functions)
+var pushover_device_match_1 = require("./pushover-device-match");
+Object.defineProperty(exports, "PUSHOVER_UNRELIABLE_DEVICE_NAMES", { enumerable: true, get: function () { return pushover_device_match_1.PUSHOVER_UNRELIABLE_DEVICE_NAMES; } });
+Object.defineProperty(exports, "autoMatchPushoverDevice", { enumerable: true, get: function () { return pushover_device_match_1.autoMatchPushoverDevice; } });
+Object.defineProperty(exports, "matchPushoverDeviceName", { enumerable: true, get: function () { return pushover_device_match_1.matchPushoverDeviceName; } });
+Object.defineProperty(exports, "resolvePushoverDeliveryTarget", { enumerable: true, get: function () { return pushover_device_match_1.resolvePushoverDeliveryTarget; } });
+Object.defineProperty(exports, "isValidDeviceRegistration", { enumerable: true, get: function () { return pushover_device_match_1.isValidDeviceRegistration; } });
 //# sourceMappingURL=index.js.map

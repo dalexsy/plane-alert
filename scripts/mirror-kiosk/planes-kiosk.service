@@ -1,0 +1,14 @@
+[Unit]
+Description=planes.dryl.io fullscreen kiosk
+After=default.target
+
+[Service]
+Type=simple
+Environment=PLANES_KIOSK_QUICK_START=1
+ExecStart=/home/pi/bin/planes-kiosk.sh
+Restart=on-failure
+RestartSec=20
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

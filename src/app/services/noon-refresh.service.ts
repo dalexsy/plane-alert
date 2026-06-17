@@ -1,17 +1,13 @@
 import { Injectable, OnDestroy } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NoonRefreshService implements OnDestroy {
   private midnightRefreshTimer?: number;
   private dailyRefreshInterval?: number;
   private isActive = false;
 
-  /**
-   * Starts the noon refresh functionality
-   * Sets up a timer to refresh the page at noon and then daily thereafter
-   */
   start(): void {
     if (this.isActive) {
       console.warn('Noon refresh service is already active');
@@ -22,18 +18,11 @@ export class NoonRefreshService implements OnDestroy {
     this.isActive = true;
   }
 
-  /**
-   * Stops the noon refresh functionality
-   * Clears all timers and intervals
-   */
   stop(): void {
     this.clearTimers();
     this.isActive = false;
   }
 
-  /**
-   * Returns whether the service is currently active
-   */
   get active(): boolean {
     return this.isActive;
   }
@@ -45,30 +34,38 @@ export class NoonRefreshService implements OnDestroy {
   private setupNoonRefresh(): void {
     const now = new Date();
     const today = new Date(now);
-    today.setHours(12, 0, 0, 0); // Set to noon (12:00 PM)
-    
-    // If noon has already passed today, schedule for tomorrow's noon
-    const targetTime = today.getTime() < now.getTime() ? 
-      new Date(today.getTime() + 24 * 60 * 60 * 1000) : today;
+    today.setHours(12, 0, 0, 0);
+
+    const targetTime =
+      today.getTime() < now.getTime()
+        ? new Date(today.getTime() + 24 * 60 * 60 * 1000)
+        : today;
 
     const timeUntilNoon = targetTime.getTime() - now.getTime();
 
-    // Set timer for the first noon refresh
     this.midnightRefreshTimer = window.setTimeout(() => {
-      this.performRefresh('noon');
+      void this.performRefresh('noon');
     }, timeUntilNoon);
 
-    // Set up daily recurring refresh (24 hours = 24 * 60 * 60 * 1000 ms)
     this.dailyRefreshInterval = window.setInterval(() => {
-      this.performRefresh('daily noon');
+      void this.performRefresh('daily noon');
     }, 24 * 60 * 60 * 1000);
   }
 
-  private performRefresh(type: string): void {
+  private async performRefresh(_type: string): Promise<void> {
+    await this.clearServiceWorkers();
 
-    const url = new URL(window.location.href);
+    const url = new URL(window.location.origin + window.location.pathname);
     url.searchParams.set('_refresh', Date.now().toString());
-    window.location.href = url.toString();
+    window.location.replace(url.toString());
+  }
+
+  private async clearServiceWorkers(): Promise<void> {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
   }
 
   private clearTimers(): void {

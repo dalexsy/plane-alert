@@ -47,12 +47,10 @@ export class AppComponent implements OnInit {
   private async ensurePushoverRegistration() {
     const storedKey = this.firebaseMessaging.getStoredUserKey();
     if (storedKey) {
-      // Re-register with current settings
       await this.firebaseMessaging.registerDevice(storedKey);
       return;
     }
 
-    // Prompt for Pushover user key
     const userKey = prompt(
       'Enter your Pushover User Key to enable notifications.\n\n' +
         'Find it at: https://pushover.net/\n' +

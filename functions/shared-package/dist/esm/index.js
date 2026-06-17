@@ -18,4 +18,6 @@ export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from
 export { COMMON_MILITARY_TYPES } from './military-types';
 // Export aircraft type name mapping
 export { AIRCRAFT_TYPE_NAMES, getAircraftTypeName, } from './aircraft-type-names';
+// Pushover device matching (client + Cloud Functions)
+export { PUSHOVER_UNRELIABLE_DEVICE_NAMES, autoMatchPushoverDevice, matchPushoverDeviceName, resolvePushoverDeliveryTarget, isValidDeviceRegistration, } from './pushover-device-match';
 //# sourceMappingURL=index.js.map

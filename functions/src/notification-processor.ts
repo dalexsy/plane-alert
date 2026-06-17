@@ -8,6 +8,7 @@ import {
   shouldBroadcastToAllDevices,
 } from './utils';
 import { notifyForDevice } from './services/notify-for-device';
+import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import {
   getDeviceLocation,
   loadAircraftSnapshotCache,
@@ -99,7 +100,39 @@ export async function runNotificationProcessing(
     data: doc.data() as DeviceRegistration,
   }));
 
-  await recordProcessPlanesStart(db, allDevices.length);
+  const userKeys = [
+    ...new Set(
+      allDevices
+        .map((entry) => entry.data.pushoverUserKey)
+        .filter((key): key is string => typeof key === 'string' && key.length > 0),
+    ),
+  ];
+
+  for (const userKey of userKeys) {
+    const validation = await validatePushoverUserKey(userKey);
+    if (validation.valid && validation.devices.length) {
+      const pruned = await pruneOrphanDeviceRegistrations(
+        db,
+        userKey,
+        validation.devices,
+      );
+      if (pruned > 0) {
+        logger.info('Auto-pruned orphan registrations during processPlanes', {
+          userKey: userKey.slice(0, 8),
+          pruned,
+        });
+      }
+    }
+  }
+
+  const activeSnapshot = await db.collection(DEVICE_COLLECTION).get();
+  const activeDevices = activeSnapshot.docs.map((doc) => ({
+    ref: doc.ref,
+    id: doc.id,
+    data: doc.data() as DeviceRegistration,
+  }));
+
+  await recordProcessPlanesStart(db, activeDevices.length);
 
   if (!broadcastAllDevices) {
     const pushoverDeviceCache = new Map<string, Set<string> | null>();
@@ -121,7 +154,7 @@ export async function runNotificationProcessing(
             (name): name is string =>
               typeof name === 'string' && name.trim().length > 0,
           )
-          .map((name) => name.trim().toLowerCase()),
+          .map((name) => name.trim()),
       );
 
       pushoverDeviceCache.set(userKey, devices);
@@ -130,7 +163,7 @@ export async function runNotificationProcessing(
 
     await processDevicesWithSnapshotCache(
       db,
-      allDevices,
+      activeDevices,
       getRegisteredPushoverDevices,
     );
     await recordProcessPlanesSuccess(db);
@@ -138,10 +171,10 @@ export async function runNotificationProcessing(
   }
 
   logger.info('Broadcast mode: processing all devices', {
-    deviceCount: allDevices.length,
+    deviceCount: activeDevices.length,
   });
 
-  await processDevicesWithSnapshotCache(db, allDevices);
+  await processDevicesWithSnapshotCache(db, activeDevices);
   await recordProcessPlanesSuccess(db);
 }
 

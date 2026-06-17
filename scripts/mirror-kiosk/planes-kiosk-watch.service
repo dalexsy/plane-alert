@@ -1,0 +1,17 @@
+[Unit]
+Description=planes.dryl.io kiosk watchdog (magicmirror)
+After=network-online.target dryl-auth.service wayvnc.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PLANES_KIOSK_URL=https://planes.dryl.io/
+Environment=PLANES_KIOSK_WATCH_GATEWAY=192.168.178.1
+Environment=PLANES_KIOSK_AUTH_URL=http://127.0.0.1:8790/health
+Environment=PLANES_KIOSK_CPU_HIGH=45
+Environment=PLANES_KIOSK_CPU_STRIKES=3
+Environment=PLANES_KIOSK_RESTART_COOLDOWN=300
+Environment=PLANES_KIOSK_MISSING_COOLDOWN=90
+Environment=PLANES_KIOSK_NIGHTLY_HOUR=4
+Environment=PLANES_KIOSK_NOON_HOUR=12
+ExecStart=/usr/local/sbin/planes-kiosk-watch.sh
