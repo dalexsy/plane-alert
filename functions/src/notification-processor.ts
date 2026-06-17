@@ -9,6 +9,7 @@ import {
 } from './utils';
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
+import { dedupeDeviceRegistrationsByPushoverTarget } from './services/dedupe-device-registrations';
 import {
   getDeviceLocation,
   loadAircraftSnapshotCache,
@@ -161,9 +162,29 @@ export async function runNotificationProcessing(
       return devices;
     };
 
+    const registeredDevicesByUserKey = new Map<string, Set<string>>();
+    for (const userKey of userKeys) {
+      const devices = await getRegisteredPushoverDevices(userKey);
+      if (devices?.size) {
+        registeredDevicesByUserKey.set(userKey, devices);
+      }
+    }
+
+    const dedupedDevices = dedupeDeviceRegistrationsByPushoverTarget(
+      activeDevices,
+      registeredDevicesByUserKey,
+    );
+
+    if (dedupedDevices.length < activeDevices.length) {
+      logger.info('Deduped device registrations by Pushover target', {
+        before: activeDevices.length,
+        after: dedupedDevices.length,
+      });
+    }
+
     await processDevicesWithSnapshotCache(
       db,
-      activeDevices,
+      dedupedDevices,
       getRegisteredPushoverDevices,
     );
     await recordProcessPlanesSuccess(db);

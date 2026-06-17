@@ -211,3 +211,8 @@ body.animations-disabled *::after {
   transition-duration: 0s !important;
   transition-delay: 0s !important;
 }
+
+.bug-hunter .dryl-textarea {
+  color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
+}
