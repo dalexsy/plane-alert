@@ -1,0 +1,100 @@
+---
+description: MANDATORY — session tickets, production before/after screenshots, branch cleanup. Every chat fix uses the same pipeline as designer tickets.
+alwaysApply: true
+---
+
+# Agent pipeline (tickets + production proof)
+
+You maintain dryl.io **end to end** like Daryl would — find problems on production, fix, prove, track, clean up. Daryl is a designer; she should not file or reopen tickets because agents skipped gates.
+
+**Edit only this file.** Fan out: `cd directory && npm run bootstrap:agent-rules`.
+
+---
+
+## 1. File a session ticket (before any ship work)
+
+Every fix/heal/change in chat — including work Daryl starts here without a designer ticket — needs an **`ops-agent-*`** audit trail so other agents see active work.
+
+1. **File** via `ensureSessionTicket` — **the hook auto-files on your first prompt** (`record-user-prompt.mjs`); you only need a manual call if hooks are off.
+2. **First response line:** state the ticket ID (e.g. `ops-agent-a1b2c3d4e5f6`).
+3. **Designer ticket:** if healing a bug report, name its ID and set status `fixing`.
+
+```bash
+cd directory
+node -e "import('./scripts/cursor-hooks/lib/session-ticket.mjs').then(m=>console.log(m.ensureSessionTicket('SESSION','cursor-agent','short title')))"
+```
+
+Hooks inject a gate when no active `fixing` ops ticket exists — **do not ignore it**. Install hooks: `cd directory && node scripts/cursor-hooks/install-user-hooks.mjs` then restart Cursor.
+
+Open tickets: `GET https://health.dryl.io/api/client-errors/reports?limit=20` (auth) or `:3905` worker.
+
+---
+
+## 2. Production screenshots (before AND after)
+
+**Not localhost. Not :3905. Not curl-only.** Playwright screenshots of the live **`https://*.dryl.io`** URL the ticket is about.
+
+Reporters only fill Expected + Actual — **agents** attach visual proof.
+
+```bash
+cd directory
+node scripts/capture-agent-fix-evidence.mjs --ticket <reportId> --url https://<host>/<path> --phase before --symptom "what you see" [--viewport mobile] [--open-fab]
+# deploy fix to production
+node scripts/capture-agent-fix-evidence.mjs --ticket <reportId> --url https://<host>/<path> --phase after --change "what changed" [--viewport mobile] [--open-fab]
+```
+
+| When | Required |
+|------|----------|
+| **Start** (designer ticket or ops ticket linked to a site) | **Before** screenshot on the ticket URL |
+| **Done** (before saying fixed / resolving ticket) | **After** screenshot on the same production URL |
+
+`gateResolveReport` blocks resolve without both PNGs on disk. Read both PNGs with the Read tool and state what you verified.
+
+Deploy verify screenshots (`verify:visual`, canary gate) **do not replace** ticket before/after evidence when a ticket is open.
+
+---
+
+## 3. Ship loop order (with ticket)
+
+1. File ops-agent ticket → state ID
+2. **Before** production screenshot (if ticket names a URL)
+3. Fix root cause in owning repo
+4. Deploy (`npm run deploy:dryl` or documented equivalent)
+5. Full verify loop (`deploy-verify-loop.mdc`)
+6. **After** production screenshot
+7. Resolve ticket / update summary in plain English
+8. Return branch to `main` (see below)
+
+---
+
+## 4. Branch cleanup (keep main clean)
+
+| Branch | When done |
+|--------|-----------|
+| `autofix/<app>-<id>` | Merge or hand off that ticket; stop hook returns to `main` when clean |
+| `feature/*` / ticket branch | Merge to `main` (or push + merge) once production proof passes |
+| Stale autofix, 0 commits, clean | `git checkout main && git branch -d autofix/...` immediately |
+| Dirty tree on autofix | Resolve conflicts/stash before unrelated edits |
+
+Do not mix chat fixes with a stale autofix checkout for a different ticket.
+
+---
+
+## 5. Coordination (why tickets matter)
+
+- Check open ops-agent and designer tickets **before** editing shared areas (bug-report addon, nginx, bootstrap, `@dryl/ui`).
+- Update ticket summary as work progresses — other agents read `health.dryl.io/errors`.
+- Chat-only fixes without a ticket = invisible work = Daryl finds regressions first.
+
+---
+
+## Scripts reference
+
+| Script | Purpose |
+|--------|---------|
+| `capture-agent-fix-evidence.mjs` | Before/after production PNGs |
+| `session-ticket.mjs` | `ensureSessionTicket`, `resolveSessionTicket` |
+| `install-user-hooks.mjs` | Wire ticket gate + ship challenge stop hooks |
+| `verify:bug-hunter-canary` | Live FAB + `/dryl-bug-report.js` on fleet hosts |
+
+Mindset + fleet health: `ecosystem-health.mdc`. Stack/UI law: `master-spec.md`.
