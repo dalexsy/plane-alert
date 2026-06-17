@@ -1,0 +1,20 @@
+---
+description: MANDATORY: Master spec is the source of truth and NOT optional. Agents MUST use Read tool on it at the START of ANY task involving new sites/pages (e.g. health.dryl.io), deploys, bootstrap scripts, architecture, or dryl.io maintenance. Bypassing (manual files instead of bootstrap) is non-compliant and wastes time. Do not treat as "read if needed".
+alwaysApply: true
+---
+
+# Master spec (ecosystem)
+
+**MANDATORY for all dryl.io work (not optional):** 
+
+For stack, @dryl/ui, **UI lint scripts** (`bootstrap:ui-lint`, spacing/typography/BEM/lines), deploy, bootstrap for *new pages/sites* (e.g. health.dryl.io — you MUST run `cd directory && npm run bootstrap:dryl-app`), auth patterns, and maintenance, read:
+
+**`Repos/speculation/master-spec.md`**
+
+**ALWAYS** use the Read tool on that path (relative to Repos/ as sibling) at the *start* of any relevant task. Do not skip because "it was mentioned before", do not treat the "unless Daryl overrides in chat" as a general excuse to bypass bootstrap or centralized processes. Bypassing (e.g. manually writing health.html instead of using bootstrap) leads to the wrong thing and wastes time.
+
+Do not @-mention or paste the entire file. `speculation/AGENTS.md` is the short index.
+
+**Mindset + finish line:** `speculation/.cursor/rules/ecosystem-health.mdc` (single source of truth for how agents work — survival instinct, deploy handoff). Per-repo `debugging.md` is for failed experiments only.
+
+When the workspace is a single app repo, still use that path relative to `Repos/` (sibling of the app).
