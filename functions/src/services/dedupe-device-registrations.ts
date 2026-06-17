@@ -16,6 +16,11 @@ function registrationTimestamp(entry: DeviceDocEntry): number {
   return 0;
 }
 
+export interface DedupeDeviceRegistrationsResult {
+  toProcess: DeviceDocEntry[];
+  duplicateRefs: admin.firestore.DocumentReference[];
+}
+
 /**
  * Keep one Firestore registration per Pushover delivery target so parallel
  * notifyForDevice runs cannot send duplicate alerts to the same phone.
@@ -23,9 +28,9 @@ function registrationTimestamp(entry: DeviceDocEntry): number {
 export function dedupeDeviceRegistrationsByPushoverTarget(
   devices: DeviceDocEntry[],
   registeredDevicesByUserKey: Map<string, Set<string>>,
-): DeviceDocEntry[] {
+): DedupeDeviceRegistrationsResult {
   const keptByTarget = new Map<string, DeviceDocEntry>();
-  const unmatched: DeviceDocEntry[] = [];
+  const duplicateRefs: admin.firestore.DocumentReference[] = [];
 
   for (const entry of devices) {
     const userKey = entry.data.pushoverUserKey?.trim();
@@ -42,19 +47,26 @@ export function dedupeDeviceRegistrationsByPushoverTarget(
     );
 
     if (!pushoverTarget) {
-      unmatched.push(entry);
       continue;
     }
 
     const key = `${userKey}__${pushoverTarget.toLowerCase()}`;
     const existing = keptByTarget.get(key);
-    if (
-      !existing ||
-      registrationTimestamp(entry) >= registrationTimestamp(existing)
-    ) {
+    if (!existing) {
       keptByTarget.set(key, entry);
+      continue;
+    }
+
+    if (registrationTimestamp(entry) >= registrationTimestamp(existing)) {
+      duplicateRefs.push(existing.ref);
+      keptByTarget.set(key, entry);
+    } else {
+      duplicateRefs.push(entry.ref);
     }
   }
 
-  return [...keptByTarget.values(), ...unmatched];
+  return {
+    toProcess: [...keptByTarget.values()],
+    duplicateRefs,
+  };
 }
