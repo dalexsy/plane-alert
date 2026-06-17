@@ -67,7 +67,7 @@ export async function sendPushoverNotification(
       message: message.message,
       url: message.url || '',
       url_title: message.url_title || '',
-      priority: '1',
+      priority: '0',
       sound: 'none',
       icon: message.icon || '',
     };

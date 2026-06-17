@@ -170,10 +170,18 @@ export async function runNotificationProcessing(
       }
     }
 
-    const dedupedDevices = dedupeDeviceRegistrationsByPushoverTarget(
-      activeDevices,
-      registeredDevicesByUserKey,
-    );
+    const { toProcess: dedupedDevices, duplicateRefs } =
+      dedupeDeviceRegistrationsByPushoverTarget(
+        activeDevices,
+        registeredDevicesByUserKey,
+      );
+
+    if (duplicateRefs.length > 0) {
+      await Promise.all(duplicateRefs.map((ref) => ref.delete()));
+      logger.info('Pruned duplicate device registrations by Pushover target', {
+        pruned: duplicateRefs.length,
+      });
+    }
 
     if (dedupedDevices.length < activeDevices.length) {
       logger.info('Deduped device registrations by Pushover target', {
