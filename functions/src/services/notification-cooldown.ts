@@ -72,6 +72,10 @@ export async function checkAndMarkNotified(
         { merge: true }
       );
 
+      if (legacyCooldownRef && legacyDoc?.exists) {
+        transaction.delete(legacyCooldownRef);
+      }
+
       return true;
     });
 
