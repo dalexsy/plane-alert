@@ -33,8 +33,17 @@ export async function deliverDeviceNotifications(
   } = params;
 
   const updatedLastNotified = { ...lastNotified };
+  const sentIcaos = new Set<string>();
 
   for (const pending of pendingNotifications) {
+    if (sentIcaos.has(pending.icao)) {
+      logger.info('Skipping duplicate pending notification in batch', {
+        docId,
+        icao: pending.icao,
+      });
+      continue;
+    }
+    sentIcaos.add(pending.icao);
     logger.info('Sending notification for pending aircraft', {
       docId,
       deviceName: pending.deviceName,

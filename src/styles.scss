@@ -212,14 +212,23 @@ body.animations-disabled *::after {
   transition-delay: 0s !important;
 }
 
+.bug-hunter .dryl-modal-content {
+  color: var(--text-primary);
+}
+
+.bug-hunter .dryl-modal-content .label,
+.bug-hunter .dryl-modal-content h3 {
+  color: var(--text-secondary);
+}
+
 .bug-hunter .dryl-textarea,
 .bug-hunter .dryl-modal-content .dryl-textarea,
 .bug-hunter .dryl-modal-content textarea.control-plain,
 .bug-hunter .dryl-modal-content .dryl-select-control {
-  color: var(--dryl-bug-text, var(--text-primary));
-  -webkit-text-fill-color: var(--dryl-bug-text, var(--text-primary));
-  caret-color: var(--dryl-bug-text, var(--text-primary));
-  background: var(--dryl-bug-surface-muted, var(--background-secondary));
+  color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
+  caret-color: var(--text-primary);
+  background: var(--background-secondary);
   color-scheme: dark;
 }
 
