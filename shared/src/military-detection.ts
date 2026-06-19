@@ -118,6 +118,10 @@ export const BORING_AIRCRAFT_TYPES = [
   'CN35', // CASA CN-235 transport
   'T134', // Tupolev Tu-134 (old transport)
   'T154', // Tupolev Tu-154 (old transport)
+  'T37', // Northrop T-37 Tweet (trainer)
+  'T38', // Northrop T-38 Talon (trainer)
+  'A109', // Agusta A109 (liaison/VIP)
+  'A139', // AgustaWestland AW139 (liaison/VIP)
   // Helicopters — liaison/training/utility types used by military (not combat)
   'AS50', // Aérospatiale AS350 Ecureuil / H125 (utility)
   'AS55', // Aérospatiale AS355 Twin Ecureuil (utility)
@@ -237,7 +241,15 @@ const INTERESTING_BORING_OVERRIDE_DESC =
  * with t=TEX2, or desc-only "Beech C-12U Huron"). Match common boring roles by name.
  */
 const BORING_MIL_DESC_PATTERN =
-  /\b(?:C|UC|TC)-12\b|\bHURON\b|\bT-1A?\s*JAYHAWK\b|\bT-6[AB]?\b|TEXAN\s*(?:II|T\.?\s*1\b)|\bMC-12|\bC-21\b|\bC-37|\bC-40|\bUC-35|\bC-26\b|\bU-28\b|METROLINER|CN-?235|\bC295\b|\bKING\s*AIR\b|\bSUPER\s*KING\s*AIR\b|\bCITATION\b|\bGULFSTREAM\b|\bLEAR\s*JET\b|\bLEARJET\b|\bPC-12\b|\bPC-21\b|\bPC-9\b|\bCARAVAN\b/i;
+  /\b(?:C|UC|TC)-12\b|\bHURON\b|\bT-1A?\s*JAYHAWK\b|\bT-6[AB]?\b|TEXAN\s*(?:II|T\.?\s*1\b)|\bT-3[78]\b|\bTALON\b|\bMC-12|\bC-21\b|\bC-37|\bC-40|\bUC-35|\bC-26\b|\bU-28\b|METROLINER|CN-?235|\bC295\b|\bKING\s*AIR\b|\bSUPER\s*KING\s*AIR\b|\bCITATION\b|\bGULFSTREAM\b|\bLEAR\s*JET\b|\bLEARJET\b|\bPC-12\b|\bPC-21\b|\bPC-9\b|\bCARAVAN\b/i;
+
+/**
+ * When ADS-B has no ICAO type code, desc must name a non-boring role (fighters,
+ * tankers, heavy transport). Operator-only strings like "United States Air Force"
+ * are not enough to justify a Pushover alert.
+ */
+const INTERESTING_MIL_DESC_PATTERN =
+  /\bF-?\d{2}\b|\bF\d{2}\b|\bE-?\d{1,2}\b|\bC-?\s*130\b|\bC-?\s*17\b|\bC-?\s*5\b|\bB-?\d{1,2}\b|\bA-?10\b|\bKC-?\d{2,3}\b|\bP-?\d\b|\bCH-?\d{2}\b|\bUH-?\d{2}\b|\bAH-?\d{2}\b|HERCULES|GLOBEMASTER|CHINOOK|APACHE|BLACK\s*HAWK|TYPHOON|TORNADO|RAFALE|GRIPEN|HORNET|EAGLE|RAPTOR|LIGHTNING|THUNDERBOLT|POSEIDON|STRATOFORT|ORION|AWACS|SENTRY|MRTT|TANKER|REFUEL/i;
 
 /**
  * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO
@@ -298,13 +310,27 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
     return true;
   }
 
-  return BORING_AIRCRAFT_TYPES.some((boring) => {
-    const modelName = getAircraftTypeName(boring);
-    if (!modelName || modelName === boring) {
-      return false;
-    }
-    return descUpper.includes(modelName.toUpperCase());
-  });
+  if (
+    BORING_AIRCRAFT_TYPES.some((boring) => {
+      const modelName = getAircraftTypeName(boring);
+      if (!modelName || modelName === boring) {
+        return false;
+      }
+      return descUpper.includes(modelName.toUpperCase());
+    })
+  ) {
+    return true;
+  }
+
+  if (
+    (plane.mil === true || plane.dbFlags === 1) &&
+    !normalizedType &&
+    !INTERESTING_MIL_DESC_PATTERN.test(descUpper)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function looksMilitary(plane: AdsBPlane): boolean {
