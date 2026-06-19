@@ -237,7 +237,7 @@ const INTERESTING_BORING_OVERRIDE_DESC =
  * with t=TEX2, or desc-only "Beech C-12U Huron"). Match common boring roles by name.
  */
 const BORING_MIL_DESC_PATTERN =
-  /\b(?:C|UC|TC)-12\b|\bHURON\b|\bT-1A?\s*JAYHAWK\b|\bT-6[AB]?\b|TEXAN\s*(?:II|T\.?\s*1\b)|\bMC-12|\bC-21\b|\bC-37|\bC-40|\bUC-35|\bC-26\b|\bU-28\b|METROLINER|CN-?235|\bC295\b/i;
+  /\b(?:C|UC|TC)-12\b|\bHURON\b|\bT-1A?\s*JAYHAWK\b|\bT-6[AB]?\b|TEXAN\s*(?:II|T\.?\s*1\b)|\bMC-12|\bC-21\b|\bC-37|\bC-40|\bUC-35|\bC-26\b|\bU-28\b|METROLINER|CN-?235|\bC295\b|\bKING\s*AIR\b|\bSUPER\s*KING\s*AIR\b|\bCITATION\b|\bGULFSTREAM\b|\bLEAR\s*JET\b|\bLEARJET\b|\bPC-12\b|\bPC-21\b|\bPC-9\b|\bCARAVAN\b/i;
 
 /**
  * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO
@@ -279,7 +279,13 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
 
   const desc = (plane.desc || '').trim();
   if (!desc) {
-    return false;
+    if (normalizedType) {
+      return false;
+    }
+    if (plane.mil === true || plane.dbFlags === 1) {
+      return true;
+    }
+    return isMilitaryCallsign(plane.flight || plane.callsign);
   }
 
   const descUpper = desc.toUpperCase();
