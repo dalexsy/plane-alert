@@ -213,8 +213,19 @@ body.animations-disabled *::after {
 }
 
 .bug-hunter .dryl-textarea,
-.bug-hunter .dryl-modal-content .dryl-textarea {
+.bug-hunter .dryl-modal-content .dryl-textarea,
+.bug-hunter .dryl-modal-content textarea.control-plain,
+.bug-hunter .dryl-modal-content .dryl-select-control {
   color: var(--text-primary);
   -webkit-text-fill-color: var(--text-primary);
+  caret-color: var(--text-primary);
   background: var(--background-secondary);
+  color-scheme: dark;
+}
+
+.bug-hunter .dryl-textarea::placeholder,
+.bug-hunter .dryl-modal-content textarea.control-plain::placeholder {
+  color: var(--text-secondary);
+  -webkit-text-fill-color: var(--text-secondary);
+  opacity: 0.6;
 }

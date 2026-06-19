@@ -56,14 +56,17 @@ Deploy verify screenshots (`verify:visual`, canary gate) **do not replace** tick
 
 ## 3. Ship loop order (with ticket)
 
-1. File ops-agent ticket → state ID
-2. **Before** production screenshot (if ticket names a URL)
-3. Fix root cause in owning repo
-4. Deploy (`npm run deploy:dryl` or documented equivalent)
-5. Full verify loop (`deploy-verify-loop.mdc`)
-6. **After** production screenshot
-7. Resolve ticket / update summary in plain English
-8. Return branch to `main` (see below)
+1. File ops-agent ticket → state ID in first response line
+2. **Create todo list** (TodoWrite tool) — one item per distinct step; mark `in_progress` before starting, `completed` when done. This is mandatory, not optional — it is how other agents see your work scope without reading the full chat.
+3. **Check for parallel agents** — `GET http://localhost:3905/api/client-errors/reports?limit=20`. Before deploying to any shared target (Pi, nginx, shared CSS, `@dryl/ui`), check if another agent has an active `fixing` ticket for that target. If yes, note coordination in your ticket summary.
+4. **Before** production screenshot (if ticket names a URL)
+5. Fix root cause in owning repo
+6. Deploy (`npm run deploy:dryl` or documented equivalent)
+7. Full verify loop (`deploy-verify-loop.mdc`)
+8. **Warnings in deploy output block production** — a `[warn]` line means the deploy is not clean. Fix the owning repo and redeploy. Do not accept a deploy with warnings as done. Exception: expected, non-degrading fallbacks must use `[info]` instead of `[warn]` so the distinction is clear. `[warn]` = must fix; `[info]` = noted but system continues correctly.
+9. **After** production screenshot
+10. Resolve ticket / update summary in plain English
+11. Return branch to `main` (see below)
 
 ---
 
@@ -82,9 +85,11 @@ Do not mix chat fixes with a stale autofix checkout for a different ticket.
 
 ## 5. Coordination (why tickets matter)
 
-- Check open ops-agent and designer tickets **before** editing shared areas (bug-report addon, nginx, bootstrap, `@dryl/ui`).
+- Check open ops-agent and designer tickets **before** editing shared areas (bug-report addon, nginx, bootstrap, `@dryl/ui`, Pi).
 - Update ticket summary as work progresses — other agents read `health.dryl.io/errors`.
 - Chat-only fixes without a ticket = invisible work = Daryl finds regressions first.
+- **If you see another agent's `fixing` ticket for the same target:** add a note to your own ticket summary explaining the overlap. Do not silently deploy over in-progress work.
+- **Todo list = public work log.** Every ship task must have a live todo list. Other agents and Daryl can see what steps are in progress, what is done, and what is deferred.
 
 ---
 
