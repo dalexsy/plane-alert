@@ -72,18 +72,6 @@ export async function collectProximityNotifications(
     const icao = plane.hex?.toUpperCase();
     if (!icao) continue;
 
-    const shouldNotify = await checkAndMarkNotified(
-      db,
-      data.pushoverUserKey,
-      pushoverTargetDeviceName,
-      `proximity_${icao}`,
-      PROXIMITY_NOTIFICATION_COOLDOWN_MS,
-    );
-
-    if (!shouldNotify) {
-      continue;
-    }
-
     if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
       continue;
     }
@@ -98,6 +86,17 @@ export async function collectProximityNotifications(
     );
 
     if (distanceKm <= PROXIMITY_THRESHOLD_KM) {
+      const shouldNotify = await checkAndMarkNotified(
+        db,
+        data.pushoverUserKey,
+        cooldownDeviceName,
+        `proximity_${icao}`,
+        PROXIMITY_NOTIFICATION_COOLDOWN_MS,
+      );
+
+      if (!shouldNotify) {
+        continue;
+      }
       proximityWithin2km++;
       logger.info('Aircraft within 2km detected!', {
         docId,
