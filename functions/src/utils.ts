@@ -42,13 +42,26 @@ export function resolvePushoverDeviceName(
   registeredDevices: Set<string> | null | undefined,
   platform?: string,
 ): string | null {
-  if (!registeredDevices?.size) {
+  const trimmed = (firestoreName ?? '').trim();
+  if (!trimmed) {
     return null;
   }
-  return resolvePushoverDeliveryTarget(
-    firestoreName,
-    platform,
-    [...registeredDevices],
+
+  // Pushover validate failed or was not run — use the device name stored at registration.
+  if (registeredDevices == null) {
+    return trimmed;
+  }
+
+  if (!registeredDevices.size) {
+    return null;
+  }
+
+  return (
+    resolvePushoverDeliveryTarget(
+      trimmed,
+      platform,
+      [...registeredDevices],
+    ) ?? trimmed
   );
 }
 
