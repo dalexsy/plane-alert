@@ -167,7 +167,7 @@ export async function collectMilitaryNotifications(
     const shouldNotify = await checkAndMarkNotified(
       db,
       data.pushoverUserKey,
-      cooldownDeviceName,
+      pushoverTargetDeviceName,
       icao,
       RECENT_NOTIFICATION_TTL_MS,
     );

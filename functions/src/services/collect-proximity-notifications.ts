@@ -75,7 +75,7 @@ export async function collectProximityNotifications(
     const shouldNotify = await checkAndMarkNotified(
       db,
       data.pushoverUserKey,
-      cooldownDeviceName,
+      pushoverTargetDeviceName,
       `proximity_${icao}`,
       PROXIMITY_NOTIFICATION_COOLDOWN_MS,
     );
