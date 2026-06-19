@@ -282,10 +282,13 @@ function isBoringMilitaryAircraft(plane) {
         if (normalizedType) {
             return false;
         }
+        if (isMilitaryCallsign(plane.flight || plane.callsign)) {
+            return false;
+        }
         if (plane.mil === true || plane.dbFlags === 1) {
             return true;
         }
-        return isMilitaryCallsign(plane.flight || plane.callsign);
+        return false;
     }
     const descUpper = desc.toUpperCase();
     if (BORING_MIL_DESC_PATTERN.test(descUpper)) {
