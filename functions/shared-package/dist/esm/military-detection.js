@@ -273,13 +273,10 @@ export function isBoringMilitaryAircraft(plane) {
         if (normalizedType) {
             return false;
         }
-        if (isMilitaryCallsign(plane.flight || plane.callsign)) {
-            return false;
-        }
         if (plane.mil === true || plane.dbFlags === 1) {
             return true;
         }
-        return false;
+        return isMilitaryCallsign(plane.flight || plane.callsign);
     }
     const descUpper = desc.toUpperCase();
     if (BORING_MIL_DESC_PATTERN.test(descUpper)) {
@@ -298,9 +295,11 @@ export function isBoringMilitaryAircraft(plane) {
     })) {
         return true;
     }
-    if ((plane.mil === true || plane.dbFlags === 1) &&
-        !normalizedType &&
-        !INTERESTING_MIL_DESC_PATTERN.test(descUpper)) {
+    if (!normalizedType &&
+        !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
+        (plane.mil === true ||
+            plane.dbFlags === 1 ||
+            isMilitaryCallsign(plane.flight || plane.callsign))) {
         return true;
     }
     return false;
