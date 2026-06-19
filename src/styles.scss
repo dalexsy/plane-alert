@@ -221,10 +221,9 @@ body.animations-disabled *::after {
   color: var(--text-secondary);
 }
 
-.bug-hunter .dryl-textarea,
-.bug-hunter .dryl-modal-content .dryl-textarea,
+.bug-hunter .dryl-modal-content .dryl-select-control,
 .bug-hunter .dryl-modal-content textarea.control-plain,
-.bug-hunter .dryl-modal-content .dryl-select-control {
+.bug-hunter .dryl-modal-content .dryl-textarea {
   color: var(--text-primary);
   -webkit-text-fill-color: var(--text-primary);
   caret-color: var(--text-primary);

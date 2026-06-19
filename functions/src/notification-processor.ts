@@ -44,39 +44,52 @@ async function processDevicesWithSnapshotCache(
     cachedLocations: aircraftCache.size,
   });
 
-  const tasks = docs.map(async (entry) => {
-    const deviceLocation = getDeviceLocation(entry.data);
-    const userKey = entry.data?.pushoverUserKey;
-    const registeredPushoverDevices = getRegisteredPushoverDevices && userKey
+  const docsByUserKey = new Map<string, typeof docs>();
+  for (const entry of docs) {
+    const userKey = entry.data?.pushoverUserKey?.trim();
+    if (!userKey) {
+      continue;
+    }
+    const group = docsByUserKey.get(userKey) ?? [];
+    group.push(entry);
+    docsByUserKey.set(userKey, group);
+  }
+
+  const tasks = [...docsByUserKey.entries()].map(async ([userKey, entries]) => {
+    const registeredPushoverDevices = getRegisteredPushoverDevices
       ? await getRegisteredPushoverDevices(userKey)
       : undefined;
 
-    let cachedSnapshot: CachedAircraftSnapshot | undefined;
-    if (deviceLocation) {
-      cachedSnapshot = aircraftCache.get(
-        locationCacheKey(
-          deviceLocation.lat,
-          deviceLocation.lon,
-          entry.data.radiusKm,
-        ),
+    for (const entry of entries) {
+      const deviceLocation = getDeviceLocation(entry.data);
+
+      let cachedSnapshot: CachedAircraftSnapshot | undefined;
+      if (deviceLocation) {
+        cachedSnapshot = aircraftCache.get(
+          locationCacheKey(
+            deviceLocation.lat,
+            deviceLocation.lon,
+            entry.data.radiusKm,
+          ),
+        );
+      }
+
+      await notifyForDevice(
+        db,
+        entry.ref,
+        entry.data,
+        entry.id,
+        registeredPushoverDevices,
+        cachedSnapshot,
+      ).catch((error) =>
+        logger.error('notifyForDevice failed', {
+          docId: entry.id,
+          deviceName: entry.data.deviceName,
+          userKey: entry.data.pushoverUserKey?.slice(0, 8),
+          error,
+        }),
       );
     }
-
-    return notifyForDevice(
-      db,
-      entry.ref,
-      entry.data,
-      entry.id,
-      registeredPushoverDevices,
-      cachedSnapshot,
-    ).catch((error) =>
-      logger.error('notifyForDevice failed', {
-        docId: entry.id,
-        deviceName: entry.data.deviceName,
-        userKey: entry.data.pushoverUserKey?.slice(0, 8),
-        error,
-      }),
-    );
   });
 
   await Promise.all(tasks);

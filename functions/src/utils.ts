@@ -47,21 +47,16 @@ export function resolvePushoverDeviceName(
     return null;
   }
 
-  // Pushover validate failed or was not run — use the device name stored at registration.
-  if (registeredDevices == null) {
-    return trimmed;
-  }
-
-  if (!registeredDevices.size) {
+  // Never guess a delivery target — unmatched rows are skipped so dedupe and
+  // user+ICAO cooldowns cannot double-notify the same Pushover device.
+  if (registeredDevices == null || !registeredDevices.size) {
     return null;
   }
 
-  return (
-    resolvePushoverDeliveryTarget(
-      trimmed,
-      platform,
-      [...registeredDevices],
-    ) ?? trimmed
+  return resolvePushoverDeliveryTarget(
+    trimmed,
+    platform,
+    [...registeredDevices],
   );
 }
 
