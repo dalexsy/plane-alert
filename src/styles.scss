@@ -212,6 +212,7 @@ body.animations-disabled *::after {
   transition-delay: 0s !important;
 }
 
+.bug-hunter .dryl-textarea,
 .bug-hunter .dryl-modal-content .dryl-textarea {
   color: var(--text-primary);
   -webkit-text-fill-color: var(--text-primary);
