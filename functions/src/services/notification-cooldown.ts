@@ -27,12 +27,21 @@ export async function checkAndMarkNotified(
         .collection(COOLDOWN_COLLECTION)
         .doc(`${userKey}__${deviceName}__${icao}`)
     : null;
+  const legacyProximityCooldownRef =
+    !icao.startsWith('proximity_')
+      ? db
+          .collection(COOLDOWN_COLLECTION)
+          .doc(`${userKey}__proximity_${icao}`)
+      : null;
 
   try {
     const shouldNotify = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(cooldownRef);
       const legacyDoc = legacyCooldownRef
         ? await transaction.get(legacyCooldownRef)
+        : null;
+      const legacyProximityDoc = legacyProximityCooldownRef
+        ? await transaction.get(legacyProximityCooldownRef)
         : null;
       const now = Date.now();
 
@@ -42,6 +51,9 @@ export async function checkAndMarkNotified(
       const lastSentValues = [
         doc.exists ? doc.data()?.lastSent || 0 : 0,
         legacyDoc?.exists ? legacyDoc.data()?.lastSent || 0 : 0,
+        legacyProximityDoc?.exists
+          ? legacyProximityDoc.data()?.lastSent || 0
+          : 0,
       ];
       const recentLastSent = Math.max(...lastSentValues);
 
@@ -74,6 +86,10 @@ export async function checkAndMarkNotified(
 
       if (legacyCooldownRef && legacyDoc?.exists) {
         transaction.delete(legacyCooldownRef);
+      }
+
+      if (legacyProximityCooldownRef && legacyProximityDoc?.exists) {
+        transaction.delete(legacyProximityCooldownRef);
       }
 
       return true;

@@ -7,14 +7,15 @@ import {
   computeBearing,
   bearingToCardinal,
   getAircraftTypeName,
+  looksMilitary,
+  isMilitaryCallsign,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from '../types';
-import { FRONTEND_BASE_URL } from '../constants';
+import { FRONTEND_BASE_URL, RECENT_NOTIFICATION_TTL_MS } from '../constants';
 import { checkAndMarkNotified } from './notification-cooldown';
 import type { PendingNotification } from './notification-types';
 
 const PROXIMITY_THRESHOLD_KM = 3.0;
-const PROXIMITY_NOTIFICATION_COOLDOWN_MS = 5 * 60 * 1000;
 
 export interface CollectProximityNotificationsParams {
   db: admin.firestore.Firestore;
@@ -72,6 +73,18 @@ export async function collectProximityNotifications(
     const icao = plane.hex?.toUpperCase();
     if (!icao) continue;
 
+    const callsign =
+      normalizeCallsign(plane.flight || plane.callsign) ||
+      plane.hex.toUpperCase();
+    const isMilitaryPlane =
+      looksMilitary(plane) ||
+      isMilitaryCallsign(plane.flight || plane.callsign) ||
+      plane.mil === true ||
+      plane.dbFlags === 1;
+    if (isMilitaryPlane) {
+      continue;
+    }
+
     if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
       continue;
     }
@@ -90,8 +103,8 @@ export async function collectProximityNotifications(
         db,
         data.pushoverUserKey,
         cooldownDeviceName,
-        `proximity_${icao}`,
-        PROXIMITY_NOTIFICATION_COOLDOWN_MS,
+        icao,
+        RECENT_NOTIFICATION_TTL_MS,
       );
 
       if (!shouldNotify) {
@@ -102,11 +115,8 @@ export async function collectProximityNotifications(
         docId,
         icao,
         distanceKm: distanceKm.toFixed(3),
-        callsign: plane.flight || plane.callsign || 'unknown',
+        callsign: callsign || 'unknown',
       });
-      const callsign =
-        normalizeCallsign(plane.flight || plane.callsign) ||
-        plane.hex.toUpperCase();
       const model =
         plane.desc ||
         (plane.t ? getAircraftTypeName(plane.t) : null) ||
