@@ -23,14 +23,16 @@ You are not done until production proves the fix survived.
 
 See **`agent-pipeline.mdc`** for tickets, production before/after screenshots, and branch cleanup — same pipeline for chat fixes and designer tickets.
 
-1. **File** an `ops-agent-*` session ticket and state its ID (mandatory — even for chat-started fixes).
-2. **Before screenshot** on the live `https://*.dryl.io` ticket URL when one applies (`capture-agent-fix-evidence.mjs --phase before`).
-3. **Fix** root cause in the **owning** repo(s) — not a partial refactor.
-4. **Deploy** to production (`npm run deploy:dryl` or the repo's documented deploy command).
-5. **Unblock gates** — if deploy fails on directory scripts, `@dryl/ui`, dryl-auth, or any shared gate, **fix that repo first**, then redeploy the app you touched.
-6. **Verify** — deploy log + `verify-dryl-app` / `verify:console` / `verify:visual` per `directory/.cursor/rules/deploy-verify-loop.mdc`.
-7. **After screenshot** on production + **Read** both before/after PNGs when a ticket is open.
-8. **Resolve** ticket, merge ticket branch to `main` if used, **say done** only when the loop is clean.
+1. **File** an `ops-agent-*` session ticket and state its ID (mandatory — even for chat-started fixes). State ticket ID in your **first response line**.
+2. **Create a todo list** (mandatory) — use the TodoWrite tool with every distinct step as a task. Mark `in_progress` before starting each step, `completed` when done. Never end a turn with unmarked or pending todos for completed work. This is your accountability to other agents and to Daryl.
+3. **Check for parallel agents** — before deploying to shared infrastructure (Pi, nginx, shared CSS, nginx), fetch open tickets: `GET http://localhost:3905/api/client-errors/reports?limit=20`. If another agent has an active `fixing` ticket for the same target, update your ticket summary with coordination notes. Do not deploy over in-progress work blindly.
+4. **Before screenshot** on the live `https://*.dryl.io` ticket URL when one applies (`capture-agent-fix-evidence.mjs --phase before`).
+5. **Fix** root cause in the **owning** repo(s) — not a partial refactor.
+6. **Deploy** to production (`npm run deploy:dryl` or the repo's documented deploy command).
+7. **Unblock gates** — if deploy fails on directory scripts, `@dryl/ui`, dryl-auth, or any shared gate, **fix that repo first**, then redeploy the app you touched.
+8. **Verify** — deploy log + `verify-dryl-app` / `verify:console` / `verify:visual` per `directory/.cursor/rules/deploy-verify-loop.mdc`.
+9. **After screenshot** on production + **Read** both before/after PNGs when a ticket is open.
+10. **Resolve** ticket, merge ticket branch to `main` if used, **say done** only when the loop is clean.
 
 ### Rule precedence (breaks ties)
 
@@ -52,6 +54,8 @@ When instructions conflict, follow this order:
 - Stopping after a local build when the changed app is a hosted `*.dryl.io` site
 - Asking Daryl to **paste error codes**, console output, deploy logs, or screenshots you can read via tools/APIs
 - Leaving open client-error groups on **https://health.dryl.io/errors** uncleared after a fix without naming why they remain
+- Treating a deploy `[warn]` line as harmless — **warnings block production**. A `[warn]` in deploy output is a failed deploy. Fix the warning in the owning repo and redeploy. Do not rugsweep with "non-critical" framing. Exception: use `[info]` (not `[warn]`) for expected fallbacks that do not degrade functionality (e.g. "using built-in list"). Reserve `[warn]` for genuine degradation that must be fixed.
+- Ending a ship task with todo items still marked pending — complete all todos before saying done, or explicitly cancel them with a reason.
 
 ### Self-serve information (do not use Daryl as relay)
 
@@ -185,6 +189,8 @@ These communicate state so Daryl and future agents are not blind:
 | **Global error inbox** | Cross-app sickness visible | `GET /api/client-errors?limit=50` at session start/end |
 | **Debugging notes** | Do not repeat failed experiments | Read + append `.cursor/rules/debugging.md` |
 | **Session ticket** | Other agents see active work | `ops-agent-*` filed + ID in first response line |
+| **Todo list** | Accountability to other agents + Daryl; no invisible work | TodoWrite tool with in_progress/completed per step; never end turn with uncompleted work unmarked |
+| **Parallel agent check** | Avoid deploying over another agent's in-progress work | `GET :3905/api/client-errors/reports?limit=20` before any shared-infra deploy |
 | **Fix evidence PNGs** | Prove symptom before/after on production | `capture-agent-fix-evidence.mjs` before + after |
 
 Unnamed or silent states are the same class of failure as a 500.
