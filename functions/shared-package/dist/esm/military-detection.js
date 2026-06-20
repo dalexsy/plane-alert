@@ -290,6 +290,10 @@ export function isBoringMilitaryAircraft(plane) {
         if (normalizedType) {
             return false;
         }
+        // Untyped USAF tracks are almost always VIP/cargo, not airshow fighters.
+        if (normalizeCallsign(callsign).startsWith('USAF')) {
+            return true;
+        }
         // Interesting callsigns (RRR, BAF, …) without type/desc still warrant alerts.
         // Boring VIP/cargo prefixes (GAF, RCH, …) are filtered above via isBoringMilitaryCallsign.
         if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
@@ -325,20 +329,15 @@ export function isBoringMilitaryAircraft(plane) {
     if (hasMilitarySignal &&
         !INTERESTING_MIL_DESC_PATTERN.test(descUpper)) {
         if (!normalizedType) {
+            if (normalizeCallsign(callsign).startsWith('USAF')) {
+                return true;
+            }
             if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
                 return false;
             }
             return true;
         }
-        // Operator-only desc (e.g. "United States Air Force") with a non-interesting
-        // ICAO type is still a boring VIP/transport track, not a fighter.
-        if (isMilitaryOperator(desc) &&
-            !INTERESTING_MIL_DESC_PATTERN.test(normalizedType)) {
-            if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
-                return false;
-            }
-            return true;
-        }
+        // Typed tracks (EUFI, TOR, …) are not boring just because desc is operator-only.
     }
     return false;
 }
