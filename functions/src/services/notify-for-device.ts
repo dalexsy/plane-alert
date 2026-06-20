@@ -97,19 +97,22 @@ export async function notifyForDevice(
           data.platform,
         );
 
-    if (!broadcastAllDevices && pushoverTargetName === null) {
-      logger.info('Skipping device — no matching Pushover device', {
-        docId,
-        userKey: data.pushoverUserKey.slice(0, 8),
-        firestoreDeviceName: data.deviceName,
-        pushoverDevices: registeredPushoverDevices
-          ? [...registeredPushoverDevices]
-          : [],
-      });
-      return;
-    }
+    const deliverToAllDevices =
+      broadcastAllDevices || pushoverTargetName === null;
 
-    const deliverToAllDevices = broadcastAllDevices;
+    if (!broadcastAllDevices && pushoverTargetName === null) {
+      logger.warn(
+        'No Pushover device match; broadcasting to all account devices',
+        {
+          docId,
+          userKey: data.pushoverUserKey.slice(0, 8),
+          firestoreDeviceName: data.deviceName,
+          pushoverDevices: registeredPushoverDevices
+            ? [...registeredPushoverDevices]
+            : [],
+        },
+      );
+    }
 
     if (
       !broadcastAllDevices &&
