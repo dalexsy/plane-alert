@@ -10,6 +10,7 @@ import {
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import {
+  dedupeDeviceRegistrationsByPushoverTarget,
   dedupeToOneRegistrationPerUser,
 } from './services/dedupe-device-registrations';
 import {
@@ -64,36 +65,42 @@ async function processDevicesWithSnapshotCache(
       ? await getRegisteredPushoverDevices(userKey)
       : undefined;
 
-    for (const entry of entries) {
-      const deviceLocation = getDeviceLocation(entry.data);
+    if (entries.length > 1) {
+      logger.warn('Multiple device registrations for one Pushover user; notifying once', {
+        userKey: userKey.slice(0, 8),
+        registrationCount: entries.length,
+      });
+    }
 
-      let cachedSnapshot: CachedAircraftSnapshot | undefined;
-      if (deviceLocation) {
-        cachedSnapshot = aircraftCache.get(
-          locationCacheKey(
-            deviceLocation.lat,
-            deviceLocation.lon,
-            entry.data.radiusKm,
-          ),
-        );
-      }
+    const entry = entries[0];
+    const deviceLocation = getDeviceLocation(entry.data);
 
-      await notifyForDevice(
-        db,
-        entry.ref,
-        entry.data,
-        entry.id,
-        registeredPushoverDevices,
-        cachedSnapshot,
-      ).catch((error) =>
-        logger.error('notifyForDevice failed', {
-          docId: entry.id,
-          deviceName: entry.data.deviceName,
-          userKey: entry.data.pushoverUserKey?.slice(0, 8),
-          error,
-        }),
+    let cachedSnapshot: CachedAircraftSnapshot | undefined;
+    if (deviceLocation) {
+      cachedSnapshot = aircraftCache.get(
+        locationCacheKey(
+          deviceLocation.lat,
+          deviceLocation.lon,
+          entry.data.radiusKm,
+        ),
       );
     }
+
+    await notifyForDevice(
+      db,
+      entry.ref,
+      entry.data,
+      entry.id,
+      registeredPushoverDevices,
+      cachedSnapshot,
+    ).catch((error) =>
+      logger.error('notifyForDevice failed', {
+        docId: entry.id,
+        deviceName: entry.data.deviceName,
+        userKey: entry.data.pushoverUserKey?.slice(0, 8),
+        error,
+      }),
+    );
   });
 
   await Promise.all(tasks);
@@ -200,9 +207,22 @@ async function runNotificationProcessingBody(
   };
 
 
-  // Cooldowns are keyed by user+ICAO; one Firestore row per Pushover user prevents
-  // duplicate Pushover deliveries when stale duplicate registrations exist.
-  const dedupeResult = dedupeToOneRegistrationPerUser(activeDevices);
+  const registeredDevicesByUserKey = new Map<string, Set<string>>();
+  for (const userKey of userKeys) {
+    const devices = await getRegisteredPushoverDevices(userKey);
+    if (devices?.size) {
+      registeredDevicesByUserKey.set(userKey, devices);
+    }
+  }
+
+  // Broadcast: one registration per user (empty device → all Pushover clients).
+  // Targeted: one registration per resolved Pushover device (stops Pixel doubles).
+  const dedupeResult = broadcastAllDevices
+    ? dedupeToOneRegistrationPerUser(activeDevices)
+    : dedupeDeviceRegistrationsByPushoverTarget(
+        activeDevices,
+        registeredDevicesByUserKey,
+      );
 
   const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
