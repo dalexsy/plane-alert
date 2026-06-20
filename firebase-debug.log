@@ -1,0 +1,22 @@
+[debug] [2026-06-20T10:40:42.419Z] ----------------------------------------------------------------------
+[debug] [2026-06-20T10:40:42.421Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\dalex\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js functions:log --only processPlanes -n 400
+[debug] [2026-06-20T10:40:42.422Z] CLI Version:   15.3.1
+[debug] [2026-06-20T10:40:42.422Z] Platform:      win32
+[debug] [2026-06-20T10:40:42.422Z] Node Version:  v22.14.0
+[debug] [2026-06-20T10:40:42.422Z] Time:          Sat Jun 20 2026 12:40:42 GMT+0200 (Central European Summer Time)
+[debug] [2026-06-20T10:40:42.422Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-20T10:40:42.576Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-20T10:40:42.576Z] > authorizing via signed-in user (darylumfrage@gmail.com)
+[debug] [2026-06-20T10:40:42.576Z] [iam] checking project plane-alert-800ff for permissions ["firebase.projects.get","logging.logEntries.list","logging.logs.list"]
+[debug] [2026-06-20T10:40:42.577Z] Checked if tokens are valid: true, expires at: 1781954172942
+[debug] [2026-06-20T10:40:42.577Z] Checked if tokens are valid: true, expires at: 1781954172942
+[debug] [2026-06-20T10:40:42.578Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions [none]
+[debug] [2026-06-20T10:40:42.578Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions x-goog-quota-user=projects/plane-alert-800ff
+[debug] [2026-06-20T10:40:42.578Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions {"permissions":["firebase.projects.get","logging.logEntries.list","logging.logs.list"]}
+[debug] [2026-06-20T10:40:43.279Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions 200
+[debug] [2026-06-20T10:40:43.279Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions {"permissions":["firebase.projects.get","logging.logEntries.list","logging.logs.list"]}
+[debug] [2026-06-20T10:40:43.279Z] Checked if tokens are valid: true, expires at: 1781954172942
+[debug] [2026-06-20T10:40:43.279Z] Checked if tokens are valid: true, expires at: 1781954172942
+[debug] [2026-06-20T10:40:43.279Z] >>> [apiv2][query] POST https://logging.googleapis.com/v2/entries:list [none]
+[debug] [2026-06-20T10:40:43.279Z] >>> [apiv2][body] POST https://logging.googleapis.com/v2/entries:list {"resourceNames":["projects/plane-alert-800ff"],"filter":"resource.type=\"cloud_function\" OR (resource.type=\"cloud_run_revision\" AND labels.\"goog-managed-by\"=\"cloudfunctions\")\n(resource.labels.function_name=\"processPlanes\" OR resource.labels.service_name=\"processPlanes\")","orderBy":"timestamp desc","pageSize":"400"}
