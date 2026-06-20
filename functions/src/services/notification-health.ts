@@ -1,10 +1,13 @@
+import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import {
+  PROCESS_PLANES_LOCK_TTL_MS,
   SYSTEM_HEALTH_COLLECTION,
   NOTIFICATION_HEALTH_DOC_ID,
 } from '../constants';
 
 export interface NotificationHealthState {
+  processPlanesLockedAt?: number;
   processPlanesLastRunAt?: number;
   processPlanesLastSuccessAt?: number;
   processPlanesLastError?: string;
@@ -36,6 +39,50 @@ async function mergeHealth(
   patch: Partial<NotificationHealthState>,
 ): Promise<void> {
   await healthRef(db).set(patch, { merge: true });
+}
+
+export async function tryAcquireProcessPlanesLock(
+  db: admin.firestore.Firestore,
+): Promise<boolean> {
+  const ref = healthRef(db);
+
+  try {
+    return await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref);
+      const data = (snap.data() as NotificationHealthState | undefined) ?? {};
+      const now = Date.now();
+      const lockedAt = data.processPlanesLockedAt;
+
+      if (lockedAt && now - lockedAt < PROCESS_PLANES_LOCK_TTL_MS) {
+        return false;
+      }
+
+      transaction.set(ref, { processPlanesLockedAt: now }, { merge: true });
+      return true;
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn('Failed to acquire processPlanes lock', { error: message });
+    return false;
+  }
+}
+
+export async function releaseProcessPlanesLock(
+  db: admin.firestore.Firestore,
+): Promise<void> {
+  await mergeHealth(db, {
+    processPlanesLockedAt: admin.firestore.FieldValue.delete() as any,
+  });
+}
+
+export function isProcessPlanesLockHeld(
+  health: NotificationHealthState,
+  now = Date.now(),
+): boolean {
+  const lockedAt = health.processPlanesLockedAt;
+  return Boolean(
+    lockedAt && now - lockedAt < PROCESS_PLANES_LOCK_TTL_MS,
+  );
 }
 
 export async function recordProcessPlanesStart(

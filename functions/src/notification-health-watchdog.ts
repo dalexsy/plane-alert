@@ -11,6 +11,7 @@ import {
   readNotificationHealth,
   recordWatchdogRecovery,
   recordWatchdogRecoveryFailure,
+  isProcessPlanesLockHeld,
 } from './services/notification-health';
 
 function isStale(timestamp: number | undefined, now: number): boolean {
@@ -61,7 +62,13 @@ export function createNotificationHealthWatchdog(
 
       try {
         if (isStale(health.processPlanesLastSuccessAt, now)) {
-          await runNotificationProcessing(db);
+          if (isProcessPlanesLockHeld(health, now)) {
+            logger.info(
+              'processPlanes lock held, skipping watchdog recovery run',
+            );
+          } else {
+            await runNotificationProcessing(db);
+          }
         }
         if (isStale(health.collectAircraftLastSuccessAt, now)) {
           await runAircraftCollection(db);

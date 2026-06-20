@@ -212,6 +212,18 @@ body.animations-disabled *::after {
   transition-delay: 0s !important;
 }
 
+// Bug-hunter mounts outside Angular; ensure modal tokens resolve on the host subtree.
+.bug-hunter {
+  --text-primary: #fff;
+  --text-secondary: rgb(255 255 255 / 70%);
+  --background-primary: #000;
+  --background-secondary: #1a1a1a;
+  --background-tertiary: #2a2a2a;
+  --border-primary: rgb(255 255 255 / 20%);
+  --border-secondary: rgb(255 255 255 / 15%);
+  color: var(--text-primary);
+}
+
 .bug-hunter .dryl-modal-content {
   color: var(--text-primary);
   background: var(--background-primary);
