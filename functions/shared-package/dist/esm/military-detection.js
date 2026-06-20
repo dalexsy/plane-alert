@@ -273,11 +273,11 @@ export function isBoringMilitaryAircraft(plane) {
         if (normalizedType) {
             return false;
         }
-        if (isMilitaryCallsign(plane.flight || plane.callsign)) {
-            return false;
-        }
         if (plane.mil === true || plane.dbFlags === 1) {
             return true;
+        }
+        if (isMilitaryCallsign(plane.flight || plane.callsign)) {
+            return false;
         }
         return false;
     }
