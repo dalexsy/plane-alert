@@ -197,7 +197,7 @@ export const MIL_CALLSIGN_PREFIXES = [
  * liaison flights — not fighters. Used when ADS-B has no mil flag or type.
  */
 export const BORING_MIL_CALLSIGN_PREFIXES = [
-  'GAF', // Luftwaffe (VIP/cargo — rarely fighters on ADS-B)
+  'GAF', // Luftwaffe VIP/cargo (rarely fighters without type/desc)
   'RCH', // AMC Reach cargo
   'CNV', // Convoy
   'PAT', // Special Air Mission (VIP transport)
