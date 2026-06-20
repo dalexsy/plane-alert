@@ -313,12 +313,12 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
     if (normalizedType) {
       return false;
     }
-    // Known military callsigns (USAF, RRR, …) without type/desc are still interesting.
-    // Boring VIP/cargo prefixes (GAF, RCH, …) are filtered above via isBoringMilitaryCallsign.
-    if (isMilitaryCallsign(callsign)) {
-      return false;
-    }
+    // mil/dbFlags before callsign: ADS-B flagged military with no type is usually
+    // a boring transport; callsign-only without type/desc is too (USAF/RCH VIP jets).
     if (plane.mil === true || plane.dbFlags === 1) {
+      return true;
+    }
+    if (isMilitaryCallsign(callsign)) {
       return true;
     }
     return false;
@@ -353,11 +353,6 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
       plane.dbFlags === 1 ||
       isMilitaryCallsign(callsign))
   ) {
-    // Operator-only desc (e.g. "Royal Air Force") is ambiguous, but known
-    // interesting callsigns (USAF, RRR, …) still warrant alerts at airshows.
-    if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
-      return false;
-    }
     return true;
   }
 
@@ -367,9 +362,6 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
     isMilitaryOperator(desc) &&
     (plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign))
   ) {
-    if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
-      return false;
-    }
     return true;
   }
 
