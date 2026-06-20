@@ -351,8 +351,13 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
     !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
     (plane.mil === true ||
       plane.dbFlags === 1 ||
-      isMilitaryCallsign(plane.flight || plane.callsign))
+      isMilitaryCallsign(callsign))
   ) {
+    // Operator-only desc (e.g. "Royal Air Force") is ambiguous, but known
+    // interesting callsigns (USAF, RRR, …) still warrant alerts at airshows.
+    if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+      return false;
+    }
     return true;
   }
 
@@ -360,10 +365,11 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
     !normalizedType &&
     !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
     isMilitaryOperator(desc) &&
-    (plane.mil === true ||
-      plane.dbFlags === 1 ||
-      isMilitaryCallsign(plane.flight || plane.callsign))
+    (plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign))
   ) {
+    if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+      return false;
+    }
     return true;
   }
 
