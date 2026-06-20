@@ -202,6 +202,7 @@ exports.MIL_CALLSIGN_PREFIXES = [
  * liaison flights — not fighters. Used when ADS-B has no mil flag or type.
  */
 exports.BORING_MIL_CALLSIGN_PREFIXES = [
+    'GAF', // Luftwaffe VIP/cargo (rarely fighters without type/desc)
     'RCH', // AMC Reach cargo
     'CNV', // Convoy
     'PAT', // Special Air Mission (VIP transport)
@@ -300,12 +301,12 @@ function isBoringMilitaryAircraft(plane) {
             return false;
         }
         // mil/dbFlags before callsign: ADS-B flagged military with no type is usually
-        // a boring transport; callsign-only without type/desc is too (GAF/RCH VIP jets).
+        // a boring transport; other callsign-only tracks may still be fighters.
         if (plane.mil === true || plane.dbFlags === 1) {
             return true;
         }
         if (isMilitaryCallsign(callsign)) {
-            return true;
+            return false;
         }
         return false;
     }
@@ -333,7 +334,8 @@ function isBoringMilitaryAircraft(plane) {
             isMilitaryCallsign(plane.flight || plane.callsign))) {
         return true;
     }
-    if (!INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
+    if (!normalizedType &&
+        !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
         isMilitaryOperator(desc) &&
         (plane.mil === true ||
             plane.dbFlags === 1 ||

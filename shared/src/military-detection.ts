@@ -357,6 +357,7 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
   }
 
   if (
+    !normalizedType &&
     !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
     isMilitaryOperator(desc) &&
     (plane.mil === true ||
