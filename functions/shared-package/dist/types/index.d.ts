@@ -6,7 +6,7 @@
  */
 export type { CountryDetectionResult, IcaoCountryRange, AdsBPlane, } from './types';
 export { getCountryFromIcaoHex, getCountryFromRegistration, getAircraftCountry, getRegistrationPrefixesForCountry, isKnownCountry, ICAO_LOOKUP_CONFIG, } from './country-detection';
-export { looksMilitary, isBoringMilitaryAircraft, normalizeCallsign, isMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
+export { looksMilitary, isBoringMilitaryAircraft, normalizeCallsign, isMilitaryCallsign, isBoringMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, BORING_MIL_CALLSIGN_PREFIXES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
 export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';
 export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, getCountryFlagEmoji, } from './notification-formatter';
 export type { NotificationData } from './notification-formatter';

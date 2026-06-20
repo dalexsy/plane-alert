@@ -12,6 +12,11 @@ export declare const BORING_AIRCRAFT_TYPES: string[];
  */
 export declare const MIL_CALLSIGN_PREFIXES: string[];
 /**
+ * Military callsign prefixes that almost always indicate cargo, VIP, or
+ * liaison flights — not fighters. Used when ADS-B has no mil flag or type.
+ */
+export declare const BORING_MIL_CALLSIGN_PREFIXES: string[];
+/**
  * Military operator keywords (for operator name matching)
  */
 export declare const MIL_OPERATOR_KEYWORDS: string[];
@@ -36,6 +41,7 @@ export declare function looksMilitary(plane: AdsBPlane): boolean;
  * Checks if a callsign matches known military prefixes
  */
 export declare function isMilitaryCallsign(callsign?: string): boolean;
+export declare function isBoringMilitaryCallsign(callsign?: string): boolean;
 /**
  * Checks if an operator name contains military keywords
  */

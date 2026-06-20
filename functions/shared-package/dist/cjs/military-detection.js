@@ -3,12 +3,13 @@
  * Military aircraft detection and classification logic
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = void 0;
+exports.MIL_OPERATOR_KEYWORDS = exports.BORING_MIL_CALLSIGN_PREFIXES = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = void 0;
 exports.normalizeCallsign = normalizeCallsign;
 exports.shouldSkipBoringMilitaryFilter = shouldSkipBoringMilitaryFilter;
 exports.isBoringMilitaryAircraft = isBoringMilitaryAircraft;
 exports.looksMilitary = looksMilitary;
 exports.isMilitaryCallsign = isMilitaryCallsign;
+exports.isBoringMilitaryCallsign = isBoringMilitaryCallsign;
 exports.isMilitaryOperator = isMilitaryOperator;
 const aircraft_type_names_1 = require("./aircraft-type-names");
 /**
@@ -197,6 +198,19 @@ exports.MIL_CALLSIGN_PREFIXES = [
     'WCO',
 ];
 /**
+ * Military callsign prefixes that almost always indicate cargo, VIP, or
+ * liaison flights — not fighters. Used when ADS-B has no mil flag or type.
+ */
+exports.BORING_MIL_CALLSIGN_PREFIXES = [
+    'GAF', // Luftwaffe (VIP/cargo — rarely fighters on ADS-B)
+    'RCH', // AMC Reach cargo
+    'CNV', // Convoy
+    'PAT', // Special Air Mission (VIP transport)
+    'SPAR', // Special Air Resource
+    'CTM', // Cargo Transport Mission
+    'MAM', // Military air movement
+];
+/**
  * Military operator keywords (for operator name matching)
  */
 exports.MIL_OPERATOR_KEYWORDS = [
@@ -272,6 +286,10 @@ function isBoringMilitaryAircraft(plane) {
     if (shouldSkipBoringMilitaryFilter(plane)) {
         return false;
     }
+    const callsign = plane.flight || plane.callsign;
+    if (isBoringMilitaryCallsign(callsign)) {
+        return true;
+    }
     const normalizedType = getNormalizedTypeCode(plane);
     if (normalizedType &&
         exports.BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
@@ -283,11 +301,11 @@ function isBoringMilitaryAircraft(plane) {
             return false;
         }
         // mil/dbFlags before callsign: ADS-B flagged military with no type is usually
-        // a boring transport; callsign-only (no mil flag) may still be an interesting fighter.
+        // a boring transport; other callsign-only tracks may still be fighters.
         if (plane.mil === true || plane.dbFlags === 1) {
             return true;
         }
-        if (isMilitaryCallsign(plane.flight || plane.callsign)) {
+        if (isMilitaryCallsign(callsign)) {
             return false;
         }
         return false;
@@ -316,6 +334,13 @@ function isBoringMilitaryAircraft(plane) {
             isMilitaryCallsign(plane.flight || plane.callsign))) {
         return true;
     }
+    if (!INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
+        isMilitaryOperator(desc) &&
+        (plane.mil === true ||
+            plane.dbFlags === 1 ||
+            isMilitaryCallsign(plane.flight || plane.callsign))) {
+        return true;
+    }
     return false;
 }
 function looksMilitary(plane) {
@@ -335,6 +360,13 @@ function isMilitaryCallsign(callsign) {
     }
     const normalized = normalizeCallsign(callsign);
     return exports.MIL_CALLSIGN_PREFIXES.some((prefix) => normalized.startsWith(prefix.replace(/[^A-Z0-9]/gi, '').toUpperCase()));
+}
+function isBoringMilitaryCallsign(callsign) {
+    if (!callsign) {
+        return false;
+    }
+    const normalized = normalizeCallsign(callsign);
+    return exports.BORING_MIL_CALLSIGN_PREFIXES.some((prefix) => normalized.startsWith(prefix.replace(/[^A-Z0-9]/gi, '').toUpperCase()));
 }
 /**
  * Checks if an operator name contains military keywords

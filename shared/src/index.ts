@@ -28,9 +28,11 @@ export {
   isBoringMilitaryAircraft,
   normalizeCallsign,
   isMilitaryCallsign,
+  isBoringMilitaryCallsign,
   isMilitaryOperator,
   shouldSkipBoringMilitaryFilter,
   BORING_AIRCRAFT_TYPES,
+  BORING_MIL_CALLSIGN_PREFIXES,
   MIL_CALLSIGN_PREFIXES,
   MIL_OPERATOR_KEYWORDS,
 } from './military-detection';
