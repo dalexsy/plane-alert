@@ -24,6 +24,8 @@ import {
   recordProcessPlanesFailure,
   recordProcessPlanesStart,
   recordProcessPlanesSuccess,
+  releaseProcessPlanesLock,
+  tryAcquireProcessPlanesLock,
 } from './services/notification-health';
 
 async function processDevicesWithSnapshotCache(
@@ -99,6 +101,22 @@ async function processDevicesWithSnapshotCache(
 }
 
 export async function runNotificationProcessing(
+  db: admin.firestore.Firestore,
+): Promise<void> {
+  const acquired = await tryAcquireProcessPlanesLock(db);
+  if (!acquired) {
+    logger.info('Skipping processPlanes — another run is in progress');
+    return;
+  }
+
+  try {
+    await runNotificationProcessingBody(db);
+  } finally {
+    await releaseProcessPlanesLock(db);
+  }
+}
+
+async function runNotificationProcessingBody(
   db: admin.firestore.Firestore,
 ): Promise<void> {
   const broadcastAllDevices = shouldBroadcastToAllDevices();
