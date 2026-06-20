@@ -300,8 +300,12 @@ function isBoringMilitaryAircraft(plane) {
         if (normalizedType) {
             return false;
         }
-        // mil/dbFlags before callsign: ADS-B flagged military with no type is usually
-        // a boring transport; callsign-only without type/desc is too (USAF/RCH VIP jets).
+        // Interesting callsigns (RRR, BAF, …) without type/desc still warrant alerts.
+        // Boring VIP/cargo prefixes (GAF, RCH, …) are filtered above via isBoringMilitaryCallsign.
+        if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+            return false;
+        }
+        // mil/dbFlags without type/desc is usually a boring transport.
         if (plane.mil === true || plane.dbFlags === 1) {
             return true;
         }
@@ -331,12 +335,18 @@ function isBoringMilitaryAircraft(plane) {
     if (hasMilitarySignal &&
         !INTERESTING_MIL_DESC_PATTERN.test(descUpper)) {
         if (!normalizedType) {
+            if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+                return false;
+            }
             return true;
         }
         // Operator-only desc (e.g. "United States Air Force") with a non-interesting
         // ICAO type is still a boring VIP/transport track, not a fighter.
         if (isMilitaryOperator(desc) &&
             !INTERESTING_MIL_DESC_PATTERN.test(normalizedType)) {
+            if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+                return false;
+            }
             return true;
         }
     }
