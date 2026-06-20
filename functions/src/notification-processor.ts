@@ -65,36 +65,42 @@ async function processDevicesWithSnapshotCache(
       ? await getRegisteredPushoverDevices(userKey)
       : undefined;
 
-    for (const entry of entries) {
-      const deviceLocation = getDeviceLocation(entry.data);
+    if (entries.length > 1) {
+      logger.warn('Multiple device registrations for one Pushover user; notifying once', {
+        userKey: userKey.slice(0, 8),
+        registrationCount: entries.length,
+      });
+    }
 
-      let cachedSnapshot: CachedAircraftSnapshot | undefined;
-      if (deviceLocation) {
-        cachedSnapshot = aircraftCache.get(
-          locationCacheKey(
-            deviceLocation.lat,
-            deviceLocation.lon,
-            entry.data.radiusKm,
-          ),
-        );
-      }
+    const entry = entries[0];
+    const deviceLocation = getDeviceLocation(entry.data);
 
-      await notifyForDevice(
-        db,
-        entry.ref,
-        entry.data,
-        entry.id,
-        registeredPushoverDevices,
-        cachedSnapshot,
-      ).catch((error) =>
-        logger.error('notifyForDevice failed', {
-          docId: entry.id,
-          deviceName: entry.data.deviceName,
-          userKey: entry.data.pushoverUserKey?.slice(0, 8),
-          error,
-        }),
+    let cachedSnapshot: CachedAircraftSnapshot | undefined;
+    if (deviceLocation) {
+      cachedSnapshot = aircraftCache.get(
+        locationCacheKey(
+          deviceLocation.lat,
+          deviceLocation.lon,
+          entry.data.radiusKm,
+        ),
       );
     }
+
+    await notifyForDevice(
+      db,
+      entry.ref,
+      entry.data,
+      entry.id,
+      registeredPushoverDevices,
+      cachedSnapshot,
+    ).catch((error) =>
+      logger.error('notifyForDevice failed', {
+        docId: entry.id,
+        deviceName: entry.data.deviceName,
+        userKey: entry.data.pushoverUserKey?.slice(0, 8),
+        error,
+      }),
+    );
   });
 
   await Promise.all(tasks);
