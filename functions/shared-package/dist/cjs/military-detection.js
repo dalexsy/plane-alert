@@ -327,18 +327,18 @@ function isBoringMilitaryAircraft(plane) {
     })) {
         return true;
     }
-    if (!normalizedType &&
-        !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
-        (plane.mil === true ||
-            plane.dbFlags === 1 ||
-            isMilitaryCallsign(callsign))) {
-        return true;
-    }
-    if (!normalizedType &&
-        !INTERESTING_MIL_DESC_PATTERN.test(descUpper) &&
-        isMilitaryOperator(desc) &&
-        (plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign))) {
-        return true;
+    const hasMilitarySignal = plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign);
+    if (hasMilitarySignal &&
+        !INTERESTING_MIL_DESC_PATTERN.test(descUpper)) {
+        if (!normalizedType) {
+            return true;
+        }
+        // Operator-only desc (e.g. "United States Air Force") with a non-interesting
+        // ICAO type is still a boring VIP/transport track, not a fighter.
+        if (isMilitaryOperator(desc) &&
+            !INTERESTING_MIL_DESC_PATTERN.test(normalizedType)) {
+            return true;
+        }
     }
     return false;
 }

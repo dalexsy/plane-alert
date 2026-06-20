@@ -82,11 +82,9 @@ export function dedupeDeviceRegistrationsByPushoverTarget(
       entry.data.platform,
     );
 
-    if (!pushoverTarget) {
-      continue;
-    }
-
-    const key = `${userKey}__${pushoverTarget.toLowerCase()}`;
+    const key = pushoverTarget
+      ? `${userKey}__${pushoverTarget.toLowerCase()}`
+      : `${userKey}__unresolved__${entry.id}`;
     const existing = keptByTarget.get(key);
     if (!existing) {
       keptByTarget.set(key, entry);
