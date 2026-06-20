@@ -1,0 +1,151 @@
+[debug] [2026-06-20T11:06:32.235Z] ----------------------------------------------------------------------
+[debug] [2026-06-20T11:06:32.236Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\dalex\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2026-06-20T11:06:32.237Z] CLI Version:   15.3.1
+[debug] [2026-06-20T11:06:32.237Z] Platform:      win32
+[debug] [2026-06-20T11:06:32.237Z] Node Version:  v22.14.0
+[debug] [2026-06-20T11:06:32.237Z] Time:          Sat Jun 20 2026 13:06:32 GMT+0200 (Central European Summer Time)
+[debug] [2026-06-20T11:06:32.237Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-20T11:06:34.210Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-20T11:06:34.211Z] > authorizing via signed-in user (darylumfrage@gmail.com)
+[debug] [2026-06-20T11:06:34.211Z] [iam] checking project plane-alert-800ff for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-06-20T11:06:34.212Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:34.212Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:34.213Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions [none]
+[debug] [2026-06-20T11:06:34.213Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions x-goog-quota-user=projects/plane-alert-800ff
+[debug] [2026-06-20T11:06:34.213Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-06-20T11:06:34.905Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions 200
+[debug] [2026-06-20T11:06:34.905Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-06-20T11:06:34.905Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:34.905Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:34.905Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/plane-alert-800ff/serviceAccounts/plane-alert-800ff@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-06-20T11:06:34.905Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/plane-alert-800ff/serviceAccounts/plane-alert-800ff@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-06-20T11:06:35.576Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/plane-alert-800ff/serviceAccounts/plane-alert-800ff@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-06-20T11:06:35.576Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/plane-alert-800ff/serviceAccounts/plane-alert-800ff@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'plane-alert-800ff'...
+[info] 
+[info] i  deploying functions 
+[info] Running command: node ./scripts/firebase-functions-predeploy.js
+[info] +  functions: Finished running predeploy script. 
+[debug] [2026-06-20T11:06:39.307Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:39.307Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:39.307Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff [none]
+[debug] [2026-06-20T11:06:39.518Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff 200
+[debug] [2026-06-20T11:06:39.518Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/plane-alert-800ff {"projectNumber":"698615469333","projectId":"plane-alert-800ff","lifecycleState":"ACTIVE","name":"Plane Alert","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-11-03T19:57:35.102332Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-06-20T11:06:39.521Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:39.521Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:39.521Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/plane-alert-800ff/adminSdkConfig [none]
+[debug] [2026-06-20T11:06:39.816Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/plane-alert-800ff/adminSdkConfig 200
+[debug] [2026-06-20T11:06:39.816Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/plane-alert-800ff/adminSdkConfig {"projectId":"plane-alert-800ff","storageBucket":"plane-alert-800ff.firebasestorage.app"}
+[debug] [2026-06-20T11:06:39.816Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:39.816Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:39.816Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs [none]
+[debug] [2026-06-20T11:06:40.026Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs 200
+[debug] [2026-06-20T11:06:40.026Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs {"configs":[{"name":"projects/plane-alert-800ff/configs/planespotters"},{"name":"projects/plane-alert-800ff/configs/pushover"},{"name":"projects/plane-alert-800ff/configs/aeroapi"},{"name":"projects/plane-alert-800ff/configs/debug"},{"name":"projects/plane-alert-800ff/configs/google"}]}
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.026Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/planespotters/variables [none]
+[debug] [2026-06-20T11:06:40.027Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables [none]
+[debug] [2026-06-20T11:06:40.028Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/aeroapi/variables [none]
+[debug] [2026-06-20T11:06:40.029Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/debug/variables [none]
+[debug] [2026-06-20T11:06:40.029Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables [none]
+[debug] [2026-06-20T11:06:40.236Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/planespotters/variables 200
+[debug] [2026-06-20T11:06:40.236Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/planespotters/variables {"variables":[{"name":"projects/plane-alert-800ff/configs/planespotters/variables/api_key","updateTime":"2026-01-16T14:51:45.190933992Z"}]}
+[debug] [2026-06-20T11:06:40.236Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.236Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.236Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/planespotters/variables/api_key [none]
+[debug] [2026-06-20T11:06:40.260Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables 200
+[debug] [2026-06-20T11:06:40.261Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables {"variables":[{"name":"projects/plane-alert-800ff/configs/google/variables/search_api_key","updateTime":"2026-05-10T16:12:32.496293415Z"},{"name":"projects/plane-alert-800ff/configs/google/variables/search_engine_id","updateTime":"2026-05-10T16:12:33.306786247Z"}]}
+[debug] [2026-06-20T11:06:40.261Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.261Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.261Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.261Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.261Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables/search_api_key [none]
+[debug] [2026-06-20T11:06:40.261Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables/search_engine_id [none]
+[debug] [2026-06-20T11:06:40.262Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/debug/variables 200
+[debug] [2026-06-20T11:06:40.262Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/debug/variables {"variables":[{"name":"projects/plane-alert-800ff/configs/debug/variables/token_secret","updateTime":"2025-11-04T15:14:14.565724727Z"}]}
+[debug] [2026-06-20T11:06:40.262Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.262Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.262Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/debug/variables/token_secret [none]
+[debug] [2026-06-20T11:06:40.263Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables 200
+[debug] [2026-06-20T11:06:40.263Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables {"variables":[{"name":"projects/plane-alert-800ff/configs/pushover/variables/api_token","updateTime":"2026-05-10T16:12:32.664827352Z"},{"name":"projects/plane-alert-800ff/configs/pushover/variables/broadcast_all_devices","updateTime":"2026-05-11T09:11:03.881073032Z"}]}
+[debug] [2026-06-20T11:06:40.263Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.263Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.263Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.263Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.263Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables/api_token [none]
+[debug] [2026-06-20T11:06:40.265Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables/broadcast_all_devices [none]
+[debug] [2026-06-20T11:06:40.286Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/aeroapi/variables 200
+[debug] [2026-06-20T11:06:40.286Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/aeroapi/variables {"variables":[{"name":"projects/plane-alert-800ff/configs/aeroapi/variables/key","updateTime":"2026-05-10T16:12:31.888311666Z"}]}
+[debug] [2026-06-20T11:06:40.286Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.286Z] Checked if tokens are valid: true, expires at: 1781956874259
+[debug] [2026-06-20T11:06:40.286Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/aeroapi/variables/key [none]
+[debug] [2026-06-20T11:06:40.406Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/planespotters/variables/api_key 200
+[debug] [2026-06-20T11:06:40.406Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/planespotters/variables/api_key {"name":"projects/plane-alert-800ff/configs/planespotters/variables/api_key","updateTime":"2026-01-16T14:51:45.190933992Z","text":"YOUR_API_KEY_HERE"}
+[debug] [2026-06-20T11:06:40.422Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables/search_api_key 200
+[debug] [2026-06-20T11:06:40.422Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables/search_api_key {"name":"projects/plane-alert-800ff/configs/google/variables/search_api_key","updateTime":"2026-05-10T16:12:32.496293415Z","text":"AIzaSyCzYNT3V-CNUauNPwSe15KAKtDAUWms77Q"}
+[debug] [2026-06-20T11:06:40.457Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables/search_engine_id 200
+[debug] [2026-06-20T11:06:40.457Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/google/variables/search_engine_id {"name":"projects/plane-alert-800ff/configs/google/variables/search_engine_id","updateTime":"2026-05-10T16:12:33.306786247Z","text":"5578bd93246c848a4"}
+[debug] [2026-06-20T11:06:40.467Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/aeroapi/variables/key 200
+[debug] [2026-06-20T11:06:40.467Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/aeroapi/variables/key {"name":"projects/plane-alert-800ff/configs/aeroapi/variables/key","updateTime":"2026-05-10T16:12:31.888311666Z","text":"tlgsmPPCIsgFIG0T6VjlgjEguCImDEXi"}
+[debug] [2026-06-20T11:06:40.481Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/debug/variables/token_secret 200
+[debug] [2026-06-20T11:06:40.481Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/debug/variables/token_secret {"name":"projects/plane-alert-800ff/configs/debug/variables/token_secret","updateTime":"2025-11-04T15:14:14.565724727Z","text":"planealert-debug-20251104"}
+[debug] [2026-06-20T11:06:40.490Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables/broadcast_all_devices 200
+[debug] [2026-06-20T11:06:40.490Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables/broadcast_all_devices {"name":"projects/plane-alert-800ff/configs/pushover/variables/broadcast_all_devices","updateTime":"2026-05-11T09:11:03.881073032Z","text":"true"}
+[debug] [2026-06-20T11:06:40.492Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables/api_token 200
+[debug] [2026-06-20T11:06:40.492Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/plane-alert-800ff/configs/pushover/variables/api_token {"name":"projects/plane-alert-800ff/configs/pushover/variables/api_token","updateTime":"2026-05-10T16:12:32.664827352Z","text":"a51thwyzvw24g3afcex6hf7xdnjfi9"}
+[debug] [2026-06-20T11:06:40.493Z] Validating nodejs source
+[warn] !  functions: Runtime Node.js 20 was deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy 
+[debug] [2026-06-20T11:06:41.423Z] > [functions] package.json contents: {
+  "name": "plane-alert-functions",
+  "version": "0.0.1",
+  "description": "Firebase Cloud Functions for Plane Alert background notifications",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "gcp-build": "npm run build",
+    "clean": "rimraf lib",
+    "lint": "eslint --ext .ts src",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "npm run clean && npm run build && firebase deploy --only functions"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@plane-alert/shared": "file:./shared-package",
+    "dotenv": "^16.4.5",
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^7.0.3",
+    "graphql": "^16.12.0",
+    "i18n-iso-countries": "^7.14.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.11.0",
+    "@typescript-eslint/parser": "^8.11.0",
+    "eslint": "^9.12.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.7.2"
+  }
+}
+[debug] [2026-06-20T11:06:41.423Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-06-20T11:06:41.424Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-06-20T11:06:41.430Z] Found firebase-functions binary at 'C:\Users\dalex\Repos\plane-alert\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8243
+
+[debug] [2026-06-20T11:06:42.371Z] Got response from /__/functions.yaml {"endpoints":{"registerDevice":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"registerDevice"},"checkDevice":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"checkDevice"},"listAllDevices":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"listAllDevices"},"unsubscribeDevice":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"unsubscribeDevice"},"debugListTokens":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"debugListTokens"},"debugSendToken":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"debugSendToken"},"testProximityTargeting":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"testProximityTargeting"},"collectAircraftData":{"availableMemoryMb":256,"timeoutSeconds":null,"minInstances":null,"maxInstances":1,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"scheduleTrigger":{"schedule":"*/2 * * * *","retryConfig":{},"timeZone":"Etc/UTC"},"entryPoint":"collectAircraftData"},"collectAircraftOnDemand":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"collectAircraftOnDemand"},"processPlanes":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":1,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"scheduleTrigger":{"schedule":"*/2 * * * *","retryConfig":{},"timeZone":"Etc/UTC"},"entryPoint":"processPlanes"},"notificationHealthWatchdog":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":1,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"scheduleTrigger":{"schedule":"*/5 * * * *","retryConfig":{},"timeZone":"Etc/UTC"},"entryPoint":"notificationHealthWatchdog"},"openskyProxy":{"availableMemoryMb":null,"timeoutSeconds":10,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"openskyProxy"},"weatherCeilingProxy":{"availableMemoryMb":null,"timeoutSeconds":30,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"weatherCeilingProxy"},"adsbPointProxy":{"availableMemoryMb":null,"timeoutSeconds":15,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"adsbPointProxy"},"recoverUserKey":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"recoverUserKey"},"clearCooldowns":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"clearCooldowns"},"saveMilitarySighting":{"availableMemoryMb":null,"timeoutSeconds":30,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"saveMilitarySighting"},"getMilitaryHistory":{"availableMemoryMb":null,"timeoutSeconds":30,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["europe-west3"],"labels":{},"httpsTrigger":{},"entryPoint":"getMilitaryHistory"}},"specVersion":"v1alpha1","requiredAPIs":[{"api":"cloudscheduler.googleapis.com","reason":"Needed for scheduled functions."}],"extensions":{}}
