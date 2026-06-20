@@ -2,6 +2,10 @@ import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { COOLDOWN_COLLECTION } from '../constants';
 
+function normalizeCooldownIcao(icao: string): string {
+  return icao.trim().toUpperCase();
+}
+
 /**
  * Check if notification should be sent and atomically mark as notified if allowed
  * Uses Firestore transactions to prevent duplicate notifications
@@ -19,20 +23,28 @@ export async function checkAndMarkNotified(
   icao: string,
   cooldownMs: number
 ): Promise<boolean> {
+  const normalizedIcao = normalizeCooldownIcao(icao);
+  if (!normalizedIcao) {
+    return false;
+  }
+
   // One cooldown per user+ICAO so duplicate registrations cannot double-notify.
-  const cooldownId = `${userKey}__${icao}`;
+  const cooldownId = `${userKey}__${normalizedIcao}`;
   const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
   const legacyCooldownRef = deviceName
     ? db
         .collection(COOLDOWN_COLLECTION)
-        .doc(`${userKey}__${deviceName}__${icao}`)
+        .doc(`${userKey}__${deviceName}__${normalizedIcao}`)
     : null;
   const legacyProximityCooldownRef =
-    !icao.startsWith('proximity_')
+    !normalizedIcao.startsWith('PROXIMITY_')
       ? db
           .collection(COOLDOWN_COLLECTION)
-          .doc(`${userKey}__proximity_${icao}`)
+          .doc(`${userKey}__proximity_${normalizedIcao}`)
       : null;
+  const legacyLowercaseCooldownRef = db
+    .collection(COOLDOWN_COLLECTION)
+    .doc(`${userKey}__${normalizedIcao.toLowerCase()}`);
 
   try {
     const shouldNotify = await db.runTransaction(async (transaction) => {
@@ -43,6 +55,7 @@ export async function checkAndMarkNotified(
       const legacyProximityDoc = legacyProximityCooldownRef
         ? await transaction.get(legacyProximityCooldownRef)
         : null;
+      const legacyLowercaseDoc = await transaction.get(legacyLowercaseCooldownRef);
       const now = Date.now();
 
       const isInCooldown = (lastSent: number) =>
@@ -54,6 +67,9 @@ export async function checkAndMarkNotified(
         legacyProximityDoc?.exists
           ? legacyProximityDoc.data()?.lastSent || 0
           : 0,
+        legacyLowercaseDoc.exists
+          ? legacyLowercaseDoc.data()?.lastSent || 0
+          : 0,
       ];
       const recentLastSent = Math.max(...lastSentValues);
 
@@ -61,7 +77,7 @@ export async function checkAndMarkNotified(
         logger.info('Aircraft in cooldown, skipping', {
           userKey: userKey.slice(0, 8),
           deviceName,
-          icao,
+          icao: normalizedIcao,
           timeSinceLastMs: now - recentLastSent,
           cooldownMs,
         });
@@ -70,7 +86,7 @@ export async function checkAndMarkNotified(
 
       logger.info('Claiming notification for aircraft', {
         userKey: userKey.slice(0, 8),
-        icao,
+        icao: normalizedIcao,
         docExists: doc.exists,
       });
 
@@ -78,7 +94,7 @@ export async function checkAndMarkNotified(
         cooldownRef,
         {
           userKey,
-          icao,
+          icao: normalizedIcao,
           lastSent: now,
         },
         { merge: true }
@@ -92,12 +108,16 @@ export async function checkAndMarkNotified(
         transaction.delete(legacyProximityCooldownRef);
       }
 
+      if (legacyLowercaseDoc.exists) {
+        transaction.delete(legacyLowercaseCooldownRef);
+      }
+
       return true;
     });
 
     logger.info('Transaction result', {
       userKey: userKey.slice(0, 8),
-      icao,
+      icao: normalizedIcao,
       shouldNotify,
     });
 
@@ -105,7 +125,7 @@ export async function checkAndMarkNotified(
   } catch (error: any) {
     logger.error('checkAndMarkNotified transaction failed', {
       userKey: userKey.slice(0, 8),
-      icao,
+      icao: normalizedIcao,
       error,
     });
     return false;
@@ -118,18 +138,23 @@ export async function releaseNotificationClaim(
   _deviceName: string,
   icao: string
 ): Promise<void> {
-  const cooldownId = `${userKey}__${icao}`;
+  const normalizedIcao = normalizeCooldownIcao(icao);
+  if (!normalizedIcao) {
+    return;
+  }
+
+  const cooldownId = `${userKey}__${normalizedIcao}`;
 
   try {
     await db.collection(COOLDOWN_COLLECTION).doc(cooldownId).delete();
     logger.info('Released notification claim', {
       userKey: userKey.slice(0, 8),
-      icao,
+      icao: normalizedIcao,
     });
   } catch (error: any) {
     logger.error('Failed to release notification claim', {
       userKey: userKey.slice(0, 8),
-      icao,
+      icao: normalizedIcao,
       error,
     });
   }

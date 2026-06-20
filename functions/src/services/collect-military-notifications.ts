@@ -4,7 +4,6 @@ import type { AdsBPlane } from '@plane-alert/shared';
 import {
   haversineDistanceKm,
   looksMilitary,
-  isMilitaryCallsign,
   isBoringMilitaryAircraft,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from '../types';
@@ -84,14 +83,7 @@ export async function collectMilitaryNotifications(
     }
 
     const isSpecialPlane = specialIcaos.includes(icao);
-    const callsign = plane.flight || plane.callsign;
-    const isMilitaryCandidate =
-      looksMilitary(plane) ||
-      isMilitaryCallsign(callsign) ||
-      plane.mil === true ||
-      plane.dbFlags === 1;
-
-    if (!isMilitaryCandidate && !isSpecialPlane) {
+    if (!looksMilitary(plane) && !isSpecialPlane) {
       continue;
     }
 
@@ -113,7 +105,7 @@ export async function collectMilitaryNotifications(
       continue;
     }
 
-    const isMilitary = isMilitaryCandidate;
+    const isMilitary = looksMilitary(plane);
 
     const aircraftType2 = (plane.t || plane.desc || '').toUpperCase();
     const ignoredTypes = data.ignoredTypes || [];

@@ -212,7 +212,7 @@ body.animations-disabled *::after {
   transition-delay: 0s !important;
 }
 
-// Bug-hunter mounts outside Angular; ensure modal tokens resolve on the host subtree.
+// Bug-hunter mounts outside Angular; pin tokens on the host (do not inherit page --text-primary).
 .bug-hunter {
   --text-primary: #fff;
   --text-secondary: rgb(255 255 255 / 70%);

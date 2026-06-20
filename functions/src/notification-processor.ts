@@ -10,7 +10,6 @@ import {
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import {
-  dedupeDeviceRegistrationsByPushoverTarget,
   dedupeToOneRegistrationPerUser,
 } from './services/dedupe-device-registrations';
 import {
@@ -191,24 +190,19 @@ async function runNotificationProcessingBody(
         .map((name) => name.trim()),
     );
 
+    if (!devices.size) {
+      pushoverDeviceCache.set(userKey, null);
+      return null;
+    }
+
     pushoverDeviceCache.set(userKey, devices);
     return devices;
   };
 
-  const registeredDevicesByUserKey = new Map<string, Set<string>>();
-  for (const userKey of userKeys) {
-    const devices = await getRegisteredPushoverDevices(userKey);
-    if (devices?.size) {
-      registeredDevicesByUserKey.set(userKey, devices);
-    }
-  }
 
-  const dedupeResult = broadcastAllDevices
-    ? dedupeToOneRegistrationPerUser(activeDevices)
-    : dedupeDeviceRegistrationsByPushoverTarget(
-        activeDevices,
-        registeredDevicesByUserKey,
-      );
+  // Cooldowns are keyed by user+ICAO; one Firestore row per Pushover user prevents
+  // duplicate Pushover deliveries when stale duplicate registrations exist.
+  const dedupeResult = dedupeToOneRegistrationPerUser(activeDevices);
 
   const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
@@ -224,6 +218,13 @@ async function runNotificationProcessingBody(
     logger.info('Deduped device registrations before notify', {
       before: activeDevices.length,
       after: devicesToProcess.length,
+      broadcastAllDevices,
+    });
+  }
+
+  if (activeDevices.length > 0 && devicesToProcess.length === 0) {
+    logger.warn('No device registrations resolved for notification delivery', {
+      registeredCount: activeDevices.length,
       broadcastAllDevices,
     });
   }
