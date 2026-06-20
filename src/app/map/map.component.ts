@@ -1295,6 +1295,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   resolveAndUpdateFromAddress(): void {
+    if (!this.map) return;
     this.addressResolution.resolveAndUpdateFromAddress(
       this.inputOverlayComponent,
       this.updateMap.bind(this),
