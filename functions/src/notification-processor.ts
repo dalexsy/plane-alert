@@ -10,6 +10,7 @@ import {
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import {
+  dedupeDeviceRegistrationsByPushoverTarget,
   dedupeToOneRegistrationPerUser,
 } from './services/dedupe-device-registrations';
 import {
@@ -200,9 +201,20 @@ async function runNotificationProcessingBody(
   };
 
 
-  // Cooldowns are keyed by user+ICAO; one Firestore row per Pushover user prevents
-  // duplicate Pushover deliveries when stale duplicate registrations exist.
-  const dedupeResult = dedupeToOneRegistrationPerUser(activeDevices);
+  const registeredDevicesByUserKey = new Map<string, Set<string>>();
+  for (const userKey of userKeys) {
+    const devices = await getRegisteredPushoverDevices(userKey);
+    if (devices?.size) {
+      registeredDevicesByUserKey.set(userKey, devices);
+    }
+  }
+
+  const dedupeResult = broadcastAllDevices
+    ? dedupeToOneRegistrationPerUser(activeDevices)
+    : dedupeDeviceRegistrationsByPushoverTarget(
+        activeDevices,
+        registeredDevicesByUserKey,
+      );
 
   const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
