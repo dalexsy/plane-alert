@@ -9,7 +9,10 @@ import {
 } from './utils';
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
-import { dedupeDeviceRegistrationsByPushoverTarget } from './services/dedupe-device-registrations';
+import {
+  dedupeDeviceRegistrationsByPushoverTarget,
+  dedupeToOneRegistrationPerUser,
+} from './services/dedupe-device-registrations';
 import {
   getDeviceLocation,
   loadAircraftSnapshotCache,
@@ -148,75 +151,76 @@ export async function runNotificationProcessing(
 
   await recordProcessPlanesStart(db, activeDevices.length);
 
-  if (!broadcastAllDevices) {
-    const pushoverDeviceCache = new Map<string, Set<string> | null>();
+  const pushoverDeviceCache = new Map<string, Set<string> | null>();
 
-    const getRegisteredPushoverDevices = async (userKey: string) => {
-      if (pushoverDeviceCache.has(userKey)) {
-        return pushoverDeviceCache.get(userKey)!;
-      }
-
-      const validation = await validatePushoverUserKey(userKey);
-      if (!validation.valid) {
-        pushoverDeviceCache.set(userKey, null);
-        return null;
-      }
-
-      const devices = new Set(
-        validation.devices
-          .filter(
-            (name): name is string =>
-              typeof name === 'string' && name.trim().length > 0,
-          )
-          .map((name) => name.trim()),
-      );
-
-      pushoverDeviceCache.set(userKey, devices);
-      return devices;
-    };
-
-    const registeredDevicesByUserKey = new Map<string, Set<string>>();
-    for (const userKey of userKeys) {
-      const devices = await getRegisteredPushoverDevices(userKey);
-      if (devices?.size) {
-        registeredDevicesByUserKey.set(userKey, devices);
-      }
+  const getRegisteredPushoverDevices = async (userKey: string) => {
+    if (pushoverDeviceCache.has(userKey)) {
+      return pushoverDeviceCache.get(userKey)!;
     }
 
-    const { toProcess: dedupedDevices, duplicateRefs } =
-      dedupeDeviceRegistrationsByPushoverTarget(
+    const validation = await validatePushoverUserKey(userKey);
+    if (!validation.valid) {
+      pushoverDeviceCache.set(userKey, null);
+      return null;
+    }
+
+    const devices = new Set(
+      validation.devices
+        .filter(
+          (name): name is string =>
+            typeof name === 'string' && name.trim().length > 0,
+        )
+        .map((name) => name.trim()),
+    );
+
+    pushoverDeviceCache.set(userKey, devices);
+    return devices;
+  };
+
+  const registeredDevicesByUserKey = new Map<string, Set<string>>();
+  for (const userKey of userKeys) {
+    const devices = await getRegisteredPushoverDevices(userKey);
+    if (devices?.size) {
+      registeredDevicesByUserKey.set(userKey, devices);
+    }
+  }
+
+  const dedupeResult = broadcastAllDevices
+    ? dedupeToOneRegistrationPerUser(activeDevices)
+    : dedupeDeviceRegistrationsByPushoverTarget(
         activeDevices,
         registeredDevicesByUserKey,
       );
 
-    if (duplicateRefs.length > 0) {
-      await Promise.all(duplicateRefs.map((ref) => ref.delete()));
-      logger.info('Pruned duplicate device registrations by Pushover target', {
-        pruned: duplicateRefs.length,
-      });
-    }
+  const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
-    if (dedupedDevices.length < activeDevices.length) {
-      logger.info('Deduped device registrations by Pushover target', {
-        before: activeDevices.length,
-        after: dedupedDevices.length,
-      });
-    }
-
-    await processDevicesWithSnapshotCache(
-      db,
-      dedupedDevices,
-      getRegisteredPushoverDevices,
-    );
-    await recordProcessPlanesSuccess(db);
-    return;
+  if (duplicateRefs.length > 0) {
+    await Promise.all(duplicateRefs.map((ref) => ref.delete()));
+    logger.info('Pruned duplicate device registrations', {
+      pruned: duplicateRefs.length,
+      broadcastAllDevices,
+    });
   }
 
-  logger.info('Broadcast mode: processing all devices', {
-    deviceCount: activeDevices.length,
-  });
+  if (devicesToProcess.length < activeDevices.length) {
+    logger.info('Deduped device registrations before notify', {
+      before: activeDevices.length,
+      after: devicesToProcess.length,
+      broadcastAllDevices,
+    });
+  }
 
-  await processDevicesWithSnapshotCache(db, activeDevices);
+  if (broadcastAllDevices) {
+    logger.info('Broadcast mode: processing deduped devices', {
+      deviceCount: devicesToProcess.length,
+    });
+  }
+
+  await processDevicesWithSnapshotCache(
+    db,
+    devicesToProcess,
+    broadcastAllDevices ? undefined : getRegisteredPushoverDevices,
+  );
   await recordProcessPlanesSuccess(db);
 }
 

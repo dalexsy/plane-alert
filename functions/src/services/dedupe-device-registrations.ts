@@ -25,6 +25,42 @@ export interface DedupeDeviceRegistrationsResult {
  * Keep one Firestore registration per Pushover delivery target so parallel
  * notifyForDevice runs cannot send duplicate alerts to the same phone.
  */
+/**
+ * Keep one Firestore registration per Pushover user key when broadcasting
+ * to all devices — duplicate rows would each send the same alert fleet-wide.
+ */
+export function dedupeToOneRegistrationPerUser(
+  devices: DeviceDocEntry[],
+): DedupeDeviceRegistrationsResult {
+  const keptByUser = new Map<string, DeviceDocEntry>();
+  const duplicateRefs: admin.firestore.DocumentReference[] = [];
+
+  for (const entry of devices) {
+    const userKey = entry.data.pushoverUserKey?.trim();
+    if (!userKey) {
+      continue;
+    }
+
+    const existing = keptByUser.get(userKey);
+    if (!existing) {
+      keptByUser.set(userKey, entry);
+      continue;
+    }
+
+    if (registrationTimestamp(entry) >= registrationTimestamp(existing)) {
+      duplicateRefs.push(existing.ref);
+      keptByUser.set(userKey, entry);
+    } else {
+      duplicateRefs.push(entry.ref);
+    }
+  }
+
+  return {
+    toProcess: [...keptByUser.values()],
+    duplicateRefs,
+  };
+}
+
 export function dedupeDeviceRegistrationsByPushoverTarget(
   devices: DeviceDocEntry[],
   registeredDevicesByUserKey: Map<string, Set<string>>,
