@@ -1,0 +1,29 @@
+  get currentLat(): number {
+    return this.settings.lat ?? this.DEFAULT_COORDS[0];
+  }
+
+  get currentLon(): number {
+    return this.settings.lon ?? this.DEFAULT_COORDS[1];
+  }
+
+  get radiusKm(): number {
+    // This getter now returns the MAIN search radius
+    return this.settings.radius ?? 5;
+  }
+
+  // Get stored home location
+  get homeLocationValue(): { lat: number; lon: number } | null {
+    return this.settings.getHomeLocation() || null;
+  }
+
+  // Check if current view is at home location
+  get isAtHome(): boolean {
+    const home = this.homeLocationValue;
+    if (!home) {
+      return false;
+    }
+    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+    const tol = 1e-6;
+    return Math.abs(lat - home.lat) < tol && Math.abs(lon - home.lon) < tol;
+  }

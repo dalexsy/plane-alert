@@ -1,0 +1,19 @@
+  public onZoomIn(): void {
+    if (this.map) {
+      this.map.zoomIn();
+    }
+  }
+
+  /** Zoom out the map */
+  public onZoomOut(): void {
+    if (this.map) {
+      this.map.zoomOut();
+    }
+  }
+
+  /** Toggle display of airport labels tooltips universally (permanent on map) */
+  public onToggleAirportLabels(): void {
+    this.uiState.toggleAirportLabels();
+    // Update existing airport tooltips to reflect the new permanent state
+    this.airportService.updateAirportLabels(this.uiState.showAirportLabels);
+  }

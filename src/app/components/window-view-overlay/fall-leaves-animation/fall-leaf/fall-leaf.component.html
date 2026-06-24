@@ -1,0 +1,10 @@
+<div
+  class="leaf"
+  [ngClass]="[sizeClass, leaf.colorType]"
+  [ngStyle]="positionStyles"
+  [style.--fall-delay]="leaf.fallDelay + 's'"
+  [style.--sway-delay]="leaf.swayDelay + 's'"
+  [style.--rotate-delay]="leaf.rotateDelay + 's'"
+>
+  <div class="leaf-shape"></div>
+</div>

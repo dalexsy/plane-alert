@@ -1,0 +1,91 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 2 1 auto;
+  min-height: 0;
+}
+
+.plane-section {
+  display: flex;
+  flex-direction: column;
+  flex: 2 1 auto;
+  min-height: 0;
+}
+
+h3 {
+  padding: 1rem;
+  height: 3rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+p {
+  padding: 0.5rem 1rem;
+}
+
+.plane-list-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2.5rem;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 1) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &.fade-enabled::after {
+    opacity: 1;
+  }
+
+  &.no-fade::after {
+    opacity: 0;
+  }
+}
+
+.plane-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.loading-airports {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  text-transform: none;
+  gap: 0.5rem;
+  font-weight: normal;
+}
+
+.loading-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

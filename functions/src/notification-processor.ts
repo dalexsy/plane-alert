@@ -9,6 +9,7 @@ import {
 } from './utils';
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
+import { syncMissingPushoverDeviceRegistrations } from './services/sync-missing-pushover-registrations';
 import {
   dedupeDeviceRegistrationsByPushoverTarget,
   dedupeToOneRegistrationPerUser,
@@ -164,6 +165,18 @@ async function runNotificationProcessingBody(
           pruned,
         });
       }
+
+      const restored = await syncMissingPushoverDeviceRegistrations(
+        db,
+        userKey,
+        validation.devices,
+      );
+      if (restored > 0) {
+        logger.info('Restored missing Pushover device registrations', {
+          userKey: userKey.slice(0, 8),
+          restored,
+        });
+      }
     }
   }
 
@@ -228,9 +241,8 @@ async function runNotificationProcessingBody(
   const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
   if (duplicateRefs.length > 0) {
-    await Promise.all(duplicateRefs.map((ref) => ref.delete()));
-    logger.info('Pruned duplicate device registrations', {
-      pruned: duplicateRefs.length,
+    logger.info('Skipping duplicate device registrations for this run', {
+      skipped: duplicateRefs.length,
       broadcastAllDevices,
     });
   }

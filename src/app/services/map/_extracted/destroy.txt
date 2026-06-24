@@ -1,0 +1,16 @@
+  ngOnDestroy(): void {
+    this.scanService.stop();
+    this.mapPanService.destroy();
+    // Clean up airport circles
+    this.airportService.destroy();
+    if (this.svgPatternRetryTimeout) {
+      clearTimeout(this.svgPatternRetryTimeout);
+    }
+    // Astronomical interval cleanup is handled by AstronomicalDisplayService
+    // Brightness service cleanup is handled by BrightnessDisplayService
+    // Clean up sky overlay service
+    this.skyOverlayService.destroy();
+    // Clean up map theme service
+    this.mapThemeService.destroy();
+    window.removeEventListener('click', this.globalTooltipClickHandler);
+  }

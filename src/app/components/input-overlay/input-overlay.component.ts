@@ -1,58 +1,32 @@
-/* src/app/components/input-overlay/input-overlay.component.ts */
 import {
   Component,
   Input,
   Output,
   EventEmitter,
-  ElementRef,
   ViewChild,
   AfterViewInit,
   ChangeDetectorRef,
   OnDestroy,
   OnInit,
-  HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SettingsService } from '../../services/settings.service';
-import { ScanService } from '../../services/scan.service';
 import { BrightnessState } from '../../services/brightness.service';
-import { Subscription, combineLatest } from 'rxjs';
-import { ButtonComponent } from '../ui/button.component';
-import { TabComponent } from '../ui/tab.component';
-import { InputComponent } from '../ui/input.component';
-import { TooltipDirective } from '../../directives/tooltip.directive';
-import {
-  DistanceUnit,
-  getDistanceUnitLabel,
-  convertFromKm,
-  convertToKm,
-  formatDistance,
-} from '../../utils/units.util';
-import { LocationContextService } from '../../services/location-context.service';
-import { LocationUpdateService } from '../../services/location-update.service';
+import { InputOverlayFacadeService } from '../../services/input-overlay/input-overlay-facade.service';
+import { InputOverlayTogglesComponent } from './input-overlay-toggles/input-overlay-toggles.component';
+import { InputOverlayFormComponent } from './input-overlay-form/input-overlay-form.component';
+import { InputComponent } from '../ui/input/input.component';
 
 @Component({
   selector: 'app-input-overlay',
   standalone: true,
-  imports: [
-    CommonModule,
-    ButtonComponent,
-    TabComponent,
-    InputComponent,
-    TooltipDirective,
-  ],
+  imports: [CommonModule, InputOverlayTogglesComponent, InputOverlayFormComponent],
   templateUrl: './input-overlay.component.html',
   styleUrls: ['./input-overlay.component.scss'],
 })
 export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
-  @Input() showAirportLabels: boolean = true;
+  @Input() showAirportLabels = true;
   @Output() toggleAirportLabels = new EventEmitter<boolean>();
-  @ViewChild('addressInput', { static: false })
-  addressInputRef!: InputComponent;
-  @ViewChild('searchRadiusInput', { static: false })
-  searchRadiusInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('checkIntervalInput', { static: false })
-  checkIntervalInputRef!: ElementRef<HTMLInputElement>;
+  @ViewChild(InputOverlayFormComponent) form?: InputOverlayFormComponent;
   @Output() resolveAndUpdate = new EventEmitter<void>();
   @Output() useCurrentLocation = new EventEmitter<void>();
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
@@ -65,594 +39,49 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() rainToggleChange = new EventEmitter<boolean>();
   @Input() showDateTime = true;
   @Output() toggleDateTimeOverlays = new EventEmitter<void>();
-  @Input() brightness: number = 1;
+  @Input() brightness = 1;
   @Input() brightnessState: BrightnessState | null = null;
   @Output() brightnessToggle = new EventEmitter<void>();
-  /** Emit when zoom in button is clicked */
   @Output() zoomIn = new EventEmitter<void>();
-  /** Emit when zoom out button is clicked */
   @Output() zoomOut = new EventEmitter<void>();
-  /** Emit when distance unit is toggled */
   @Output() distanceUnitChanged = new EventEmitter<string>();
-  /** Whether to show view axes (cones) */
   @Input() showViewAxes = false;
-  /** Whether to show altitude-colored tooltip borders */
   @Input() showAltitudeBorders = false;
   @Output() altitudeBordersChange = new EventEmitter<boolean>();
-  /** Whether animations are enabled */
   @Input() animationsEnabled = true;
   @Output() animationsEnabledChange = new EventEmitter<boolean>();
 
-  scanButtonText = '';
-  private sub!: Subscription;
-  private isUserEditingRadius = false;
-  private isUserEditingAddress = false;
-  @HostBinding('class.collapsed')
-  collapsed: boolean = true; // Default to collapsed
-  public otherControlsHidden: boolean = false;
-  public currentAddress: string = '';
-  public showBrightnessTooltip = false;
-  public lastScanTime: Date | null = null;
-
-  /** Get the current radius value formatted for display */
-  get displayRadiusValue(): string {
-    const displayValue = this.getDisplayRadius();
-    return formatDistance(displayValue);
-  }
-
-  /** Get the current interval value formatted for display */
-  get displayIntervalValue(): string {
-    return this.settings.getFormattedIntervalDisplay();
-  }
-
-  /** Trigger change detection to update display values */
-  public refreshDisplayValues(): void {
-    this.cdr.detectChanges();
-  }
-
   constructor(
-    public settings: SettingsService,
-    private cdr: ChangeDetectorRef,
-    private scanService: ScanService,
-    private locationContext: LocationContextService, // Inject the service
-    public locationUpdateService: LocationUpdateService
+    public facade: InputOverlayFacadeService,
+    private cdr: ChangeDetectorRef
   ) {}
+
   ngOnInit(): void {
-    // Initialize collapsed state from settings
-    this.collapsed = this.settings.inputOverlayCollapsed;
-    // Subscribe to collapsed changes
-    this.settings.inputOverlayCollapsedChanged.subscribe((val: boolean) => {
-      this.collapsed = val;
-      this.cdr.detectChanges();
-    });
-    // Initialize 'other controls' hidden state
-    this.otherControlsHidden = this.settings.inputOverlayControlsHidden;
-    this.settings.inputOverlayControlsChanged.subscribe((val: boolean) => {
-      this.otherControlsHidden = val;
-      this.cdr.detectChanges();
-    });
-    // Subscribe to location context changes to update input field when location changes programmatically
-    // Location context is the SINGLE source of truth for the current address
-    this.locationContext.currentLocation$.subscribe((locationData) => {
-      // Always update from location context unless user is actively editing
-      if (!this.isUserEditingAddress) {
-        this.currentAddress = locationData.address;
-        if (this.addressInputRef) {
-          this.addressInputRef.setValue(locationData.address);
-        }
-        this.cdr.detectChanges();
-      }
-    });
-    // Subscribe to settings changes that might affect input display
-    this.sub = combineLatest([
-      this.scanService.countdown$,
-      this.scanService.isActive$,
-    ]).subscribe(([count, active]) => {
-      this.scanButtonText = active
-        ? `Update now (next update in ${this.formatCountdown(count)})`
-        : `Start scanning at location`;
-      this.cdr.detectChanges();
-    });
-    // Use SettingsService for collapsed state
-    this.collapsed = this.settings.inputOverlayCollapsed;
+    this.facade.init(this.cdr);
   }
 
-  /** Format countdown time in a user-friendly format */
-  private formatCountdown(seconds: number): string {
-    if (seconds >= 60) {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}m ${remainingSeconds}s`;
-    } else {
-      return `${seconds}s`;
-    }
-  }
-
-  /** Emit when brightness toggle button is clicked */
-  onBrightnessToggle(): void {
-    this.brightnessToggle.emit();
-  }
-  /** Emit when zoom in button is clicked */
-  onZoomIn(): void {
-    this.zoomIn.emit();
-  }
-
-  /** Emit when zoom out button is clicked */
-  onZoomOut(): void {
-    this.zoomOut.emit();
-  }
   ngAfterViewInit(): void {
-    // No longer need to manually set input values since we use property binding
-  }
-
-  toggleCollapsed(): void {
-    this.collapsed = !this.collapsed;
-    this.settings.setInputOverlayCollapsed(this.collapsed);
-    this.cdr.detectChanges();
-  }
-  /** Toggle visibility of other input overlay controls */
-  public toggleOtherControls(): void {
-    this.otherControlsHidden = !this.otherControlsHidden;
-    // Persist 'other controls' hidden state
-    this.settings.setInputOverlayControlsHidden(this.otherControlsHidden);
-
-    // If controls are being shown and overlay is collapsed, expand it
-    if (!this.otherControlsHidden && this.collapsed) {
-      this.toggleCollapsed();
-    }
-    // If controls are now hidden and overlay is expanded, collapse it
-    else if (this.otherControlsHidden && !this.collapsed) {
-      this.toggleCollapsed();
-    }
-    this.cdr.detectChanges();
+    this.facade.init(this.cdr, () => this.form?.addressInputRef);
   }
 
   ngOnDestroy(): void {
-    this.sub?.unsubscribe();
+    this.facade.destroy();
   }
 
-  onResolveAndUpdate(event?: Event): void {
-    // Prevent the browser from reloading the page on form submit
-    event?.preventDefault();
+  get collapsed(): boolean {
+    return this.facade.collapsed;
+  }
 
-    // Make sure to save the current radius value in the correct unit before proceeding
-    this.processRadiusChange();
-    // Update the last scan time
-    this.lastScanTime = new Date();
-    // Clear the user editing flag since we're now processing the address
-    this.isUserEditingAddress = false;
+  refreshDisplayValues(): void {
+    this.cdr.detectChanges();
+  }
 
-    // Update now button pressed would be logged here
+  clearAddressField(): void {
+    this.facade.clearAddress(this.cdr);
+    this.form?.addressInputRef?.setValue('');
+  }
+
+  onResolveAndUpdate(): void {
     this.resolveAndUpdate.emit();
-  }
-
-  onUseCurrentLocation(): void {
-    this.useCurrentLocation.emit();
-  }
-  onRadiusFocus(): void {
-    this.isUserEditingRadius = true;
-  }
-  onRadiusBlur(): void {
-    this.isUserEditingRadius = false;
-    this.validateAndFixRadius();
-    this.processRadiusChange();
-  } /** Validate radius input and fix if empty or invalid */
-  private validateAndFixRadius(): void {
-    if (!this.searchRadiusInputRef?.nativeElement) {
-      return;
-    }
-
-    const input = this.searchRadiusInputRef.nativeElement;
-    const value = input.value.trim();
-
-    // If empty or invalid, trigger change detection to restore value binding
-    if (!value || isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
-      this.cdr.detectChanges();
-    }
-  }
-  processRadiusChange(): void {
-    if (!this.searchRadiusInputRef?.nativeElement) {
-      return;
-    }
-
-    const stringValue = this.searchRadiusInputRef.nativeElement.value;
-    const val = parseFloat(stringValue);
-    const currentUnit = this.settings.distanceUnit;
-
-    if (!isNaN(val) && val > 0) {
-      // Convert displayed value to kilometers for storage
-      const unit = currentUnit as DistanceUnit;
-      const radiusInKm = convertToKm(val, unit);
-      this.settings.setRadius(radiusInKm);
-    }
-  }
-  onIntervalChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = input.valueAsNumber;
-    if (isNaN(value)) {
-      return;
-    }
-    // Use the new method that handles unit conversion
-    this.settings.setIntervalFromDisplayUnit(value);
-    this.scanService.updateInterval(this.settings.interval);
-  } /** Toggle between seconds and minutes for scan interval */
-  toggleTimeUnit(): void {
-    const newUnit =
-      this.settings.timeUnit === 'seconds' ? 'minutes' : 'seconds';
-    this.settings.setTimeUnit(newUnit);
-
-    // Trigger change detection to update the input display
-    this.cdr.detectChanges();
-  }
-
-  /** Get the current time unit label for the button */
-  getTimeUnitLabel(): string {
-    return this.settings.timeUnit === 'seconds' ? 'sec' : 'min';
-  }
-
-  onSetHome(): void {
-    this.setHome.emit();
-  }
-
-  onGoToHome(): void {
-    this.goToHome.emit();
-  }
-
-  onShowCloudCoverChange(event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.cloudToggleChange.emit(checked);
-  }
-
-  onShowRainCoverChange(event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.rainToggleChange.emit(checked);
-  }
-
-  onToggleAirportLabels(): void {
-    // Toggle the internal flag and emit new state
-    this.showAirportLabels = !this.showAirportLabels;
-    this.toggleAirportLabels.emit(this.showAirportLabels);
-  }
-
-  onToggleAnimations(): void {
-    // Toggle the internal flag and emit new state
-    this.animationsEnabled = !this.animationsEnabled;
-    this.animationsEnabledChange.emit(this.animationsEnabled);
-  }
-
-  onConeConfig(): void {
-    this.coneConfigChange.emit();
-  }
-
-  /** Get brightness button icon based on current state */
-  get brightnessIcon(): string {
-    if (!this.brightnessState) return 'brightness_empty';
-
-    if (this.brightnessState.mode === 'auto') {
-      // Automatic mode - show icon based on sun elevation
-      if (this.brightnessState.sunElevation > 0) {
-        return 'brightness_5'; // Daytime
-      } else if (this.brightnessState.sunElevation > -6) {
-        return 'brightness_6'; // Civil twilight
-      } else if (this.brightnessState.sunElevation > -12) {
-        return 'brightness_7'; // Nautical twilight
-      } else {
-        return 'brightness_4'; // Night/astronomical twilight
-      }
-    } else {
-      // Manual mode - show brightness level
-      return this.brightnessState.brightness > 0.7
-        ? 'brightness_auto'
-        : 'brightness_auto';
-    }
-  }
-  /** Get brightness button tooltip based on current state */
-  get brightnessTooltip(): string {
-    if (!this.brightnessState) return 'Toggle map brightness';
-
-    if (this.brightnessState.mode === 'auto') {
-      const sunStatus =
-        this.brightnessState.sunElevation > 0
-          ? 'day'
-          : this.brightnessState.sunElevation > -6
-          ? 'civil twilight'
-          : this.brightnessState.sunElevation > -12
-          ? 'nautical twilight'
-          : 'night';
-      return `Auto brightness (${sunStatus}, ${Math.round(
-        this.brightnessState.brightness * 100
-      )}%) - Disable auto-dimming`;
-    } else {
-      const level = this.brightnessState.brightness > 0.7 ? 'bright' : 'dim';
-      return `Manual brightness (${level}, ${Math.round(
-        this.brightnessState.brightness * 100
-      )}%) - Enable auto-dimming`;
-    }
-  }
-
-  /** Get simple brightness button tooltip for title attribute */
-  get brightnessSimpleTooltip(): string {
-    if (!this.brightnessState) return 'Toggle map brightness';
-
-    return this.brightnessState.mode === 'auto'
-      ? 'Disable auto-dimming'
-      : 'Enable auto-dimming';
-  } /** Get the full tooltip text with enable/disable and sun status */
-  get sunStatusTooltip(): string {
-    if (!this.brightnessState) return 'Toggle map brightness';
-
-    const enableDisableText =
-      this.brightnessState.mode === 'auto'
-        ? 'Disable auto-dimming'
-        : 'Enable auto-dimming';
-
-    const sunStatus =
-      this.brightnessState.sunElevation > 0
-        ? 'Daytime'
-        : this.brightnessState.sunElevation > -6
-        ? 'Civil twilight'
-        : this.brightnessState.sunElevation > -12
-        ? 'Nautical twilight'
-        : 'Night';
-
-    return `${enableDisableText} - ${sunStatus}`;
-  }
-
-  /** Get collapse/expand tooltip text */
-  get collapseTooltip(): string {
-    return this.collapsed ? 'Expand options' : 'Collapse options';
-  }
-
-  /** Get date/time toggle tooltip text */
-  get dateTimeTooltip(): string {
-    return this.showDateTime ? 'Hide date/time' : 'Show date/time';
-  }
-
-  /** Get airport labels toggle tooltip text */
-  get airportLabelsTooltip(): string {
-    return this.showAirportLabels
-      ? 'Hide airport labels'
-      : 'Show airport labels';
-  }
-
-  /** Get cloud cover toggle tooltip text */
-  get cloudCoverTooltip(): string {
-    return this.showCloudCover ? 'Hide cloud cover' : 'Show cloud cover';
-  }
-
-  /** Get rain cover toggle tooltip text */
-  get rainCoverTooltip(): string {
-    return this.showRainCover ? 'Hide rain cover' : 'Show rain cover';
-  }
-
-  /** Get view axes toggle tooltip text */
-  get viewAxesTooltip(): string {
-    return this.showViewAxes ? 'Hide view axes' : 'Show view axes';
-  }
-
-  /** Get cone config tooltip text */
-  get coneConfigTooltip(): string {
-    return 'Configure view cones';
-  }
-
-  /** Get animations toggle tooltip text */
-  get animationsTooltip(): string {
-    return this.animationsEnabled ? 'Disable animations' : 'Enable animations';
-  }
-
-  /** Get force scan tooltip text */
-  get forceScanTooltip(): string {
-    return 'Force scan now';
-  }
-
-  /** Get zoom in tooltip text */
-  get zoomInTooltip(): string {
-    return 'Zoom in';
-  }
-
-  /** Get zoom out tooltip text */
-  get zoomOutTooltip(): string {
-    return 'Zoom out';
-  }
-  /** Get go home tooltip text */
-  get goHomeTooltip(): string {
-    return 'Go to home';
-  }
-
-  /** Get formatted last scan time text */
-  get lastScanTimeText(): string {
-    if (!this.lastScanTime) {
-      return 'No scans yet';
-    }
-    return this.lastScanTime.toLocaleTimeString();
-  }
-
-  /** Check if auto-location is enabled */
-  get isAutoLocationEnabled(): boolean {
-    return this.locationUpdateService.isAutoUpdateRunning();
-  }
-
-  /** Get formatted last location update text */
-  get lastLocationUpdateText(): string {
-    const lastUpdate = this.locationUpdateService.lastUpdateTime;
-    if (!lastUpdate) {
-      return 'Active';
-    }
-
-    const now = new Date();
-    const diffMs = now.getTime() - lastUpdate.getTime();
-    const diffMinutes = Math.floor(diffMs / 60000);
-
-    if (diffMinutes < 1) {
-      return 'Just now';
-    } else if (diffMinutes === 1) {
-      return '1 min ago';
-    } else if (diffMinutes < 60) {
-      return `${diffMinutes} mins ago`;
-    } else {
-      return lastUpdate.toLocaleTimeString();
-    }
-  }
-
-  /** Get brightness status text for custom tooltip */
-  get brightnessStatusText(): string {
-    if (!this.brightnessState) return '';
-
-    if (this.brightnessState.mode === 'auto') {
-      const sunStatus =
-        this.brightnessState.sunElevation > 0
-          ? 'Daytime'
-          : this.brightnessState.sunElevation > -6
-          ? 'Civil twilight'
-          : this.brightnessState.sunElevation > -12
-          ? 'Nautical twilight'
-          : 'Night';
-      return `${sunStatus} (${Math.round(
-        this.brightnessState.brightness * 100
-      )}%)`;
-    }
-    return '';
-  }
-
-  /** Get distance unit label for display */
-  getDistanceUnitLabel(): string {
-    const unit = this.settings.distanceUnit as DistanceUnit;
-    return getDistanceUnitLabel(unit);
-  }
-  /** Get display radius value converted to current unit */ getDisplayRadius(): number {
-    const radiusKm = this.settings.radius ?? 5;
-    const unit = this.settings.distanceUnit as DistanceUnit;
-    const converted = convertFromKm(radiusKm, unit);
-    // Round to 2 decimal places for precision, then to 1 for display
-    const precise = Math.round(converted * 100) / 100;
-    const rounded = Math.round(precise * 10) / 10;
-    return rounded;
-  }
-
-  /** Toggle between kilometers and miles */
-  toggleDistanceUnit(): void {
-    const currentUnit = this.settings.distanceUnit;
-    const newUnit = currentUnit === 'km' ? 'miles' : 'km';
-
-    this.settings.setDistanceUnit(newUnit);
-
-    // Manually trigger change detection to ensure all UI updates
-    this.cdr.detectChanges();
-
-    // Emit the unit change event so parent component can react
-    this.distanceUnitChanged.emit(newUnit);
-  }
-  /**
-   * Handle input events on the radius field.
-   * Ensures periods are used as decimal separators instead of commas.
-   */
-  onRadiusInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    let value = input.value;
-
-    // Replace any commas with periods
-    const normalizedValue = value.replace(/,/g, '.');
-
-    // Update the input if we made changes
-    if (input.value !== normalizedValue) {
-      const cursorPosition = input.selectionStart;
-      input.value = normalizedValue;
-      // Restore cursor position
-      if (cursorPosition !== null) {
-        input.setSelectionRange(cursorPosition, cursorPosition);
-      }
-    }
-  }
-  /**
-   * Handle keydown events on the radius field.
-   * Prevents comma input and converts it to period.
-   * Also validates that only valid decimal number characters are entered.
-   */
-  onRadiusKeydown(event: KeyboardEvent): void {
-    const allowedKeys = [
-      'Backspace',
-      'Delete',
-      'Tab',
-      'Escape',
-      'Enter',
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowUp',
-      'ArrowDown',
-      'Home',
-      'End',
-    ];
-
-    // Allow control keys
-    if (allowedKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
-      return;
-    }
-
-    // If user types a comma, convert it to a period
-    if (event.key === ',') {
-      event.preventDefault();
-      const input = event.target as HTMLInputElement;
-      const cursorPosition = input.selectionStart || 0;
-      const currentValue = input.value;
-
-      // Only add period if there isn't one already
-      if (!currentValue.includes('.')) {
-        const newValue =
-          currentValue.slice(0, cursorPosition) +
-          '.' +
-          currentValue.slice(cursorPosition);
-        input.value = newValue;
-        input.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
-      }
-      return;
-    }
-
-    // Allow digits
-    if (/^[0-9]$/.test(event.key)) {
-      return;
-    }
-
-    // Allow period (decimal point) if there isn't one already
-    if (
-      event.key === '.' &&
-      !(event.target as HTMLInputElement).value.includes('.')
-    ) {
-      return;
-    }
-
-    // Block all other characters
-    event.preventDefault();
-  }
-
-  onAddressFocus(event: FocusEvent): void {
-    // Set flag to indicate user is editing the address
-    this.isUserEditingAddress = true;
-
-    // Only select all on mobile devices
-    const isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
-    if (isMobile && this.addressInputRef) {
-      setTimeout(() => this.addressInputRef.select(), 0); // Use the component's select method
-    }
-  }
-
-  onAddressChange(value: string): void {
-    this.currentAddress = value;
-    // Set editing flag when user types
-    this.isUserEditingAddress = true;
-  }
-
-  onAddressBlur(): void {
-    // Clear the editing flag when user stops editing
-    this.isUserEditingAddress = false;
-  }
-
-  /** Clear the address field (called after successful address resolution) */
-  public clearAddressField(): void {
-    this.currentAddress = '';
-    this.isUserEditingAddress = false;
-    this.cdr.detectChanges();
   }
 }

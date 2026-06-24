@@ -1,15 +1,10 @@
 <div class="swallow-container">
-  <div
-    *ngFor="let swallow of swallows; trackBy: trackBySwallowId"
-    class="swallow"
-    [ngStyle]="getSwallowPosition(swallow)"
-    [style.--flap-delay]="swallow.flapDelay + 's'"
-    [style.color]="getSwallowColor(swallow)"
-  >
-    <!-- Simple V-shaped bird silhouette -->
-    <div class="bird-v">
-      <div class="wing-left"></div>
-      <div class="wing-right"></div>
-    </div>
-  </div>
+  @for (swallow of swallows; track swallow.id) {
+    <app-swallow-bird
+      [swallow]="swallow"
+      [positionStyles]="getSwallowPosition(swallow)"
+      [transform]="getSwallowTransform(swallow)"
+      [color]="getSwallowColor(swallow)"
+    />
+  }
 </div>

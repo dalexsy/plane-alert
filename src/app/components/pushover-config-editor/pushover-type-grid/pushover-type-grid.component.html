@@ -1,0 +1,17 @@
+<div class="section">
+  <h4>Common Military Aircraft</h4>
+  <p class="section-desc">Select types to receive notifications for:</p>
+  <div class="checkbox-grid">
+    @for (type of commonMilitaryTypes; track type.code) {
+      <label class="checkbox-item">
+        <input
+          type="checkbox"
+          [checked]="!isIgnored(type.code)"
+          (change)="toggle(type.code)"
+        />
+        <span class="type-label">{{ type.name }}</span>
+        <span class="type-code">{{ type.code }}</span>
+      </label>
+    }
+  </div>
+</div>

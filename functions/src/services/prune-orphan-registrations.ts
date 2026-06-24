@@ -23,12 +23,22 @@ export async function pruneOrphanDeviceRegistrations(
     }
     const data = doc.data() as DeviceRegistration;
     const deviceName = inferDeviceName(docId, data);
+    const docSlug = docId.includes('__') ? docId.slice(docId.indexOf('__') + 2) : docId;
 
-    if (matchPushoverDeviceName(deviceName, pushoverDevices)) {
-      if (!PUSHOVER_UNRELIABLE_DEVICE_NAMES.has(deviceName.toLowerCase())) {
-        continue;
+    let matchesKnownPushoverDevice = false;
+    for (const candidate of [deviceName, docSlug]) {
+      const matched = matchPushoverDeviceName(candidate, pushoverDevices);
+      if (
+        matched &&
+        !PUSHOVER_UNRELIABLE_DEVICE_NAMES.has(matched.toLowerCase())
+      ) {
+        matchesKnownPushoverDevice = true;
+        break;
       }
-    } else if (
+    }
+
+    if (
+      matchesKnownPushoverDevice ||
       isValidDeviceRegistration(deviceName, data.platform, pushoverDevices)
     ) {
       continue;

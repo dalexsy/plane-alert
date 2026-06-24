@@ -1,0 +1,58 @@
+<div id="seenResults" [class.collapsed]="collapsed">
+  <h3 class="top" (click)="toggleCollapsed.emit()">
+    <span class="section-title">All Planes Peeped ({{ seenLog.length }})</span>
+    <span class="header-buttons">
+      <app-button
+        id="collapseSeenButton"
+        [icon]="collapsed ? 'expand_less' : 'expand_more'"
+        type="tertiary"
+        size="medium"
+        (click)="toggleCollapsed.emit(); $event.stopPropagation()"
+        [ariaLabel]="collapsed ? 'Expand seen list' : 'Collapse seen list'"
+      ></app-button>
+      <app-button
+        icon="refresh"
+        type="tertiary"
+        size="medium"
+        (click)="clearHistorical.emit()"
+        class="clear-seen"
+      ></app-button>
+    </span>
+  </h3>
+  <div class="collapse-wrapper">
+    <div
+      class="plane-list-wrapper"
+      [class.fade-enabled]="scrollable"
+      [class.no-fade]="!scrollable || atBottom"
+      *ngIf="seenLog.length; else noSeen"
+    >
+      <div
+        class="seen-list plane-list"
+        #listEl
+        (scroll)="scrollChange.emit($event)"
+        [@listAnimation]="highlightedPlaneIcao"
+      >
+        <app-plane-list-item
+          *ngFor="let plane of filteredLog"
+          [plane]="plane"
+          listType="seen"
+          [highlightedPlaneIcao]="highlightedPlaneIcao"
+          [hoveredPlaneIcao]="hoveredPlaneIcao"
+          [now]="now"
+          [activePlaneIcaos]="activePlaneIcaos"
+          [followedPlaneIcao]="highlightedPlaneIcao"
+          [clickedAirports]="clickedAirports"
+          [airportCircles]="airportCircles"
+          (centerPlane)="centerPlane.emit($event)"
+          (filterPrefix)="filterPrefix.emit($event)"
+          (toggleSpecial)="toggleSpecial.emit($event)"
+          (hoverPlane)="hoverPlane.emit($event)"
+          (unhoverPlane)="unhoverPlane.emit($event)"
+        ></app-plane-list-item>
+      </div>
+    </div>
+    <ng-template #noSeen>
+      <p>No planes peeped.</p>
+    </ng-template>
+  </div>
+</div>

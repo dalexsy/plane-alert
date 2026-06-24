@@ -1,0 +1,412 @@
+  async ngAfterViewInit(): Promise<void> {
+    this.settings.load();
+    // Load aircraft database
+    await this.aircraftDb.load();
+    // showDateTime is now managed by UiStateService
+
+    // Load clicked airports from settings
+    this.clickedAirports = this.settings.getClickedAirports();
+
+    // --- Clear all historical trail data on startup to prevent lag ---
+    this.planeHistoricalLog = [];
+    this.resultsOverlayComponent.seenPlaneLog = [];
+    this.planeLog.forEach((plane) => {
+      plane.positionHistory = [];
+      if (plane.historyTrailSegments) plane.historyTrailSegments = [];
+    });
+
+    // Update tooltip classes on special list changes
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.planeLog.forEach((plane) => {
+        const tooltipEl = plane.marker?.getTooltip()?.getElement();
+        if (tooltipEl) {
+          tooltipEl.classList.toggle(
+            'special-plane-tooltip',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+        // Also update marker icon class
+        const markerEl = plane.marker?.getElement();
+        if (markerEl) {
+          markerEl.classList.toggle(
+            'special-plane',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+      });
+    });
+
+    // Add global click handler for tooltip follow
+    window.addEventListener('click', this.globalTooltipClickHandler);
+
+    // Initialize input overlay component inputs if necessary
+    if (this.inputOverlayComponent) {
+      // Sync input props
+      this.inputOverlayComponent.showDateTime = this.showDateTime;
+      this.inputOverlayComponent.showCloudCover = this.settings.showCloudCover;
+      this.inputOverlayComponent.showRainCover = this.settings.showRainCover;
+      this.inputOverlayComponent.showViewAxes = this.settings.showViewAxes;
+      this.inputOverlayComponent.showAirportLabels =
+        this.settings.showAirportLabels;
+    }
+
+    // Apply initial animation setting
+    this.planeDisplayService.applyAnimationSetting(
+      this.animationsEnabled,
+      this.document
+    );
+
+    // Initialize altitude borders state
+    this.planeDisplayService.setAltitudeBordersEnabled(
+      this.uiState.showAltitudeBorders
+    );
+
+    const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+    const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+    const radius = this.settings.radius ?? 5;
+
+    // If no current location is set but home location exists, start at home
+    const homeLoc = this.settings.getHomeLocation();
+    let startLat = lat;
+    let startLon = lon;
+    if (this.settings.lat === null && this.settings.lon === null && homeLoc) {
+      startLat = homeLoc.lat;
+      startLon = homeLoc.lon;
+    }
+
+    const storedExclude = localStorage.getItem('excludeDiscount');
+    if (storedExclude !== null) {
+      this.settings.excludeDiscount = storedExclude === 'true';
+    }
+
+    // Initialize map and overlays
+    this.isProgrammaticMove = true; // Prevent moveend from updating location context during initialization
+    const { map, currentLocationMarker } =
+      this.mapInitializerService.initializeMap(
+        'map',
+        startLat,
+        startLon,
+        radius,
+        (dblLat, dblLng) => {
+          // Use the current main radius for the update
+          const currentMainRadius = this.settings.radius ?? 5;
+
+          // Set location immediately with placeholder address so forceScan uses the new coordinates
+          const placeholderAddress = `${dblLat.toFixed(4)}, ${dblLng.toFixed(
+            4
+          )}`;
+          this.settings.setLocationWithAddress(
+            dblLat,
+            dblLng,
+            placeholderAddress
+          );
+
+          this.updateMap(dblLat, dblLng, currentMainRadius); // This will trigger airport search
+
+          // Reverse geocode and update with real address
+          this.reverseGeocode(dblLat, dblLng).then((address) => {
+            this.locationContext.setLocation(
+              dblLat,
+              dblLng,
+              address,
+              'address'
+            );
+            this.settings.setLocationWithAddress(dblLat, dblLng, address);
+          });
+
+          this.scanService.forceScan(); // Restart the scan with new location
+        }
+      );
+    this.map = map;
+    this.currentLocationMarker = currentLocationMarker;
+
+    // Add moveend listener to update location context when user pans the map
+    this.map.on('moveend', () => {
+      if (!this.isProgrammaticMove) {
+        // Location context is now updated from address changes, not map center changes
+        // this.locationContext.updateFromMapCenter(center.lat, center.lng);
+      }
+      this.isProgrammaticMove = false; // Reset flag
+    });
+
+    // Subscribe to location context changes to update map when address is geocoded
+    this.locationContext.currentLocation$.subscribe((locationData) => {
+      if (
+        locationData.source === 'address' &&
+        locationData.lat !== undefined &&
+        locationData.lon !== undefined
+      ) {
+        const radius = this.settings.radius ?? 5;
+        this.updateMap(locationData.lat, locationData.lon, radius);
+      }
+    });
+
+    // Initialize services with the map
+    this.airportService.initialize(this.map);
+    this.airportService.setClickedAirports(this.clickedAirports);
+
+    // Apply map layer visibility based on saved preferences
+    this.weatherOverlayService.setCloudCoverVisible(
+      this.settings.showCloudCover
+    );
+    this.weatherOverlayService.setRainCoverVisible(this.settings.showRainCover);
+    this.toggleConeVisibility(this.uiState.coneVisible);
+    // Apply airport labels visibility - now handled by UiStateService
+    // Provide the created map instance to the service
+    this.mapService.setMapInstance(this.map);
+    // Main radius will be drawn by updateMap to avoid duplicate initial draw
+    // Force Angular to detect view changes so radius and cone components render
+    this.cdr.detectChanges();
+    // Initial map update to draw radius, airports, and planes
+    this.updateMap(startLat, startLon, radius);
+    // updateMap is called within initMap now via findAndDisplayAirports
+    // this.updateMap(lat, lon, radius); // REMOVED - initMap handles initial load
+
+    // Clear geocoding cache to ensure fresh results after unifying geocoding services
+    this.geocodingCache.clearCache();
+
+    // Initialize location context with saved address or geocode the starting location
+    // Location context is the SINGLE source of truth for current address
+    const savedAddress = this.settings.currentAddress;
+
+    // CRITICAL: Check if saved address and coordinates make sense together
+    // If address and coordinates are out of sync (e.g., "New York" with Berlin coords),
+    // trust the coordinates and re-geocode
+    const needsResync =
+      savedAddress &&
+      this.settings.lat !== null &&
+      this.settings.lon !== null &&
+      this.addressLooksWrongForCoordinates(savedAddress, startLat, startLon);
+
+    if (needsResync) {
+      console.warn('Address and coordinates are out of sync! Re-geocoding...');
+      console.warn(
+        'Saved address:',
+        savedAddress,
+        'Coordinates:',
+        startLat,
+        startLon
+      );
+      // Clear the bad address and re-geocode
+      this.reverseGeocode(startLat, startLon).then((address) => {
+        console.log('Re-geocoded to fix mismatch:', address);
+        this.locationContext.setLocation(
+          startLat,
+          startLon,
+          address,
+          'default'
+        );
+        this.settings.setLocationWithAddress(startLat, startLon, address);
+      });
+    } else if (savedAddress) {
+      this.locationContext.setLocation(
+        startLat,
+        startLon,
+        savedAddress,
+        'default'
+      );
+    } else {
+      // Only reverse-geocode if we don't have a saved address
+      this.reverseGeocode(startLat, startLon).then((address) => {
+        this.locationContext.setLocation(
+          startLat,
+          startLon,
+          address,
+          'default'
+        );
+        // Save it for next session
+        this.settings.setLocationWithAddress(startLat, startLon, address);
+      });
+    }
+
+    // Initialize home marker if home location exists
+    this.homeMarker = this.mapInitializerService.initializeHomeMarker(
+      this.settings.getHomeLocation()
+    );
+
+    // Update markers visibility based on current location
+    this.mapInitializerService.updateMarkersVisibility(
+      lat,
+      lon,
+      this.settings.getHomeLocation(),
+      this.currentLocationMarker,
+      this.homeMarker
+    );
+
+    // Check if we're at home location and enable cones if we are
+    const homeLocation = this.settings.getHomeLocation();
+    if (
+      homeLocation &&
+      Math.abs(startLat - homeLocation.lat) < 0.0001 &&
+      Math.abs(startLon - homeLocation.lon) < 0.0001
+    ) {
+      // We're starting at the home position, enable cones
+      this.uiState.setConeVisibility(true);
+
+      // Update the Show View Axes checkbox to match
+      setTimeout(() => {
+        const coneCheckbox = document.getElementById(
+          'showCone'
+        ) as HTMLInputElement;
+        if (coneCheckbox) {
+          coneCheckbox.checked = true;
+        }
+      }, 100); // Small delay to ensure DOM is ready
+    }
+
+    // Initialize plane log service with component references
+    this.planeLogService.initialize(
+      this.resultsOverlayComponent,
+      this.windowViewOverlayComponent
+    );
+    this.planeLogService.setMapComponent(this);
+
+    // Start astronomical updates (sun/moon/sunrise/sunset calculations)
+    this.astronomicalDisplay.startAstronomicalUpdates();
+
+    // Initialize map update service
+    this.mapUpdate.setInitialScanDone(false);
+
+    // Subscribe to commercial filter changes
+    this.settings.excludeDiscountChanged.subscribe(() => {
+      // Re-filter planes when commercial toggle changes
+      this.filterManagementService.onExcludeDiscountChange(
+        this.planeLog,
+        this.planeHistoricalLog,
+        this.map
+      );
+    });
+    this.resultsOverlayComponent.clearHistoricalList.subscribe(() =>
+      this.filterManagementService.clearSeenList(
+        this.planeHistoricalLog,
+        this.resultsOverlayComponent,
+        this.cdr
+      )
+    );
+    this.resultsOverlayComponent.exportFilterList.subscribe(() =>
+      this.filterManagementService.exportFilterList()
+    );
+
+    // Subscribe to follow service state changes
+    this.planeFollowService.followState$.subscribe((followState) => {
+      this.handleFollowStateChange(followState);
+    });
+
+    // Subscribe to follow service for follow requests
+    this.planeFollowService.follow$.subscribe((followRequest) => {
+      this.handleFollowRequest(followRequest);
+    });
+    this.resultsOverlayComponent.filterPrefix.subscribe(
+      (plane: PlaneLogEntry) => {
+        const prefix = this.planeFilter.extractAirlinePrefix(plane.callsign);
+
+        // Toggle the prefix in the filter service
+        this.planeFilter.togglePrefix(prefix);
+
+        // Find the actual PlaneModel instance in the main log
+        const planeModel = this.planeLog.get(plane.icao);
+        if (planeModel) {
+          // Re-evaluate filter status based on the updated filter list
+          const isMilitary =
+            this.aircraftDb.lookup(planeModel.icao)?.mil || false;
+          const shouldBeFiltered = !this.planeFilter.shouldIncludeCallsign(
+            planeModel.callsign,
+            this.settings.excludeDiscount,
+            this.planeFilter.getFilterPrefixes(),
+            isMilitary
+          );
+
+          // Update the filteredOut status directly on the model
+          planeModel.filteredOut = shouldBeFiltered; // --- Handle Visuals ---
+          if (shouldBeFiltered) {
+            planeModel.removeVisuals(this.map);
+          } else if (
+            planeModel.marker &&
+            !this.map.hasLayer(planeModel.marker)
+          ) {
+            planeModel.marker.addTo(this.map);
+          }
+        }
+
+        // --- REMOVED to prevent infinite loop ---
+
+        // Trigger change detection manually as we mutated an object property
+        // which might not be picked up by default change detection strategy.
+        this.cdr.detectChanges();
+        // Also update filteredOut flag on historical entries for the seen list
+        this.planeHistoricalLog.forEach((hist) => {
+          const isMilHist = this.aircraftDb.lookup(hist.icao)?.mil || false;
+          hist.filteredOut = !this.planeFilter.shouldIncludeCallsign(
+            hist.callsign,
+            this.settings.excludeDiscount,
+            this.planeFilter.getFilterPrefixes(),
+            isMilHist
+          );
+        });
+        // Rebuild logs to refresh seen list
+        this.planeHistoricalLog = this.planeLogService.updatePlaneLog(
+          Array.from(this.planeLog.values())
+        );
+      }
+    );
+    this.scanService.start(this.settings.interval, () => {
+      this.findPlanes();
+    });
+    // Force an initial scan on startup
+    this.scanService.forceScan();
+
+    // Subscribe to radius changes: clear markers and paths outside new radius
+    this.settings.radiusChanged.subscribe((newRadius) => {
+      // Get current center coordinates
+      const lat = this.settings.lat ?? this.DEFAULT_COORDS[0];
+      const lon = this.settings.lon ?? this.DEFAULT_COORDS[1];
+
+      // Redraw the main radius circle without re-centering
+      this.mapService.setMainRadius(lat, lon, newRadius);
+
+      // Remove planes outside new radius and update airports
+      this.removeOutOfRangePlanes(lat, lon, newRadius);
+      this.airportService.findAndDisplayAirports(
+        lat,
+        lon,
+        newRadius,
+        this.showAirportLabels
+      );
+    });
+
+    // Initialize map panning service
+    this.mapPanService.init(this.map); // Initialize sun angle overlay and kick off periodic updates
+    // Astronomical updates are now handled by AstronomicalDisplayService    // Subscribe to sky color changes for cloud layer synchronization
+    this.skyColorSyncService.skyColors$.subscribe((skyColors) => {
+      if (skyColors && this.cloudLayer) {
+        this.applySkyColorsToCloudLayer(skyColors);
+      }
+    });
+
+    // Subscribe to brightness changes from BrightnessService
+    // this.brightnessService.brightness$.subscribe((brightnessState) => {
+    //   this.ngZone.run(() => {
+    //     this.brightnessState = brightnessState;
+    //     this.brightness = brightnessState.brightness;
+    //     this.applyBrightnessToMap();
+    //     this.cdr.detectChanges();
+    //   });
+    // });
+
+    // Initialize brightness service with current location
+    this.brightnessService.setLocation(startLat, startLon);
+
+    // Initialize map theme service with the map
+    this.mapThemeService.initializeWithMap(this.map);
+
+    // Initialize environmental data service and subscribe to wind data
+    this.environmentalData.setLocation(startLat, startLon);
+    this.environmentalData.windData$.subscribe((windData) => {
+      if (windData) {
+        this.windSpeed = windData.speed;
+        this.windAngle = windData.direction;
+        this.windStat = windData.stat;
+        this.cdr.detectChanges();
+      }
+    });
+  }

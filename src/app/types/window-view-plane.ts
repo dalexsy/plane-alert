@@ -1,0 +1,54 @@
+import { EngineIconType } from '../../utils/plane-icons';
+
+export interface WindowViewPlane {
+  x: number;
+  y: number;
+  skipWrapTransition?: boolean;
+  callsign: string;
+  icao: string;
+  altitude: number;
+  origin: string;
+  lat?: number;
+  lon?: number;
+  bearing?: number;
+  isMarker?: boolean;
+  azimuth?: number;
+  compass?: string;
+  iconPath?: string;
+  iconType?: EngineIconType;
+  isHelicopter?: boolean;
+  velocity?: number;
+  verticalRate?: number;
+  trailLength?: number;
+  trailOpacity?: number;
+  trailPivotLeft?: string;
+  trailPivotTop?: string;
+  trailRotation?: number;
+  trailPivotOffsetX?: number;
+  trailPivotOffsetY?: number;
+  isCelestial?: boolean;
+  celestialBodyType?: 'sun' | 'moon';
+  scale?: number;
+  distanceKm?: number;
+  isNew?: boolean;
+  isMilitary?: boolean;
+  isSpecial?: boolean;
+  isGrounded?: boolean;
+  groundStackOrder?: number;
+  moonPhase?: number;
+  moonFraction?: number;
+  moonAngle?: number;
+  operator?: string;
+  model?: string;
+  moonIsWaning?: boolean;
+  belowHorizon?: boolean;
+  historyTrail?: Array<{ x: number; y: number; opacity: number }>;
+  historySegments?: Array<{
+    x: number;
+    y: number;
+    length: number;
+    angle: number;
+    opacity: number;
+  }>;
+  movementDirection?: 'left' | 'right' | null;
+}

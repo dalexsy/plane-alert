@@ -2,72 +2,51 @@
   class="window-view-overlay"
   [ngClass]="{ daytime: isDaytime() }"
   (contextmenu)="$event.stopPropagation()"
-  [style.background]="skyBackground"
+  [style.background]="sky.skyBackground"
 >
-  <!-- Sky background with clouds -->
   <app-sky-background
-    [windowCloudUrl]="windowCloudUrl"
-    [cloudFilter]="cloudFilter"
-    [cloudBacklightClass]="cloudBacklightClass"
+    [windowCloudUrl]="sky.windowCloudUrl"
+    [cloudFilter]="sky.cloudFilter"
+    [cloudBacklightClass]="sky.cloudBacklightClass"
   ></app-sky-background>
-  <!-- Sun sky gradient positioned to follow the sun -->
-  <div
-    *ngIf="getSunObject()"
-    class="sun-sky-gradient"
-    [ngClass]="{
-      'below-horizon': getSunObject()?.belowHorizon,
-      daytime: isDaytime() && !getSunObject()?.belowHorizon,
-      twilight: !isDaytime() && !getSunObject()?.belowHorizon,
-      night: getSunObject()?.belowHorizon,
-      'low-sun': getSunElevationAngle() < 15 && getSunElevationAngle() > -6
-    }"
-    [style.left]="getSunObject()?.x + '%'"
-    [style.bottom]="getSunGradientBottomPosition()"
-  ></div>
-  <!-- Rain overlay -->
+  <app-sun-sky-gradient
+    [sun]="getSunObject()"
+    [isDaytime]="isDaytime()"
+    [sunElevationAngle]="getSunElevationAngle()"
+    [bottomPosition]="getSunGradientBottomPosition()"
+  ></app-sun-sky-gradient>
   <app-rain-overlay></app-rain-overlay>
-  <!-- Swallow storm animation -->
   <app-swallow-animation
     [pressureIntensity]="0.8"
     [isStormApproaching]="true"
     [animationsEnabled]="animationsEnabled"
   ></app-swallow-animation>
-  <!-- Fall leaves animation -->
   <app-fall-leaves-animation
     [isAutumn]="true"
     [animationsEnabled]="animationsEnabled"
-    [windSpeed]="currentWindSpeed"
+    [windSpeed]="sky.currentWindSpeed"
     [windStat]="windStat"
   ></app-fall-leaves-animation>
-  <!-- Compass labels with roof background -->
   <app-compass-labels
-    [compassBackground]="compassBackground"
-    [chimneyBackground]="chimneyBackground"
+    [compassBackground]="compass.compassBackground"
+    [chimneyBackground]="compass.chimneyBackground"
   ></app-compass-labels>
-
-  <!-- Marker lines for balcony/streetside boundaries -->
   <app-marker-lines [markerPlanes]="getMarkerPlanes()"></app-marker-lines>
-
-  <!-- Altitude bands for visual reference -->
   <app-altitude-bands [altitudeTicks]="altitudeTicks"></app-altitude-bands>
-  <!-- Dimmed regions outside marker spans -->
   <app-dim-overlay
     [dimSegments]="dimSegments"
     [brightnessState]="brightnessState"
   ></app-dim-overlay>
-
-  <!-- Celestial objects (sun/moon) -->
   <app-celestial-objects
     [celestialObjects]="getCelestialObjects()"
     [isDaytime]="isDaytime()"
   ></app-celestial-objects>
-  <!-- Aircraft container with planes and trails -->
   <app-aircraft-container
     [aircraftPlanes]="getAircraftPlanes()"
     [highlightedPlaneIcao]="highlightedPlaneIcao"
     [showAltitudeBorders]="showAltitudeBorders"
-    [skyBottomColor]="skyBottomColor"
-    [skyTopColor]="skyTopColor"
+    [skyBottomColor]="sky.skyBottomColor"
+    [skyTopColor]="sky.skyTopColor"
     (selectPlane)="handlePlaneSelection($event)"
   ></app-aircraft-container>
 </div>

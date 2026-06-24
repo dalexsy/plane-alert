@@ -1,0 +1,14 @@
+<div
+  class="rain-overlay"
+  [class.active]="isRaining"
+  [ngClass]="overlayClasses"
+  [ngStyle]="rainStyles"
+  [style.opacity]="isRaining ? 1 : 0"
+>
+  @for (drop of rainDrops; track drop.id) {
+    <app-rain-drop
+      [drop]="drop"
+      [transform]="getDropTransform(drop)"
+    />
+  }
+</div>

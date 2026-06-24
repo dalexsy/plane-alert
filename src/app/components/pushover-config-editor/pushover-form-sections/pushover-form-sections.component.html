@@ -1,0 +1,56 @@
+<div class="sections">
+  <div class="section">
+    <h4>Pushover User Key</h4>
+    <p class="section-desc">
+      Enter your Pushover user key to enable push notifications.
+      <a href="https://pushover.net" target="_blank" rel="noopener">Get your key here</a>
+    </p>
+    <input
+      type="text"
+      [(ngModel)]="state.pushoverUserKey"
+      placeholder="Enter your Pushover user key"
+      class="pushover-key-input"
+    />
+    @if (!state.pushoverUserKey) {
+      <p class="help-text">
+        You need a Pushover account to receive notifications. Visit pushover.net to sign up.
+      </p>
+    }
+  </div>
+
+  <div class="section">
+    <h4>Custom Filters</h4>
+    <p class="section-desc">
+      Enter aircraft type codes to ignore (one per line, case-insensitive):
+    </p>
+    <textarea
+      [(ngModel)]="state.customIgnoreList"
+      (ngModelChange)="customFilterChange.emit()"
+      placeholder="e.g., C130&#10;A400&#10;KC135"
+      rows="6"
+    ></textarea>
+    <p class="help-text"><strong>Examples:</strong> C130, A400, KC135, F16, BLACKHAWK</p>
+  </div>
+
+  <div class="section">
+    <h4>Alert Radius</h4>
+    <p class="section-desc">Maximum distance for push notifications:</p>
+    <div class="slider-group">
+      <input
+        type="range"
+        [value]="state.radiusKm"
+        (input)="onRadiusInput(+$any($event.target).value)"
+        min="10"
+        max="200"
+        step="5"
+      />
+      <div class="slider-value">
+        @if (state.distanceUnit === 'km') {
+          <span>{{ state.radiusKm }} km</span>
+        } @else {
+          <span>{{ (state.radiusKm * 0.621371).toFixed(0) }} miles</span>
+        }
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,89 @@
+  private setHomeMarker(lat: number, lon: number): void {
+    // Remove previous home marker if it exists
+    if (this.homeMarker) {
+      this.homeMarker.remove();
+    }
+
+    this.homeMarker = this.mapInitializerService.initializeHomeMarker({
+      lat,
+      lon,
+    });
+  }
+
+  // Set current location as home
+  setCurrentAsHome(): void {
+    const lat = this.settings.lat;
+    const lon = this.settings.lon;
+
+    if (lat !== null && lon !== null) {
+      // Get the current address from the location context (single source of truth)
+      const currentAddress = this.locationContext.currentLocation.address;
+
+      // Save home location to settings with the address
+      this.settings.setHomeLocation(lat, lon, currentAddress || undefined);
+
+      // Set home marker on map
+      this.setHomeMarker(lat, lon);
+    }
+  }
+
+  // Go to home location
+  goToHome(): void {
+    const homeLocation = this.settings.getHomeLocation();
+
+    if (homeLocation) {
+      // Show the cone when going home
+      this.uiState.setConeVisibility(true);
+
+      // Update the Show View Axes checkbox to match
+      const coneCheckbox = document.getElementById(
+        'showCone'
+      ) as HTMLInputElement;
+      if (coneCheckbox) {
+        coneCheckbox.checked = true;
+      }
+
+      // Use current radius and settings
+      const radius = this.settings.radius ?? 5;
+      this.updateMap(homeLocation.lat, homeLocation.lon, radius);
+
+      // If home location has a saved address, ALWAYS use it (don't re-geocode)
+      if (homeLocation.address) {
+        this.locationContext.setLocation(
+          homeLocation.lat,
+          homeLocation.lon,
+          homeLocation.address,
+          'home'
+        );
+        // Save coordinates AND address together atomically
+        this.settings.setLocationWithAddress(
+          homeLocation.lat,
+          homeLocation.lon,
+          homeLocation.address
+        );
+      } else {
+        // Only reverse geocode if we don't have a saved address
+        this.reverseGeocode(homeLocation.lat, homeLocation.lon).then(
+          (address) => {
+            this.locationContext.setLocation(
+              homeLocation.lat,
+              homeLocation.lon,
+              address,
+              'home'
+            );
+            this.settings.setLocationWithAddress(
+              homeLocation.lat,
+              homeLocation.lon,
+              address
+            );
+            // Also update home location to include address
+            this.settings.setHomeLocation(
+              homeLocation.lat,
+              homeLocation.lon,
+              address
+            );
+          }
+        );
+      }
+    }
+  }

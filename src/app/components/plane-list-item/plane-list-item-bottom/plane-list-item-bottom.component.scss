@@ -1,0 +1,104 @@
+@use "../../../styles/plane-list-item-tokens" as t;
+@use "../../../styles/operator-symbol" as op;
+
+:host {
+  display: contents;
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.operator-visibility {
+  display: grid;
+  grid-template-columns: t.$grid-button-width auto;
+  gap: t.$grid-spacing;
+  align-items: center;
+  margin-left: - t.$space-sm;
+
+  .operator-logo .operator-symbol {
+    @include op.operator-symbol();
+  }
+}
+
+.operator {
+  display: grid;
+  grid-template-columns: 1.75rem auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.unknown-operator {
+  opacity: t.$hover-opacity;
+  font-style: italic;
+}
+
+.model {
+  text-align: right;
+  hyphens: auto;
+  position: relative;
+  bottom: -4px;
+}
+
+.aircraft-image-tooltip {
+  position: fixed;
+  z-index: 1006;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: t.$space-sm;
+  max-width: 300px;
+  min-width: 200px;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+
+  &.loading {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: t.$space-xs;
+  font-size: t.$font-size-small;
+
+  .material-symbols-sharp {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.image-container img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin-bottom: t.$space-xs;
+}
+
+.image-source,
+.no-image {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: t.$font-size-small;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .aircraft-image-tooltip {
+    max-width: 250px;
+    min-width: 150px;
+  }
+}

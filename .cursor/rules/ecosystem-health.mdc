@@ -56,6 +56,14 @@ When instructions conflict, follow this order:
 - Leaving open client-error groups on **https://health.dryl.io/errors** uncleared after a fix without naming why they remain
 - Treating a deploy `[warn]` line as harmless — **warnings block production**. A `[warn]` in deploy output is a failed deploy. Fix the warning in the owning repo and redeploy. Do not rugsweep with "non-critical" framing. Exception: use `[info]` (not `[warn]`) for expected fallbacks that do not degrade functionality (e.g. "using built-in list"). Reserve `[warn]` for genuine degradation that must be fixed.
 - Ending a ship task with todo items still marked pending — complete all todos before saying done, or explicitly cancel them with a reason.
+- Describing a deploy screenshot as passing without quoting specific visible content (heading text, list items, data shown)
+- Claiming an app works when the screenshot shows an empty state, error message, or loading spinner
+- Treating Angular shell load as equivalent to app functionality — if the app fetches data, the data must be visible in verification
+- **Adding entries to `smoke-spa-console-filters.mjs` to suppress a failing gate** — this is a gate cheat. `isIgnorableError` is for test-environment noise only (headless CORS, browser extensions, known third-party URLs). `TypeError`, `Cannot read properties of null/undefined`, or any error with a stack trace into `main-*.js` (the app bundle) can **never** be ignorable. Every entry must have a comment explaining why it is environment noise and not an app bug. Entries added to avoid fixing a crash will be reverted and the crash must be fixed.
+- **Falsifying or glossing screenshot descriptions** — agents must quote specific visible text (font names, headings, list items, error messages). "Renders correctly" or "looks good" without quoting content is treated as a false pass and will be caught.
+- **Layout in TS/HTML bindings** — `[style.display]`, `[style.flex]`, `[style.padding]`, `[style.width]`, `[style.height]`, `[style.margin]` and bare `style="…"` for layout belong in SCSS. Only dynamic typography (`fontFamily`, `fontWeight`, `fontSize`) may use `[style.*]` in templates.
+- **Desktop-first SCSS** — `@media (max-width …)` overrides on a desktop base layout. Master spec: mobile-first base styles; desktop enhancements use `@media (min-width …)` only. `lint:mobile-first` fails deploy when violated.
+- **Skipping master spec compliance gate** — reading the spec once at task start then ignoring mobile-first, file order (html → scss → ts), `@dryl/ui` components, or component decomposition because the task "looks simple" is a ship failure.
 
 ### Self-serve information (do not use Daryl as relay)
 
@@ -127,8 +135,27 @@ Agents do not wait to be told something is sick. **Detect → fix → prove elim
 | Directory API only | `:3905` reports match expectation | Production inbox is **Pi mirror** — also `GET https://<host>/api/client-errors/reports` with auth |
 | Question phrasing | "is this necessary?" → explain only | Wrong structure → fix + ship loop |
 | Gate in directory | "unrelated" max-lines failure | Split directory scripts, redeploy app |
+| Wrong-route screenshot | "verify:console clean on `/`" | Coordinator Reads PNG for **every route that changed** (not just home) |
+| Subagent fire-and-forget | "agent X completed" summary accepted | Coordinator personally Reads live PNG + reference before ticket resolve |
+| Lint-pass-as-done | "lint/build passed, done" | UI ship = visual match on live changed route, not gate exit codes |
+| Screenshot read vague | Agent said "renders correctly" after reading deploy PNG | Agent **quotes specific visible text** from PNG — list items, headings, data — and explicitly states no error/empty states visible |
+| Data-driven app shell load | `verify-dryl-app` exit 0, smoke exit 0 | For apps that fetch external data on load: screenshot or browser confirms **data is present** (not spinner, not "failed to load", not "0 results") |
+| Silent data fetch failure | App shows "Failed to load" UI, Directory inbox empty, all pipeline gates green | `catchError` in data services calls `drylReportError` — error visible in health.dryl.io/errors inbox |
 
 `check:dryl-apps` = wiring audit. **Not** live survival.
+
+### Visual verification (UI work)
+
+After any UI change, the coordinator (not a subagent) must:
+
+1. **Open the specific changed route** in browser — not just `/`. Use browser MCP or `verify:console` with the exact path.
+2. **Take a screenshot**, **Read the PNG**, and compare to any reference image Daryl provided. State what you saw.
+3. **Subagent completion ≠ visual proof.** A Task subagent's "completed" message is not evidence. The coordinator must Read the live PNG for every changed route before resolving a ticket.
+4. **Lint/build/console-exit-0 are wiring gates, not design acceptance.** UI work is not done until the changed route visually matches intent on production.
+5. **"Global overrides" / "override tokens globally"** always means `:root` in a global stylesheet — never page-scoped. After a `:root` token change, verify ALL app routes that consume those tokens, not just the one you edited.
+6. **User is never visual QA.** Use browser MCP to open the live URL, screenshot, Read, compare, fix, redeploy. Daryl sending screenshots = failed agent.
+
+**Forbidden:** resolving an ops-agent ticket or saying "done" while known visual breakages remain, even if all automated gates pass.
 
 ### Mandatory gate (shared addons / bug hunter / nginx)
 

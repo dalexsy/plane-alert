@@ -1,0 +1,76 @@
+  onUpdateNow(): void {
+    this.scanService.forceScan();
+  }
+
+  onToggleDateTimeOverlays(): void {
+    this.uiState.toggleDateTimeOverlay();
+  }
+
+  /** Toggle altitude-colored borders on plane tooltips */
+  onToggleAltitudeBorders(enabled: boolean): void {
+    this.uiState.setShowAltitudeBorders(enabled);
+
+    // Update all existing tooltips with the new border style
+    this.planeDisplayService.updateTooltipAltitudeBorders(
+      Array.from(this.planeLog.values()),
+      enabled
+    );
+
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle animations on/off */
+  onToggleAnimations(enabled: boolean): void {
+    this.uiState.setAnimationsEnabled(enabled);
+
+    // Apply animation setting to document body for CSS animation control
+    this.planeDisplayService.applyAnimationSetting(enabled, this.document);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle wind direction display on/off */
+  onToggleWindDirection(enabled: boolean): void {
+    this.uiState.setShowWindDirection(enabled);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Toggle sun direction display on/off */
+  onToggleSunDirection(enabled: boolean): void {
+    this.uiState.setShowSunDirection(enabled);
+
+    this.cdr.detectChanges();
+  }
+
+  /** Get the background color for the moon (dark side) */
+  public getMoonBackgroundColor(): string {
+    // Return dark color for the moon's shadow
+    return '#000000';
+  }
+
+  /** Get the lit color for the moon (illuminated side) */
+  public getMoonLitColor(): string {
+    // Return light color for the moon's illuminated side
+    return '#d4d4d4';
+  }
+
+  /** Observer latitude (current map center latitude) */
+  public get observerLat(): number {
+    return this.currentLat;
+  }
+
+  /** Observer longitude (current map center longitude) */
+  public get observerLon(): number {
+    return this.currentLon;
+  }
+
+  /** Toggle window view overlay visibility */
+  onWindowViewToggle(show: boolean) {
+    this.uiState.setShowWindowView(show);
+  }
+
+  /** Toggle map brightness between normal and dimmed */
+  public toggleBrightness(): void {
+    this.brightnessDisplay.toggleBrightness();
+  }

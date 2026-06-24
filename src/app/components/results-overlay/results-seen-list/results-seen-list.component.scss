@@ -1,0 +1,117 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+#seenResults {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-height: 0;
+  overflow: hidden;
+  max-height: 60vh;
+
+  h3 {
+    flex: 0 0 auto;
+    padding: 1rem;
+    height: 3rem;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .section-title {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+      flex-shrink: 0;
+
+      app-button {
+        min-width: 2.5rem;
+      }
+    }
+  }
+
+  &.collapsed {
+    flex: 0 0 3rem;
+    max-height: 3rem;
+
+    h3 {
+      border-color: transparent;
+    }
+
+    .collapse-wrapper {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+    }
+  }
+}
+
+.collapse-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 1000px;
+  opacity: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.plane-list-wrapper {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2.5rem;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 1) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &.fade-enabled::after {
+    opacity: 1;
+  }
+
+  &.no-fade::after {
+    opacity: 0;
+  }
+}
+
+.plane-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+p {
+  padding: 0.5rem 1rem;
+}

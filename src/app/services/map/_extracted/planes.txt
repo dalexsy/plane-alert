@@ -1,0 +1,190 @@
+  async updateMap(
+    lat: number,
+    lon: number,
+    radiusKm?: number, // This is the MAIN search radius
+    zoomLevel?: number
+  ): Promise<void> {
+    this.isProgrammaticMove = true;
+    await this.mapUpdate.updateMap(
+      this.map,
+      this.currentLocationMarker,
+      this.homeMarker,
+      this.inputOverlayComponent,
+      this.planeLog,
+      this.planeHistoricalLog,
+      lat,
+      lon,
+      radiusKm,
+      zoomLevel
+    );
+    // Update brightness service with new location for day/night theme switching
+    this.brightnessService.setLocation(lat, lon);
+    // Location context is now updated from address changes, not map center changes
+    // this.locationContext.updateFromMapCenter(lat, lon);
+  }
+
+  /** Convert wind direction in degrees to compass point (e.g. N, NE, E, etc.) */
+  public getWindFromDirection(deg: number): string {
+    const directions = [
+      'N',
+      'NNE',
+      'NE',
+      'ENE',
+      'E',
+      'ESE',
+      'SE',
+      'SSE',
+      'S',
+      'SSW',
+      'SW',
+      'WSW',
+      'W',
+      'WNW',
+      'NW',
+      'NNW',
+    ];
+    const index = Math.round((deg % 360) / 22.5);
+    return directions[index % directions.length];
+  }
+
+  /** Convert wind speed from m/s to the specified unit */
+  public convertWindSpeed(speedMs: number, unit: string): number {
+    switch (unit) {
+      case 'knots':
+        return speedMs * 1.94384; // m/s to knots
+      case 'km/h':
+        return speedMs * 3.6; // m/s to km/h
+      case 'mph':
+        return speedMs * 2.23694; // m/s to mph
+      case 'm/s':
+      default:
+        return speedMs;
+    }
+  }
+
+  /** Get the current wind speed in the selected unit */
+  public getCurrentWindSpeed(): number {
+    return this.convertWindSpeed(
+      this.windSpeed,
+      this.windUnits[this.currentWindUnitIndex]
+    );
+  }
+
+  /** Get the current wind unit string */
+  public getCurrentWindUnit(): string {
+    return this.windUnits[this.currentWindUnitIndex];
+  }
+  /** Cycle to the next wind unit */
+  public cycleWindUnit(): void {
+    this.currentWindUnitIndex =
+      (this.currentWindUnitIndex + 1) % this.windUnits.length;
+    // Save the wind unit preference
+    this.settings.setWindUnitIndex(this.currentWindUnitIndex);
+  }
+
+  removeOutOfRangePlanes(lat: number, lon: number, radius: number): void {
+    for (const [icao, plane] of this.planeLog.entries()) {
+      if (
+        plane.lat == null ||
+        plane.lon == null ||
+        haversineDistance(lat, lon, plane.lat, plane.lon) > radius
+      ) {
+        plane.removeVisuals(this.map);
+        this.planeLog.delete(icao);
+      }
+    }
+    // Update the set of active plane ICAOs after removal
+    this.activePlaneIcaos = new Set(this.planeLog.keys());
+    this.planeHistoricalLog = this.planeLogService.updatePlaneLog(
+      Array.from(this.planeLog.values())
+    );
+  }
+  reverseGeocode(lat: number, lon: number): Promise<string> {
+    return this.geocodingCache.reverseGeocode(lat, lon);
+  }
+  findPlanes(): void {
+    // Update last scan time in input overlay
+    if (this.inputOverlayComponent) {
+      this.inputOverlayComponent.lastScanTime = new Date();
+    }
+
+    this.planeUpdate
+      .findPlanes(
+        this.map,
+        this.planeLog,
+        this.planeHistoricalLog,
+        this.planeNewTimestamps,
+        this.activePlaneIcaos,
+        this.highlightedPlaneIcao,
+        this.followNearest,
+        this.cdr
+      )
+      .then(({ faviconUrl }) => {
+        // Update favicon if it changed
+        if (faviconUrl) {
+          this.updateFavicon(faviconUrl);
+        }
+
+        // Update component properties with the results
+        this.closestPlaneService.computeClosestPlane(
+          this.planeLog as Map<string, PlaneModel>,
+          this.highlightedPlaneIcao
+        );
+        const closestData = this.closestPlaneService.getClosestPlaneData();
+        this.closestPlane = closestData.closestPlane;
+        this.closestDistance = closestData.closestDistance;
+        this.closestOperator = closestData.closestOperator;
+        this.closestSecondsAway = closestData.closestSecondsAway;
+        this.closestVelocity = closestData.closestVelocity;
+        this.locationStreet = closestData.locationStreet;
+        this.locationDistrict = closestData.locationDistrict;
+
+        this.manualUpdate = false;
+      })
+      .catch(() => {
+        // Error in findPlanes would be logged here
+      });
+  }
+
+  /** Replace favicon by updating the href of the <link rel="icon"> tag */
+  private updateFavicon(iconUrl: string): void {
+    // Only update when icon URL changes
+    if (this.currentFaviconUrl === iconUrl) {
+      return;
+    }
+    this.currentFaviconUrl = iconUrl;
+    const linkSelectors = [
+      "link[rel='icon']",
+      "link[rel='shortcut icon']",
+    ].join(',');
+    const links =
+      this.document.querySelectorAll<HTMLLinkElement>(linkSelectors);
+    if (!links.length) {
+      // No favicon link tags found warning would be logged here
+      return;
+    }
+    links.forEach((link) => {
+      link.href = iconUrl;
+    });
+  }
+
+  clearSeenList(): void {
+    this.planeHistoricalLog = [];
+    this.resultsOverlayComponent.seenPlaneLog = [];
+    this.cdr.detectChanges();
+  }
+
+  exportFilterList(): void {
+    const filters = this.planeFilter.getFilterPrefixes();
+    localStorage.setItem('filterList', JSON.stringify(filters));
+    const data = JSON.stringify(filters, null, 2);
+    const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'filter-list.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }

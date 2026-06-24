@@ -24,99 +24,95 @@
 
 <div class="overlay-container">
   <app-closest-plane-overlay
-    *ngIf="closestPlane"
-    [plane]="closestPlane"
-    [operator]="closestOperator"
+    *ngIf="overlay.closestPlane"
+    [plane]="overlay.closestPlane"
+    [operator]="overlay.closestOperator"
     (selectPlane)="followNearestPlane($event)"
-    [isSelected]="closestPlane.icao === highlightedPlaneIcao"
+    [isSelected]="overlay.closestPlane.icao === overlay.highlightedPlaneIcao"
   ></app-closest-plane-overlay>
 
   <app-location-overlay
-    [plane]="closestPlane"
-    [street]="locationStreet"
-    [district]="locationDistrict"
+    [plane]="overlay.closestPlane"
+    [street]="overlay.locationStreet"
+    [district]="overlay.locationDistrict"
     (selectPlane)="followNearestPlane($event)"
-    [isSelected]="closestPlane?.icao === highlightedPlaneIcao"
+    [isSelected]="overlay.closestPlane?.icao === overlay.highlightedPlaneIcao"
   ></app-location-overlay>
 </div>
 
 <app-input-overlay
-  (resolveAndUpdate)="resolveAndUpdateFromAddress()"
-  (excludeDiscountChange)="onExcludeDiscountChange()"
-  (useCurrentLocation)="useCurrentLocation()"
-  (coneVisibilityChange)="toggleConeVisibility($event)"
-  (coneConfigChange)="onConeConfig()"
-  (cloudToggleChange)="toggleCloudCover($event)"
-  (rainToggleChange)="toggleRainCover($event)"
-  (setHome)="setCurrentAsHome()"
-  (goToHome)="goToHome()"
-  (toggleDateTimeOverlays)="onToggleDateTimeOverlays()"
-  (brightnessToggle)="toggleBrightness()"
-  (zoomIn)="onZoomIn()"
-  (zoomOut)="onZoomOut()"
-  [brightness]="brightness"
-  [brightnessState]="brightnessState"
-  [showViewAxes]="coneVisible"
-  [showDateTime]="showDateTime"
-  [showCloudCover]="cloudVisible"
-  [showRainCover]="rainVisible"
-  [showAirportLabels]="showAirportLabels"
-  [showAltitudeBorders]="showAltitudeBorders"
-  (toggleAirportLabels)="onToggleAirportLabels()"
-  (altitudeBordersChange)="onToggleAltitudeBorders($event)"
-  [animationsEnabled]="animationsEnabled"
-  (animationsEnabledChange)="onToggleAnimations($event)"
+  (resolveAndUpdate)="facade.resolveAndUpdateFromAddress(inputOverlayComponent)"
+  (excludeDiscountChange)="facade.onExcludeDiscountChange()"
+  (useCurrentLocation)="facade.useCurrentLocation(inputOverlayComponent)"
+  (coneVisibilityChange)="facade.toggleConeVisibility($event, cdr)"
+  (coneConfigChange)="facade.onConeConfig()"
+  (cloudToggleChange)="facade.toggleCloudCover($event)"
+  (rainToggleChange)="facade.toggleRainCover($event)"
+  (setHome)="facade.setCurrentAsHome()"
+  (goToHome)="facade.goToHome(inputOverlayComponent)"
+  (toggleDateTimeOverlays)="facade.onToggleDateTimeOverlays()"
+  (brightnessToggle)="facade.toggleBrightness()"
+  (zoomIn)="facade.onZoomIn()"
+  (zoomOut)="facade.onZoomOut()"
+  [brightness]="brightnessDisplay.brightness"
+  [brightnessState]="brightnessDisplay.brightnessState"
+  [showViewAxes]="uiState.coneVisible"
+  [showDateTime]="uiState.showDateTime"
+  [showCloudCover]="uiState.cloudVisible"
+  [showRainCover]="uiState.rainVisible"
+  [showAirportLabels]="uiState.showAirportLabels"
+  [showAltitudeBorders]="uiState.showAltitudeBorders"
+  (toggleAirportLabels)="facade.onToggleAirportLabels()"
+  (altitudeBordersChange)="facade.onToggleAltitudeBorders($event, cdr)"
+  [animationsEnabled]="uiState.animationsEnabled"
+  (animationsEnabledChange)="facade.onToggleAnimations($event, cdr)"
 ></app-input-overlay>
 
-<!-- Pass the set of active ICAOs to the results overlay -->
 <app-results-overlay
-  (windowViewToggle)="onWindowViewToggle($event)"
-  [skyPlaneLog]="skyPlaneLog"
-  [airportPlaneLog]="airportPlaneLog"
-  [seenPlaneLog]="seenPlaneLog"
+  (windowViewToggle)="facade.onWindowViewToggle($event)"
+  [skyPlaneLog]="overlay.skyPlaneLog"
+  [airportPlaneLog]="overlay.airportPlaneLog"
+  [seenPlaneLog]="overlay.seenPlaneLog"
   [loadingAirports]="loadingAirports"
-  [highlightedPlaneIcao]="highlightedPlaneIcao"
-  [activePlaneIcaos]="activePlaneIcaos"
-  [clickedAirports]="clickedAirports"
-  [airportCircles]="airportCircles"
-  [showAltitudeBorders]="showAltitudeBorders"
-  [showWindDirection]="showWindDirection"
-  [showSunDirection]="showSunDirection"
-  (altitudeBordersChange)="onToggleAltitudeBorders($event)"
-  (windDirectionToggleChange)="onToggleWindDirection($event)"
-  (sunDirectionToggleChange)="onToggleSunDirection($event)"
+  [highlightedPlaneIcao]="overlay.highlightedPlaneIcao"
+  [activePlaneIcaos]="overlay.activePlaneIcaos"
+  [clickedAirports]="overlay.clickedAirports"
+  [airportCircles]="overlay.airportCircles"
+  [showAltitudeBorders]="uiState.showAltitudeBorders"
+  [showWindDirection]="uiState.showWindDirection"
+  [showSunDirection]="uiState.showSunDirection"
+  (altitudeBordersChange)="facade.onToggleAltitudeBorders($event, cdr)"
+  (windDirectionToggleChange)="facade.onToggleWindDirection($event, cdr)"
+  (sunDirectionToggleChange)="facade.onToggleSunDirection($event, cdr)"
   (centerPlane)="followNearestPlane($event)"
-  (centerAirport)="onCenterAirport($event)"
-  (hoverPlane)="onHoverOverlayPlane($event)"
-  (unhoverPlane)="onUnhoverOverlayPlane($event)"
->
-  ></app-results-overlay
->
+  (centerAirport)="facade.onCenterAirport($event)"
+  (hoverPlane)="facade.onHoverOverlayPlane($event)"
+  (unhoverPlane)="facade.onUnhoverOverlayPlane($event)"
+></app-results-overlay>
 
-<!-- Angle overlay above clock and temperature -->
 <div
   class="info-wrapper"
-  [class.dateTimeHidden]="!showDateTime"
-  [class.window-view-hidden]="!showWindowView"
+  [class.dateTimeHidden]="!uiState.showDateTime"
+  [class.window-view-hidden]="!uiState.showWindowView"
   [class.left-bar-visible]="!inputOverlayComponent.otherControlsHidden"
   [class.results-expanded]="!resultsOverlayComponent.collapsed"
 >
   <app-angle-overlay
-    [sunAngle]="sunAngle"
-    [sunEventText]="sunEventText"
-    [isNight]="isNight"
-    [moonPhaseName]="moonPhaseName"
-    [moonFraction]="moonFraction"
-    [windAngle]="windAngle"
-    [windStat]="windStat"
-    [windSpeed]="getCurrentWindSpeed()"
-    [windUnit]="getCurrentWindUnit()"
-    [windDirection]="getWindFromDirection(windAngle)"
-    [showWindDirection]="showWindDirection"
-    [showSunDirection]="showSunDirection"
-    (cycleWindUnit)="cycleWindUnit()"
+    [sunAngle]="astronomicalDisplay.sunAngle"
+    [sunEventText]="astronomicalDisplay.sunEventText"
+    [isNight]="astronomicalDisplay.isNight"
+    [moonPhaseName]="astronomicalDisplay.moonPhaseName"
+    [moonFraction]="astronomicalDisplay.moonFraction"
+    [windAngle]="facade.windAngle"
+    [windStat]="facade.windStat"
+    [windSpeed]="facade.getCurrentWindSpeed()"
+    [windUnit]="facade.getCurrentWindUnit()"
+    [windDirection]="facade.getWindFromDirection(facade.windAngle)"
+    [showWindDirection]="uiState.showWindDirection"
+    [showSunDirection]="uiState.showSunDirection"
+    (cycleWindUnit)="facade.cycleWindUnit()"
   ></app-angle-overlay>
-  <div class="time-temp-container" *ngIf="showDateTime">
+  <div class="time-temp-container" *ngIf="uiState.showDateTime">
     <app-clock></app-clock>
     <app-temperature
       [resultsCollapsed]="resultsOverlayComponent.collapsed"
@@ -124,37 +120,33 @@
   </div>
 </div>
 
-<!-- Window view overlay restored -->
 <app-window-view-overlay
-  *ngIf="showWindowView"
-  [windowViewPlanes]="windowViewPlanes"
-  [highlightedPlaneIcao]="highlightedPlaneIcao"
-  [observerLat]="observerLat"
-  [observerLon]="observerLon"
-  [isAtHome]="isAtHome"
-  [showAltitudeBorders]="showAltitudeBorders"
-  [animationsEnabled]="animationsEnabled"
-  [windStat]="windStat"
+  *ngIf="uiState.showWindowView"
+  [windowViewPlanes]="overlay.windowViewPlanes"
+  [highlightedPlaneIcao]="overlay.highlightedPlaneIcao"
+  [observerLat]="facade.observerLat"
+  [observerLon]="facade.observerLon"
+  [isAtHome]="facade.isAtHome"
+  [showAltitudeBorders]="uiState.showAltitudeBorders"
+  [animationsEnabled]="uiState.animationsEnabled"
+  [windStat]="facade.windStat"
   (selectPlane)="followNearestPlane($event)"
 ></app-window-view-overlay>
 
 <div id="map"></div>
 
 <app-cone
-  *ngIf="map && coneVisible"
+  *ngIf="map && uiState.coneVisible"
   [map]="map"
-  [lat]="isAtHome && homeLocationValue ? homeLocationValue.lat : currentLat"
-  [lon]="isAtHome && homeLocationValue ? homeLocationValue.lon : currentLon"
-  [distanceKm]="radiusKm"
-  [viewCones]="isAtHome ? viewConesConfig : []"
->
-</app-cone>
+  [lat]="facade.isAtHome && facade.homeLocationValue ? facade.homeLocationValue.lat : facade.currentLat"
+  [lon]="facade.isAtHome && facade.homeLocationValue ? facade.homeLocationValue.lon : facade.currentLon"
+  [distanceKm]="facade.radiusKm"
+  [viewCones]="facade.isAtHome ? viewConesConfig : []"
+></app-cone>
 
-<!-- Cone Configuration Editor (temporary placement) -->
 <app-cone-config-editor
   *ngIf="showConeConfigEditor"
   [cones]="viewConesConfig"
-  (conesChange)="onConeConfigChange($event)"
-  (closeEditor)="onConeConfig()"
->
-</app-cone-config-editor>
+  (conesChange)="facade.onConeConfigChange($event, cdr)"
+  (closeEditor)="facade.onConeConfig()"
+></app-cone-config-editor>

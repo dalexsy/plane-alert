@@ -10,7 +10,7 @@ import {
   Renderer2,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IconComponent } from '../ui/icon.component';
+import { IconComponent } from '../ui/icon/icon.component';
 
 @Component({
   selector: 'app-angle-overlay',

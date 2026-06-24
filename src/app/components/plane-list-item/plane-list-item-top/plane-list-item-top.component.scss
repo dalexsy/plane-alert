@@ -1,0 +1,95 @@
+@use "../../../styles/plane-list-item-tokens" as t;
+
+:host {
+  display: contents;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.flag-callsign {
+  display: grid;
+  grid-template-columns: t.$grid-button-width t.$grid-flag-width auto auto;
+  gap: t.$grid-spacing;
+  align-items: center;
+  margin-left: - t.$space-sm;
+
+  app-button {
+    align-self: start;
+  }
+}
+
+.direction-info {
+  display: grid;
+  grid-template-columns: auto auto t.$space-lg auto;
+  align-items: center;
+  gap: t.$space-sm;
+  justify-items: end;
+  text-align: right;
+
+  .direction-icon {
+    width: t.$grid-direction-icon-size;
+    height: t.$grid-direction-icon-size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center;
+  }
+}
+
+.none-callsign {
+  opacity: t.$hover-opacity;
+  font-style: italic;
+}
+
+.time-ago {
+  text-align: right;
+  color: t.$color-text-muted;
+}
+
+.call-sign {
+  display: flex;
+  flex-direction: row;
+  gap: t.$space-xs;
+  align-items: center;
+}
+
+.military-star {
+  color: t.$color-military;
+}
+
+.airport-code,
+.airport-name {
+  display: block;
+  text-align: right;
+  font-size: t.$font-size-small;
+  color: t.$color-text-dark;
+  background: t.$color-background-white;
+  padding: 0 t.$space-xs;
+  border-radius: t.$space-xs;
+  transition: opacity t.$transition-standard, transform t.$transition-standard;
+
+  &.clickable {
+    cursor: pointer;
+  }
+
+  &:hover {
+    opacity: t.$hover-opacity;
+    transform: scale(1.03);
+  }
+}
+
+@media (max-width: 768px) {
+  .flag-callsign {
+    gap: calc(t.$space-xs / 2);
+  }
+
+  .direction-info {
+    gap: t.$space-xs;
+  }
+}

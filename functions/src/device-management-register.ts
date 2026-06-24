@@ -16,6 +16,7 @@ import {
   validatePushoverUserKey,
 } from './utils';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
+import { syncMissingPushoverDeviceRegistrations } from './services/sync-missing-pushover-registrations';
 
 function resolveRegistrationDeviceName(
   requestedName: string | undefined,
@@ -183,10 +184,17 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           validation.devices,
         );
 
+        const restored = await syncMissingPushoverDeviceRegistrations(
+          db,
+          pushoverUserKey,
+          validation.devices,
+        );
+
         logger.info('registerDevice success', {
           userKey: pushoverUserKey.slice(0, 8),
           deviceName: pushoverDeviceName,
           pruned,
+          restored,
         });
 
         res.status(200).json({
@@ -195,6 +203,7 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           deviceName: pushoverDeviceName,
           deviceSlug,
           prunedOrphans: pruned,
+          restoredDevices: restored,
           availableDevices: validation.devices,
         });
       } catch (error: any) {

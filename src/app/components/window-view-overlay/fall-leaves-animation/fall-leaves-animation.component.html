@@ -1,13 +1,9 @@
 <div class="fall-leaves-container">
-  <div
-    *ngFor="let leaf of leaves; trackBy: trackByLeafId"
-    class="leaf"
-    [ngClass]="[getLeafSizeClass(leaf), leaf.colorType]"
-    [ngStyle]="getLeafPosition(leaf)"
-    [style.--fall-delay]="leaf.fallDelay + 's'"
-    [style.--sway-delay]="leaf.swayDelay + 's'"
-    [style.--rotate-delay]="leaf.rotateDelay + 's'"
-  >
-    <div class="leaf-shape"></div>
-  </div>
+  @for (leaf of leaves; track leaf.id) {
+    <app-fall-leaf
+      [leaf]="leaf"
+      [positionStyles]="getLeafPosition(leaf)"
+      [sizeClass]="getLeafSizeClass(leaf)"
+    />
+  }
 </div>

@@ -1,100 +1,24 @@
 <div class="pushover-config-editor">
   <div class="header">
     <h3>Push Notification Configuration</h3>
-    <button type="button" class="close-btn" (click)="close()" title="Close">
-      ✕
-    </button>
+    <button type="button" class="close-btn" (click)="close()" title="Close">✕</button>
   </div>
-  <p class="description">
-    Configure push notifications for military aircraft alerts.
-  </p>
+  <p class="description">Configure push notifications for military aircraft alerts.</p>
 
   <div class="filter-sections">
-    <!-- Pushover Setup -->
-    <div class="section">
-      <h4>Pushover User Key</h4>
-      <p class="section-desc">
-        Enter your Pushover user key to enable push notifications.
-        <a href="https://pushover.net" target="_blank" rel="noopener"
-          >Get your key here</a
-        >
-      </p>
-      <input
-        type="text"
-        [(ngModel)]="pushoverUserKey"
-        placeholder="Enter your Pushover user key"
-        class="pushover-key-input"
-      />
-      <p class="help-text" *ngIf="!pushoverUserKey">
-        You need a Pushover account to receive notifications. Visit pushover.net
-        to sign up.
-      </p>
-    </div>
-    <!-- Common Military Aircraft -->
-    <div class="section">
-      <h4>Common Military Aircraft</h4>
-      <p class="section-desc">Select types to receive notifications for:</p>
-      <div class="checkbox-grid">
-        <label *ngFor="let type of commonMilitaryTypes" class="checkbox-item">
-          <input
-            type="checkbox"
-            [checked]="!isTypeIgnored(type.code)"
-            (change)="toggleType(type.code)"
-          />
-          <span class="type-label">{{ type.name }}</span>
-          <span class="type-code">{{ type.code }}</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Custom Filters -->
-    <div class="section">
-      <h4>Custom Filters</h4>
-      <p class="section-desc">
-        Enter aircraft type codes to ignore (one per line, case-insensitive):
-      </p>
-      <textarea
-        [(ngModel)]="customIgnoreList"
-        (ngModelChange)="onCustomFilterChange()"
-        placeholder="e.g., C130&#10;A400&#10;KC135"
-        rows="6"
-      ></textarea>
-      <p class="help-text">
-        <strong>Examples:</strong> C130, A400, KC135, F16, BLACKHAWK
-      </p>
-    </div>
-
-    <!-- Distance Settings -->
-    <div class="section">
-      <h4>Alert Radius</h4>
-      <p class="section-desc">Maximum distance for push notifications:</p>
-      <div class="slider-group">
-        <input
-          type="range"
-          [value]="radiusKm"
-          (input)="onRadiusChange(+$any($event.target).value)"
-          min="10"
-          max="200"
-          step="5"
-        />
-        <div class="slider-value">
-          <span *ngIf="distanceUnit === 'km'">{{ radiusKm }} km</span>
-          <span *ngIf="distanceUnit === 'miles'"
-            >{{ (radiusKm * 0.621371).toFixed(0) }} miles</span
-          >
-        </div>
-      </div>
-    </div>
+    <app-pushover-form-sections
+      [state]="state"
+      (customFilterChange)="onCustomFilterChange()"
+    />
+    <app-pushover-type-grid [state]="state" (stateChange)="onStateChange()" />
   </div>
 
   <div class="actions">
-    <button type="button" class="save-btn" (click)="save()">
-      Save Configuration
-    </button>
+    <button type="button" class="save-btn" (click)="save()">Save Configuration</button>
     <button type="button" class="cancel-btn" (click)="close()">Cancel</button>
   </div>
 
-  <div class="status-message" *ngIf="statusMessage">
-    {{ statusMessage }}
-  </div>
+  @if (statusMessage) {
+    <div class="status-message">{{ statusMessage }}</div>
+  }
 </div>

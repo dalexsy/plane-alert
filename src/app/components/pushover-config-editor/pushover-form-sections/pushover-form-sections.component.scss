@@ -1,0 +1,71 @@
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.section {
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+    font-weight: 500;
+  }
+
+  .section-desc {
+    color: #ccc;
+    font-size: var(--font-sm);
+    margin-bottom: 10px;
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.pushover-key-input {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #222;
+  color: white;
+  font-family: monospace;
+}
+
+textarea {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #222;
+  color: white;
+  font-family: monospace;
+  resize: vertical;
+}
+
+.help-text {
+  color: #888;
+  font-size: var(--font-sm);
+  margin-top: var(--space-xs);
+}
+
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  input[type='range'] {
+    width: 100%;
+  }
+
+  .slider-value {
+    text-align: center;
+    color: #ccc;
+    font-size: var(--font-sm);
+  }
+}

@@ -1,0 +1,19 @@
+<span
+  class="plane-label"
+  [ngClass]="labelClasses"
+  [style.color]="planeStyle.getLabelColor(plane, plane.icao === highlightedPlaneIcao)"
+  [ngStyle]="borderStyle"
+  (click)="labelClick.emit($event)"
+>
+  <div *ngIf="showDetails" class="plane-details">
+    <span class="operator-model">
+      {{ facade.truncateOperator(plane.operator) || '' }}
+      {{ plane.operator && plane.model ? ' ' : '' }}{{ plane.model || '' }}
+    </span>
+  </div>
+  <app-flag-callsign
+    [callsign]="plane.callsign"
+    [origin]="plane.origin"
+    [isMilitary]="plane.isMilitary || false"
+  ></app-flag-callsign>
+</span>

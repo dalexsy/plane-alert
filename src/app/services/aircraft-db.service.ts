@@ -1,139 +1,75 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import {
+  AircraftRecord,
+  USER_DB_KEY,
+} from './aircraft-db/aircraft-db-types';
+import {
+  exportUserRecordsJson,
+  parseDbTextFragments,
+} from './aircraft-db/aircraft-db-parse.util';
+import {
+  DebounceState,
+  downloadJsonFile,
+  isLocalDevHost,
+  postSaveDb,
+  scheduleDebouncedSave,
+} from './aircraft-db/aircraft-db-persist.util';
 
-export interface AircraftRecord {
-  icao: string;
-  reg: string;
-  icaotype: string;
-  year: string;
-  manufacturer: string;
-  model: string;
-  ownop: string;
-  faa_pia: boolean;
-  faa_ladd: boolean;
-  short_type: string;
-  mil: boolean;
-}
+export type { AircraftRecord } from './aircraft-db/aircraft-db-types';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AircraftDbService {
-  private db: Map<string, AircraftRecord> = new Map();
-  private userDb: Map<string, AircraftRecord> = new Map();
-  private readonly USER_DB_KEY = 'plane-alert-user-aircraft-db';
-  // Global reference for development access
+  private db = new Map<string, AircraftRecord>();
+  private userDb = new Map<string, AircraftRecord>();
   public currentUserDbJson = '';
-  // Debounce file writes
-  private saveTimeout: any = null;
-  private lastFileWrite = 0;
-  private readonly MIN_WRITE_INTERVAL = 60000; // Write max once per 60 seconds
+  private debounce: DebounceState = { saveTimeout: null, lastFileWrite: 0 };
 
   constructor(private http: HttpClient) {
-    // Make service globally accessible for console access
     if (typeof window !== 'undefined') {
       (window as any).aircraftDbService = this;
     }
   }
 
   load(): Promise<void> {
-    // Load split database files and merge
     return Promise.all([
-      this.http
-        .get('/assets/basic-ac-db1.json', { responseType: 'text' })
-        .toPromise(),
-      this.http
-        .get('/assets/basic-ac-db2.json', { responseType: 'text' })
-        .toPromise(),
-      this.http
-        .get('/assets/user-aircraft-db.json', { responseType: 'text' })
-        .toPromise()
-        .catch(() => ''), // User DB is optional, don't fail if missing
+      this.http.get('/assets/basic-ac-db1.json', { responseType: 'text' }).toPromise(),
+      this.http.get('/assets/basic-ac-db2.json', { responseType: 'text' }).toPromise(),
+      this.http.get('/assets/user-aircraft-db.json', { responseType: 'text' }).toPromise().catch(() => ''),
     ])
       .then((texts) => {
-        const records: AircraftRecord[] = [];
-        texts.forEach((text, idx) => {
-          if (!text) {
-            // Empty response from database file
-            return;
-          }
-          if (idx === 2) {
-            // Handle user-aircraft-db.json (JSON array format)
-            try {
-              const jsonData = JSON.parse(text);
-              if (Array.isArray(jsonData)) {
-                // Skip the header record if it exists
-                jsonData.forEach((record) => {
-                  if (record.note || record.version) return;
-                  records.push(record);
-                });
-              }
-            } catch (e) {
-              console.warn('Error parsing user-aircraft-db.json:', e);
-            }
-          } else {
-            // Handle basic-ac-db files (JSON Lines format)
-            text
-              .split(/\r?\n/)
-              .filter((line) => line.trim().length > 0)
-              .forEach((line) => {
-                try {
-                  const record = JSON.parse(line);
-                  // Skip metadata records
-                  if (record.note || record.version) return;
-                  records.push(record);
-                } catch (e) {
-                  // Error parsing line
-                }
-              });
-          }
-        });
-        records.forEach((rec) => this.db.set(rec.icao.toLowerCase(), rec));
+        parseDbTextFragments(texts).forEach((rec) => this.db.set(rec.icao.toLowerCase(), rec));
         console.log(`✅ Loaded ${this.db.size} aircraft from main database`);
         this.loadUserData();
       })
       .catch((error) => {
-        // Error loading aircraft DB fragments
         throw error;
       });
   }
 
   private loadUserData(): void {
-    const stored = localStorage.getItem(this.USER_DB_KEY);
-    if (stored) {
-      try {
-        const records: AircraftRecord[] = JSON.parse(stored);
-        // Only load records that are NOT in the main database
-        records.forEach((rec) => {
-          const icao = rec.icao.toLowerCase();
-          if (!this.db.has(icao)) {
-            this.userDb.set(icao, rec);
-          }
-        });
-        console.log(
-          `Loaded ${
-            this.userDb.size
-          } user aircraft from localStorage (filtered out ${
-            records.length - this.userDb.size
-          } duplicates)`
-        );
-      } catch (e) {
-        console.error('Error loading user aircraft data:', e);
-      }
+    const stored = localStorage.getItem(USER_DB_KEY);
+    if (!stored) return;
+    try {
+      const records: AircraftRecord[] = JSON.parse(stored);
+      records.forEach((rec) => {
+        const icao = rec.icao.toLowerCase();
+        if (!this.db.has(icao)) this.userDb.set(icao, rec);
+      });
+      console.log(
+        `Loaded ${this.userDb.size} user aircraft from localStorage (filtered out ${records.length - this.userDb.size} duplicates)`
+      );
+    } catch (e) {
+      console.error('Error loading user aircraft data:', e);
     }
   }
 
   private saveUserData(): void {
-    const records = Array.from(this.userDb.values());
-    localStorage.setItem(this.USER_DB_KEY, JSON.stringify(records));
-
-    // Make current database available globally for easy access
+    localStorage.setItem(USER_DB_KEY, JSON.stringify(Array.from(this.userDb.values())));
     if (typeof window !== 'undefined') {
       (window as any).planeAlertUserDb = this.exportUserRecordsAsJsonArray();
     }
-
-    // Debounce file writes to prevent constant refreshes
-    this.debouncedSaveToFile();
+    scheduleDebouncedSave(this.debounce, () => this.saveToFile());
   }
 
   private updateGlobalJson(): void {
@@ -142,23 +78,16 @@ export class AircraftDbService {
 
   lookup(icaoHex: string): AircraftRecord | undefined {
     const lower = icaoHex.toLowerCase();
-    // Check main database first - it has accurate data
-    // Only fall back to user database if not found in main DB
     return this.db.get(lower) || this.userDb.get(lower);
   }
 
   addRecord(record: AircraftRecord): void {
     const icao = record.icao.toLowerCase();
-
-    // Only add to database if not already in the main database or user database
     if (!this.db.has(icao) && !this.userDb.has(icao)) {
       this.userDb.set(icao, record);
       this.saveUserData();
       this.updateGlobalJson();
-
-      console.log(
-        `✅ Added aircraft ${record.icao} to database (${this.userDb.size} total unknown aircraft)`
-      );
+      console.log(`✅ Added aircraft ${record.icao} to database (${this.userDb.size} total unknown aircraft)`);
     }
   }
 
@@ -178,28 +107,14 @@ export class AircraftDbService {
     this.updateGlobalJson();
   }
 
-  /** Export user records in JSON array format for src/assets/user-aircraft-db.json */
   exportUserRecordsAsJsonArray(): string {
-    const records = Array.from(this.userDb.values());
-    const header = {
-      note: 'User-added aircraft database - automatically populated',
-      version: '1.0',
-      exported: new Date().toISOString(),
-    };
-    const allRecords = [header, ...records];
-    return JSON.stringify(allRecords, null, 2);
+    return exportUserRecordsJson(Array.from(this.userDb.values()));
   }
 
-  /** Get statistics about the database */
   getDatabaseStats(): { mainDb: number; userDb: number; total: number } {
-    return {
-      mainDb: this.db.size,
-      userDb: this.userDb.size,
-      total: this.db.size + this.userDb.size,
-    };
+    return { mainDb: this.db.size, userDb: this.userDb.size, total: this.db.size + this.userDb.size };
   }
 
-  /** Console method to get current user database for manual file updates */
   getCurrentUserDbForFile(): string {
     console.log('📋 Copy this content to src/assets/user-aircraft-db.json:');
     const content = this.exportUserRecordsAsJsonArray();
@@ -207,96 +122,19 @@ export class AircraftDbService {
     return content;
   }
 
-  /** Automatically download the updated database file */
-  private downloadUpdatedDatabase(): void {
+  downloadDatabaseFile(): void {
     if (typeof window !== 'undefined' && this.userDb.size > 0) {
-      const content = this.exportUserRecordsAsJsonArray();
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'user-aircraft-db.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
+      downloadJsonFile(this.exportUserRecordsAsJsonArray(), 'user-aircraft-db.json');
       console.log('📥 Automatically downloaded updated user-aircraft-db.json');
     }
   }
 
-  /** Manually download the current database file */
-  downloadDatabaseFile(): void {
-    this.downloadUpdatedDatabase();
-  }
-
-  /** Save database to file in the repository */
   private saveToFile(): void {
-    if (typeof window === 'undefined' || this.userDb.size === 0) {
+    if (typeof window === 'undefined' || this.userDb.size === 0) return;
+    if (!isLocalDevHost()) {
+      console.log('Skipping /save-db call because app is not running on the local dev server.');
       return;
     }
-
-    const hostname = window.location.hostname;
-    const isLocalHost =
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '0.0.0.0';
-
-    if (!isLocalHost) {
-      console.log(
-        'Skipping /save-db call because app is not running on the local dev server.'
-      );
-      return;
-    }
-
-    const content = this.exportUserRecordsAsJsonArray();
-
-    // Write directly to the repository file
-    fetch('/save-db', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: content,
-        count: this.userDb.size,
-      }),
-    })
-      .then((response) => {
-        if (response.ok) {
-          console.log(
-            `✅ Saved ${this.userDb.size} user aircraft to repository`
-          );
-        } else {
-          console.warn('Failed to save user database to repository');
-        }
-      })
-      .catch((error) => {
-        console.warn('Could not save to repository:', error.message);
-        console.log('User data is still saved in localStorage');
-      });
-  }
-
-  /** Debounced version of saveToFile to prevent constant refreshes */
-  private debouncedSaveToFile(): void {
-    const now = Date.now();
-
-    // Clear any pending timeout
-    if (this.saveTimeout) {
-      clearTimeout(this.saveTimeout);
-    }
-
-    // If enough time has passed since last write, write immediately
-    if (now - this.lastFileWrite >= this.MIN_WRITE_INTERVAL) {
-      this.lastFileWrite = now;
-      this.saveToFile();
-    } else {
-      // Otherwise, schedule a write for later
-      this.saveTimeout = setTimeout(() => {
-        this.lastFileWrite = Date.now();
-        this.saveToFile();
-      }, this.MIN_WRITE_INTERVAL - (now - this.lastFileWrite));
-    }
+    postSaveDb(this.exportUserRecordsAsJsonArray(), this.userDb.size);
   }
 }

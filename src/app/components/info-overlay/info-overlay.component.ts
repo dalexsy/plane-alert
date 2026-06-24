@@ -7,8 +7,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AngleOverlayComponent } from '../angle-overlay/angle-overlay.component';
-import { ClockComponent } from '../ui/clock.component';
-import { TemperatureComponent } from '../ui/temperature.component';
+import { ClockComponent } from '../ui/clock/clock.component';
+import { TemperatureComponent } from '../ui/temperature/temperature.component';
 import { WindowViewOverlayComponent } from '../window-view-overlay/window-view-overlay.component';
 
 @Component({

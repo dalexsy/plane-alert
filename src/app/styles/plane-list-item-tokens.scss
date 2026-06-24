@@ -1,0 +1,66 @@
+@use "sass:math";
+
+$color-military: #89d138;
+$color-airport: gold;
+$color-followed: #00ffff;
+$color-new-plane: #ff6161;
+$color-text-muted: #aaa;
+$color-border: rgba(255, 255, 255, 0.4);
+$color-background-white: white;
+$color-text-dark: black;
+$space-xs: 0.25rem;
+$space-sm: 0.5rem;
+$space-md: 1rem;
+$space-lg: 1.5rem;
+$border-width-thin: 1px;
+$border-width-medium: 2px;
+$border-width-thick: 3px;
+$border-width-airport-tag: 1.5px;
+$font-family-mono: "JetBrains Mono", monospace;
+$font-size-small: 0.75rem;
+$font-size-base: 1rem;
+$font-weight-normal: 320;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$grid-button-width: 2rem;
+$grid-flag-width: 1.75rem;
+$grid-direction-icon-size: 1.75rem;
+$grid-spacing: $space-xs;
+$transition-standard: 0.2s ease;
+$hover-opacity: 0.8;
+
+@mixin border-with-compensation($side: left, $width: $border-width-thick, $color: currentColor) {
+  border-#{$side}: $width solid $color;
+  @if $side == left {
+    padding-left: calc(#{$space-md} - #{$width});
+  }
+}
+
+@mixin gradient-background($color, $opacity-start: 0.2, $opacity-end: 0.05) {
+  background: linear-gradient(
+    90deg,
+    rgba($color, $opacity-start) 0%,
+    rgba($color, $opacity-end) 100%
+  );
+}
+
+@mixin color-mix-background($color, $percentage: 15%) {
+  background-color: color-mix(in srgb, $color $percentage, transparent);
+  @supports not (background-color: color-mix(in srgb, $color $percentage, transparent)) {
+    background-color: rgba($color, math.div($percentage, 100%));
+  }
+}
+
+@mixin hover-tint($opacity: 20%) {
+  &:hover {
+    background-color: color-mix(in srgb, currentColor $opacity, transparent);
+  }
+}
+
+@mixin airport-tag-style($color) {
+  color: $color !important;
+  background: rgba($color, 0.2) !important;
+  font-weight: $font-weight-semibold;
+  border: $border-width-airport-tag solid $color;
+  box-shadow: 0 0 6px rgba($color, 0.3);
+}

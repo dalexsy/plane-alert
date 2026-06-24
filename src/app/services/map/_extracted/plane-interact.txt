@@ -1,0 +1,114 @@
+  private unhighlightPlane(icao: string): void {
+    const pm = this.planeLog.get(icao);
+    if (pm?.marker) {
+      const tooltip = pm.marker.getTooltip();
+      if (tooltip) {
+        const tooltipEl = tooltip.getElement();
+        tooltipEl?.classList.remove('highlighted-tooltip');
+      }
+      const markerEl = pm.marker.getElement();
+      markerEl?.classList.remove('highlighted-marker');
+      pm.marker.setZIndexOffset(0); // Reset z-index offset
+    }
+  }
+  /** Center the map and toggle highlight on the selected plane. Clears followNearest unless preserveFollowNearest is true. */
+  centerOnPlane(
+    plane: PlaneLogEntry | PlaneModel,
+    preserveFollowNearest = false,
+    fromShuffle = false
+  ): void {
+    this.planeCentering.centerOnPlane(
+      plane,
+      preserveFollowNearest,
+      fromShuffle,
+      {
+        highlightedPlaneIcao: this.highlightedPlaneIcao,
+        followNearest: this.followNearest,
+        planeLog: this.planeLog,
+        map: this.map,
+        reverseGeocode: this.reverseGeocode.bind(this),
+        locationDistrict: this.locationDistrict,
+        closestPlane: this.closestPlane,
+        planeHistoricalLog: this.planeHistoricalLog,
+        setHighlightedPlaneIcao: (icao) => (this.highlightedPlaneIcao = icao),
+        setFollowNearest: (value) => (this.followNearest = value),
+        setClosestPlane: (plane) => (this.closestPlane = plane),
+        setLocationDistrict: (district) => (this.locationDistrict = district),
+        setPlaneHistoricalLog: (log: PlaneModel[]) =>
+          (this.planeHistoricalLog = log),
+        unhighlightPlane: this.unhighlightPlane.bind(this),
+      }
+    );
+  }
+  /** Follow and center on overlay-selected nearest plane */
+  public followNearestPlane(plane: any): void {
+    // If this is a marker (not a real plane), do nothing
+    if (plane.isMarker) {
+      return;
+    }
+    const isFromShuffle = !!plane.followMe;
+
+    // Route through coordinator service for proper mode management
+    if (isFromShuffle) {
+      // This is from shuffle mode, already managed by coordinator
+      this.followNearest = true;
+      // We need to call centerOnPlane with preserveFollowNearest=false so that
+      // it doesn't skip updating the followNearest flag inside centerOnPlane
+      this.centerOnPlane(plane, false, true); // pass fromShuffle=true
+    } else {
+      // Manual selection - route through coordinator for proper follow management
+      this.followCoordinatorService.followPlaneManually(plane);
+    }
+  }
+  /** Handle centering map on selected airport coordinates */
+  public onCenterAirport(coords: { lat: number; lon: number }): void {
+    // Pan map to airport coordinates with smooth animation
+    this.map.panTo([coords.lat, coords.lon], { animate: true, duration: 1.0 });
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    // Show loading indicator and inform Angular to update view
+    this.isResizing = true;
+    this.cdr.detectChanges();
+    // Update clock visibility based on new screen size
+    this.uiState.setShowDateTime(this.settings.getDateTimeOverlayVisibility());
+    // Debounce end of resizing
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    this.resizeTimeout = setTimeout(() => {
+      this.isResizing = false;
+      this.cdr.detectChanges();
+    }, 500);
+  }
+  /** Temporarily highlight marker and tooltip on overlay hover */
+  onHoverOverlayPlane(plane: PlaneLogEntry): void {
+    const pm = this.planeLog.get(plane.icao);
+    // Only apply hover effect if not the persistently highlighted plane
+    if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
+      pm.marker.setZIndexOffset(5000);
+      pm.marker.openTooltip();
+      pm.marker
+        .getTooltip()
+        ?.getElement()
+        ?.classList.add('highlighted-tooltip'); // Use correct class
+    }
+  }
+
+  /** Remove temporary highlight on overlay hover out */
+  onUnhoverOverlayPlane(plane: PlaneLogEntry): void {
+    const pm = this.planeLog.get(plane.icao);
+    // Only remove hover effect if not the persistently highlighted plane
+    if (pm?.marker && plane.icao !== this.highlightedPlaneIcao) {
+      pm.marker.setZIndexOffset(0);
+      // Don't close tooltip if it was opened by persistent highlight
+      if (!pm.marker.isTooltipOpen()) {
+        pm.marker.closeTooltip();
+      }
+      pm.marker
+        .getTooltip()
+        ?.getElement()
+        ?.classList.remove('highlighted-tooltip'); // Use correct class
+    }
+  }

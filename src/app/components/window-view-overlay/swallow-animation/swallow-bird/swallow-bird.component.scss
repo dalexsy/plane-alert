@@ -1,0 +1,77 @@
+$swallow-scale: 0.5 !default;
+$swallow-width: 1.25rem * $swallow-scale;
+$swallow-height: 0.625rem * $swallow-scale;
+$wing-width: 0.75rem * $swallow-scale;
+$wing-height: 0.125rem * $swallow-scale;
+$wing-top-offset: 0.25rem * $swallow-scale;
+
+:host {
+  display: contents;
+}
+
+.swallow {
+  position: absolute;
+  color: #006eff;
+  will-change: transform, opacity;
+
+  .bird-v {
+    position: relative;
+    width: $swallow-width;
+    height: $swallow-height;
+
+    .wing-left,
+    .wing-right {
+      position: absolute;
+      width: $wing-width;
+      height: $wing-height;
+      background-color: currentColor;
+    }
+
+    .wing-left {
+      top: $wing-top-offset;
+      left: 0;
+      transform-origin: right center;
+      animation: flap-left 0.4s ease-in-out infinite alternate;
+      animation-delay: var(--flap-delay);
+    }
+
+    .wing-right {
+      top: $wing-top-offset;
+      right: 0;
+      transform-origin: left center;
+      animation: flap-right 0.4s ease-in-out infinite alternate;
+      animation-delay: var(--flap-delay);
+    }
+  }
+}
+
+@keyframes flap-left {
+  0% {
+    transform: rotate(45deg);
+  }
+  100% {
+    transform: rotate(-15deg);
+  }
+}
+
+@keyframes flap-right {
+  0% {
+    transform: rotate(-45deg);
+  }
+  100% {
+    transform: rotate(15deg);
+  }
+}
+
+@media (prefers-contrast: high) {
+  .swallow {
+    color: #000;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swallow {
+    animation: none;
+  }
+}

@@ -1,0 +1,47 @@
+<div class="plane-section">
+  <h3>
+    Planes in the Sky ({{ planes.length }})
+    <div class="button-group">
+      <span class="map-status">
+        <span *ngIf="loadingAirports" class="loading-airports">
+          Processing airports <span class="loading-spinner"></span>
+        </span>
+      </span>
+    </div>
+  </h3>
+  <div
+    class="plane-list-wrapper"
+    [class.fade-enabled]="scrollable"
+    [class.no-fade]="!scrollable || atBottom"
+    *ngIf="planes.length; else noSkyPlanes"
+  >
+    <div
+      class="plane-list"
+      #listEl
+      (scroll)="scrollChange.emit($event)"
+      [@listAnimation]="highlightedPlaneIcao"
+    >
+      <app-plane-list-item
+        *ngFor="let plane of planes"
+        [plane]="plane"
+        listType="sky"
+        [highlightedPlaneIcao]="highlightedPlaneIcao"
+        [hoveredPlaneIcao]="hoveredPlaneIcao"
+        [now]="now"
+        [activePlaneIcaos]="activePlaneIcaos"
+        [followedPlaneIcao]="highlightedPlaneIcao"
+        [clickedAirports]="clickedAirports"
+        [airportCircles]="airportCircles"
+        (centerPlane)="centerPlane.emit($event)"
+        (centerAirport)="centerAirport.emit($event)"
+        (filterPrefix)="filterPrefix.emit($event)"
+        (toggleSpecial)="toggleSpecial.emit($event)"
+        (hoverPlane)="hoverPlane.emit($event)"
+        (unhoverPlane)="unhoverPlane.emit($event)"
+      ></app-plane-list-item>
+    </div>
+  </div>
+  <ng-template #noSkyPlanes>
+    <p>No planes worth peeping.</p>
+  </ng-template>
+</div>

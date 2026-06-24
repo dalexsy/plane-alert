@@ -4,13 +4,12 @@
   position: absolute;
   top: 0.25rem;
   right: 45px;
-  z-index: 700; // Below window-view-overlay (800) so it never covers tooltips
-  pointer-events: none; // Don't block clicks to elements behind it
+  z-index: 700;
+  pointer-events: none;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
-  /* restore original height behavior */
   height: fit-content;
   min-height: 18rem;
   overflow: visible;
@@ -21,11 +20,10 @@
   width: calc(100vw - 3rem);
 
   &:hover {
-    z-index: 1005; // Bring to front when hovered
-    pointer-events: auto; // Enable interactions when hovering
+    z-index: 1005;
+    pointer-events: auto;
   }
 
-  // Re-enable pointer events for interactive children
   > * {
     pointer-events: auto;
   }
@@ -35,33 +33,6 @@
     max-height: calc(100vh - 11rem);
   }
 
-  h3 {
-    padding: 1rem;
-    height: 3rem;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  // Make seen results header clickable
-  #seenResults h3 {
-    cursor: pointer;
-    user-select: none;
-    transition: opacity 0.2s ease;
-
-    &:hover {
-      opacity: 0.8;
-    }
-
-    &:active {
-      opacity: 0.6;
-    }
-  }
-
-  p {
-    padding: 0.5rem 1rem;
-  }
   .top-buttons {
     position: absolute;
     right: -40px;
@@ -69,355 +40,55 @@
     border-radius: 0 0.5rem 0.5rem 0;
     display: flex;
     flex-direction: column;
-    z-index: 1006; // Above hovered overlay
+    z-index: 1006;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgb(255 255 255 / 40%);
+  }
 
-    .shuffle-toggle.active {
-      color: cyan;
-      background-color: rgba(0, 255, 255, 0.2);
-    }
-    .nearest-toggle.active {
-      color: limegreen;
-      background-color: rgba(0, 255, 0, 0.2);
-    }
-    .military-priority-toggle.active {
-      color: #89d138;
-      background-color: rgb(138 209 56 / 35%);
-    }
-
-    .military-toggle-wrapper {
-      position: relative;
-      display: inline-block;
-
-      .military-badge {
-        position: absolute;
-        bottom: 0.25rem;
-        right: 0.25rem;
-        background-color: #ffffff;
-        color: #000000;
-        border-radius: 50%;
-        width: 1rem;
-        height: 1rem;
-        font-weight: 600;
-        font-size: 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none;
-        line-height: 3px;
-      }
-    }
-  } // Remove gap for the first overlay content item when not collapsed
   &:not(.collapsed) > *:first-child:not(.top-buttons) {
     margin-top: 0;
   }
+
   &.collapsed {
     width: 0;
     min-height: 0;
     z-index: 1000;
-
-    &:hover {
-      z-index: 1005; // Bring to front when hovered
-    }
     background: transparent;
     border-color: transparent;
 
-    // Hide everything except top-buttons
+    &:hover {
+      z-index: 1005;
+    }
+
     > *:not(.top-buttons) {
       display: none;
     }
   }
-  .plane-section {
-    position: relative;
 
-    &-fade {
-      display: none !important;
-    }
-  } // Middle section should fill remaining space and constrain children
   .middle-section {
     display: flex;
     flex-direction: column;
-    /* constrain middle section to reasonable size */
     flex: 0 1 auto;
-
     min-height: 0;
     overflow: hidden;
   }
 
-  // When seen results are collapsed, middle section gets more space
-  &:has(#seenResults.collapsed) .middle-section {
-    flex: 1 1 calc(100% - 3rem); // Take all available space minus collapsed header
-  }
-
-  .plane-list-wrapper {
-    position: relative;
-    overflow: hidden;
-
-    // use pseudo-element with mix-blend-mode for a true mask fade
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 2.5rem;
-      pointer-events: none;
-      background: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 1) 100%
-      );
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    // show fade when enabled
-    &.fade-enabled::after {
-      opacity: 1;
-    }
-    // hide fade when disabled
-    &.no-fade::after {
-      opacity: 0;
-    }
-    .plane-list {
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      padding-bottom: 0;
-      overflow-y: auto;
-      flex: 1 1 auto;
-      min-height: 0;
-
-      .model {
-        text-align: right;
-        hyphens: auto;
-      }
-
-      .airport-name {
-        text-align: right;
-      }
-
-      a {
-        display: flex;
-        gap: 0.25rem;
-      }
-    }
-  } // Sky list fills remaining space
-  .plane-section:first-of-type {
-    display: flex;
-    flex-direction: column;
-    /* allow sky section to grow and take more space */
-    flex: 2 1 auto;
-    min-height: 0;
-    .plane-list-wrapper {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow: hidden;
-      .plane-list {
-        overflow-y: auto;
-      }
-    }
-  }
-
-  // Airport list scrolls internally up to 25vh
-  > .plane-section:nth-of-type(2) {
-    flex: 0 0 auto;
-    max-height: 25vh; // constrain airport section height
-    overflow: hidden;
-    .plane-list-wrapper {
-      max-height: 100%;
-      overflow-y: auto;
-    }
-  }
-
-  // Ensure seen section is limited and scrolls internally
-  #seenResults {
-    // allow seen section to grow and layout as column for scrolling
-    display: flex;
-    flex-direction: column;
-
-    /* let seen section grow to fill remaining space */
-    flex: 1 0 auto;
-    min-height: 0;
-    overflow: hidden;
-    max-height: 60vh;
-    h3 {
-      flex: 0 0 auto;
-      min-height: 0;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-      }
-
-      .section-title {
-        flex: 1;
-        min-width: 0; // Allow text to shrink if needed
-      }
-
-      .header-buttons {
-        display: flex;
-        gap: 0.25rem;
-        align-items: center;
-        flex-shrink: 0; // Prevent buttons from shrinking
-
-        app-button {
-          min-width: 2.5rem; // Fixed width to prevent icon shifts
-        }
-      }
-    } // Collapse wrapper for smooth animations
-    .collapse-wrapper {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      max-height: 1000px; // Large value for expanded state
-      opacity: 1;
-      display: flex;
-      flex-direction: column;
-
-      .plane-list-wrapper {
-        /* fill available space and scroll internally */
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow-y: auto;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-    }
-
-    // When collapsed, don't take up any space
-    &.collapsed {
-      /* remain collapsed at header height */
-      flex: 0 0 3rem;
-      max-height: 3rem;
-
-      .collapse-wrapper {
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-      }
-    }
-  }
-  // Ensure all plane-list-wrapper allow shrink
-  .plane-list-wrapper {
-    min-height: 0;
-  }
-
-  .button-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-
-    .commercial-toggle-group {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      .label {
-        font-size: 0.8rem;
-        margin-right: 0.25rem;
-      }
-
-      .buttons {
-        app-button {
-          ::ng-deep button {
-            min-width: auto;
-            // border-radius: 0;
-          }
-
-          &:first-child {
-            ::ng-deep button {
-              border-top-left-radius: 2rem;
-              border-bottom-left-radius: 2rem;
-              padding-left: 1rem;
-              padding-right: 0.75rem;
-              border-right: transparent;
-            }
-          }
-
-          &:last-child {
-            ::ng-deep button {
-              border-top-right-radius: 2rem;
-              border-bottom-right-radius: 2rem;
-              padding-right: 1rem;
-              padding-left: 0.75rem;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .collapse-toggle {
-    position: static;
+  &:has(app-results-seen-list.collapsed) .middle-section {
+    flex: 1 1 calc(100% - 3rem);
   }
 
   &.window-view-closed {
     max-height: calc(100vh - 0.5rem) !important;
+
     @media (min-width: 601px) {
       max-height: calc(100vh - 0.5rem) !important;
     }
   }
 }
 
-.loading-airports {
-  display: flex;
-  align-items: center;
-  font-size: 0.8rem;
-  text-transform: none;
-  gap: 0.5rem;
-  font-weight: normal;
-}
-
-.loading-spinner {
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 0.5rem;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.new-plane {
-  color: #ff6161;
-}
-
-.none-callsign {
-  color: gray;
-}
-
-.call-sign {
-  display: flex;
-  flex-direction: row;
-  gap: 0.25rem;
-  align-items: center;
-}
-
-.plane-item.highlighted-plane {
-  background: linear-gradient(
-    to right,
-    rgba(0, 255, 255, 0.1),
-    rgba(255, 0, 242, 0.1)
-  );
-  color: cyan;
-}
-
-#seenResults.collapsed h3 {
-  border-color: transparent;
+.pushover-config-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
 }

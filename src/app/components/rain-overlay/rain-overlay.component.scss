@@ -1,0 +1,107 @@
+.rain-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+  transition: opacity 0.5s ease-in-out;
+  will-change: opacity;
+
+  &.heavy app-rain-drop .rain-drop {
+    width: 3px;
+    height: 16px;
+    filter: blur(0.3px);
+  }
+
+  &.light app-rain-drop .rain-drop {
+    width: 1px;
+    height: 8px;
+    filter: blur(0.8px);
+  }
+
+  &.wind-left app-rain-drop .rain-drop {
+    transform: skewX(-15deg);
+  }
+
+  &.wind-right app-rain-drop .rain-drop {
+    transform: skewX(15deg);
+  }
+
+  &.wind-strong app-rain-drop .rain-drop {
+    animation-name: fall-windy;
+  }
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-20px) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh + 50px)) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes fall-windy {
+  0% {
+    transform: translateY(-20px) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) translateX(10px) scale(0.9);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh + 50px)) translateX(20px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 769px) {
+  .rain-overlay app-rain-drop .rain-drop {
+    width: 2px;
+    height: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rain-overlay app-rain-drop .rain-drop {
+    width: 1.5px;
+    height: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rain-overlay app-rain-drop .rain-drop {
+    animation-duration: 1s !important;
+    opacity: 0.3 !important;
+  }
+
+  .rain-overlay {
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .rain-overlay app-rain-drop .rain-drop {
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0.9) 100%
+    );
+    box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+}

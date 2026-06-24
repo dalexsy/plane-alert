@@ -1,59 +1,23 @@
-﻿// Mobile-first tooltip visibility mixin
-@mixin tooltip-visibility($show-on-mobile: false) {
-  @if not -on-mobile {
-    // Hide by default (mobile-first)
-    display: none !important;
-
-    // Show on desktop and larger screens
-    @media (min-width: 601px) {
-      display: block;
-    }
-  }
-}
-
-// Overlay background for modal effect using pseudo-element
-.options-overlay {
+﻿.options-overlay {
   position: absolute;
   top: 0.25rem;
   left: 2.75rem;
   z-index: 1001;
   background: rgba(0, 0, 0, 0.7);
-  padding: 0.5rem; // Reduced padding on mobile
+  padding: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 0 0.5rem 0.5rem 0; // Keep tab-style border for consistency
+  border-radius: 0 0.5rem 0.5rem 0;
   backdrop-filter: blur(0.5rem);
   overflow: visible;
   width: calc(100vw - 3rem);
   height: calc(100vh - 0.5rem);
 
   @media (min-width: 601px) {
-    padding: 1rem; // Original padding on desktop
+    padding: 1rem;
     width: 25rem;
     height: auto;
   }
 
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem; // Reduced gap on mobile
-    height: auto; // Don't stretch on mobile
-
-    @media (min-width: 601px) {
-      gap: 1.5rem; // Original gap on desktop
-    }
-  }
-
-  // Mobile-first: form groups take auto height
-  .form-group {
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem; // Reduced gap on mobile
-
-    @media (min-width: 601px) {
-      gap: 0.5rem; // Original gap on desktop
-    }
-  }
   .top-buttons {
     position: absolute;
     top: -1px;
@@ -65,108 +29,17 @@
     border-radius: 0.5rem 0 0 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-right: none;
-    overflow: visible;
-    transition: height 0.2s;
-    height: 100%; // fallback for debugging
-    min-height: 3rem; // ensure visible when collapsed
+    min-height: 3rem;
     max-height: calc(100vh - 0.5rem);
   }
 
-  .input-with-unit-group {
-    display: flex;
-    gap: 0;
-    align-items: center;
-
-    input {
-      flex: 1;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-      border-right: none;
-      box-sizing: border-box;
-      border: 1px solid white;
-      border-right: none;
-    }
-
-    app-button {
-      ::ng-deep button {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    }
-  }
-
-  label {
-    display: block;
-  }
-
-  // Keep styles for the remaining hardcoded inputs (radius and interval)
-  input[type="text"],
-  input[type="number"] {
-    width: 100%;
-    padding: 6px; // Reduced padding on mobile
-    box-sizing: border-box;
-    border: none;
-    border-radius: 2rem;
-    padding-left: 0.75rem; // Reduced left padding on mobile
-    background: rgba(255, 255, 255, 0.18);
-    color: white;
-    font-family: "JetBrains Mono", monospace;
-
-    @media (min-width: 601px) {
-      padding: 8px; // Original padding on desktop
-      padding-left: 1rem; // Original left padding on desktop
-    }
-
-    // Hide number input spinner arrows
-    &::-webkit-outer-spin-button,
-    &::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    } // Firefox
-    &[type="number"] {
-      -moz-appearance: textfield;
-      appearance: textfield;
-    }
-  }
-
-  .checkbox-inline {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: normal;
-  }
-
-  .button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .last-scan-time {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
-  }
-
-  .location-tracking-status {
-    text-align: center;
-    color: rgba(100, 255, 100, 0.8);
-    font-size: 0.8rem;
-    margin-top: 5px;
-  }
   &.collapsed {
-    // When collapsed, overlay should only be as wide as needed for the tab
     width: 0;
     padding: 0;
     background: transparent;
     border-color: transparent;
     backdrop-filter: none;
-    overflow: visible; // Allow tab to show outside the 0-width container
-
-    form,
-    .form-group,
-    .button-group {
-      display: none;
-    }
+    overflow: visible;
 
     .top-buttons {
       height: auto;
@@ -174,83 +47,18 @@
       max-height: none;
     }
   }
-
-  .form-row {
-    display: flex;
-    gap: 0.5rem; // Reduced gap for mobile
-    flex-direction: row; // Always horizontal, even on mobile
-
-    @media (min-width: 601px) {
-      gap: 1rem; // Original gap on desktop
-    }
-
-    .form-group {
-      flex: 1;
-      // Inherit height and flex settings from parent .form-group rule
-    }
-  }
 }
 
 .options-overlay:not(.collapsed) .top-buttons {
   height: calc(100vh - 0.5rem) !important;
 }
+
 .options-overlay.collapsed .top-buttons {
   height: auto !important;
 }
 
 @media (max-width: 600px) {
-  // Hide all tooltips on mobile - direct approach
-  .brightness-button-wrapper[data-tooltip].auto:hover::after {
+  ::ng-deep [appTooltip]:hover::after {
     display: none !important;
   }
-
-  ::ng-deep [appTooltip]:hover::after,
-  ::ng-deep .tooltip,
-  ::ng-deep .tooltip-content,
-  ::ng-deep app-tooltip,
-  ::ng-deep .app-tooltip {
-    display: none !important;
-  }
-
-  // Mobile-specific: style only overlay inputs for mobile only
-  .options-overlay input[type="text"],
-  .options-overlay input[type="number"] {
-    padding: 0.5rem;
-    font-size: 1rem;
-    text-align: right;
-    line-height: 0.5;
-  }
-}
-
-// Tooltip via data-tooltip attribute on wrapper
-.brightness-button-wrapper[data-tooltip].auto {
-  position: relative;
-}
-.brightness-button-wrapper[data-tooltip].auto:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: calc(100% + 0.5rem);
-  top: 50%;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  z-index: 1001;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(0.25rem);
-  transform: translateY(-50%);
-
-  @include tooltip-visibility();
-}
-
-// Hide the old explicit tooltip if still present
-.brightness-button-wrapper .brightness-tooltip {
-  display: none;
-}
-
-// Override left-side tab container to show overflow
-.options-overlay .top-buttons .left {
-  overflow: visible !important;
 }

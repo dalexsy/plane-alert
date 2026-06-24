@@ -1,0 +1,85 @@
+<span class="top">
+  <span
+    class="flag-callsign"
+    (mouseenter)="hoverPlane.emit()"
+    (mouseleave)="unhoverPlane.emit()"
+  >
+    <app-button
+      [icon]="plane.icao === highlightedPlaneIcao ? 'my_location' : 'location_searching'"
+      type="tertiary"
+      size="small"
+      (click)="centerPlane.emit($event)"
+      ariaLabel="Follow plane"
+      [disabled]="!activePlaneIcaos.has(plane.icao)"
+      [title]="!activePlaneIcaos.has(plane.icao) ? 'No longer in range.' : 'Follow plane'"
+    ></app-button>
+    <span [innerHTML]="countryService.getFlagHTML(plane.origin)"></span>
+    <ng-container *ngIf="plane.callsign && plane.callsign.trim().length >= 3; else noLink">
+      <span class="call-sign">
+        <a
+          href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+          target="_blank"
+          title="Open in ADS-B Exchange"
+          rel="noopener noreferrer"
+          (click)="$event.stopPropagation()"
+          [style.color]="planeStyle.getLabelColor(plane, plane.icao === followedPlaneIcao)"
+        >
+          {{ plane.callsign }}
+        </a>
+        <span *ngIf="plane.isMilitary" class="material-symbols-sharp icon small military-star" title="Military plane">star</span>
+      </span>
+    </ng-container>
+    <ng-template #noLink>
+      <span class="call-sign">
+        <a
+          href="https://globe.adsbexchange.com/?icao={{ plane.icao }}"
+          target="_blank"
+          title="Open in ADS-B Exchange"
+          rel="noopener noreferrer"
+          (click)="$event.stopPropagation()"
+        >
+          <span class="none-callsign">Pending</span>
+        </a>
+      </span>
+    </ng-template>
+    <app-button
+      *ngIf="hoveredPlaneIcao === plane.icao || plane.isSpecial"
+      type="tertiary"
+      size="small"
+      class="special-icon"
+      [icon]="plane.isSpecial ? 'favorite' : 'favorite_border'"
+      (click)="toggleSpecial.emit($event)"
+      [ariaLabel]="plane.isSpecial ? 'Unmark special' : 'Mark special'"
+    ></app-button>
+  </span>
+
+  <ng-container *ngIf="listType === 'sky' || listType === 'airport'">
+    <span class="direction-info">
+      <span>
+        <span
+          class="airport-code clickable"
+          *ngIf="listType === 'airport' && plane.airportCode && showAirportBadge()"
+          [title]="plane.airportName"
+          (click)="centerAirport.emit($event)"
+        >{{ plane.airportCode }}</span>
+        <span
+          class="airport-name clickable"
+          *ngIf="listType === 'airport' && !plane.airportCode && showAirportBadge()"
+          (click)="centerAirport.emit($event)"
+        >{{ plane.airportName }}</span>
+        <span
+          *ngIf="listType === 'sky' && plane.airportCode && showAirportBadge()"
+          class="airport-code clickable"
+          [title]="plane.airportName"
+          (click)="centerAirport.emit($event)"
+        >{{ plane.airportCode }}</span>
+      </span>
+      <span>{{ plane.cardinal }}</span>
+      <span class="material-symbols-sharp direction-icon" [style.transform]="'rotate(' + (plane.bearing ?? 0) + 'deg)'">navigation</span>
+      <span>{{ distanceKm | number : '1.1-1' }} {{ distanceUnit }}</span>
+    </span>
+  </ng-container>
+  <ng-container *ngIf="listType === 'seen'">
+    <span class="time-ago">{{ getTimeAgo(plane.firstSeen) }}</span>
+  </ng-container>
+</span>

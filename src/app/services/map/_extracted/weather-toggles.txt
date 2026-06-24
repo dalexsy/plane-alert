@@ -1,0 +1,50 @@
+  toggleConeVisibility(show: boolean): void {
+    // Show or hide cones regardless of current map view, always anchored at home
+    this.uiState.setConeVisibility(show);
+    this.settings.setShowViewAxes(show);
+    // Trigger change detection to update the template
+    this.cdr.detectChanges();
+  }
+
+  onConeConfigChange(cones: ViewConeConfig[]): void {
+    this.settings.setViewConesConfig(cones);
+    // Update local property to trigger change detection
+    this.viewConesConfig = [...cones];
+    // Trigger change detection to update the cone display
+    this.cdr.detectChanges();
+  }
+
+  onConeConfig(): void {
+    // Toggle cone config editor visibility
+    this.showConeConfigEditor = !this.showConeConfigEditor;
+  }
+
+  /** Adjust cloud layer opacity */
+  setCloudOpacity(opacity: number): void {
+    this.cloudOpacity = opacity;
+    if (this.cloudLayer) {
+      this.cloudLayer.setOpacity(opacity);
+    }
+  }
+
+  /** Adjust rain layer opacity */
+  setRainOpacity(opacity: number): void {
+    this.rainOpacity = opacity;
+    if (this.rainLayer) {
+      this.rainLayer.setOpacity(opacity);
+    }
+  }
+
+  /** Toggle display of cloud coverage layer */
+  toggleCloudCover(show: boolean): void {
+    this.uiState.setCloudVisible(show);
+    // Actually toggle the layer using WeatherOverlayService
+    this.weatherOverlayService.setCloudCoverVisible(show);
+  }
+
+  /** Toggle display of rain coverage layer */
+  toggleRainCover(show: boolean): void {
+    this.uiState.setRainVisible(show);
+    // Actually toggle the layer using WeatherOverlayService
+    this.weatherOverlayService.setRainCoverVisible(show);
+  }

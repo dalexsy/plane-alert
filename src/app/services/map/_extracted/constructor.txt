@@ -1,0 +1,121 @@
+  constructor(
+    @Inject(DOCUMENT) private document: Document,
+    public countryService: CountryService,
+    private mapService: MapService,
+    private planeFilter: PlaneFilterService,
+    private aircraftDb: AircraftDbService,
+    private settings: SettingsService,
+    private scanService: ScanService,
+    private specialListService: SpecialListService,
+    private mapPanService: MapPanService,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
+    private skyColorSyncService: SkyColorSyncService,
+    private locationContext: LocationContextService,
+    private geocodingCache: GeocodingCacheService,
+    private planeFollowService: PlaneFollowService,
+    private followCoordinatorService: FollowCoordinatorService,
+    private skyOverlayService: SkyOverlayService,
+    private weatherOverlayService: WeatherOverlayService,
+    private mapThemeService: MapThemeService,
+    private brightnessService: BrightnessService,
+    private mapInitializerService: MapInitializerService,
+    private airportService: AirportService,
+    private planeDisplayService: PlaneDisplayService,
+    private planeLogService: PlaneLogService,
+    private followService: FollowService,
+    private closestPlaneService: ClosestPlaneService,
+    private filterManagementService: FilterManagementService,
+    private addressResolution: AddressResolutionService,
+    private uiState: UiStateService,
+    private astronomicalDisplay: AstronomicalDisplayService,
+    private brightnessDisplay: BrightnessDisplayService,
+    private planeUpdate: PlaneUpdateService,
+    private mapUpdate: MapUpdateService,
+    private planeCentering: PlaneCenteringService,
+    private planeFiltering: PlaneFilteringService,
+    private environmentalData: EnvironmentalDataService
+  ) {
+    // Initialize view cones configuration from settings
+    this.viewConesConfig = this.settings.viewConesConfig;
+
+    // Initialize UI toggles from stored settings - now handled by UiStateService
+    // this.cloudVisible = this.settings.showCloudCover;
+    // this.rainVisible = this.settings.showRainCover;
+    // this.coneVisible = this.settings.showViewAxes;
+    // this.showDateTime = this.settings.getDateTimeOverlayVisibility();
+    // this.showAirportLabels = this.settings.showAirportLabels;
+    // this.showAltitudeBorders = this.settings.showAltitudeBorders;
+    // this.showWindDirection = this.settings.showWindDirection;
+    // this.showSunDirection = this.settings.showSunDirection;
+    // this.animationsEnabled = this.settings.animationsEnabled;
+    // this.currentWindUnitIndex = this.settings.windUnitIndex;
+    // this.showWindowView = this.settings.showWindowView;
+
+    // Initialize brightness service with current location if available
+    const currentLocation = { lat: this.settings.lat, lon: this.settings.lon };
+    if (currentLocation.lat !== null && currentLocation.lon !== null) {
+      this.brightnessService.setLocation(
+        currentLocation.lat,
+        currentLocation.lon
+      );
+    }
+
+    // Update tooltip classes on special list changes
+    this.specialListService.specialListUpdated$.subscribe(() => {
+      this.planeLog.forEach((plane) => {
+        const tooltipEl = plane.marker?.getTooltip()?.getElement();
+        if (tooltipEl) {
+          tooltipEl.classList.toggle(
+            'special-plane-tooltip',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+        // Also update marker icon class
+        const markerEl = plane.marker?.getElement();
+        if (markerEl) {
+          markerEl.classList.toggle(
+            'special-plane',
+            this.specialListService.isSpecial(plane.icao)
+          );
+        }
+      });
+    }); // Listen for tooltip follow/unfollow events
+    window.addEventListener('plane-tooltip-follow', (e: Event) => {
+      const icao = (e as CustomEvent).detail?.icao;
+      if (!icao) return;
+      this.ngZone.run(() => {
+        if (this.highlightedPlaneIcao === icao) {
+          // Unfollow currently followed plane
+          this.followCoordinatorService.clearAllModes();
+        } else {
+          // Follow new plane manually - this will disable automatic modes
+          const pm = this.planeLog.get(icao);
+          if (pm) {
+            // Use coordinator service for proper mode management
+            this.followCoordinatorService.followPlaneManually(pm as any);
+
+            // Center map on followed plane with smooth panning
+            if (pm.lat != null && pm.lon != null) {
+              this.map.panTo([pm.lat, pm.lon], {
+                animate: true,
+                duration: 1.0,
+              });
+              // Update location overlay info but NOT the address input field
+              // The address field should show map center location, not plane location
+              this.reverseGeocode(pm.lat, pm.lon).then((address) => {
+                // Don't set the address input field when following a plane
+                // this.inputOverlayComponent.addressInputRef.setValue(address);
+                this.locationDistrict = address;
+                this.cdr.detectChanges();
+              });
+            }
+          }
+        }
+      });
+    }); // Add global click handler for tooltip follow
+    window.addEventListener('click', this.globalTooltipClickHandler);
+
+    // Listen for plane marker right-click events
+    // Removed - right-click now handled by plane list items
+  }

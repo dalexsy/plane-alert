@@ -7,7 +7,7 @@ import {
   HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IconComponent } from '../ui/icon.component';
+import { IconComponent } from '../ui/icon/icon.component';
 import { PlaneModel } from '../../models/plane-model';
 import { DebouncedClickService } from '../../services/debounced-click.service';
 

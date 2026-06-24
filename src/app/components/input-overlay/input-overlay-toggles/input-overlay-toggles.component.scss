@@ -1,0 +1,26 @@
+:host {
+  display: contents;
+}
+
+.brightness-button-wrapper {
+  position: relative;
+}
+
+.brightness-button-wrapper.auto:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  top: 50%;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1001;
+  transform: translateY(-50%);
+
+  @media (max-width: 600px) {
+    display: none !important;
+  }
+}

@@ -1,0 +1,53 @@
+  private handleFollowStateChange(followState: any): void {
+    // Update internal follow state based on service state
+    if (followState.mode === 'none') {
+      this.followNearest = false;
+      this.highlightedPlaneIcao = null;
+    } else if (followState.followedPlaneIcao) {
+      this.highlightedPlaneIcao = followState.followedPlaneIcao;
+
+      // Set followNearest based on mode type
+      this.followNearest = followState.mode !== 'manual';
+    }
+
+    // Update visual indicators
+    this.followService.updateFollowedStyles(
+      this.planeLog,
+      this.highlightedPlaneIcao
+    );
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Handle follow requests from PlaneFollowService
+   */ private handleFollowRequest(followRequest: any): void {
+    // Prevent infinite recursion
+    if (this.isProcessingFollowRequest) {
+      return;
+    }
+
+    this.isProcessingFollowRequest = true;
+
+    try {
+      const { plane, fromShuffle = false, fromNearest = false } = followRequest;
+
+      if (!plane) return;
+
+      // Convert to consistent format for centerOnPlane
+      const planeLogEntry = {
+        icao: plane.icao,
+        lat: plane.lat,
+        lon: plane.lon,
+        ...plane,
+      };
+
+      // Call existing centerOnPlane method with appropriate flags
+      this.centerOnPlane(
+        planeLogEntry,
+        fromShuffle || fromNearest,
+        fromShuffle
+      );
+    } finally {
+      this.isProcessingFollowRequest = false;
+    }
+  }
