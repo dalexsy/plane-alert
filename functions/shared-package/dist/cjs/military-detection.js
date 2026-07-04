@@ -203,6 +203,7 @@ exports.MIL_CALLSIGN_PREFIXES = [
  */
 exports.BORING_MIL_CALLSIGN_PREFIXES = [
     'GAF', // Luftwaffe VIP/cargo (rarely fighters without type/desc)
+    'MMF', // NATO Multinational MRTT Fleet (A330 tankers)
     'RCH', // AMC Reach cargo
     'CNV', // Convoy
     'PAT', // Special Air Mission (VIP transport)
@@ -264,38 +265,59 @@ const INTERESTING_MIL_DESC_PATTERN = /\bF-?\d{2}\b|\bF\d{2}\b|\bE-?\d{1,2}\b|\bC
 /**
  * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO
  * type is usually a civilian airframe (A332, GLEX, CL35, …). Skip only for roles that
- * are interesting despite the type code — not every military callsign (GAF VIP jets
- * should stay filtered).
+ * are interesting despite the type code — e.g. KC-46 on a non-boring type. Boring
+ * types are checked first, so A330 MRTT/MMF tracks stay filtered.
  */
 function shouldSkipBoringMilitaryFilter(plane) {
     const desc = (plane.desc || '').toUpperCase();
-    const callsign = normalizeCallsign(plane.flight || plane.callsign);
-    if (INTERESTING_BORING_OVERRIDE_DESC.test(desc)) {
-        return true;
-    }
-    return callsign.startsWith('MMF');
+    return INTERESTING_BORING_OVERRIDE_DESC.test(desc);
 }
 function getNormalizedTypeCode(plane) {
     return (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+}
+function matchesBoringAircraftTypeOrDesc(normalizedType, desc) {
+    if (normalizedType &&
+        exports.BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
+        return true;
+    }
+    if (!desc) {
+        return false;
+    }
+    const descUpper = desc.toUpperCase();
+    if (BORING_MIL_DESC_PATTERN.test(descUpper)) {
+        return true;
+    }
+    const descNormalized = descUpper.replace(/[-\s]/g, '');
+    if (exports.BORING_AIRCRAFT_TYPES.some((boring) => descNormalized.includes(boring))) {
+        return true;
+    }
+    return exports.BORING_AIRCRAFT_TYPES.some((boring) => {
+        const modelName = (0, aircraft_type_names_1.getAircraftTypeName)(boring);
+        if (!modelName || modelName === boring) {
+            return false;
+        }
+        return descUpper.includes(modelName.toUpperCase());
+    });
 }
 /**
  * Returns true when a military-flagged aircraft is a trainer, transport,
  * business jet, or other type that should not trigger push notifications.
  */
 function isBoringMilitaryAircraft(plane) {
-    if (shouldSkipBoringMilitaryFilter(plane)) {
-        return false;
-    }
     const callsign = plane.flight || plane.callsign;
     if (isBoringMilitaryCallsign(callsign)) {
         return true;
     }
     const normalizedType = getNormalizedTypeCode(plane);
-    if (normalizedType &&
-        exports.BORING_AIRCRAFT_TYPES.some((boring) => normalizedType.includes(boring))) {
+    const desc = (plane.desc || '').trim();
+    // Boring airliner types (A332, B738, …) win over MRTT/MMF overrides — an A330
+    // MRTT is still a normal transport, not an interesting military sighting.
+    if (matchesBoringAircraftTypeOrDesc(normalizedType, desc)) {
         return true;
     }
-    const desc = (plane.desc || '').trim();
+    if (shouldSkipBoringMilitaryFilter(plane)) {
+        return false;
+    }
     if (!desc) {
         if (normalizedType) {
             return false;
@@ -319,22 +341,6 @@ function isBoringMilitaryAircraft(plane) {
         return false;
     }
     const descUpper = desc.toUpperCase();
-    if (BORING_MIL_DESC_PATTERN.test(descUpper)) {
-        return true;
-    }
-    const descNormalized = descUpper.replace(/[-\s]/g, '');
-    if (exports.BORING_AIRCRAFT_TYPES.some((boring) => descNormalized.includes(boring))) {
-        return true;
-    }
-    if (exports.BORING_AIRCRAFT_TYPES.some((boring) => {
-        const modelName = (0, aircraft_type_names_1.getAircraftTypeName)(boring);
-        if (!modelName || modelName === boring) {
-            return false;
-        }
-        return descUpper.includes(modelName.toUpperCase());
-    })) {
-        return true;
-    }
     const hasMilitarySignal = plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign);
     if (hasMilitarySignal &&
         !INTERESTING_MIL_DESC_PATTERN.test(descUpper)) {

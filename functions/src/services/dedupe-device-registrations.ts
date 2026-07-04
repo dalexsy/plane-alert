@@ -23,8 +23,8 @@ export interface DedupeDeviceRegistrationsResult {
 
 /**
  * Keep one Firestore registration per Pushover delivery target for the current
- * notification run. Duplicate rows are skipped, not deleted — user+ICAO
- * cooldown prevents double delivery and registrations must survive across runs.
+ * notification run. Duplicate rows for the same Pushover target are skipped;
+ * per-device+ICAO cooldown prevents re-sending the same plane to the same phone.
  */
 export function dedupeToOneRegistrationPerUser(
   devices: DeviceDocEntry[],

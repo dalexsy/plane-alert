@@ -27,8 +27,8 @@ export declare function normalizeCallsign(value?: string | null): string;
 /**
  * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO
  * type is usually a civilian airframe (A332, GLEX, CL35, …). Skip only for roles that
- * are interesting despite the type code — not every military callsign (GAF VIP jets
- * should stay filtered).
+ * are interesting despite the type code — e.g. KC-46 on a non-boring type. Boring
+ * types are checked first, so A330 MRTT/MMF tracks stay filtered.
  */
 export declare function shouldSkipBoringMilitaryFilter(plane: AdsBPlane): boolean;
 /**

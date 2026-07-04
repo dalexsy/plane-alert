@@ -8,8 +8,9 @@ AUTH_URL="${PLANES_KIOSK_AUTH_URL:-http://127.0.0.1:8790/health}"
 PROFILE="${PLANES_KIOSK_PROFILE:-/home/pi/.config/planes-kiosk-chromium}"
 KIOSK_MATCH="user-data-dir=${PROFILE}"
 STATE_DIR="/run/planes-kiosk-watch"
-CPU_HIGH="${PLANES_KIOSK_CPU_HIGH:-45}"
-CPU_STRIKES_NEEDED="${PLANES_KIOSK_CPU_STRIKES:-3}"
+# Pi reports multi-core CPU as >100%; map/globe tabs (e.g. ADS-B Exchange) sit ~150% while healthy.
+CPU_HIGH="${PLANES_KIOSK_CPU_HIGH:-220}"
+CPU_STRIKES_NEEDED="${PLANES_KIOSK_CPU_STRIKES:-6}"
 RESTART_COOLDOWN_SEC="${PLANES_KIOSK_RESTART_COOLDOWN:-300}"
 MISSING_COOLDOWN_SEC="${PLANES_KIOSK_MISSING_COOLDOWN:-90}"
 SESSION_STRIKES_NEEDED="${PLANES_KIOSK_SESSION_STRIKES:-3}"
@@ -89,7 +90,28 @@ check_internet() {
   if curl -sf -m 8 -o /dev/null "${URL}"; then
     return 0
   fi
-  curl -sf -m 6 -o /dev/null https://1.1.1.1/cdn-cgi/trace
+  if curl -sf -m 6 -o /dev/null https://1.1.1.1/cdn-cgi/trace; then
+    heal_cloudflared_tunnel
+    sleep 5
+    curl -sf -m 8 -o /dev/null "${URL}"
+    return $?
+  fi
+  return 1
+}
+
+heal_cloudflared_tunnel() {
+  local body code
+  body="$(curl -s -m 10 "${URL}" 2>/dev/null | head -c 240 || true)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 "${URL}" 2>/dev/null || echo 000)"
+  if echo "${body}" | grep -q "Error 1033"; then
+    log "Cloudflare 1033 on planes — restarting cloudflared-balcony"
+    systemctl restart cloudflared-balcony 2>/dev/null || true
+    return 0
+  fi
+  if [ "${code}" = "530" ] || [ "${code}" = "000" ]; then
+    log "planes tunnel HTTP ${code} — restarting cloudflared-balcony"
+    systemctl restart cloudflared-balcony 2>/dev/null || true
+  fi
 }
 
 check_dryl_auth() {
@@ -104,13 +126,17 @@ kiosk_renderer_running() {
   pgrep -f "chromium --type=renderer.*planes-kiosk-chromium" >/dev/null 2>&1
 }
 
-kiosk_chromium_cmdline() {
-  ps -eo args= 2>/dev/null | grep -F "${PROFILE}" | grep -v grep | head -1 || true
+kiosk_main_cmdline() {
+  ps -eo args= 2>/dev/null \
+    | grep -F "${PROFILE}" \
+    | grep -v grep \
+    | grep -v -- '--type=' \
+    | head -1 || true
 }
 
 kiosk_on_planes_url() {
   local cmdline="$1"
-  echo "${cmdline}" | grep -q 'planes\.dryl\.io'
+  [ -n "${cmdline}" ] && echo "${cmdline}" | grep -q 'planes\.dryl\.io'
 }
 
 kiosk_on_admin_hub() {
@@ -243,7 +269,7 @@ fi
 
 maybe_scheduled_refresh
 
-cmdline="$(kiosk_chromium_cmdline)"
+cmdline="$(kiosk_main_cmdline)"
 
 if kiosk_on_admin_hub "${cmdline}"; then
   do_restart "wrong-url-admin-hub"
@@ -251,8 +277,8 @@ if kiosk_on_admin_hub "${cmdline}"; then
 fi
 
 if ! kiosk_on_planes_url "${cmdline}"; then
-  do_restart "wrong-url-not-planes"
-  exit 0
+  # User may have opened ADS-B Exchange or another tab — do not kill a working browser.
+  log "kiosk not on planes launch URL (user navigation?) — leaving running"
 fi
 
 if [ "${internet_up}" -eq 1 ] && [ -f /home/pi/.config/planes-kiosk/credentials.env ]; then

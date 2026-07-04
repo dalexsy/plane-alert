@@ -12,4 +12,5 @@ if (!resourceDir) {
 
 console.log(`🏗️  Firebase predeploy (functions): ${resourceDir}`);
 
+run("node ../scripts/prepare-functions-shared.js", resourceDir);
 run("node ../scripts/verify-functions-build.js", resourceDir);

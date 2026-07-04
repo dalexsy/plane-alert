@@ -39,9 +39,9 @@ function pickTemplateRegistration(
 
 /**
  * Ensure every reliable Pushover device on the account has a Firestore
- * registration when the user already has at least one active registration.
- * Restores phones that were dropped by duplicate pruning without requiring
- * the user to open the app again on each device.
+ * registration when the household already has at least one. Restores phones
+ * dropped by duplicate pruning — each Pushover device (pixel10, galaxys24, …)
+ * is independent and receives its own notifications.
  */
 export async function syncMissingPushoverDeviceRegistrations(
   db: admin.firestore.Firestore,

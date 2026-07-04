@@ -16,6 +16,7 @@ import {
   validatePushoverUserKey,
 } from './utils';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
+import { pruneDesktopMobileMisregistrations } from './services/prune-desktop-mobile-misregistrations';
 import { syncMissingPushoverDeviceRegistrations } from './services/sync-missing-pushover-registrations';
 
 function resolveRegistrationDeviceName(
@@ -179,6 +180,12 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
         await deviceRef.set(payload, { merge: true });
 
         const pruned = await pruneOrphanDeviceRegistrations(
+          db,
+          pushoverUserKey,
+          validation.devices,
+        );
+
+        const prunedDesktopMobile = await pruneDesktopMobileMisregistrations(
           db,
           pushoverUserKey,
           validation.devices,

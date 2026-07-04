@@ -89,40 +89,35 @@ export async function notifyForDevice(
       data.deviceSlug = slug;
     }
 
-    const pushoverTargetName = broadcastAllDevices
+    const pushoverTargetDeviceName = broadcastAllDevices
       ? ''
       : resolvePushoverDeviceName(
           data.deviceName || '',
           registeredPushoverDevices,
           data.platform,
-        );
+        ) ?? '';
 
-    const deliverToAllDevices =
-      broadcastAllDevices || pushoverTargetName === null;
-
-    if (!broadcastAllDevices && pushoverTargetName === null) {
-      logger.warn(
-        'No Pushover device match; broadcasting to all account devices',
-        {
-          docId,
-          userKey: data.pushoverUserKey.slice(0, 8),
-          firestoreDeviceName: data.deviceName,
-          pushoverDevices: registeredPushoverDevices
-            ? [...registeredPushoverDevices]
-            : [],
-        },
-      );
+    if (!broadcastAllDevices && !pushoverTargetDeviceName) {
+      logger.warn('No Pushover device match; skipping registration', {
+        docId,
+        userKey: data.pushoverUserKey.slice(0, 8),
+        firestoreDeviceName: data.deviceName,
+        pushoverDevices: registeredPushoverDevices
+          ? [...registeredPushoverDevices]
+          : [],
+      });
+      return;
     }
 
     if (
       !broadcastAllDevices &&
-      pushoverTargetName &&
-      pushoverTargetName !== data.deviceName
+      pushoverTargetDeviceName &&
+      pushoverTargetDeviceName !== data.deviceName
     ) {
       logger.info('Resolved Pushover device alias', {
         docId,
         firestoreDeviceName: data.deviceName,
-        pushoverDeviceName: pushoverTargetName,
+        pushoverDeviceName: pushoverTargetDeviceName,
       });
     }
 
@@ -130,16 +125,13 @@ export async function notifyForDevice(
       docId,
       userKey: data.pushoverUserKey.slice(0, 8),
       deviceName: data.deviceName,
-      broadcastAllDevices: deliverToAllDevices,
+      pushoverTarget: pushoverTargetDeviceName || 'ALL_DEVICES',
+      broadcastAllDevices,
       radiusKm: data.radiusKm,
       notifyProximity: data.notifyProximity,
       ignoredTypesCount: data.ignoredTypes?.length || 0,
     });
 
-    const pushoverTargetDeviceName = deliverToAllDevices
-      ? ''
-      : pushoverTargetName || '';
-    // Legacy per-device cooldown docs are read via deviceName; claims use user+ICAO only.
     const cooldownDeviceName = pushoverTargetDeviceName;
 
     const radiusKm = clampRadius(data.radiusKm);

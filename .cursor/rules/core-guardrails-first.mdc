@@ -1,0 +1,32 @@
+---
+description: MANDATORY FIRST READ — core-guardrails.md every session (hook-enforced)
+alwaysApply: true
+---
+
+# Core guardrails — mandatory first read (every session)
+
+**Before `master-spec.md`, before repo `debugging.md`, before any code or deploy:**
+
+Use the **Read tool** on **`Repos/speculation/core-guardrails.md`** (full file).
+
+The `record-user-prompt` hook injects a `[MANDATORY FIRST READ]` reminder on the **first turn of every new chat**. That is not optional — read the file, do not summarize from memory.
+
+## What you must take from it
+
+| Section | Requirement |
+|---------|-------------|
+| **Default mode: fix and ship** | Fix/heal/change requests → ship loop unless Daryl opts out (`explain only`, `don't deploy`, `plan only`, `no code`, `review only`) |
+| **Hard gates before "done"** | Deploy + verify changed route + Read PNGs + quote `QUOTE_VISIBLE` — not "build passed" |
+| **Context-aware model tiers** | Plan HEAVY when unsure; implement LIGHT/MEDIUM once steps are clear |
+| **Agent compliance gate** | Read order, `@dryl/ui`, bootstrap, AVS — lint pass ≠ done |
+
+## Read order after core-guardrails
+
+1. `Repos/speculation/core-guardrails.md` ← **this gate**
+2. `Repos/speculation/master-spec.md` (when stack/UI/deploy/bootstrap applies)
+3. `Repos/speculation/.cursor/rules/ecosystem-health.mdc` (mindset — pointer in `dryl-canonical.mdc`)
+4. Repo `.cursor/rules/debugging.md` (symptoms only — after guardrails, not instead of)
+
+**Diagnostic-only exits on fix requests are a failed agent.** Cite guardrails sections when explaining ship vs explain-only.
+
+Canonical file: `Repos/speculation/core-guardrails.md` — edit only there; fan out pointers: `cd directory && npm run bootstrap:agent-rules`.

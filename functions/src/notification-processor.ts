@@ -9,6 +9,7 @@ import {
 } from './utils';
 import { notifyForDevice } from './services/notify-for-device';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
+import { pruneDesktopMobileMisregistrations } from './services/prune-desktop-mobile-misregistrations';
 import { syncMissingPushoverDeviceRegistrations } from './services/sync-missing-pushover-registrations';
 import {
   dedupeDeviceRegistrationsByPushoverTarget,
@@ -163,6 +164,18 @@ async function runNotificationProcessingBody(
         logger.info('Auto-pruned orphan registrations during processPlanes', {
           userKey: userKey.slice(0, 8),
           pruned,
+        });
+      }
+
+      const prunedDesktopMobile = await pruneDesktopMobileMisregistrations(
+        db,
+        userKey,
+        validation.devices,
+      );
+      if (prunedDesktopMobile > 0) {
+        logger.info('Pruned desktop→mobile mis-registrations', {
+          userKey: userKey.slice(0, 8),
+          pruned: prunedDesktopMobile,
         });
       }
 

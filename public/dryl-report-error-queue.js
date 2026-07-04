@@ -4,9 +4,9 @@
 (function () {
   "use strict";
 
-  var QUEUE_KEY = "dryl_client_error_queue_v1";
-  var QUEUE_STATS_KEY = "dryl_client_error_queue_stats_v1";
-  var QUEUE_MAX = 48;
+  var storage = window.__DRYL_ERROR_QUEUE_STORAGE__;
+  if (!storage) return;
+
   var BASE_FLUSH_MS = 400;
   var MAX_FLUSH_MS = 30_000;
   var flushing = false;
@@ -35,61 +35,6 @@
       .filter(Boolean);
   }
 
-  function loadQueue() {
-    try {
-      var raw = localStorage.getItem(QUEUE_KEY);
-      var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveQueue(queue) {
-    try {
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-QUEUE_MAX)));
-    } catch {
-      // ignore
-    }
-  }
-
-  function loadStats() {
-    try {
-      var raw = localStorage.getItem(QUEUE_STATS_KEY);
-      var parsed = raw ? JSON.parse(raw) : {};
-      return parsed && typeof parsed === "object" ? parsed : {};
-    } catch {
-      return {};
-    }
-  }
-
-  function saveStats(stats) {
-    try {
-      localStorage.setItem(QUEUE_STATS_KEY, JSON.stringify(stats));
-    } catch {
-      // ignore
-    }
-  }
-
-  function bumpStat(key) {
-    var stats = loadStats();
-    stats[key] = (stats[key] || 0) + 1;
-    stats.lastAt = new Date().toISOString();
-    saveStats(stats);
-  }
-
-  function wrapQueued(entry) {
-    if (entry && typeof entry === "object" && entry.payload) return entry;
-    return { payload: entry, attempts: 0, nextAt: 0 };
-  }
-
-  function enqueueEntry(entry) {
-    var queue = loadQueue().map(wrapQueued);
-    queue.push({ payload: entry, attempts: 0, nextAt: Date.now() + BASE_FLUSH_MS });
-    saveQueue(queue);
-    bumpStat("enqueued");
-  }
-
   function backoffMs(attempts) {
     var ms = BASE_FLUSH_MS * Math.pow(2, Math.min(attempts, 8));
     return Math.min(ms, MAX_FLUSH_MS);
@@ -112,17 +57,17 @@
         })
           .then(function (res) {
             if (res.ok || res.status === 204) {
-              bumpStat("delivered");
+              storage.bumpStat("delivered");
               flushQueue(endpoints);
             } else if (allowQueue) {
-              bumpStat("retryableHttp");
-              enqueueEntry(entry);
+              storage.bumpStat("retryableHttp");
+              storage.enqueueEntry(entry);
             }
           })
           .catch(function () {
             if (allowQueue) {
-              bumpStat("retryableNet");
-              enqueueEntry(entry);
+              storage.bumpStat("retryableNet");
+              storage.enqueueEntry(entry);
             }
           });
         return;
@@ -130,12 +75,12 @@
         // try next endpoint
       }
     }
-    if (allowQueue) enqueueEntry(entry);
+    if (allowQueue) storage.enqueueEntry(entry);
   }
 
   function flushQueue(endpoints) {
     if (flushing) return;
-    var queue = loadQueue().map(wrapQueued);
+    var queue = storage.loadQueue().map(storage.wrapQueued);
     if (!queue.length) return;
     var now = Date.now();
     var readyIdx = -1;
@@ -152,23 +97,23 @@
     }
     var next = queue[readyIdx];
     var rest = queue.slice(0, readyIdx).concat(queue.slice(readyIdx + 1));
-    saveQueue(rest);
+    storage.saveQueue(rest);
     flushing = true;
     var body = JSON.stringify(next.payload);
-    var i = 0;
+    var ep = 0;
     (function tryEndpoint() {
-      if (i >= endpoints.length) {
+      if (ep >= endpoints.length) {
         next.attempts = (next.attempts || 0) + 1;
         next.nextAt = Date.now() + backoffMs(next.attempts);
-        var requeue = loadQueue().map(wrapQueued);
+        var requeue = storage.loadQueue().map(storage.wrapQueued);
         requeue.push(next);
-        saveQueue(requeue);
-        bumpStat("retryableHttp");
+        storage.saveQueue(requeue);
+        storage.bumpStat("retryableHttp");
         flushing = false;
         setTimeout(function () { flushQueue(endpoints); }, backoffMs(next.attempts));
         return;
       }
-      var endpoint = endpoints[i++];
+      var endpoint = endpoints[ep++];
       var sameOrigin =
         typeof location !== "undefined" &&
         (endpoint.startsWith("/") || endpoint.indexOf(location.origin) === 0);
@@ -181,7 +126,7 @@
       })
         .then(function (res) {
           if (res.ok || res.status === 204) {
-            bumpStat("delivered");
+            storage.bumpStat("delivered");
             flushing = false;
             setTimeout(function () { flushQueue(endpoints); }, BASE_FLUSH_MS);
             return;
@@ -189,7 +134,7 @@
           tryEndpoint();
         })
         .catch(function () {
-          bumpStat("retryableNet");
+          storage.bumpStat("retryableNet");
           tryEndpoint();
         });
     })();
@@ -199,6 +144,6 @@
     resolveEndpoints: resolveEndpoints,
     postHttp: postHttp,
     flushQueue: flushQueue,
-    loadStats: loadStats,
+    loadStats: storage.loadStats,
   };
 })();
