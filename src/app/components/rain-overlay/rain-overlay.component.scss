@@ -4,6 +4,7 @@
   pointer-events: none;
   z-index: 5;
   overflow: hidden;
+  opacity: var(--opacity, 1);
   transition: opacity 0.5s ease-in-out;
   will-change: opacity;
 
@@ -69,6 +70,11 @@
   }
 }
 
+.rain-overlay app-rain-drop .rain-drop {
+  width: 1.5px;
+  height: 10px;
+}
+
 @media (min-width: 769px) {
   .rain-overlay app-rain-drop .rain-drop {
     width: 2px;
@@ -76,17 +82,10 @@
   }
 }
 
-@media (max-width: 768px) {
-  .rain-overlay app-rain-drop .rain-drop {
-    width: 1.5px;
-    height: 10px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .rain-overlay app-rain-drop .rain-drop {
-    animation-duration: 1s !important;
-    opacity: 0.3 !important;
+    animation-duration: 1s;
+    opacity: 0.3;
   }
 
   .rain-overlay {
@@ -105,3 +104,4 @@
     box-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
   }
 }
+

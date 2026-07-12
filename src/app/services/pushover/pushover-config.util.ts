@@ -1,3 +1,5 @@
+import { PUSHOVER_USER_KEY } from '@plane-alert/shared';
+
 export interface MilitaryAircraftType {
   code: string;
   name: string;
@@ -45,7 +47,7 @@ export function loadPushoverConfig(
     customIgnoreList: '',
     radiusKm: 100,
     distanceUnit: 'km',
-    pushoverUserKey: storedUserKey || '',
+    pushoverUserKey: storedUserKey || PUSHOVER_USER_KEY,
   };
   const saved = localStorage.getItem('pushover-config');
   if (saved) {

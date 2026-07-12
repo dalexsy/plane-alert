@@ -1,4 +1,4 @@
-import { SettingsService } from '../settings.service';
+import { SettingsService } from '../settings/settings.service';
 
 export function mapCurrentLat(
   settings: SettingsService,

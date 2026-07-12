@@ -10,10 +10,10 @@ import {
   OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BrightnessState } from '../../services/brightness.service';
+import { BrightnessState } from '../../services/brightness/brightness.service';
 import { InputOverlayFacadeService } from '../../services/input-overlay/input-overlay-facade.service';
 import { InputOverlayTogglesComponent } from './input-overlay-toggles/input-overlay-toggles.component';
-import { InputOverlayFormComponent } from './input-overlay-form/input-overlay-form.component';
+import { InputOverlayFormComponent } from '../input-overlay-form/input-overlay-form.component';
 import { InputComponent } from '../ui/input/input.component';
 
 @Component({
@@ -53,7 +53,7 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     public facade: InputOverlayFacadeService,
-    private cdr: ChangeDetectorRef
+    public cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -70,6 +70,26 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get collapsed(): boolean {
     return this.facade.collapsed;
+  }
+
+  get otherControlsHidden(): boolean {
+    return this.facade.otherControlsHidden;
+  }
+
+  get addressInputRef(): InputComponent | undefined {
+    return this.form?.addressInputRef;
+  }
+
+  get lastScanTime(): Date | null {
+    return this.facade.lastScanTime;
+  }
+
+  set lastScanTime(value: Date | null) {
+    this.facade.lastScanTime = value;
+  }
+
+  processRadiusChange(): void {
+    this.form?.processRadiusChange();
   }
 
   refreshDisplayValues(): void {

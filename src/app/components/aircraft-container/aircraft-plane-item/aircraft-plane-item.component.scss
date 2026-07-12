@@ -1,0 +1,158 @@
+$plane-icon-size: 2.5rem;
+$grounded-plane-scale: 0.4;
+$plane-animation-duration: 1.2s;
+$scale-transition-duration: 0.8s;
+$balcony-color: #4caf50;
+$streetside-color: #2196f3;
+
+:host {
+  display: contents;
+}
+
+.plane-dot {
+  position: absolute;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  transform-style: preserve-3d;
+  font-family: "JetBrains Mono", monospace;
+  color: #fff;
+  left: var(--left);
+  bottom: var(--bottom);
+  transform: var(--transform);
+  transform-origin: var(--transform-origin, bottom center);
+  opacity: var(--opacity);
+  transition: left var(--plane-animation-duration, #{$plane-animation-duration}) linear,
+    bottom var(--plane-animation-duration, #{$plane-animation-duration}) linear,
+    transform $scale-transition-duration ease-out;
+  will-change: transform, left, bottom;
+
+  &.skip-wrap.plane-dot {
+    transition: transform $scale-transition-duration ease-out;
+  }
+
+  &.balcony-marker,
+  &.streetside-marker {
+    flex-direction: column;
+    justify-content: space-between;
+    transition: none;
+  }
+
+  &.dimmed {
+    opacity: 0.5;
+  }
+
+  &.grounded-plane {
+    pointer-events: auto;
+
+    .icon-wrapper,
+    .icon-scale-wrapper,
+    .copter-plane-icon {
+      transform: none;
+    }
+
+    .icon-wrapper {
+      transform: perspective(300px) skewX(-30deg) rotateX(50deg)
+        scale($grounded-plane-scale);
+      transform-origin: bottom center;
+    }
+
+    .copter-wrapper {
+      transform: perspective(300px) skewX(-30deg) rotateX(50deg)
+        scale($grounded-plane-scale);
+      transform-origin: bottom center;
+    }
+
+    .copter-plane-icon {
+      font-size: $plane-icon-size * $grounded-plane-scale;
+      color: #ededed;
+      animation: none;
+    }
+
+    .plane-label {
+      position: static;
+      font-size: 0.75rem;
+      margin-bottom: -0.75rem; // gap-ok: tuck label under skewed grounded icon
+    }
+  }
+}
+
+.icon-scale-wrapper {
+  display: inline-block;
+  transform-style: preserve-3d;
+}
+
+.icon-wrapper {
+  position: relative;
+  display: inline-block;
+  transform-style: preserve-3d;
+  z-index: 20;
+  transform: var(--transform);
+}
+
+.plane-icon {
+  width: $plane-icon-size;
+  height: $plane-icon-size;
+  margin-bottom: 2px; // gap-ok: separate icon from chemtrail tail
+  color: var(--color);
+  transform: var(--transform);
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--plane-animation-duration, #{$plane-animation-duration}) linear;
+  transform-style: preserve-3d;
+  position: relative;
+
+  path {
+    fill: currentColor;
+    stroke: black;
+    stroke-width: 2px;
+  }
+}
+
+.copter-wrapper {
+  display: inline-block;
+  z-index: 20;
+  color: var(--color);
+}
+
+.copter-plane-icon {
+  font-family: "Material Symbols Sharp", sans-serif;
+  font-variation-settings: "FILL" 1;
+  font-size: $plane-icon-size;
+  display: inline-block;
+  margin-bottom: 2px; // gap-ok: align copter icon with plane silhouette baseline
+  cursor: pointer;
+  pointer-events: auto;
+  animation: spin 1.5s linear infinite;
+}
+
+.line-label {
+  position: absolute;
+  bottom: 3rem;
+  white-space: nowrap;
+  pointer-events: auto;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.balcony-marker .line-label {
+  color: $balcony-color;
+}
+
+.streetside-marker .line-label {
+  color: $streetside-color;
+}
+
+@keyframes spin {
+  from {
+    transform: perspective(300px) rotateX(60deg) rotateZ(0deg);
+  }
+  to {
+    transform: perspective(300px) rotateX(60deg) rotateZ(360deg);
+  }
+}
+

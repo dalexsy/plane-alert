@@ -1,4 +1,4 @@
-import type { CountryService } from '../country.service';
+import type { CountryService } from '../country/country.service';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 
 const BASE_TITLE = 'Plane Alert';

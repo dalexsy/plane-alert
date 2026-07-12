@@ -16,11 +16,11 @@ $text-shadow-color: #000;
   bottom: $overlay-bottom-spacing;
   height: $overlay-height-mobile;
   z-index: $overlay-z-index;
-  background: linear-gradient(
+  background: var(--background, linear-gradient(
     to top,
     $overlay-bg-start 90%,
     $overlay-bg-end 100%
-  );
+  ));
   border-top: 1px solid $overlay-border-color;
   backdrop-filter: blur(0.75rem);
   -webkit-backdrop-filter: blur(0.5rem);
@@ -41,7 +41,7 @@ $text-shadow-color: #000;
 }
 
 .window-view-overlay.hide-window-view {
-  display: none !important;
+  display: none;
 }
 
 .brightness-dark-overlay {
@@ -49,3 +49,4 @@ $text-shadow-color: #000;
   backdrop-filter: blur(0.5px);
   -webkit-backdrop-filter: blur(0.5px);
 }
+

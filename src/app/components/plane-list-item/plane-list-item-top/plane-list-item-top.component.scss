@@ -38,6 +38,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transform: var(--transform);
     transform-origin: center;
   }
 }
@@ -57,6 +58,10 @@
   flex-direction: row;
   gap: t.$space-xs;
   align-items: center;
+
+  a {
+    color: var(--color);
+  }
 }
 
 .military-star {
@@ -84,12 +89,20 @@
   }
 }
 
-@media (max-width: 768px) {
+.flag-callsign {
+  gap: calc(t.$space-xs / 2);
+}
+
+.direction-info {
+  gap: t.$space-xs;
+}
+
+@media (min-width: 769px) {
   .flag-callsign {
-    gap: calc(t.$space-xs / 2);
+    gap: t.$grid-spacing;
   }
 
   .direction-info {
-    gap: t.$space-xs;
+    gap: t.$grid-spacing;
   }
 }

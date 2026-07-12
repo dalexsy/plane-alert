@@ -1,0 +1,28 @@
+---
+pid: 16820
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "Start-Sleep -Seconds 120; python -c \"import sys; from pathlib import Path; sys.path.insert(0, str(Path('C:/Users/dalex/Repos/directory/scripts'))); from pi_dryl_common import connect_pi, load_manifest, run_remote, pi_settings; m=load_manifest(); h,u,_=pi_settings(m); c=connect_pi(h,u); print(run_remote(c, 'journalctl -u planes-api.service -n 20 --no-pager')); c.close()\""
+started_at: 2026-07-11T16:26:45.594Z
+running_for_ms: 67630009 
+---
+Jul 11 18:26:33 magicmirror systemd[1]: Stopping planes-api.service - Plane Alert API (Pushover + ADS-B on Pi)...
+Jul 11 18:26:33 magicmirror systemd[1]: planes-api.service: Deactivated successfully.
+Jul 11 18:26:33 magicmirror systemd[1]: Stopped planes-api.service - Plane Alert API (Pushover + ADS-B on Pi).
+Jul 11 18:26:33 magicmirror systemd[1]: planes-api.service: Consumed 3.054s CPU time.
+Jul 11 18:26:33 magicmirror systemd[1]: Started planes-api.service - Plane Alert API (Pushover + ADS-B on Pi).
+Jul 11 18:26:36 magicmirror node[2795402]: {"storePath":"/home/pi/planes-api/data/planes-api-store.json","severity":"INFO","message":"planes-api listening on 127.0.0.1:8795"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"uniqueLocations":1,"cachedLocations":1,"severity":"INFO","message":"Loaded aircraft snapshots for notification processing"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"userKey":"u4h7b5hn","registrationCount":2,"severity":"WARNING","message":"Multiple device registrations for one Pushover user"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__galaxys24","userKey":"u4h7b5hn","deviceName":"galaxys24","broadcastAllDevices":false,"radiusKm":100,"notifyProximity":false,"ignoredTypesCount":0,"severity":"INFO","message":"Processing device"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__galaxys24","aircraftCount":19,"hadStaleCache":true,"snapshotAgeMs":null,"severity":"INFO","message":"Refetched aircraft for notifications"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__galaxys24","deviceName":"galaxys24","totalAircraft":19,"severity":"INFO","message":"Fetched aircraft"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__galaxys24","totalAircraft":19,"planesWithFlight":19,"militaryWithFlight":0,"milFieldTrue":0,"dbFlagsIs1":0,"callsignsFound":0,"sampleCallsigns":[],"severity":"INFO","message":"Selecting callsigns for flight data"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__galaxys24","sample":[{"hex":"3d1de5","flight":"DEJON   ","r":"D-EJON","t":"AC11","desc":"NORTH AMERICAN ROCKWELL Commander 112/114"},{"hex":"3e7d68","flight":"DKMRO   ","r":"D-KMRO","t":"AS29","desc":"SCHLEICHER ASG-29"},{"hex":"3e77e9","flight":"DKKPL   "},{"hex":"4aca08","flight":"NSZ3750 ","r":"SE-RPH","t":"B738","desc":"BOEING 737-800"},{"hex":"4aca0d","flight":"NSZ7DE  ","r":"SE-RPM","t":"B738","desc":"BOEING 737-800"}],"severity":"INFO","message":"Sample aircraft data"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__galaxys24","totalAircraft":19,"militaryFlagged":0,"interestingMilitary":0,"boringMilitary":0,"specialCount":0,"recentlyNotifiedCount":0,"messagesToSend":0,"severity":"INFO","message":"Aircraft filtering results"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__pixel10","userKey":"u4h7b5hn","deviceName":"pixel10","broadcastAllDevices":false,"radiusKm":100,"notifyProximity":false,"ignoredTypesCount":0,"severity":"INFO","message":"Processing device"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__pixel10","aircraftCount":19,"hadStaleCache":true,"snapshotAgeMs":null,"severity":"INFO","message":"Refetched aircraft for notifications"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__pixel10","deviceName":"pixel10","totalAircraft":19,"severity":"INFO","message":"Fetched aircraft"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__pixel10","totalAircraft":19,"planesWithFlight":19,"militaryWithFlight":0,"milFieldTrue":0,"dbFlagsIs1":0,"callsignsFound":0,"sampleCallsigns":[],"severity":"INFO","message":"Selecting callsigns for flight data"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__pixel10","sample":[{"hex":"3d1de5","flight":"DEJON   ","r":"D-EJON","t":"AC11","desc":"NORTH AMERICAN ROCKWELL Commander 112/114"},{"hex":"3e7d68","flight":"DKMRO   ","r":"D-KMRO","t":"AS29","desc":"SCHLEICHER ASG-29"},{"hex":"3e77e9","flight":"DKKPL   "},{"hex":"4aca08","flight":"NSZ3750 ","r":"SE-RPH","t":"B738","desc":"BOEING 737-800"},{"hex":"4aca0d","flight":"NSZ7DE  ","r":"SE-RPM","t":"B738","desc":"BOEING 737-800"}],"severity":"INFO","message":"Sample aircraft data"}
+Jul 11 18:27:01 magicmirror node[2795402]: {"docId":"u4h7b5hnvdgvozqd5yzm86i474fs4g__pixel10","totalAircraft":19,"militaryFlagged":0,"interestingMilitary":0,"boringMilitary":0,"specialCount":0,"recentlyNotifiedCount":0,"messagesToSend":0,"severity":"INFO","message":"Aircraft filtering results"}
+

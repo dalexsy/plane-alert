@@ -1,6 +1,6 @@
 import * as L from 'leaflet';
 import { Plane } from '../types/plane';
-import { removeLeftMarkerFromPlane } from '../utils/plane-marker';
+import { removeLeftMarkerFromPlane } from '../utils/plane-marker/plane-marker';
 
 // Position history entry with timestamp
 export interface PositionHistory {
@@ -92,10 +92,17 @@ export class PlaneModel implements Plane {
   ): void {
     const currentTime = Date.now();
 
-    // Only capture position if enough time has passed since last capture
-    // or if this is the first position ever captured
+    const last = this.positionHistory[this.positionHistory.length - 1];
+    const movedSinceLast =
+      !last ||
+      Math.abs(last.lat - lat) > 0.00005 ||
+      Math.abs(last.lon - lon) > 0.00005 ||
+      Math.abs((last.altitude ?? 0) - (altitude ?? 0)) > 25;
+
+    // Capture on each scan movement, not only when the throttle window elapses.
     if (
       this.lastPositionCaptureTime === 0 ||
+      movedSinceLast ||
       currentTime - this.lastPositionCaptureTime >=
         this.POSITION_HISTORY_THROTTLE_MS
     ) {

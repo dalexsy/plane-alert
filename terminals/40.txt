@@ -1,0 +1,18 @@
+---
+pid: 4800
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd \"C:\\Users\\dalex\\Repos\\plane-alert\" && node ..\\directory\\scripts\\smoke-spa-console.mjs planes --local 2>&1"
+started_at: 2026-07-11T09:10:45.179Z
+running_for_ms: 19254991 
+---
+max-lines check passed (≤200)
+[smoke] serving C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser at http://127.0.0.1:4383
+[smoke] planes open http://127.0.0.1:4383 (anonymous)
+[smoke] bundle main-I5EG7TM7.js
+[screenshot] desktop 1280x800 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+[screenshot] mobile 390x844 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+[screenshot] wide 1920x1080 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-wide.png
+[screenshot] meta → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest.json
+[ok] visual checks for planes (all routes)
+[ok] planes loaded with no console errors
+[ok] VERIFY_EXIT_0 — smoke-spa-console planes; Read PNGs and quote QUOTE_VISIBLE before done

@@ -9,12 +9,15 @@ alwaysApply: true
 
 | Topic | Path |
 |-------|------|
+| **SDLC overview (human)** | `Repos/speculation/SDLC.md` |
 | **Mandatory first read** | `Repos/speculation/core-guardrails.md` |
 | Session gate (alwaysApply) | `.cursor/rules/core-guardrails-first.mdc` |
+| Cursor token discipline (alwaysApply) | `.cursor/rules/cursor-model-tiers.mdc` |
 | Agent index | `Repos/speculation/AGENTS.md` |
 | Mindset + finish line | `Repos/speculation/.cursor/rules/ecosystem-health.mdc` |
 | Tickets + production proof | `Repos/speculation/.cursor/rules/agent-pipeline.mdc` |
 | Verification (AVS) | `Repos/speculation/.cursor/rules/agent-verification.mdc` |
+| Localhost UI verify (--must-contain) | `Repos/speculation/.cursor/rules/verify-localhost-ui.mdc` |
 | Stack / UI law | `Repos/speculation/master-spec.md` |
 
 Per-repo symptoms only: `.cursor/rules/debugging.md` in this repo.

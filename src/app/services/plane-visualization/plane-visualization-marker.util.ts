@@ -1,12 +1,12 @@
 import { PlaneModel, PositionHistory } from '../../models/plane-model';
-import { planeTooltip } from '../../utils/tooltip';
+import { planeTooltip } from '../../utils/tooltip/tooltip';
 import {
   convertKmToTooltipDistance,
   convertAltitudeForTooltip,
   convertSpeedForTooltip,
   DistanceUnit,
-} from '../../utils/units.util';
-import type { AltitudeColorService } from '../altitude-color.service';
+} from '../../utils/units/units.util';
+import type { AltitudeColorService } from '../altitude-color/altitude-color.service';
 
 export function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -70,8 +70,9 @@ export function determineTrackForMarker(
   if (typeof track === 'number') return track;
   let lastKnownTrack: number | undefined;
   for (let i = positionHistory.length - 1; i >= 0; i--) {
-    if (typeof positionHistory[i].track === 'number') {
-      lastKnownTrack = positionHistory[i].track;
+    const histTrack = positionHistory[i].track;
+    if (typeof histTrack === 'number') {
+      lastKnownTrack = histTrack;
       break;
     }
   }

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../ui/button/button.component';
 import { TabComponent } from '../../ui/tab/tab.component';
 import { TooltipDirective } from '../../../directives/tooltip.directive';
-import { BrightnessState } from '../../../services/brightness.service';
+import { BrightnessState } from '../../../services/brightness/brightness.service';
 import { InputOverlayFacadeService } from '../../../services/input-overlay/input-overlay-facade.service';
 import {
   inputOverlayBrightnessIcon,

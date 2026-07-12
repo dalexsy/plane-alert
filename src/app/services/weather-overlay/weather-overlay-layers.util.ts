@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import type { SkyColors } from '../weather-overlay.service';
+import type { SkyColors } from './weather-overlay.service';
 
 const OPEN_WEATHER_MAP_API_KEY = 'ffcc03a274b2d049bf4633584e7b5699';
 

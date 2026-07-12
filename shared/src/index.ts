@@ -75,6 +75,13 @@ export {
 } from './aircraft-type-names';
 export type { AircraftTypeName } from './aircraft-type-names';
 
+// Household Pushover defaults (client + Pi backend)
+export {
+  PUSHOVER_USER_KEY,
+  DEFAULT_PUSH_HOME,
+  DEFAULT_PUSH_DEVICE_NAMES,
+} from './pushover-defaults';
+
 // Pushover device matching (client + Cloud Functions)
 export {
   PUSHOVER_UNRELIABLE_DEVICE_NAMES,

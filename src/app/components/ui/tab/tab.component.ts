@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   template: `<div class="top-buttons" [ngClass]="side">
     <ng-content></ng-content>
   </div>`,
-  styleUrls: ['../tab.component.scss'],
+  styleUrls: ['./tab.component.scss'],
 })
 export class TabComponent {
   @Input() side: 'left' | 'right' = 'left';

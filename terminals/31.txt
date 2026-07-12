@@ -1,0 +1,14 @@
+---
+pid: 26508
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "node scripts/verify-history-in-browser.mjs"
+started_at: 2026-07-11T07:45:13.386Z
+running_for_ms: 24400014 
+---
+[browser] opened msedge — loading https://planes.dryl.io
+[browser] bundle: main-YK2WL4YU.js
+[browser] military-history buttons found: 1
+[browser] clicking Military History…
+[browser] panel open: true, title visible: true
+[ok] History tab and panel verified in visible browser.
+[browser] window stays open 90s — inspect the right nav and panel yourself.

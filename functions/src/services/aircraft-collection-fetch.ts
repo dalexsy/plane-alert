@@ -22,7 +22,7 @@ function adsbPointBaseUrls(): string[] {
   return (
     process.env.ADSB_POINT_API_BASE_URL?.trim()
       ? [process.env.ADSB_POINT_API_BASE_URL.trim()]
-      : ['https://api.adsb.lol', 'https://api.airplanes.live']
+      : ['https://api.airplanes.live', 'https://api.adsb.lol']
   ).map((url) => url.replace(/\/$/, ''));
 }
 

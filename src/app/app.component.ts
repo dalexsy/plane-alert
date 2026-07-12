@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { MapComponent } from './map/map.component';
 import { CommonModule } from '@angular/common';
-import { NoonRefreshService } from './services/noon-refresh.service';
+import { NoonRefreshService } from './services/noon-refresh/noon-refresh.service';
 import {
   NotificationService,
   NotificationStatusInfo,
-} from './services/notification.service';
-import { FirebaseMessagingService } from './services/firebase-messaging.service';
+} from './services/notification/notification.service';
+import { FirebaseMessagingService } from './services/firebase-messaging/firebase-messaging.service';
 
 @Component({
   selector: 'app-root',
@@ -26,49 +26,33 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.noonRefreshService.start();
-    // Delay the notification check to allow service worker registration to complete
+    // Pushover alerts are server-side — re-register whenever we have a stored key.
+    setTimeout(() => this.syncPushoverRegistration(), 2000);
     setTimeout(() => this.checkNotificationSupport(), 2000);
+  }
+
+  private async syncPushoverRegistration(): Promise<void> {
+    try {
+      await this.firebaseMessaging.registerDevice(
+        this.firebaseMessaging.getStoredUserKey()!
+      );
+    } catch (error) {
+      console.warn('Pushover registration sync failed:', error);
+    }
   }
 
   private async checkNotificationSupport() {
     try {
-      const status: NotificationStatusInfo =
-        await this.notificationService.evaluateStatus();
-
-      // Silently register if granted, no UI needed
-      if (status.state === 'granted') {
-        await this.ensurePushoverRegistration();
-      }
+      await this.notificationService.evaluateStatus();
     } catch (error) {
       console.warn('Notification status check failed:', error);
     }
   }
 
   private async ensurePushoverRegistration() {
-    const storedKey = this.firebaseMessaging.getStoredUserKey();
-    if (storedKey) {
-      await this.firebaseMessaging.registerDevice(storedKey);
-      return;
-    }
-
-    const userKey = prompt(
-      'Enter your Pushover User Key to enable notifications.\n\n' +
-        'Find it at: https://pushover.net/\n' +
-        '(You need the Pushover app installed)'
+    await this.firebaseMessaging.registerDevice(
+      this.firebaseMessaging.getStoredUserKey()!
     );
-
-    if (userKey && userKey.trim()) {
-      const success = await this.firebaseMessaging.registerDevice(userKey);
-      if (success) {
-        alert(
-          "✅ Notifications enabled! You'll receive alerts for military planes."
-        );
-      } else {
-        alert(
-          '❌ Failed to enable notifications. Check the console for details.'
-        );
-      }
-    }
   }
 
   async requestNotificationPermission() {
@@ -97,7 +81,7 @@ export class AppComponent implements OnInit {
     if (permission === 'denied') {
       const browser = this.getBrowserLabel();
       alert(
-        `Notifications are blocked in ${browser} for plane-alert-final.surge.sh.\n\n` +
+        `Notifications are blocked in ${browser} for planes.dryl.io.\n\n` +
           'Open the site information panel, allow notifications, then tap Enable notifications again.'
       );
     } else if (permission === 'default') {

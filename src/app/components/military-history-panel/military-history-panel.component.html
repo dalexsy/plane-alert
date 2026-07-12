@@ -1,0 +1,39 @@
+<div class="military-history-panel">
+  <div class="panel-header">
+    <h3>Military Aircraft History</h3>
+    <app-button
+      type="tertiary"
+      size="small"
+      icon="close"
+      ariaLabel="Close"
+      (click)="onClose()"
+    ></app-button>
+  </div>
+
+  <div class="panel-controls">
+    <app-input
+      [value]="searchQuery"
+      placeholder="Search by model, country, operator..."
+      (inputChange)="onSearchChange($event)"
+    ></app-input>
+  </div>
+
+  <div class="panel-content" *ngIf="!loading && !error">
+    <app-military-history-table
+      [rows]="filteredHistory"
+      [searchQuery]="searchQuery"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (sortChange)="onSort($event)"
+    ></app-military-history-table>
+  </div>
+
+  <div class="panel-loading" *ngIf="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading history...</p>
+  </div>
+
+  <div class="panel-error" *ngIf="error">
+    <p>{{ error }}</p>
+  </div>
+</div>

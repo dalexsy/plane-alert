@@ -1,9 +1,9 @@
 import { Injectable, ChangeDetectorRef } from '@angular/core';
 import { MapRuntimeService } from './map-runtime.service';
 import { MapOverlayStateService } from './map-overlay-state.service';
-import { FollowService } from '../follow.service';
-import { PlaneCenteringService } from '../plane-centering.service';
-import { FollowCoordinatorService } from '../follow-coordinator.service';
+import { FollowService } from '../follow/follow.service';
+import { PlaneCenteringService } from '../plane-centering/plane-centering.service';
+import { FollowCoordinatorService } from '../follow-coordinator/follow-coordinator.service';
 import { PlaneModel } from '../../models/plane-model';
 import { PlaneLogEntry } from '../../components/results-overlay/results-overlay.component';
 import { MapPlaneOperationsService } from './map-plane-operations.service';
@@ -91,8 +91,8 @@ export class MapFollowHandlersService {
   }
 
   followNearestPlane(plane: PlaneLogEntry | { isMarker?: boolean; followMe?: boolean; icao: string }, cdr: ChangeDetectorRef): void {
-    if (plane.isMarker) return;
-    const isFromShuffle = !!plane.followMe;
+    if ('isMarker' in plane && plane.isMarker) return;
+    const isFromShuffle = 'followMe' in plane && !!plane.followMe;
     if (isFromShuffle) {
       this.overlay.followNearest = true;
       this.centerOnPlane(plane as PlaneLogEntry, false, true, cdr);

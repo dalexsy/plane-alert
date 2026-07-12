@@ -1,5 +1,5 @@
 import type { WindowViewPlane } from '../../components/window-view-overlay/window-view-overlay.component';
-import type { PlaneLogService } from '../plane-log.service';
+import type { PlaneLogService } from './plane-log.service';
 
 export function updateWindowViewMarkers(ctx: PlaneLogService, windowViewPlanes: WindowViewPlane[]): void {
   const cones = [
@@ -24,5 +24,5 @@ export function updateWindowViewMarkers(ctx: PlaneLogService, windowViewPlanes: 
   });
   const mergedPlanes = [...windowViewPlanes.filter((p) => !p.isMarker), ...markers];
   if (ctx.windowViewOverlayComponent) ctx.windowViewOverlayComponent.windowViewPlanes = mergedPlanes;
-  if (ctx.mapComponent) ctx.mapComponent.windowViewPlanes = mergedPlanes;
+  if (ctx.overlay) ctx.overlay.windowViewPlanes = mergedPlanes;
 }

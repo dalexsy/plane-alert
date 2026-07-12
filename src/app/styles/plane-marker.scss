@@ -1,11 +1,9 @@
 $new-plane-color: #ff6161;
 $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
 
-.plane-marker-container {
-  width: 3rem !important;
-  height: 3rem !important;
-  margin-left: -1.5rem !important;
-  margin-top: -1.5rem !important;
+.leaflet-div-icon.plane-marker-container {
+  width: 3rem;
+  height: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,7 +70,7 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     margin-right: 1rem;
 
     &::before {
-      font-size: 1rem;
+      font-size: 1rem; /* typography-ok marker glyph */
     }
   }
   &.copter-plane::before {
@@ -87,7 +85,7 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     margin-right: 1rem;
 
     &::before {
-      font-size: 1rem;
+      font-size: 1rem; /* typography-ok marker glyph */
     }
   }
 
@@ -109,7 +107,7 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
   }
 
   &:hover {
-    z-index: 1000 !important;
+    z-index: 1000;
   }
 }
 
@@ -135,3 +133,4 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
 .predicted-path-line {
   border-style: dashed;
 }
+

@@ -1,17 +1,28 @@
 import type { WindowViewPlane } from '../../types/window-view-plane';
 
 function trailDeltaFromHistory(plane: WindowViewPlane): { dx: number; dy: number } | null {
-  if (!plane.historyTrail || plane.historyTrail.length < 2) return null;
-  const current = plane.historyTrail[plane.historyTrail.length - 1];
+  const current = { x: plane.x, y: plane.y };
+  if (!(current.y > 0.1 && current.x >= 0 && current.x <= 100)) return null;
+  if (!plane.historyTrail?.length) return null;
+
   let previous: { x: number; y: number } | null = null;
-  for (let i = plane.historyTrail.length - 2; i >= 0; i--) {
+  for (let i = plane.historyTrail.length - 1; i >= 0; i--) {
     const candidate = plane.historyTrail[i];
-    if (candidate.y > 0.1 && candidate.x >= 0 && candidate.x <= 100) {
-      previous = candidate;
-      break;
+    if (!(candidate.y > 0.1 && candidate.x >= 0 && candidate.x <= 100)) {
+      continue;
     }
+    let deltaX = current.x - candidate.x;
+    let deltaY = current.y - candidate.y;
+    if (deltaX > 50) deltaX -= 100;
+    else if (deltaX < -50) deltaX += 100;
+    if (Math.abs(deltaX) <= 0.05 && Math.abs(deltaY) <= 0.05) {
+      continue;
+    }
+    previous = candidate;
+    break;
   }
-  if (!previous || !(current.y > 0.1 && current.x >= 0 && current.x <= 100)) return null;
+  if (!previous) return null;
+
   let deltaX = current.x - previous.x;
   let deltaY = current.y - previous.y;
   if (deltaX > 50) deltaX -= 100;

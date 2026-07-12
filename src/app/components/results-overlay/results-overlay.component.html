@@ -20,6 +20,7 @@
       (toggleNearest)="facade.toggleNearest(cdr)"
       (toggleMilitaryPriority)="facade.toggleMilitaryPriority(cdr)"
       (configurePushover)="facade.showPushoverConfig = true"
+      (openMilitaryHistory)="facade.showMilitaryHistory = true"
       (toggleWindowView)="toggleWindowView()"
     ></app-results-toolbar>
   </div>
@@ -59,7 +60,7 @@
       [airportCircles]="airportCircles"
       [scrollable]="facade.seenListScrollable"
       [atBottom]="facade.seenListAtBottom"
-      (toggleCollapsed)="facade.toggleSeenCollapsed(() => updateScrollFade())"
+      (toggleCollapsed)="onToggleSeenCollapsed()"
       (clearHistorical)="clearHistoricalList.emit()"
       (scrollChange)="onSeenScroll($event)"
       (centerPlane)="centerPlane.emit($event)"
@@ -81,3 +82,13 @@
   (closeEditor)="facade.showPushoverConfig = false"
   (configSaved)="onPushoverConfigSaved($event)"
 ></app-pushover-config-editor>
+
+<div
+  class="military-history-backdrop"
+  *ngIf="facade.showMilitaryHistory"
+  (click)="facade.showMilitaryHistory = false"
+></div>
+<app-military-history-panel
+  *ngIf="facade.showMilitaryHistory"
+  (close)="facade.showMilitaryHistory = false"
+></app-military-history-panel>

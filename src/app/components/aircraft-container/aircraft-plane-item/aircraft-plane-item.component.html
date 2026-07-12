@@ -1,0 +1,62 @@
+<div
+  class="plane-dot"
+  [class.skip-wrap]="plane.skipWrapTransition"
+  [class.grounded-plane]="plane.isGrounded"
+  [class.helicopter-plane]="plane.isHelicopter"
+  [class.balcony-marker]="plane.isMarker && plane.callsign.startsWith('Balcony')"
+  [class.streetside-marker]="plane.isMarker && plane.callsign.startsWith('Streetside')"
+  [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
+  [class.close-plane]="plane.distanceKm != null && plane.distanceKm <= 10"
+  [style.--left]="plane.x + '%'"
+  [style.--bottom]="planeBottomStyle(plane)"
+  [style.--transform]="planeScalePrefix(plane) + get3DDepthTransform(plane)"
+  [style.--chemtrail-rotation]="getChemtrailRotation(plane)"
+  [style.--transform-origin]="'bottom center'"
+  [style.--opacity]="getAtmosphericPerspective(plane)"
+  [title]="plane.isMarker ? '' : plane.isGrounded ? 'On ground' : ' (' + plane.altitude + 'm)'"
+  (mouseenter)="onMouseEnter($event)"
+  (mouseleave)="onMouseLeave()"
+>
+  <span *ngIf="isMidMarker" class="line-label">{{ plane.callsign }}</span>
+
+  <ng-container *ngIf="!plane.isMarker && !plane.isCelestial">
+    <span
+      *ngIf="plane.isHelicopter"
+      class="copter-wrapper"
+      [style.--color]="altitudeColor.getFillColor(plane.altitude)"
+      (click)="onIconClick($event)"
+    >
+      <span class="copter-plane-icon material-symbols-sharp">{{ 'toys_fan' }}</span>
+    </span>
+
+    <div *ngIf="!plane.isHelicopter" class="icon-scale-wrapper">
+      <div
+        class="icon-wrapper"
+        [style.--transform]="plane.isGrounded ? null : getPerspectiveTransform(plane)"
+      >
+        <app-aircraft-trail
+          *ngIf="showTrail"
+          [scale]="getChemtrailScale(plane)"
+          [rotation]="getChemtrailRotation(plane)"
+        ></app-aircraft-trail>
+        <svg
+          class="plane-icon {{ plane.iconType }}"
+          [style.--color]="altitudeColor.getFillColor(plane.altitude)"
+          viewBox="0 0 64 64"
+          [attr.aria-label]="plane.callsign + ' at ' + plane.altitude + 'm'"
+          [style.--transform]="getIconRotation(plane)"
+          (click)="onIconClick($event)"
+        >
+          <path [attr.d]="plane.iconPath"></path>
+        </svg>
+      </div>
+    </div>
+
+    <app-aircraft-labels
+      [plane]="plane"
+      [highlightedPlaneIcao]="highlightedPlaneIcao"
+      [showAltitudeBorders]="showAltitudeBorders"
+      (labelClick)="onLabelClick($event)"
+    ></app-aircraft-labels>
+  </ng-container>
+</div>

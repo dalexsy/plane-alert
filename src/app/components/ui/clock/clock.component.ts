@@ -5,7 +5,7 @@ import {
   AfterViewInit,
   Renderer2,
 } from '@angular/core';
-import { LocationContextService } from '../../services/location-context.service';
+import { LocationContextService } from '../../../services/location-context/location-context.service';
 import { Subscription } from 'rxjs';
 
 @Component({

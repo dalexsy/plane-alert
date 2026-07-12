@@ -1,5 +1,5 @@
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
-import { formatModelList, numberToWord } from '../announcement/announcement-speech.util';
+import { formatModelList, numberToWord } from './announcement-speech.util';
 
 export function buildOperatorAnnouncementText(operator: string, aircraft: PlaneLogEntry[]): string {
   if (aircraft.length === 1) {

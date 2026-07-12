@@ -1,7 +1,7 @@
-import { DistanceUnit } from '../../utils/units.util';
+import { DistanceUnit } from '../../utils/units/units.util';
 import { formatNotificationBody, getCountryFlagEmoji } from '@plane-alert/shared';
-import type { CountryService } from '../country.service';
-import type { SettingsService } from '../settings.service';
+import type { CountryService } from '../country/country.service';
+import type { SettingsService } from '../settings/settings.service';
 
 export type MilitaryPlaneInfo = {
   icao: string;

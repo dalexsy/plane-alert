@@ -1,6 +1,6 @@
 import { EventEmitter } from '@angular/core';
 import type { SettingsState } from './settings-load.util';
-import type { ViewConeConfig } from '../settings.service';
+import type { ViewConeConfig } from './settings.service';
 
 export interface SettingsEvents {
   inputOverlayCollapsedChanged: EventEmitter<boolean>;
@@ -28,7 +28,7 @@ export function setMilitaryMute(s: SettingsState, value: boolean): void {
 }
 
 export function persistBool(s: SettingsState, key: string, field: keyof SettingsState, value: boolean): void {
-  (s as Record<string, unknown>)[field as string] = value;
+  (s as unknown as Record<string, unknown>)[field as string] = value;
   localStorage.setItem(key, value.toString());
 }
 

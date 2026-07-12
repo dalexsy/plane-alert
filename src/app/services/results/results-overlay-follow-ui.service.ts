@@ -1,6 +1,6 @@
 import { Injectable, ChangeDetectorRef } from '@angular/core';
-import { FollowCoordinatorService } from '../follow-coordinator.service';
-import { SettingsService } from '../settings.service';
+import { FollowCoordinatorService } from '../follow-coordinator/follow-coordinator.service';
+import { SettingsService } from '../settings/settings.service';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 
 @Injectable({ providedIn: 'root' })

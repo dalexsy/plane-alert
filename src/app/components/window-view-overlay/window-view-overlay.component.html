@@ -2,7 +2,7 @@
   class="window-view-overlay"
   [ngClass]="{ daytime: isDaytime() }"
   (contextmenu)="$event.stopPropagation()"
-  [style.background]="sky.skyBackground"
+  [style.--background]="sky.skyBackground"
 >
   <app-sky-background
     [windowCloudUrl]="sky.windowCloudUrl"

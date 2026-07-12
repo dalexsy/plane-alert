@@ -1,8 +1,8 @@
 import { Injectable, ChangeDetectorRef } from '@angular/core';
-import { ViewConeConfig } from '../settings.service';
-import { SettingsService } from '../settings.service';
-import { UiStateService } from '../ui-state.service';
-import { WeatherOverlayService } from '../weather-overlay.service';
+import { ViewConeConfig } from '../settings/settings.service';
+import { SettingsService } from '../settings/settings.service';
+import { UiStateService } from '../ui-state/ui-state.service';
+import { WeatherOverlayService } from '../weather-overlay/weather-overlay.service';
 import { MapRuntimeService } from './map-runtime.service';
 
 @Injectable({ providedIn: 'root' })

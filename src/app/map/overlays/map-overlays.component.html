@@ -1,7 +1,67 @@
-<div class="map-overlays">
-  <!-- Plane markers and paths will be rendered here via Leaflet -->
-  <!-- This component coordinates with services to manage overlays -->
-  <div *ngIf="planeData?.isLoading" class="overlay-loading">
-    Loading planes...
-  </div>
+<div class="overlay-container">
+  <app-closest-plane-overlay
+    *ngIf="overlay.closestPlane"
+    [plane]="overlay.closestPlane"
+    [operator]="overlay.closestOperator"
+    (selectPlane)="followNearestPlane($event)"
+    [isSelected]="overlay.closestPlane.icao === overlay.highlightedPlaneIcao"
+  ></app-closest-plane-overlay>
+
+  <app-location-overlay
+    [plane]="overlay.closestPlane"
+    [street]="overlay.locationStreet"
+    [district]="overlay.locationDistrict"
+    (selectPlane)="followNearestPlane($event)"
+    [isSelected]="overlay.closestPlane?.icao === overlay.highlightedPlaneIcao"
+  ></app-location-overlay>
 </div>
+
+<app-input-overlay
+  (resolveAndUpdate)="facade.resolveAndUpdateFromAddress(inputOverlayComponent)"
+  (excludeDiscountChange)="facade.onExcludeDiscountChange()"
+  (useCurrentLocation)="facade.useCurrentLocation(inputOverlayComponent)"
+  (coneVisibilityChange)="facade.toggleConeVisibility($event, cdr)"
+  (coneConfigChange)="facade.onConeConfig()"
+  (cloudToggleChange)="facade.toggleCloudCover($event)"
+  (rainToggleChange)="facade.toggleRainCover($event)"
+  (setHome)="facade.setCurrentAsHome()"
+  (goToHome)="facade.goToHome(inputOverlayComponent)"
+  (toggleDateTimeOverlays)="facade.onToggleDateTimeOverlays()"
+  (brightnessToggle)="facade.toggleBrightness()"
+  (zoomIn)="facade.onZoomIn()"
+  (zoomOut)="facade.onZoomOut()"
+  [brightness]="brightnessDisplay.brightness"
+  [brightnessState]="brightnessDisplay.brightnessState"
+  [showViewAxes]="uiState.coneVisible"
+  [showDateTime]="uiState.showDateTime"
+  [showCloudCover]="uiState.cloudVisible"
+  [showRainCover]="uiState.rainVisible"
+  [showAirportLabels]="uiState.showAirportLabels"
+  [showAltitudeBorders]="uiState.showAltitudeBorders"
+  (toggleAirportLabels)="facade.onToggleAirportLabels()"
+  (altitudeBordersChange)="facade.onToggleAltitudeBorders($event, cdr)"
+  [animationsEnabled]="uiState.animationsEnabled"
+  (animationsEnabledChange)="facade.onToggleAnimations($event, cdr)"
+></app-input-overlay>
+
+<app-results-overlay
+  (windowViewToggle)="facade.onWindowViewToggle($event)"
+  [skyPlaneLog]="overlay.skyPlaneLog"
+  [airportPlaneLog]="overlay.airportPlaneLog"
+  [seenPlaneLog]="overlay.seenPlaneLog"
+  [loadingAirports]="loadingAirports"
+  [highlightedPlaneIcao]="overlay.highlightedPlaneIcao"
+  [activePlaneIcaos]="overlay.activePlaneIcaos"
+  [clickedAirports]="overlay.clickedAirports"
+  [airportCircles]="overlay.airportCircles"
+  [showAltitudeBorders]="uiState.showAltitudeBorders"
+  [showWindDirection]="uiState.showWindDirection"
+  [showSunDirection]="uiState.showSunDirection"
+  (altitudeBordersChange)="facade.onToggleAltitudeBorders($event, cdr)"
+  (windDirectionToggleChange)="facade.onToggleWindDirection($event, cdr)"
+  (sunDirectionToggleChange)="facade.onToggleSunDirection($event, cdr)"
+  (centerPlane)="followNearestPlane($event)"
+  (centerAirport)="facade.onCenterAirport($event)"
+  (hoverPlane)="facade.onHoverOverlayPlane($event)"
+  (unhoverPlane)="facade.onUnhoverOverlayPlane($event)"
+></app-results-overlay>

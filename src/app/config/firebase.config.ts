@@ -19,11 +19,14 @@ export const firebaseConfig: FirebaseConfig = {
 export const firebaseVapidKey =
   'BEsZsblwDqmgC1mKRQzv6cQ9rqAvdfXEpsoK7XeVL8PdYOwiJANmvpnaFBwZn4vFKdPgrs75iomO6mA4vdWwadU';
 
-export const pushRegistrationEndpoint =
-  'https://europe-west3-plane-alert-800ff.cloudfunctions.net/registerDevice';
+const planesApiBase = '/api/planes';
 
-export const pushCheckDeviceEndpoint =
-  'https://europe-west3-plane-alert-800ff.cloudfunctions.net/checkDevice';
+export const pushRegistrationEndpoint = `${planesApiBase}/registerDevice`;
 
-export const adsbPointProxyUrl =
-  'https://europe-west3-plane-alert-800ff.cloudfunctions.net/adsbPointProxy';
+export const pushCheckDeviceEndpoint = `${planesApiBase}/checkDevice`;
+
+export const adsbPointProxyUrl = `${planesApiBase}/adsbPointProxy`;
+
+export const getMilitaryHistoryEndpoint = `${planesApiBase}/getMilitaryHistory`;
+
+export const saveMilitarySightingEndpoint = `${planesApiBase}/saveMilitarySighting`;

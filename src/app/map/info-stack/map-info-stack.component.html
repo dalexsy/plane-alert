@@ -1,0 +1,40 @@
+<div
+  class="info-wrapper"
+  [class.dateTimeHidden]="!uiState.showDateTime"
+  [class.window-view-hidden]="!uiState.showWindowView"
+  [class.left-bar-visible]="!inputControlsHidden"
+  [class.results-expanded]="!resultsCollapsed"
+>
+  <app-angle-overlay
+    [sunAngle]="astronomicalDisplay.sunAngle"
+    [sunEventText]="astronomicalDisplay.sunEventText"
+    [isNight]="astronomicalDisplay.isNight"
+    [moonPhaseName]="astronomicalDisplay.moonPhaseName"
+    [moonFraction]="astronomicalDisplay.moonFraction"
+    [windAngle]="facade.windAngle"
+    [windStat]="facade.windStat"
+    [windSpeed]="facade.getCurrentWindSpeed()"
+    [windUnit]="facade.getCurrentWindUnit()"
+    [windDirection]="facade.getWindFromDirection(facade.windAngle)"
+    [showWindDirection]="uiState.showWindDirection"
+    [showSunDirection]="uiState.showSunDirection"
+    (cycleWindUnit)="facade.cycleWindUnit()"
+  ></app-angle-overlay>
+  <div class="time-temp-container" *ngIf="uiState.showDateTime">
+    <app-clock></app-clock>
+    <app-temperature [resultsCollapsed]="resultsCollapsed"></app-temperature>
+  </div>
+</div>
+
+<app-window-view-overlay
+  *ngIf="uiState.showWindowView"
+  [windowViewPlanes]="overlay.windowViewPlanes"
+  [highlightedPlaneIcao]="overlay.highlightedPlaneIcao"
+  [observerLat]="facade.observerLat"
+  [observerLon]="facade.observerLon"
+  [isAtHome]="facade.isAtHome"
+  [showAltitudeBorders]="uiState.showAltitudeBorders"
+  [animationsEnabled]="uiState.animationsEnabled"
+  [windStat]="facade.windStat"
+  (selectPlane)="followNearestPlane($event)"
+></app-window-view-overlay>

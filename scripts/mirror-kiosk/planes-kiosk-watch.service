@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-Environment=PLANES_KIOSK_URL=https://planes.dryl.io/
+Environment=PLANES_KIOSK_URL=https://planes.dryl.io/?kiosk=1
 Environment=PLANES_KIOSK_WATCH_GATEWAY=192.168.178.1
 Environment=PLANES_KIOSK_AUTH_URL=http://127.0.0.1:8790/health
 Environment=PLANES_KIOSK_CPU_HIGH=220

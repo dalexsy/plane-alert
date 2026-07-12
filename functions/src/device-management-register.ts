@@ -1,11 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import {
-  autoMatchPushoverDevice,
-  matchPushoverDeviceName,
-  PUSHOVER_UNRELIABLE_DEVICE_NAMES,
-} from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
@@ -16,32 +11,7 @@ import {
   validatePushoverUserKey,
 } from './utils';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
-import { pruneDesktopMobileMisregistrations } from './services/prune-desktop-mobile-misregistrations';
-import { syncMissingPushoverDeviceRegistrations } from './services/sync-missing-pushover-registrations';
-
-function resolveRegistrationDeviceName(
-  requestedName: string | undefined,
-  platform: string | undefined,
-  clientModel: string | undefined,
-  pushoverDevices: string[],
-): string | null {
-  const trimmed = requestedName?.trim();
-  if (trimmed) {
-    const exact = matchPushoverDeviceName(trimmed, pushoverDevices);
-    if (
-      exact &&
-      !PUSHOVER_UNRELIABLE_DEVICE_NAMES.has(exact.toLowerCase())
-    ) {
-      return exact;
-    }
-  }
-
-  return autoMatchPushoverDevice({
-    userAgent: platform ?? '',
-    model: clientModel,
-    pushoverDevices,
-  });
-}
+import { resolveRegistrationDeviceName } from './services/resolve-registration-device-name';
 
 export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
   return onRequest(
@@ -185,23 +155,10 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           validation.devices,
         );
 
-        const prunedDesktopMobile = await pruneDesktopMobileMisregistrations(
-          db,
-          pushoverUserKey,
-          validation.devices,
-        );
-
-        const restored = await syncMissingPushoverDeviceRegistrations(
-          db,
-          pushoverUserKey,
-          validation.devices,
-        );
-
         logger.info('registerDevice success', {
           userKey: pushoverUserKey.slice(0, 8),
           deviceName: pushoverDeviceName,
           pruned,
-          restored,
         });
 
         res.status(200).json({
@@ -210,7 +167,6 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
           deviceName: pushoverDeviceName,
           deviceSlug,
           prunedOrphans: pruned,
-          restoredDevices: restored,
           availableDevices: validation.devices,
         });
       } catch (error: any) {

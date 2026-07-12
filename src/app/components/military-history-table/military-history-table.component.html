@@ -1,0 +1,134 @@
+<div class="history-table-wrapper">
+  <table class="history-table" *ngIf="rows.length > 0">
+    <thead>
+      <tr>
+        <th class="sortable" (click)="onSort('country')">
+          <div class="th-content">
+            <span class="sort-icon material-symbols-sharp">{{ getSortIcon('country') }}</span>
+          </div>
+        </th>
+        <th class="sortable" (click)="onSort('callsign')">
+          <div class="th-content">
+            <span>Callsign</span>
+            <span class="sort-icon material-symbols-sharp">{{ getSortIcon('callsign') }}</span>
+          </div>
+        </th>
+        <th class="sortable" (click)="onSort('model')">
+          <div class="th-content">
+            <span>Model</span>
+            <span class="sort-icon material-symbols-sharp">{{ getSortIcon('model') }}</span>
+          </div>
+        </th>
+        <th class="sortable" (click)="onSort('operator')">
+          <div class="th-content">
+            <span>Operator</span>
+            <span class="sort-icon material-symbols-sharp">{{ getSortIcon('operator') }}</span>
+          </div>
+        </th>
+        <th class="sortable" (click)="onSort('sightingCount')">
+          <div class="th-content">
+            <span>Sightings</span>
+            <span class="sort-icon material-symbols-sharp">{{ getSortIcon('sightingCount') }}</span>
+          </div>
+        </th>
+        <th class="sortable" (click)="onSort('lastSeen')">
+          <div class="th-content">
+            <span>Last Seen</span>
+            <span class="sort-icon material-symbols-sharp">{{ getSortIcon('lastSeen') }}</span>
+          </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let sighting of rows">
+        <td class="flag-cell">
+          <span class="flag-icon" [innerHTML]="getFlagHTML(sighting.country)"></span>
+        </td>
+        <td class="callsign-cell">
+          <a
+            *ngIf="sighting.callsign; else noCallsign"
+            href="https://globe.adsbexchange.com/?icao={{ sighting.icao }}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ sighting.callsign }}
+          </a>
+          <ng-template #noCallsign>
+            <span class="pending">Pending</span>
+          </ng-template>
+        </td>
+        <td class="model-cell">
+          <span *ngIf="isGenericModel(sighting.model); else specificModel">
+            {{ sighting.model || 'Unknown' }}
+          </span>
+          <ng-template #specificModel>
+            <a
+              href="https://www.bing.com/search?q={{ getBingSearchQuery(sighting) }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              (mouseenter)="onModelMouseEnter($event, sighting)"
+              (mouseleave)="onModelMouseLeave()"
+            >
+              {{ sighting.model }}
+            </a>
+          </ng-template>
+        </td>
+        <td class="operator-cell">
+          <div class="operator-content">
+            <span class="operator-logo" *ngIf="getOperatorSymbol(sighting)">
+              <span class="operator-symbol">
+                <img
+                  [src]="'assets/operator-logos/' + getOperatorSymbol(sighting)!.key + '.svg'"
+                  [alt]="getOperatorSymbol(sighting)!.key"
+                  width="16"
+                  height="16"
+                />
+              </span>
+            </span>
+            <span class="operator-text" [class.unknown-operator]="!sighting.operator">
+              {{ getOperatorDisplayName(sighting) }}
+            </span>
+          </div>
+        </td>
+        <td class="count-cell">{{ sighting.sightingCount }}</td>
+        <td class="date-cell">
+          <div class="date-content">
+            <div class="date-primary-row">
+              <span>{{ formatDate(sighting.lastSeen) }}</span>
+              <span
+                class="cardinal-direction"
+                *ngIf="sighting.cardinal && sighting.bearing != null"
+              >
+                <span>{{ sighting.cardinal }}</span>
+                <span
+                  class="material-symbols-sharp direction-icon"
+                  [style.--transform]="'rotate(' + sighting.bearing + 'deg)'"
+                >
+                  navigation
+                </span>
+              </span>
+            </div>
+            <div class="notification-source">
+              {{ getNotificationSourceLabel(sighting) }}
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-aircraft-image-tooltip
+    [visible]="showImageTooltip"
+    [loading]="isLoadingImage"
+    [image]="aircraftImage"
+    [position]="tooltipPosition"
+  ></app-aircraft-image-tooltip>
+
+  <div class="empty-state" *ngIf="rows.length === 0">
+    <p *ngIf="searchQuery">No results found for "{{ searchQuery }}"</p>
+    <p *ngIf="!searchQuery">
+      No military aircraft sightings recorded yet. When you see military planes in your area,
+      they'll appear here.
+    </p>
+  </div>
+</div>

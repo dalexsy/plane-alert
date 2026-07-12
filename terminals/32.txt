@@ -1,0 +1,7 @@
+---
+pid: 39096
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "node scripts/verify-history-in-browser.mjs"
+started_at: 2026-07-11T07:50:40.479Z
+running_for_ms: 24060000 
+---

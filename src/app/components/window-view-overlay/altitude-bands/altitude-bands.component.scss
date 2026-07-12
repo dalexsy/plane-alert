@@ -25,7 +25,9 @@
   position: absolute;
   left: 0;
   width: 100%;
-  background: transparent;
+  bottom: var(--bottom);
+  height: var(--height);
+  border: var(--border);
+  background-color: var(--background-color);
   box-sizing: border-box;
-  // Height set via inline styles
 }

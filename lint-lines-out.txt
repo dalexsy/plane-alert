@@ -1,0 +1,108 @@
+﻿
+> plane-alert@0.0.0 lint:lines
+> node ../directory/scripts/check-max-lines.mjs
+
+npm : 
+At C:\Users\dalex\AppData\Local\Temp\ps-script-d75379e3-34e2-447d-bd90-8658c2041b22.ps1:86 char:38
++ cd C:\Users\dalex\Repos\plane-alert; npm run lint:lines 2>&1 | Out-Fi ...
++                                      ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+File line limit exceeded (max 200 lines).
+
+  src/app/map/map.component.ts: 1683
+  src/app/components/window-view-overlay/window-view-overlay.component.ts: 1190
+  src/app/components/results-overlay/results-overlay.component.ts: 993
+  src/app/services/settings.service.ts: 712
+  src/app/components/window-view-overlay/aircraft-container/aircraft-container.component.ts: 707
+  src/app/services/announcement.service.ts: 706
+  src/app/services/rain.service.ts: 674
+  src/app/components/input-overlay/input-overlay.component.ts: 659
+  src/app/services/location-context.service.ts: 655
+  src/app/services/path-calculation.service.ts: 576
+  src/app/components/plane-list-item/plane-list-item.component.scss: 569
+  scripts/parse-atdb-data.js: 561
+  src/app/map/map-container.component.ts: 539
+  src/app/services/plane-data.service.ts: 525
+  src/app/services/geocoding-cache.service.ts: 512
+  src/app/components/cone/cone.component.ts: 502
+  src/app/services/environmental-data.service.ts: 486
+  src/app/services/aircraft-country.service.ts: 478
+  src/app/services/sky-overlay.service.ts: 470
+  src/app/services/map-state-manager.service.ts: 468
+  src/app/utils/plane-marker.ts: 456
+  src/app/services/airport.service.ts: 443
+  src/app/components/window-view-overlay/swallow-animation/swallow-animation.component.ts: 442
+  src/app/components/window-view-overlay/aircraft-container/aircraft-container.component.scss: 439
+  src/app/services/plane-visualization.service.ts: 425
+  src/app/components/results-overlay/results-overlay.component.scss: 424
+  src/app/services/weather-overlay.service.ts: 423
+  src/app/components/plane-list-item/plane-list-item.component.ts: 409
+  src/app/components/window-view-overlay/fall-leaves-animation/fall-leaves-animation.component.ts: 406
+  src/app/services/notification.service.ts: 404
+  src/app/services/plane-log.service.ts: 403
+  src/app/services/plane-data-orchestrator.service.ts: 400
+  src/app/utils/plane-icons.ts: 353
+  src/app/services/plane-display.service.ts: 350
+  src/app/services/atmospheric-sky.service.ts: 330
+  src/app/components/results-overlay/results-overlay.component.html: 329
+  scripts/generate-missing-icao-ranges.js: 311
+  src/app/components/rain-overlay/rain-overlay.component.ts: 304
+  src/app/services/aircraft-db.service.ts: 303
+  src/app/utils/tooltip.ts: 292
+  src/app/services/airport/airport-display.util.ts: 289
+  functions/src/notification-processor.ts: 288
+  functions/src/services/notify-for-device.ts: 288
+  src/app/components/pushover-config-editor/pushover-config-editor.component.scss: 285
+  src/app/services/brightness.service.ts: 283
+  src/app/services/plane-update.service.ts: 283
+  src/app/services/storm-pressure.service.ts: 276
+  src/app/styles/plane-tooltip.scss: 270
+  scripts/icao-mismatch-detector.js: 270
+  src/app/services/map/map-container-facade.service.ts: 269
+  functions/src/military-history.ts: 269
+  src/styles.scss: 268
+  src/app/services/results/results-overlay-facade.service.ts: 267
+  src/app/components/input-overlay/input-overlay.component.html: 266
+  functions/src/services/flight-data-cache.ts: 259
+  src/app/components/input-overlay/input-overlay.component.scss: 257
+  functions/src/weather-ceiling-proxy.ts: 250
+  src/app/services/address-resolution.service.ts: 248
+  src/app/services/plane-finder.service.ts: 248
+  src/app/services/helicopter-identification.service.ts: 242
+  src/app/services/map/map-bootstrap.service.ts: 242
+  src/app/services/sky-overlay/sky-overlay-private.util.ts: 238
+  src/app/services/auto-follow.service.ts: 236
+  src/app/services/window-view/window-view-sky.service.ts: 235
+  functions/src/shared/military-detection.ts: 234
+  src/app/directives/tooltip.directive.ts: 232
+  src/app/services/tts.service.ts: 232
+  src/app/components/plane-list-item/plane-list-item.component.html: 225
+  src/app/utils/units.util.ts: 223
+  src/app/services/location.service.ts: 214
+  src/app/services/map.service.ts: 213
+  scripts/browser-icao-detector.js: 213
+  src/app/components/cone-config-editor/cone-config-editor.component.scss: 212
+  functions/src/services/aircraft-snapshot-store.ts: 212
+  src/app/services/map/map-component-facade.service.ts: 210
+  src/app/services/follow-coordinator.service.ts: 209
+  functions/src/device-management-register.ts: 207
+  src/app/services/weather-layer.service.ts: 205
+  functions/src/aircraft-collector.ts: 204
+  src/app/components/pushover-config-editor/pushover-config-editor.component.ts: 201
+
+Why this gate exists: the file became a flat monolith ΓÇö too much UI, logic, or markup in one place.
+Fix with real structure, not more flat files:
+  ΓÇó Angular: child components in their own folders (html + scss + ts each Γëñ200)
+  ΓÇó Watch: viewer-*.ts factory modules; move boot lists / orchestration into typed modules
+  ΓÇó Shared logic: injectable services or directory/lib ΓÇö not a handlers/ or utils/ shard dump
+  ΓÇó Also see lint:component-budget (feature trees, orchestrator caps)
+
+Does NOT pass (spreads flatness without structure):
+  ΓÇó HTML template partials included via {{PLACEHOLDER}} or readFileSync slices
+  ΓÇó SCSS partials split only to duck the line count
+  ΓÇó Many small files in one folder with no child-component tree
+
+No allowlist exemptions ΓÇö split properly or shrink the file.
+

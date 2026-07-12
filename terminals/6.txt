@@ -1,0 +1,8 @@
+---
+pid: 4908
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd C:\\Users\\dalex\\Repos\\directory && node scripts/capture-agent-fix-evidence.mjs --ticket ops-agent-34b5ce0303fc --url https://planes.dryl.io/ --phase after --change \"scan form contained in panel; map tiles render immediately; aircraft DB loads in background\""
+started_at: 2026-07-10T17:22:18.807Z
+running_for_ms: 22045000 
+---
+[ok] after evidence (desktop 1280x800) → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\fix-evidence\ops-agent-34b5ce0303fc-after.png

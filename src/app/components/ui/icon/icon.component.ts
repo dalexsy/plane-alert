@@ -16,11 +16,11 @@ import { CommonModule } from '@angular/common';
       {{ icon }}
     </span>
   `,
-  styleUrls: ['../icon.component.scss'],
+  styleUrls: ['./icon.component.scss'],
 })
 export class IconComponent {
   @Input() icon: string = '';
-  @Input() variant: 'outlined' | 'sharp' = 'outlined';
+  @Input() variant: 'outlined' | 'sharp' = 'sharp';
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
   @Input() color?: string;
   @Input() ariaLabel?: string;

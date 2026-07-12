@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { PlaneModel } from '../../models/plane-model';
-import { ViewConeConfig } from '../settings.service';
+import { ViewConeConfig } from '../settings/settings.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapRuntimeService {

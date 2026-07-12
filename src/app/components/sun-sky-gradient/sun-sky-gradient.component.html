@@ -1,0 +1,13 @@
+<div
+  *ngIf="sun"
+  class="sun-sky-gradient"
+  [ngClass]="{
+    'below-horizon': sun.belowHorizon,
+    daytime: isDaytime && !sun.belowHorizon,
+    twilight: !isDaytime && !sun.belowHorizon,
+    night: sun.belowHorizon,
+    'low-sun': sunElevationAngle < 15 && sunElevationAngle > -6
+  }"
+  [style.--left]="sun.x + '%'"
+  [style.--bottom]="bottomPosition"
+></div>

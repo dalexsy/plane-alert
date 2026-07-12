@@ -1,7 +1,7 @@
 import { Component, Output, EventEmitter, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FirebaseMessagingService } from '../../services/firebase-messaging.service';
-import { SettingsService } from '../../services/settings.service';
+import { FirebaseMessagingService } from '../../services/firebase-messaging/firebase-messaging.service';
+import { SettingsService } from '../../services/settings/settings.service';
 import {
   PushoverConfigState,
   loadPushoverConfig,

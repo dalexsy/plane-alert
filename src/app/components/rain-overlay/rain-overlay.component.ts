@@ -11,7 +11,7 @@ import {
   RainService,
   RainDrop,
   RainConfiguration,
-} from '../../services/rain.service';
+} from '../../services/rain/rain.service';
 import { RainDropComponent } from './rain-drop/rain-drop.component';
 import {
   getDropTransform,

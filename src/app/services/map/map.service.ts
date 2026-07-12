@@ -1,0 +1,192 @@
+import { Injectable } from '@angular/core';
+import * as L from 'leaflet';
+import { ensureStripedPattern } from '../../utils/svg-utils/svg-utils';
+import { SkyOverlayService } from '../sky-overlay/sky-overlay.service';
+import {
+  addAirportCircleToMap,
+  removeAirportCircleFromMap,
+  clearAirportCirclesOnMap,
+} from './map-airport-circles.util';
+
+@Injectable({ providedIn: 'root' })
+export class MapService {
+  // mainRadiusCircle drawn directly into overlayPane
+  private map!: L.Map;
+  private currentLocationMarker!: L.Marker;
+  // Manage radii centrally
+  private mainRadiusCircle?: L.Circle;
+  private airportCircles: Map<number, L.Circle> = new Map();
+  private radiusLayerLocked: boolean = false;
+
+  constructor(private skyOverlayService: SkyOverlayService) {}
+
+  initializeMap(
+    mapId: string,
+    lat: number,
+    lon: number,
+    // initial radii can be added after initialization via service methods
+    onDblClick: (lat: number, lon: number) => void
+  ): L.Map {
+    this.map = L.map(mapId, { doubleClickZoom: false }).setView([lat, lon], 12);
+    // SVG renderer is managed by MapComponent
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.map);
+
+    const materialIcon = L.divIcon({
+      html: '<span class="material-icons" style="font-size: 32px; color: #2196f3;">place</span>',
+      className: 'custom-material-marker',
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
+    });
+    this.currentLocationMarker = L.marker([lat, lon], {
+      icon: materialIcon,
+    }).addTo(this.map);
+
+    // No special pane needed: main radius will draw in overlayPane
+
+    const svg = this.map
+      .getPanes()
+      .overlayPane.querySelector('svg') as SVGSVGElement;
+    // disable pointer events on all vector overlays to speed up input handling
+    svg.style.pointerEvents = 'none';
+    ensureStripedPattern(svg, 'airportStripedPattern', 'cyan', 1.0);
+    // Base layer is already added above, no need for overlay layer
+
+    this.map.on('dblclick', (event: L.LeafletMouseEvent) => {
+      onDblClick(event.latlng.lat, event.latlng.lng);
+    });
+
+    return this.map;
+  }
+
+  /**
+   * Set MapService map when created externally
+   */
+  setMapInstance(map: L.Map): void {
+    this.map = map;
+    // SVG renderer is managed by MapComponent
+  }
+
+  // Main search radius
+  setMainRadius(lat: number, lon: number, radiusKm: number): void {
+    // Draw main radius in overlayPane for proper map transforms
+    if (this.mainRadiusCircle) {
+      this.map.removeLayer(this.mainRadiusCircle);
+    }
+    this.mainRadiusCircle = L.circle([lat, lon], {
+      // render in default overlayPane
+      pane: 'overlayPane',
+      radius: radiusKm * 1000,
+      color: 'white',
+      weight: 2,
+      className: 'main-radius-circle',
+      interactive: false, // disable pointer events for performance
+      fill: true,
+      fillColor: 'rgba(0, 0, 0, 1)',
+      fillOpacity: 0.3,
+    }).addTo(this.map); // Bring to back so other overlays render above
+    this.mainRadiusCircle.bringToBack();
+    // Insert the circle's group at the bottom of overlayPane SVG to ensure it is behind all other paths
+    try {
+      const pathEl = (this.mainRadiusCircle as any)._path as SVGElement;
+      const group = pathEl.parentNode as SVGGElement;
+      const svg = this.map
+        .getPanes()
+        .overlayPane.querySelector('svg') as SVGSVGElement;
+      if (svg && group) {
+        svg.insertBefore(group, svg.firstChild);
+        // debug: main radius group prepended
+      }
+    } catch (e) {
+      // Failed to prepend main radius group
+    }
+
+    // Ensure sky overlay stays behind radius circles
+    this.skyOverlayService.ensureProperLayerOrder();
+
+    // Optional: re-draw on view changes to stay centered
+    this.map.on('moveend viewreset zoomend', () => {
+      this.mainRadiusCircle?.bringToBack();
+    });
+  }
+
+  removeMainRadius(): void {
+    if (this.mainRadiusCircle) {
+      this.map.removeLayer(this.mainRadiusCircle);
+      this.mainRadiusCircle = undefined;
+    }
+  }
+
+  // Airport circles management
+  addAirportCircle(
+    id: number,
+    coords: [number, number],
+    radiusKm: number
+  ): void {
+    if (!this.map) return;
+    addAirportCircleToMap(this.map, this.airportCircles, id, coords, radiusKm);
+    this.skyOverlayService.ensureProperLayerOrder();
+  }
+
+  removeAirportCircle(id: number): void {
+    if (!this.map) return;
+    removeAirportCircleFromMap(this.map, this.airportCircles, id);
+  }
+
+  clearAirportCircles(): void {
+    if (!this.map) return;
+    clearAirportCirclesOnMap(this.map, this.airportCircles);
+  }
+
+  // Retrieve all airport circles
+  getAirportCircles(): L.Circle[] {
+    return Array.from(this.airportCircles.values());
+  }
+
+  setCurrentLocationMarker(lat: number, lon: number) {
+    if (this.currentLocationMarker) {
+      this.currentLocationMarker.setLatLng([lat, lon]);
+    }
+  }
+
+  addHouseMarker(lat: number, lon: number) {
+    if (!this.map) return;
+    const houseIcon = L.divIcon({
+      html: '<span class="material-icons" style="font-size: 32px; color: #ff5722;">home</span>',
+      className: 'custom-house-marker',
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
+    });
+    L.marker([lat, lon], { icon: houseIcon })
+      .addTo(this.map)
+      .bindPopup('Your Current Location');
+  }
+
+  setView(lat: number, lon: number, zoom?: number) {
+    if (this.map) {
+      this.map.setView([lat, lon], zoom ?? this.map.getZoom());
+    }
+  }
+
+  getMap(): L.Map | undefined {
+    return this.map;
+  }
+
+  hideCurrentLocationMarker(): void {
+    if (this.currentLocationMarker) {
+      this.map.removeLayer(this.currentLocationMarker);
+    }
+  }
+
+  showCurrentLocationMarker(): void {
+    if (
+      this.currentLocationMarker &&
+      !this.map.hasLayer(this.currentLocationMarker)
+    ) {
+      this.currentLocationMarker.addTo(this.map);
+    }
+  }
+}

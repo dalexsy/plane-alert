@@ -1,0 +1,59 @@
+<span class="bottom">
+  <span class="operator-visibility">
+    <app-button
+      [icon]="planeFilter.isPlaneFiltered(plane.callsign, plane.isMilitary) ? 'visibility_off' : 'visibility'"
+      type="tertiary"
+      size="small"
+      (click)="filterPrefix.emit($event)"
+    ></app-button>
+    <span class="operator" [ngClass]="{ 'unknown-operator': !plane.operator }">
+      <span class="operator-logo">
+        <ng-container *ngIf="operatorSymbolConfig">
+          <span class="operator-symbol">
+            <img
+              [src]="'assets/operator-logos/' + operatorSymbolConfig.key + '.svg'"
+              [alt]="operatorSymbolConfig.key"
+              width="16"
+              height="16"
+            />
+          </span>
+        </ng-container>
+      </span>
+      {{ plane.operator || 'Unknown' }}
+    </span>
+  </span>
+  <span class="model" *ngIf="plane.model">
+    <span
+      *ngIf="isGenericModel(plane.model); else specificModel"
+      (mouseenter)="onModelMouseEnter($event)"
+      (mouseleave)="onModelMouseLeave()"
+    >{{ plane.model }}</span>
+    <ng-template #specificModel>
+      <a
+        href="https://www.bing.com/search?q={{ bingSearchQuery }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        (mouseenter)="onModelMouseEnter($event)"
+        (mouseleave)="onModelMouseLeave()"
+      >{{ plane.model }}</a>
+    </ng-template>
+    <div
+      class="aircraft-image-tooltip"
+      [class.visible]="showImageTooltip"
+      [class.loading]="isLoadingImage"
+      [style.--left.px]="tooltipPosition.x + 10"
+      [style.--top.px]="tooltipPosition.y + 10"
+      [style.--display]="showImageTooltip ? 'block' : 'none'"
+    >
+      <div *ngIf="isLoadingImage" class="loading-spinner">
+        <span class="material-symbols-sharp">refresh</span>
+        Loading image...
+      </div>
+      <div *ngIf="!isLoadingImage && aircraftImage" class="image-container">
+        <img [src]="aircraftImage.thumbnail" [alt]="aircraftImage.description" loading="lazy" />
+        <div class="image-source">{{ aircraftImage.description }}</div>
+      </div>
+      <div *ngIf="!isLoadingImage && !aircraftImage" class="no-image">No image available</div>
+    </div>
+  </span>
+</span>

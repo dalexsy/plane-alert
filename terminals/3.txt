@@ -1,0 +1,8 @@
+---
+pid: 4932
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd C:\\Users\\dalex\\Repos\\directory && node scripts/capture-agent-fix-evidence.mjs --ticket ops-agent-34b5ce0303fc --url https://planes.dryl.io/ --phase before --symptom \"scan panel border cuts through form fields; slow black-screen load\""
+started_at: 2026-07-10T17:07:30.032Z
+running_for_ms: 22934994 
+---
+[ok] before evidence (desktop 1280x800) → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\fix-evidence\ops-agent-34b5ce0303fc-before.png

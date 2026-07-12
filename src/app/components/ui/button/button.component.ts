@@ -9,7 +9,7 @@ import {
   ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IconComponent } from '../icon.component';
+import { IconComponent } from '../icon/icon.component';
 
 export type ButtonType = 'primary' | 'secondary' | 'tertiary';
 

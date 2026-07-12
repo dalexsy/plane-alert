@@ -6,6 +6,8 @@
   position: absolute;
   width: 2px;
   height: 12px;
+  transform: var(--transform);
+  opacity: var(--opacity);
   background: linear-gradient(
     to bottom,
     rgba(200, 220, 255, 0.2) 0%,

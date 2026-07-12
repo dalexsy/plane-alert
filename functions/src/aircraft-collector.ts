@@ -7,36 +7,23 @@ import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import { AdsBPlane } from '@plane-alert/shared';
 import { ORIGIN_HEADER } from './constants';
+import {
+  DEFAULT_RADIUS_KM,
+  MIN_RADIUS_KM,
+  MAX_RADIUS_KM,
+  type DeviceRegistration,
+  type HomeLocation,
+  type LocationGroup,
+} from './services/aircraft-collector-types';
 
-const AIRCRAFT_SNAPSHOTS_COLLECTION = 'aircraft-snapshots';
-const DEFAULT_RADIUS_KM = 100;
-const MIN_RADIUS_KM = 10;
-const MAX_RADIUS_KM = 200;
-
-interface HomeLocation {
-  lat: number;
-  lon: number;
-}
-
-interface DeviceRegistration {
-  pushoverUserKey: string;
-  home?: HomeLocation;
-  radiusKm?: number;
-  notifyProximity?: boolean;
-  ignoredTypes?: string[];
-  specialIcaos?: string[];
-  deviceName?: string;
-  deviceSlug?: string;
-  lastNotified?: Record<string, number>;
-  lastProximityNotified?: Record<string, number>;
-}
-
-interface LocationGroup {
-  lat: number;
-  lon: number;
-  radiusKm: number;
-  devices: string[];
-}
+export {
+  DEFAULT_RADIUS_KM,
+  MIN_RADIUS_KM,
+  MAX_RADIUS_KM,
+  type DeviceRegistration,
+  type HomeLocation,
+  type LocationGroup,
+} from './services/aircraft-collector-types';
 
 /**
  * Clamp radius to valid range
@@ -92,7 +79,6 @@ export function groupDevicesByLocation(
     if (!data.home) return;
 
     const radiusKm = clampRadius(data.radiusKm);
-    // Round to 2 decimal places for location grouping
     const lat = Math.round(data.home.lat * 100) / 100;
     const lon = Math.round(data.home.lon * 100) / 100;
     const locationKey = `${lat}_${lon}_${radiusKm}`;
@@ -120,7 +106,7 @@ export async function storeAircraftSnapshot(
   location: LocationGroup,
   aircraft: AdsBPlane[],
 ): Promise<void> {
-  const docRef = db.collection(AIRCRAFT_SNAPSHOTS_COLLECTION).doc(locationKey);
+  const docRef = db.collection('aircraft-snapshots').doc(locationKey);
 
   await docRef.set({
     location: {
@@ -133,7 +119,7 @@ export async function storeAircraftSnapshot(
     devices: location.devices,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
     expiresAt: admin.firestore.Timestamp.fromMillis(
-      Date.now() + 2 * 60 * 60 * 1000, // 2 hours TTL
+      Date.now() + 2 * 60 * 60 * 1000,
     ),
   });
 
@@ -151,7 +137,6 @@ export async function collectAircraftForAllLocations(
   db: admin.firestore.Firestore,
 ): Promise<void> {
   try {
-    // Get all registered devices
     const snapshot = await db.collection('deviceTokens').get();
 
     if (snapshot.empty) {
@@ -159,7 +144,6 @@ export async function collectAircraftForAllLocations(
       return;
     }
 
-    // Group devices by location
     const devices = snapshot.docs.map((doc) => ({
       id: doc.id,
       data: doc.data() as DeviceRegistration,
@@ -172,7 +156,6 @@ export async function collectAircraftForAllLocations(
       totalDevices: snapshot.size,
     });
 
-    // Fetch and store aircraft data for each unique location in parallel
     const tasks = Array.from(locationGroups.entries()).map(
       async ([locationKey, location]) => {
         try {

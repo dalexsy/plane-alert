@@ -1,64 +1,13 @@
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import type { AdsBPlane } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
-import {
-  clampRadius,
-  inferDeviceName,
-  resolvePushoverDeviceName,
-  sanitizeDeviceName,
-  pruneOldNotifications,
-  shouldBroadcastToAllDevices,
-} from '../utils';
-import { fetchAircraftForCollection } from './aircraft-collection-fetch';
+import { pruneOldNotifications } from '../utils';
 import { batchGetFlightData } from './flight-data-cache';
 import { collectMilitaryNotifications } from './collect-military-notifications';
 import { collectProximityNotifications } from './collect-proximity-notifications';
 import { deliverDeviceNotifications } from './deliver-device-notifications';
-import {
-  getDeviceLocation,
-  isSnapshotStale,
-  type CachedAircraftSnapshot,
-} from './notification-snapshot-cache';
-import type { Location } from '../types';
-
-async function resolveAircraftForNotification(
-  deviceLocation: Location,
-  radiusKm: number,
-  cachedSnapshot: CachedAircraftSnapshot | undefined,
-  docId: string,
-): Promise<AdsBPlane[]> {
-  const useCache =
-    cachedSnapshot &&
-    cachedSnapshot.aircraft.length > 0 &&
-    !isSnapshotStale(cachedSnapshot.snapshotAgeMs);
-
-  if (useCache) {
-    return cachedSnapshot.aircraft;
-  }
-
-  const fresh = await fetchAircraftForCollection(deviceLocation, radiusKm);
-  if (fresh !== null && fresh.length > 0) {
-    logger.info('Refetched aircraft for notifications', {
-      docId,
-      aircraftCount: fresh.length,
-      hadStaleCache: Boolean(cachedSnapshot?.aircraft.length),
-      snapshotAgeMs: cachedSnapshot?.snapshotAgeMs,
-    });
-    return fresh;
-  }
-
-  if (cachedSnapshot?.aircraft.length) {
-    logger.warn('ADS-B fetch failed; using cached aircraft snapshot', {
-      docId,
-      aircraftCount: cachedSnapshot.aircraft.length,
-      snapshotAgeMs: cachedSnapshot.snapshotAgeMs,
-    });
-    return cachedSnapshot.aircraft;
-  }
-
-  return fresh ?? [];
-}
+import type { CachedAircraftSnapshot } from './notification-snapshot-cache';
+import { buildNotifyDeviceContext } from './notify-device-context';
 
 export async function notifyForDevice(
   db: admin.firestore.Firestore,
@@ -69,88 +18,23 @@ export async function notifyForDevice(
   cachedSnapshot?: CachedAircraftSnapshot,
 ): Promise<void> {
   try {
-    const broadcastAllDevices = shouldBroadcastToAllDevices();
-    const deviceLocation = getDeviceLocation(data);
-    if (!data.pushoverUserKey || !deviceLocation) {
-      return;
-    }
-
-    const inferredDeviceName = inferDeviceName(docId, data);
-    if (!data.deviceName || data.deviceName !== inferredDeviceName) {
-      const slug = sanitizeDeviceName(inferredDeviceName);
-      await device.set(
-        {
-          deviceName: inferredDeviceName,
-          deviceSlug: slug,
-        },
-        { merge: true },
-      );
-      data.deviceName = inferredDeviceName;
-      data.deviceSlug = slug;
-    }
-
-    const pushoverTargetDeviceName = broadcastAllDevices
-      ? ''
-      : resolvePushoverDeviceName(
-          data.deviceName || '',
-          registeredPushoverDevices,
-          data.platform,
-        ) ?? '';
-
-    if (!broadcastAllDevices && !pushoverTargetDeviceName) {
-      logger.warn('No Pushover device match; skipping registration', {
-        docId,
-        userKey: data.pushoverUserKey.slice(0, 8),
-        firestoreDeviceName: data.deviceName,
-        pushoverDevices: registeredPushoverDevices
-          ? [...registeredPushoverDevices]
-          : [],
-      });
-      return;
-    }
-
-    if (
-      !broadcastAllDevices &&
-      pushoverTargetDeviceName &&
-      pushoverTargetDeviceName !== data.deviceName
-    ) {
-      logger.info('Resolved Pushover device alias', {
-        docId,
-        firestoreDeviceName: data.deviceName,
-        pushoverDeviceName: pushoverTargetDeviceName,
-      });
-    }
-
-    logger.info('Processing device', {
+    const ctx = await buildNotifyDeviceContext(
+      db,
+      device,
+      data,
       docId,
-      userKey: data.pushoverUserKey.slice(0, 8),
-      deviceName: data.deviceName,
-      pushoverTarget: pushoverTargetDeviceName || 'ALL_DEVICES',
-      broadcastAllDevices,
-      radiusKm: data.radiusKm,
-      notifyProximity: data.notifyProximity,
-      ignoredTypesCount: data.ignoredTypes?.length || 0,
-    });
-
-    const cooldownDeviceName = pushoverTargetDeviceName;
-
-    const radiusKm = clampRadius(data.radiusKm);
-    const aircraft = await resolveAircraftForNotification(
-      deviceLocation,
-      radiusKm,
+      registeredPushoverDevices,
       cachedSnapshot,
-      docId,
     );
+    if (!ctx) return;
 
-    logger.info('Fetched aircraft', {
-      docId,
-      deviceName: data.deviceName,
-      totalAircraft: aircraft.length,
-    });
-
-    if (!aircraft.length) {
-      return;
-    }
+    const {
+      deviceLocation,
+      aircraft,
+      radiusKm,
+      cooldownDeviceName,
+      pushoverTargetDeviceName,
+    } = ctx;
 
     const planesWithFlight = aircraft.filter((plane) =>
       Boolean(plane.flight && plane.flight.trim()),

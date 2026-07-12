@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import { haversineDistance } from '../../utils/geo-utils';
+import { haversineDistance } from '../../utils/geo-utils/geo-utils';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 import { isPlaneAtClickedAirport } from './results-airport-match.util';
 

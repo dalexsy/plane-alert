@@ -155,11 +155,6 @@ $tooltip-z-index: 10000;
     // Positioning handled in JavaScript
   }
 
-  // Mobile-first: Keep tooltips visible on mobile
-  @media (max-width: 600px) {
-    // display: none !important; // Temporarily disabled to debug
-  }
-
   // Tablet adjustments (768px and up)
   @media (min-width: 768px) {
     font-size: $tooltip-font-size;
@@ -167,3 +162,4 @@ $tooltip-z-index: 10000;
     --tooltip-offset: #{$tooltip-offset - 1px};
   }
 }
+

@@ -10,44 +10,39 @@ Daryl maintains this solo — avoid burning cycles on approaches already ruled o
 
 ---
 
-## Push notifications (Pushover)
+## Failed experiments (do not repeat)
 
-**Mental model (like Slack/email on multiple devices):** one Firestore registration per **Pushover device name** (`pixel10`, `galaxys24`, `desktop`, …). Each registration has its **own** location, radius, ignored types, and proximity flag. When an interesting plane is in range for that registration, we send **one** Pushover message with `device=<that name>` — only that physical device receives it.
-
-Shared Pushover user key (household / family account) is fine: `pixel10` and `galaxys24` are still **separate recipients**. Cooldown is **`userKey + deviceName + ICAO`**, not `userKey + ICAO` alone — one person getting an alert must not suppress another's phone.
-
-| Symptom | Likely cause | Fix |
-|--------|----------------|-----|
-| Same phone gets **two** alerts for one plane | Duplicate Firestore rows for the same Pushover device (e.g. two `pixel10` docs) | `dedupeDeviceRegistrationsByPushoverTarget` before notify; do not delete registrations mid-run |
-| **All** phones buzz for every registration | Unmatched device fell through to Pushover **broadcast** (`device` param omitted) | Must **skip** unmatched rows (`resolvePushoverDeviceName` → null). Never broadcast unless `PUSHOVER_BROADCAST_ALL_DEVICES=true` |
-| Second phone never gets alerts | Account-wide cooldown (`userKey__ICAO`) or only one registration processed | Per-device cooldown; one registration per Pushover device on the account |
-| Boring military alerts | Filter bypass / missing type | `isBoringMilitaryAircraft`; ticket cluster `planes:push-boring` |
-| Missing interesting military | Callsign-only tracks dropped | `isMilitaryCallsign`; cluster `planes:push-missing` |
-
-**Verify in production:** `directory/scripts/lib/errors-probe-plane-notifications.mjs` — clusters `planes:push-dedup`, `planes:push-boring`, `planes:push-missing`. `firebase functions:log --only processPlanes`.
-
-**Failed experiments (do not repeat):**
-
-- **2026-06-20** — `dedupeToOneRegistrationPerUser` dropped second phones on shared Pushover keys (report cd174dd7 follow-up / 18f23844).
-- **2026-06-20..24** — Account-wide cooldown (`userKey + ICAO`) made `galaxys24` claim alerts before `pixel10` ran.
-- **2026-06-24** — Auto-sync that kept only one mobile registration per account — wrong for multi-human households.
-- **2026-06-19** — Broadcast fallback when Pushover device match failed (`device` param empty → all account devices notified, often **plus** other registrations still running → global duplicates). Fixed: skip unmatched registrations.
+- **2026-07-11** — Do not deploy `feature/notifications` (or any non-`main` worktree build) to production. Bundle `main-YKWORA5P.js` called `cloudfunctions.net` → CORS/`ERR_FAILED` flood; Pi only serves `/api/planes/*`. Do not bypass deploy QA (`--no-verify-client-errors`, direct `pi-deploy`, `robocopy` into `dist/`). Ship only `npm run deploy:dryl` from `main` after merge. Correct UI lives on `feature/notifications` — merge to `main` first, never upload side-tree dist.
+- **2026-07-04** — Do not keep Plane Alert on Firebase Blaze Cloud Functions for two users — scheduled `processPlanes` / `collectAircraftData` every 2 min caused ~$0.43/mo. **Pi backend** (`planes-api.service` on `:8795`, nginx `/api/planes/`) replaces all Cloud Functions; delete Firebase functions and downgrade project to Spark.
 
 ---
 
-## Failed experiments (do not repeat)
+## Deploy timing (auto)
 
-<!-- Add dated bullets when a fix attempt fails, e.g.:
-- **2026-06-02** — Do not … (symptom: …)
--->
+Production deploy duration telemetry for **plane-alert** (successful deploys only; outliers trimmed after 5+ samples).
 
-_(See Push notifications section above for notification-specific failures.)_
+| Metric | Value |
+|--------|-------|
+| Typical (median) | 96s |
+| p75 | 105s |
+| p90 | 111s |
+| Last deploy | 96s |
+| Samples | 6 |
+
+- **Agent shell wait:** use `block_until_ms` **136894** (~137s) — poll every 15s; do not pad to 15+ min upfront.
+- **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
+- **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
+
+Updated: 2026-07-11T20:48:10Z · source: `directory/data/deploy-timing.json`
+
+<!-- end deploy-timing -->
 
 ---
 
 ## Deploy & verify
 
 - **Deploy:** `npm run deploy:dryl`
+- **Pi push/ADS-B API (no Firebase bill):** `npm run deploy:pi-api`
 - **Kiosk install/restart:** `npm run kiosk:planes` / `npm run kiosk:restart`
 - **Pre-deploy:** `npm run verify:dist` _(when wired)_
 - **Post-deploy:** `npm run verify:console` _(when wired)_
@@ -64,9 +59,11 @@ Replace this table with symptoms **specific to plane-alert**. Fleet-generic chec
 |--------|----------------|---------------|
 | White screen after noon refresh | Service worker cached stale `index.html` | Fixed in `public/sw.js` + `NoonRefreshService` unregisters SW before reload |
 | Kiosk stuck on admin.dryl.io / login | SSO sent admins to apps hub; kiosk opened login URL | `dryl-auth` login guard uses `/api/auth/next`; kiosk always starts at `planes.dryl.io` |
-| Kiosk flickers / kills browser every ~6 min on ADS-B Exchange | `runaway-renderer-cpu` at 45% threshold; globe WebGL ~150% on Pi | Raised `CPU_HIGH` to 220, 6 strikes; stop restarting for `wrong-url-not-planes` |
+| Watchdog left desktop visible | session-stale killed working Chromium; 5min cooldown; restart timed out at 35s | Fixed: session strikes, fast cooldown, 90s wait, quick-start skips blocking curl/session |
 | Deploy log `[ok]` but app broken in browser | Smoke hit login redirect only | `npm run verify:console` |
 | `custom-token` 503 / CORS | dryl-auth down or sites.json stale | Redeploy `dryl-auth`; re-run verify |
 | Public 502 / 522 / 530 | Pi service, tunnel, or DNS | See directory debugging notes |
+| CORS/`ERR_FAILED` flood to `cloudfunctions.net` on planes.dryl.io | Wrong bundle deployed (Firebase-era `feature/*` dist) or bypass deploy | Hard refresh; confirm `main-*.js` has no `cloudfunctions.net`; ship only `npm run deploy:dryl` from `main` after merge |
+| Missing history panel / wrong scan UI ("Update now") | `main` diverged from `feature/notifications` | Merge feature branch to `main` — never robocopy worktree `dist/` to production |
 
 **After any failure:** append under a **Symptom** section (add one) or **Failed experiments** with date + what not to repeat.

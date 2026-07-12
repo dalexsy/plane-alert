@@ -1,12 +1,13 @@
 import { Injectable, ChangeDetectorRef, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { SettingsService } from '../settings.service';
-import { UiStateService } from '../ui-state.service';
-import { PlaneDisplayService } from '../plane-display.service';
-import { AirportService } from '../airport.service';
-import { ScanService } from '../scan.service';
-import { BrightnessDisplayService } from '../brightness-display.service';
-import { WindService } from '../wind.service';
+import { SettingsService } from '../settings/settings.service';
+import { UiStateService } from '../ui-state/ui-state.service';
+import { PlaneDisplayService } from '../plane-display/plane-display.service';
+import { AirportService } from '../airport/airport.service';
+import { ScanService } from '../scan/scan.service';
+import { BrightnessDisplayService } from '../brightness-display/brightness-display.service';
+import { WindService } from '../wind/wind.service';
+import { RainService } from '../rain/rain.service';
 import { MapRuntimeService } from './map-runtime.service';
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +21,8 @@ export class MapUiControlsService {
     private airportService: AirportService,
     private scanService: ScanService,
     private brightnessDisplay: BrightnessDisplayService,
-    private windService: WindService
+    private windService: WindService,
+    private rainService: RainService
   ) {}
 
   onZoomIn(): void {
@@ -44,6 +46,7 @@ export class MapUiControlsService {
       clearTimeout(this.runtime.resizeTimeout);
     }
     this.runtime.resizeTimeout = setTimeout(() => {
+      this.runtime.map?.invalidateSize();
       this.runtime.isResizing = false;
       cdr.detectChanges();
     }, 500);
@@ -69,6 +72,9 @@ export class MapUiControlsService {
   onToggleAnimations(enabled: boolean, cdr: ChangeDetectorRef): void {
     this.uiState.setAnimationsEnabled(enabled);
     this.planeDisplayService.applyAnimationSetting(enabled, this.document);
+    if (!enabled) {
+      this.rainService.stopRain();
+    }
     cdr.detectChanges();
   }
 

@@ -1,5 +1,5 @@
 import * as L from 'leaflet';
-import type { AirportService } from '../airport.service';
+import type { AirportService } from './airport.service';
 
 export function toggleAirportColor(ctx: AirportService, airportId: number): void {
   const circle = (ctx as any).airportCircles.get(airportId) as L.Circle | undefined;

@@ -6,8 +6,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../ui/button/button.component';
-import { CountryService } from '../../../services/country.service';
-import { PlaneStyleService } from '../../../services/plane-style.service';
+import { CountryService } from '../../../services/country/country.service';
+import { PlaneStyleService } from '../../../services/plane-style/plane-style.service';
 import type { PlaneLogEntry } from '../../../types/plane-log-entry';
 
 @Component({

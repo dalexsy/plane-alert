@@ -6,11 +6,11 @@ import {
   HostBinding,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IconComponent } from '../icon.component';
-import { LocationContextService } from '../../services/location-context.service';
+import { IconComponent } from '../icon/icon.component';
+import { LocationContextService } from '../../../services/location-context/location-context.service';
 import { Subscription } from 'rxjs';
-import { SettingsService } from '../../services/settings.service';
-import { DistanceUnit } from '../../utils/units.util';
+import { SettingsService } from '../../../services/settings/settings.service';
+import { DistanceUnit } from '../../../utils/units/units.util';
 
 @Component({
   selector: 'app-temperature',

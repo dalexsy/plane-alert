@@ -66,11 +66,11 @@ This repo now contains a minimal Firebase Functions project in the `functions/` 
 
 ### Setup for New Devices
 
-**Quick Setup URL**: Open `https://plane-alert.surge.sh/?setup=pushover` on any device to be prompted for your Pushover User Key.
+**Quick Setup URL**: Open `https://planes.dryl.io/?setup=pushover` on any device to be prompted for your Pushover User Key.
 
 1. Sign up at [Pushover.net](https://pushover.net) (free)
 2. Find your User Key on your dashboard
-3. Visit `https://plane-alert.surge.sh/?setup=pushover` on your device
+3. Visit `https://planes.dryl.io/?setup=pushover` on your device
 4. Enter your User Key when prompted
 5. Set your home location in the app
 6. You'll receive push notifications for aircraft near your location!

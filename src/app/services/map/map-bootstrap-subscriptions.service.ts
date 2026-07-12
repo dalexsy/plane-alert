@@ -7,22 +7,22 @@ import { MapHostRefs } from './map-bootstrap.service';
 import { MapPlaneOperationsService } from './map-plane-operations.service';
 import { MapFollowHandlersService } from './map-follow-handlers.service';
 import { MapCloudLayerFilterService } from './map-cloud-layer-filter.service';
-import { SettingsService } from '../settings.service';
-import { FilterManagementService } from '../filter-management.service';
-import { PlaneFollowService } from '../plane-follow.service';
-import { PlaneFilterService } from '../plane-filter.service';
-import { AircraftDbService } from '../aircraft-db.service';
-import { PlaneLogService } from '../plane-log.service';
-import { ScanService } from '../scan.service';
-import { MapService } from '../map.service';
-import { AirportService } from '../airport.service';
-import { MapPanService } from '../map-pan.service';
-import { SkyColorSyncService } from '../sky-color-sync.service';
-import { BrightnessService } from '../brightness.service';
-import { MapThemeService } from '../map-theme.service';
-import { EnvironmentalDataService } from '../environmental-data.service';
-import { UiStateService } from '../ui-state.service';
-import { SkyOverlayService } from '../sky-overlay.service';
+import { SettingsService } from '../settings/settings.service';
+import { FilterManagementService } from '../filter-management/filter-management.service';
+import { PlaneFollowService } from '../plane-follow/plane-follow.service';
+import { PlaneFilterService } from '../plane-filter/plane-filter.service';
+import { AircraftDbService } from '../aircraft-db/aircraft-db.service';
+import { PlaneLogService } from '../plane-log/plane-log.service';
+import { ScanService } from '../scan/scan.service';
+import { MapService } from './map.service';
+import { AirportService } from '../airport/airport.service';
+import { MapPanService } from '../map-pan/map-pan.service';
+import { SkyColorSyncService } from '../sky-color-sync/sky-color-sync.service';
+import { BrightnessService } from '../brightness/brightness.service';
+import { MapThemeService } from '../map-theme/map-theme.service';
+import { EnvironmentalDataService } from '../environmental-data/environmental-data.service';
+import { UiStateService } from '../ui-state/ui-state.service';
+import { SkyOverlayService } from '../sky-overlay/sky-overlay.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapBootstrapSubscriptionsService {

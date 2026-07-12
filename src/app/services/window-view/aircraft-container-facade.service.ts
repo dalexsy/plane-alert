@@ -1,9 +1,9 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { WindowViewPlane } from '../../types/window-view-plane';
-import { AltitudeColorService } from '../altitude-color.service';
-import { OperatorTooltipService } from '../operator-tooltip.service';
-import { TextUtils } from '../../utils/text-utils';
+import { AltitudeColorService } from '../altitude-color/altitude-color.service';
+import { OperatorTooltipService } from '../operator-tooltip/operator-tooltip.service';
+import { TextUtils } from '../../utils/text-utils/text-utils';
 
 @Injectable({ providedIn: 'root' })
 export class AircraftContainerFacadeService implements OnDestroy {

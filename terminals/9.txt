@@ -1,0 +1,20 @@
+---
+pid: 29828
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd C:\\Users\\dalex\\Repos\\plane-alert && node ..\\directory\\scripts\\smoke-spa-console.mjs planes 2>&1"
+started_at: 2026-07-10T18:23:37.167Z
+running_for_ms: 18364995 
+---
+max-lines check passed (≤200)
+[ok] planes preflight — SPA shell reachable at https://planes.dryl.io
+[client-errors] cleared site=planes apps=planes,plane-alert totalLocal=0 totalFirestore=0
+[smoke] planes open https://planes.dryl.io (session)
+[smoke] bundle main-VNGAFB3T.js
+[ok] planes bundle matches dist
+[screenshot] desktop 1280x800 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+[screenshot] mobile 390x844 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+[screenshot] meta → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest.json
+[ok] visual checks for planes (all routes)
+[ok] logged client-errors clean (app=planes)
+[ok] planes loaded with no console errors
+[ok] VERIFY_EXIT_0 — smoke-spa-console planes; Read PNGs and quote QUOTE_VISIBLE before done

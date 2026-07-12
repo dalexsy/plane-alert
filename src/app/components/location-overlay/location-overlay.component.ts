@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { IconComponent } from '../ui/icon/icon.component';
 import { PlaneModel } from '../../models/plane-model';
-import { DebouncedClickService } from '../../services/debounced-click.service';
+import { DebouncedClickService } from '../../services/debounced-click/debounced-click.service';
 
 @Component({
   selector: 'app-location-overlay',

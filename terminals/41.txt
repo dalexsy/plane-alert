@@ -1,0 +1,185 @@
+---
+pid: 33304
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd \"C:\\Users\\dalex\\Repos\\plane-alert\" && npm run deploy:dryl 2>&1"
+started_at: 2026-07-11T09:12:42.187Z
+running_for_ms: 19135007 
+---
+
+> plane-alert@0.0.0 deploy:dryl
+> node ..\directory\scripts\run-full-deploy.mjs planes
+
+[deploy:dryl] verify:dist
+
+> plane-alert@0.0.0 verify:dist
+> npm run build && node ..\directory\scripts\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes && node ..\directory\scripts\smoke-spa-console.mjs planes --local
+
+
+> plane-alert@0.0.0 prebuild
+> npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui
+
+
+> plane-alert@0.0.0 build:shared
+> npm run build --prefix shared
+
+
+> @plane-alert/shared@1.0.0 build
+> npm run build:esm && npm run build:cjs && npm run build:types && npm run copy:data
+
+
+> @plane-alert/shared@1.0.0 build:esm
+> tsc -p tsconfig.esm.json
+
+
+> @plane-alert/shared@1.0.0 build:cjs
+> tsc -p tsconfig.cjs.json
+
+
+> @plane-alert/shared@1.0.0 build:types
+> tsc -p tsconfig.types.json
+
+
+> @plane-alert/shared@1.0.0 copy:data
+> node -e "require('fs').cpSync('data', 'dist/data', {recursive: true})"
+
+
+> plane-alert@0.0.0 sync:favicons
+> node ..\directory\scripts\sync-favicons.mjs plane-alert
+
+  plane-alert -> plane-alert (C:\Users\dalex\Repos\plane-alert\public)
+
+Done.
+
+> plane-alert@0.0.0 sync:errors
+> node ..\directory\scripts\sync-error-reporter.mjs --only plane-alert
+
+[ok] plane-alert (planes)
+[ok] plane-alert (plane-alert)
+
+> plane-alert@0.0.0 lint:ui
+> npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout
+
+
+> plane-alert@0.0.0 lint:bem
+> node ../directory/scripts/check-no-bem.mjs
+
+no-BEM check passed
+
+> plane-alert@0.0.0 lint:lines
+> node ../directory/scripts/check-max-lines.mjs
+
+max-lines check passed (≤200)
+
+> plane-alert@0.0.0 lint:component-budget
+> node ../directory/scripts/check-component-budget.mjs
+
+component-budget check passed (folder ≤500 lines / ≤10 files; orchestrator ≤200; feature tree ≤700; helper folders ≤120)
+
+> plane-alert@0.0.0 lint:typography
+> node ../directory/scripts/check-typography-inherit.mjs
+
+typography-inherit check passed
+
+> plane-alert@0.0.0 lint:spacing
+> node ../directory/scripts/check-spacing-scale.mjs
+
+spacing-scale check passed
+
+> plane-alert@0.0.0 lint:flex-gap
+> node ../directory/scripts/check-flex-gap.mjs
+
+flex-gap check passed
+
+> plane-alert@0.0.0 lint:mobile-first
+> node ../directory/scripts/lint-mobile-first.mjs
+
+[ok] mobile-first SCSS — no max-width media queries in src/app
+
+> plane-alert@0.0.0 lint:inline-layout
+> node ../directory/scripts/lint-no-inline-layout.mjs
+
+[ok] no inline layout styles in templates
+
+> plane-alert@0.0.0 build
+> node ../directory/scripts/ng-build-gate.mjs build && node scripts/post-build.js
+
+❯ Building...
+✔ Building...
+Initial chunk files   | Names           | Raw size | Estimated transfer size
+main-I5EG7TM7.js      | main            |  1.02 MB |               237.87 kB
+polyfills-FFHMD2TL.js | polyfills       | 34.52 kB |                11.28 kB
+styles-Q2CVVYHW.css   | styles          | 32.84 kB |                 5.81 kB
+
+                      | Initial total   |  1.09 MB |               254.96 kB
+
+Lazy chunk files      | Names           | Raw size | Estimated transfer size
+dryl-bug-report.css   | dryl-bug-report | 16.07 kB |                 2.62 kB
+
+Application bundle generation complete. [4.568 seconds]
+
+Output location: C:\Users\dalex\Repos\plane-alert\dist\plane-alert
+
+[info] Synced auth-probe favicon assets to dist
+[ok] stamped C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-dist-source.json → 516d231defae (main)
+[ok] dist matches repo HEAD (main-I5EG7TM7.js)
+max-lines check passed (≤200)
+[smoke] serving C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser at http://127.0.0.1:4383
+[smoke] planes open http://127.0.0.1:4383 (anonymous)
+[smoke] bundle main-I5EG7TM7.js
+[screenshot] desktop 1280x800 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+[screenshot] mobile 390x844 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+[screenshot] wide 1920x1080 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-wide.png
+[screenshot] meta → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest.json
+[ok] visual checks for planes (all routes)
+[ok] planes loaded with no console errors
+[ok] VERIFY_EXIT_0 — smoke-spa-console planes; Read PNGs and quote QUOTE_VISIBLE before done
+[deploy:dryl] pi-deploy (authorized)
+[deploy] planes (skip_build=True)
+[upload] C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser -> 192.168.178.74:/home/pi/.dryl-deploy/planes -> /var/www/dryl/planes
+[deploy] planes — wipe kiosk Chromium cache and restart
+[ok] uploaded planes to /var/www/dryl/planes
+[ok] published apps-hub catalog -> 192.168.178.74:/var/www/dryl/apps/catalog.json
+[deploy:dryl] verify:console
+
+> plane-alert@0.0.0 verify:console
+> node ..\directory\scripts\smoke-spa-console.mjs planes
+
+max-lines check passed (≤200)
+[ok] planes preflight — SPA shell reachable at https://planes.dryl.io
+[client-errors] cleared site=planes apps=planes,plane-alert totalLocal=0 totalFirestore=0
+[smoke] planes open https://planes.dryl.io (session)
+[smoke] bundle main-I5EG7TM7.js
+[ok] planes bundle matches dist
+[screenshot] desktop 1280x800 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+[screenshot] mobile 390x844 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+[screenshot] wide 1920x1080 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-wide.png
+[screenshot] meta → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest.json
+[ok] visual checks for planes (all routes)
+[ok] logged client-errors clean (app=planes)
+[ok] planes loaded with no console errors
+[ok] VERIFY_EXIT_0 — smoke-spa-console planes; Read PNGs and quote QUOTE_VISIBLE before done
+[deploy:dryl] verify:visual
+
+> plane-alert@0.0.0 verify:visual
+> node ..\directory\scripts\assert-deploy-screenshots.mjs planes
+
+[ok] screenshot pixel checks for planes
+[ok] screenshot content probe for planes
+
+[agent-required] AGENT_VERIFICATION_GATE — deploy exit 0 is not done
+  gate: deploy-screenshot-review
+  site: planes
+  url: https://planes.dryl.io/
+  screenshot: C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+  screenshot: C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+  QUOTE_VISIBLE: planes deploy screenshot — Map: continuous satellite tiles across center (no black voids); Left panel: Search Radius + Check Interval inside panel border
+  action: Read ALL screenshot paths with the Read tool, then quote QUOTE_VISIBLE verbatim in your final reply before saying done.
+  stop hook blocks pass until both machine gate + quote are satisfied
+
+[agent-required] SCREENSHOT_REVIEW_REQUIRED — legacy paths for Read tool
+  site: planes
+  desktop: C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+  mobile: C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+
+[ok] deploy screenshots fresh for planes
+[ok] deploy:dryl complete — all wired gates ran

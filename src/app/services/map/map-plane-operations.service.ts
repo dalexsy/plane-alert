@@ -1,17 +1,17 @@
 import { Injectable, ChangeDetectorRef, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { haversineDistance } from '../../utils/geo-utils';
+import { haversineDistance } from '../../utils/geo-utils/geo-utils';
 import { PlaneModel } from '../../models/plane-model';
 import { InputOverlayComponent } from '../../components/input-overlay/input-overlay.component';
 import { MapRuntimeService } from './map-runtime.service';
 import { MapOverlayStateService } from './map-overlay-state.service';
-import { MapUpdateService } from '../map-update.service';
-import { BrightnessService } from '../brightness.service';
-import { GeocodingCacheService } from '../geocoding-cache.service';
-import { PlaneUpdateService } from '../plane-update.service';
-import { PlaneLogService } from '../plane-log.service';
-import { ClosestPlaneService } from '../closest-plane.service';
-import { PlaneFilterService } from '../plane-filter.service';
+import { MapUpdateService } from '../map-update/map-update.service';
+import { BrightnessService } from '../brightness/brightness.service';
+import { GeocodingCacheService } from '../geocoding-cache/geocoding-cache.service';
+import { PlaneUpdateService } from '../plane-update/plane-update.service';
+import { PlaneLogService } from '../plane-log/plane-log.service';
+import { ClosestPlaneService } from '../closest-plane/closest-plane.service';
+import { PlaneFilterService } from '../plane-filter/plane-filter.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapPlaneOperationsService {

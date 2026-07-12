@@ -2,13 +2,13 @@
 # magicmirror (Kallax): keep planes kiosk alive — network, session, wrong URL, white screen.
 set -euo pipefail
 
-URL="${PLANES_KIOSK_URL:-https://planes.dryl.io/}"
+URL="${PLANES_KIOSK_URL:-https://planes.dryl.io/?kiosk=1}"
 GATEWAY="${PLANES_KIOSK_WATCH_GATEWAY:-192.168.178.1}"
 AUTH_URL="${PLANES_KIOSK_AUTH_URL:-http://127.0.0.1:8790/health}"
 PROFILE="${PLANES_KIOSK_PROFILE:-/home/pi/.config/planes-kiosk-chromium}"
 KIOSK_MATCH="user-data-dir=${PROFILE}"
 STATE_DIR="/run/planes-kiosk-watch"
-# Pi reports multi-core CPU as >100%; map/globe tabs (e.g. ADS-B Exchange) sit ~150% while healthy.
+# Pi reports multi-core CPU as >100%; map/globe tabs sit ~150% while healthy.
 CPU_HIGH="${PLANES_KIOSK_CPU_HIGH:-220}"
 CPU_STRIKES_NEEDED="${PLANES_KIOSK_CPU_STRIKES:-6}"
 RESTART_COOLDOWN_SEC="${PLANES_KIOSK_RESTART_COOLDOWN:-300}"
@@ -277,7 +277,6 @@ if kiosk_on_admin_hub "${cmdline}"; then
 fi
 
 if ! kiosk_on_planes_url "${cmdline}"; then
-  # User may have opened ADS-B Exchange or another tab — do not kill a working browser.
   log "kiosk not on planes launch URL (user navigation?) — leaving running"
 fi
 

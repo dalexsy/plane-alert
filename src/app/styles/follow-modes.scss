@@ -93,8 +93,8 @@ $nearest-follow-color: #00ff00;
 // Follow overlay styles
 .follow-overlay {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.5rem;
+  right: 0.5rem;
   display: flex;
   gap: 0.5rem;
   z-index: 1000;
@@ -102,9 +102,9 @@ $nearest-follow-color: #00ff00;
   .follow-status {
     background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 0.25rem 0.5rem;
+    padding: 0.125rem 0.25rem;
     border-radius: 0.25rem;
-    font-size: 0.75rem;
+    font-size: 0.625rem;
     border: 1px solid rgba(255, 255, 255, 0.3);
 
     &.active {
@@ -121,10 +121,10 @@ $nearest-follow-color: #00ff00;
       background: rgba(0, 0, 0, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.3);
       color: white;
-      padding: 0.25rem 0.5rem;
+      padding: 0.125rem 0.25rem;
       border-radius: 0.25rem;
       cursor: pointer;
-      font-size: 0.75rem;
+      font-size: 0.625rem;
       transition: all 0.2s ease;
 
       &:hover {
@@ -134,16 +134,15 @@ $nearest-follow-color: #00ff00;
   }
 }
 
-// Responsive follow controls
-@media (max-width: 768px) {
+@media (min-width: 769px) {
   .follow-overlay {
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 1rem;
+    right: 1rem;
 
     .follow-status,
     .follow-button {
-      font-size: 0.625rem;
-      padding: 0.125rem 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
     }
   }
 }

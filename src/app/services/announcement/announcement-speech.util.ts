@@ -1,5 +1,5 @@
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
-import type { AircraftCountryService } from '../aircraft-country.service';
+import type { AircraftCountryService } from '../aircraft-country/aircraft-country.service';
 
 const MEANINGFUL_CALLSIGN_WORDS = [
   'HERKY', 'VALOR', 'FALCON', 'EAGLE', 'HAWK', 'VIPER', 'THUNDER',

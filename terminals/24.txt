@@ -1,0 +1,21 @@
+---
+pid: 3468
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd \"C:\\Users\\dalex\\Repos\\directory\" && node scripts/smoke-spa-console.mjs planes --screenshots 2>&1"
+started_at: 2026-07-10T21:25:47.321Z
+running_for_ms: 7434997  
+---
+max-lines check passed (≤200)
+[ok] planes preflight — SPA shell reachable at https://planes.dryl.io
+[client-errors] cleared site=planes apps=planes,plane-alert totalLocal=0 totalFirestore=0
+[smoke] planes open https://planes.dryl.io (session)
+[smoke] bundle main-CPXWTYOW.js
+[ok] planes bundle matches dist
+[screenshot] desktop 1280x800 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+[screenshot] mobile 390x844 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+[screenshot] wide 1920x1080 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-wide.png
+[screenshot] meta → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest.json
+[fail] VERIFY_EXIT_1 — smoke-spa-console failed
+  Agents: exit code 1 is not partial pass — do not cite [ok] /errors lines, curl index.html, or asset fetches as e2e proof.
+[fail] visual checks for planes:
+  /: plane list shows material icon names as text — font/icon render broken

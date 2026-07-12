@@ -1,0 +1,11 @@
+---
+pid: 39072
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "Start-Sleep -Seconds 150; python -c \"import sys; from pathlib import Path; sys.path.insert(0, str(Path('C:/Users/dalex/Repos/directory/scripts'))); from pi_dryl_common import connect_pi, load_manifest, run_remote, pi_settings; m=load_manifest(); h,u,_=pi_settings(m); c=connect_pi(h,u); print(run_remote(c, 'journalctl -u planes-api.service --since \\\"2 min ago\\\" --no-pager')); c.close()\""
+started_at: 2026-07-11T16:21:12.284Z
+running_for_ms: 67964995 
+---
+  File "<string>", line 1
+    import sys; from pathlib import Path; sys.path.insert(0, str(Path('C:/Users/dalex/Repos/directory/scripts'))); from pi_dryl_common import connect_pi, load_manifest, run_remote, pi_settings; m=load_manifest(); h,u,_=pi_settings(m); c=connect_pi(h,u); print(run_remote(c, 'journalctl -u planes-api.service --since \
+                                                                                                                                                                                                                                                                                  ^
+SyntaxError: unterminated string literal (detected at line 1)

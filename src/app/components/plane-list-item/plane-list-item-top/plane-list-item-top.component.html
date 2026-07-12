@@ -22,7 +22,7 @@
           title="Open in ADS-B Exchange"
           rel="noopener noreferrer"
           (click)="$event.stopPropagation()"
-          [style.color]="planeStyle.getLabelColor(plane, plane.icao === followedPlaneIcao)"
+          [style.--color]="planeStyle.getLabelColor(plane, plane.icao === followedPlaneIcao)"
         >
           {{ plane.callsign }}
         </a>
@@ -75,7 +75,7 @@
         >{{ plane.airportCode }}</span>
       </span>
       <span>{{ plane.cardinal }}</span>
-      <span class="material-symbols-sharp direction-icon" [style.transform]="'rotate(' + (plane.bearing ?? 0) + 'deg)'">navigation</span>
+      <span class="material-symbols-sharp direction-icon" [style.--transform]="'rotate(' + (plane.bearing ?? 0) + 'deg)'">navigation</span>
       <span>{{ distanceKm | number : '1.1-1' }} {{ distanceUnit }}</span>
     </span>
   </ng-container>

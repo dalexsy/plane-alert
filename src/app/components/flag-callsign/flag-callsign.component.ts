@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CountryService } from '../../services/country.service';
+import { CountryService } from '../../services/country/country.service';
 
 @Component({
   selector: 'app-flag-callsign',

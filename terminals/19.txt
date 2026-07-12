@@ -1,0 +1,38 @@
+---
+pid: 40808
+cwd: "C:\Users\dalex\Repos\directory"
+command: "node --input-type=module -e \"
+import { chromium } from 'playwright-core';
+import { resolveDrylCredentials } from './scripts/lib/dryl-credentials.mjs';
+import { ensureLoggedIn } from './scripts/lib/smoke-spa-session.mjs';
+
+const browser = await chromium.launch({ headless: true });
+const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+const creds = resolveDrylCredentials();
+await ensureLoggedIn(context, creds, 'https://planes.dryl.io', { required: true });
+const page = await context.newPage();
+await page.goto('https://planes.dryl.io', { waitUntil: 'domcontentloaded', timeout: 60000 });
+await page.waitForTimeout(8000);
+const metrics = await page.evaluate(() => {
+  const tiles = [...document.querySelectorAll('.leaflet-tile-pane img')].filter(i => i.getBoundingClientRect().width > 8);
+  const cx = innerWidth * 0.45, cy = innerHeight * 0.4;
+  const centerCovered = tiles.some(img => { const r = img.getBoundingClientRect(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; });
+  const sky = document.querySelector('app-results-sky-list')?.innerText?.slice(0, 400) || '';
+  const bundle = [...document.querySelectorAll('script[src]')].find(s => /main-/.test(s.src))?.src || '';
+  return { tiles: tiles.length, centerCovered, sky, bundle, vw: innerWidth, vh: innerHeight };
+});
+console.log(JSON.stringify(metrics, null, 2));
+await page.screenshot({ path: 'C:/Users/dalex/Repos/directory/logs/deploy-screenshots/planes/repro-1920.png', fullPage: false });
+await browser.close();
+\""
+started_at: 2026-07-10T21:16:44.966Z
+running_for_ms: 7979993  
+---
+{
+  "tiles": 45,
+  "centerCovered": true,
+  "sky": "PLANES IN THE SKY (9)\nProcessing airports\nlocation_searching\nTYW758\nN\nnavigation\n0.7 km\nvisibility\nStuttgarter Flugdienst\nGULFSTREAM AEROSPACE Gulfstream G100\nlocation_searching\nSRR6227\nNE\nnavigation\n18.8 km\nvisibility\nStar Air\nBOEING 767-200\nlocation_searching\nNSZ3287\nESE\nnavigation\n31.0 km\nvisibility_off\nNorwegian Air Sweden\nBOEING 737-800\nlocation_searching\nRYR3026\nNNE\nnavigation\n49.1 km\nvisibi",
+  "bundle": "https://planes.dryl.io/main-WU33FPVX.js",
+  "vw": 1920,
+  "vh": 1080
+}

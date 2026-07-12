@@ -1,4 +1,4 @@
-import type { ViewConeConfig } from '../settings.service';
+import type { ViewConeConfig } from './settings.service';
 
 export interface SettingsState {
   _lat: number | null;
@@ -56,13 +56,14 @@ export interface SettingsState {
   resultsOverlayCollapsedKey: string;
   resultsOverlayControlsKey: string;
   viewConesKey: string;
+  homeLocationKey: string;
 }
 
 export function loadSettingsFromStorage(s: SettingsState): void {
   const bool = (key: string, field: keyof SettingsState) => {
     const v = localStorage.getItem(key);
     if (v !== null) {
-      (s as Record<string, unknown>)[field as string] = v === 'true';
+      (s as unknown as Record<string, unknown>)[field as string] = v === 'true';
     }
   };
   bool(s.airportLabelsKey, '_showAirportLabels');
@@ -83,7 +84,7 @@ export function loadSettingsFromStorage(s: SettingsState): void {
   bool(s.inputOverlayCollapsedKey, '_inputOverlayCollapsed');
   bool(s.inputOverlayControlsKey, '_inputOverlayOtherControlsHidden');
   bool(s.resultsOverlayCollapsedKey, '_resultsOverlayCollapsed');
-  bool(s.resultsControlsKey, '_resultsOverlayOtherControlsHidden');
+  bool(s.resultsOverlayControlsKey, '_resultsOverlayOtherControlsHidden');
 
   const lat = parseFloat(localStorage.getItem('lastLat') || '');
   const lon = parseFloat(localStorage.getItem('lastLon') || '');

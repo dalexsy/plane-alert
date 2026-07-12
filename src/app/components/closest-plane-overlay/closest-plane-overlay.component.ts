@@ -12,16 +12,16 @@ import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { IconComponent } from '../ui/icon/icon.component';
 import { PlaneModel } from '../../models/plane-model';
-import { haversineDistance } from '../../utils/geo-utils';
+import { haversineDistance } from '../../utils/geo-utils/geo-utils';
 import {
   DistanceUnit,
   convertFromKm,
   getDistanceUnitShortLabel,
   formatDistance,
-} from '../../utils/units.util';
-import { SettingsService } from '../../services/settings.service';
-import { DebouncedClickService } from '../../services/debounced-click.service';
-import { TextUtils } from '../../utils/text-utils';
+} from '../../utils/units/units.util';
+import { SettingsService } from '../../services/settings/settings.service';
+import { DebouncedClickService } from '../../services/debounced-click/debounced-click.service';
+import { TextUtils } from '../../utils/text-utils/text-utils';
 
 @Component({
   selector: 'app-closest-plane-overlay',

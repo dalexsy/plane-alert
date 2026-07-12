@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: t.$space-sm t.$space-md;
+  padding: t.$space-xs t.$space-sm;
   border-bottom: t.$border-width-thin solid t.$color-border;
   mix-blend-mode: plus-lighter;
   font-family: t.$font-family-mono;
@@ -65,14 +65,14 @@
   opacity: 0.7;
 }
 
-:host.filtered-out,
-:host.hide-commercial {
-  display: none !important;
+:host(.filtered-out),
+:host(.hide-commercial) {
+  display: none;
 }
 
-@media (max-width: 768px) {
+@media (min-width: 769px) {
   :host {
-    padding: t.$space-xs t.$space-sm;
+    padding: t.$space-sm t.$space-md;
   }
 }
 
@@ -81,3 +81,4 @@
     border-bottom-color: currentColor;
   }
 }
+

@@ -16,7 +16,7 @@ async function checkPlanes() {
 
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "plane-alert.surge.sh",
+      "User-Agent": "planes.dryl.io",
       Accept: "application/json",
     },
     timeout: 10000,

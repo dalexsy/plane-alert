@@ -2,8 +2,8 @@
 <div
   class="context-menu"
   [class.visible]="visible"
-  [style.left.px]="position.x"
-  [style.top.px]="position.y"
+  [style.--left.px]="position.x"
+  [style.--top.px]="position.y"
   (click)="$event.stopPropagation()"
 >
   <div

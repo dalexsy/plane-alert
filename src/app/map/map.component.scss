@@ -3,22 +3,13 @@
 @use "../styles/overlay.scss" as *;
 @use "../styles/sky-overlay.scss" as *;
 
-#map {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-}
-
 .home-marker {
   display: flex;
   justify-content: center;
   align-items: center;
 
   .material-symbols-outlined {
-    color: #4caf50; // Green color for home icon
+    color: #4caf50;
     font-size: 2rem;
     font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 48;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
@@ -32,42 +23,36 @@
   align-items: center;
 
   .material-symbols-outlined {
-    color: #2196f3; // Blue color for location icon
+    color: #2196f3;
     font-size: 2rem;
     font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 48;
     filter: drop-shadow(0px 0px 2px #000);
   }
 }
 
-/* Disable pointer events on overlays while panning */
 app-map.map-panning .closest-plane-overlay,
 app-map.map-panning app-results-overlay,
 app-map.map-panning app-input-overlay {
   pointer-events: none;
 }
 
-/* Cloud layer sky color synchronization styles */
 .cloud-layer {
   transition: filter 0.5s ease-in-out, mix-blend-mode 0.3s ease;
 
-  // Enhanced blending for atmospheric effects
   &.sky-synchronized {
     mix-blend-mode: multiply;
     opacity: 0.8;
   }
 
-  // Smooth transitions when sky colors change
   img {
     transition: filter 0.5s ease-in-out;
   }
 }
 
-/* Weather layer pane positioning and effects */
 .leaflet-pane.leaflet-cloud-pane {
   z-index: 200;
 
   .cloud-layer {
-    // Ensure smooth rendering of atmospheric effects
     image-rendering: smooth;
     image-rendering: -webkit-optimize-contrast;
   }
@@ -77,88 +62,12 @@ app-map.map-panning app-input-overlay {
   z-index: 210;
 }
 
-// Airport circle styles
-.airport-radius {
-  // Remove native focus ring when clicking on airport circles
-  outline: none !important;
-
-  // Normal opacity (dimmed)
+.leaflet-overlay-pane path.airport-radius.leaflet-interactive {
+  outline: none;
   fill-opacity: 0.3;
-
-  // Hover effects
   cursor: pointer;
-
-  // Transition only for mouseout (ease-out) - not applied on hover
   transition: fill-opacity 0.1s ease;
-}
-
-.airport-radius:hover {
-  // Hover opacity (moderately bright) - instant change, no transition
-  fill-opacity: 0.5;
-}
-
-.overlay-container {
-  position: absolute;
-  top: 0.25rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  width: calc(100vw - 6rem);
-  flex-direction: column;
-  gap: 0.25rem;
-  align-items: center;
-  z-index: 1000;
-}
-
-// Wrapper positioning and layout
-.info-wrapper {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-  left: 0;
-  top: 0;
-  padding: 0 1rem;
-  height: 100%;
-  z-index: 1000;
-  pointer-events: none;
-  justify-content: flex-end;
-  transition: padding-left 0.3s ease, padding-right 0.3s ease;
-
-  // When window view is visible, adjust height to account for overlays
-  &:not(.window-view-hidden) {
-    height: calc(100% - 11rem);
+  &:hover {
+    fill-opacity: 0.5;
   }
-
-  &.window-view-hidden {
-    bottom: 0.5rem;
-  }
-
-  // Left side: shift right when left button bar is visible
-  &.left-bar-visible {
-    padding-left: 4rem;
-  }
-
-  // Right side: shift left when results overlay is expanded
-  &.results-expanded {
-    padding-right: calc(
-      1rem + 28rem
-    ); // 1rem base + 28rem results overlay width
-  }
-
-  > app-angle-overlay {
-    align-self: flex-end;
-    pointer-events: all;
-  }
-}
-
-// Arrange clock and temperature side by side
-.time-temp-container {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  width: 100%;
-  gap: 1rem;
-  justify-content: space-between;
 }

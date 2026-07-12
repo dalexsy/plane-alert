@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AtmosphericSkyService } from '../atmospheric-sky.service';
+import { AtmosphericSkyService } from '../atmospheric-sky/atmospheric-sky.service';
 import type { WindowViewPlane } from '../../types/window-view-plane';
 
 function parseColor(colorStr: string): { r: number; g: number; b: number } {

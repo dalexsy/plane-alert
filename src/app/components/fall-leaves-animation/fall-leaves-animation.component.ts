@@ -1,149 +1,128 @@
 import {
   Component,
   Input,
-  OnInit,
   OnDestroy,
+  OnInit,
   OnChanges,
-  SimpleChanges,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  FallLeaf,
+  DEFAULT_FALL_LEAVES_CONFIG,
+  isHighWind,
+  createFallLeaf,
+  calculateLeafSpeed,
+  tickLeaves,
+  getLeafPositionStyles,
+  getLeafSizeClass,
+} from '../../services/fall-leaves/fall-leaves-animation.util';
+import { FallLeafComponent } from './fall-leaf/fall-leaf.component';
 
-interface Leaf {
-  id: number;
-  x: number;
-  y: number;
-  rotation: number;
-  scale: number;
-  colorClass: string;
-  progress: number;
-  speed: number;
-  swayOffset: number;
-}
+export type { FallLeaf };
 
 @Component({
   selector: 'app-fall-leaves-animation',
-  templateUrl: './fall-leaves-animation.component.html',
-  styleUrls: ['./fall-leaves-animation.component.scss'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FallLeafComponent],
+  templateUrl: './fall-leaves-animation.component.html',
+  styleUrl: './fall-leaves-animation.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FallLeavesAnimationComponent
-  implements OnInit, OnDestroy, OnChanges
-{
-  @Input() isAutumn: boolean = false;
-  @Input() animationsEnabled: boolean = true;
-  @Input() windSpeed: number = 0;
+export class FallLeavesAnimationComponent implements OnInit, OnChanges, OnDestroy {
+  @Input() isAutumn = true;
+  @Input() animationsEnabled = true;
+  @Input() windSpeed = 0;
+  @Input() windStat = 0;
 
-  leaves: Leaf[] = [];
-  private animationFrameId: number | null = null;
-  private readonly leafCount = 15;
-  private readonly baseFallSpeed = 0.0003; // Base falling speed per frame (much slower)
-  private readonly baseSwaySpeed = 0.001; // Much slower rotation speed
+  leaves: FallLeaf[] = [];
+  isActive = false;
+
+  private animationFrame: number | null = null;
+  private lastUpdateTime = 0;
+  private spawnTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    if (this.isAutumn && this.animationsEnabled) {
-      this.initializeLeaves();
+    if (this.animationsEnabled && this.isAutumn && isHighWind(this.windStat)) {
       this.startAnimation();
     }
+  }
+
+  ngOnChanges(): void {
+    if (this.isAutumn && this.animationsEnabled && isHighWind(this.windStat) && !this.isActive) {
+      this.startAnimation();
+    } else if (
+      (!this.isAutumn || !this.animationsEnabled || !isHighWind(this.windStat)) &&
+      this.isActive
+    ) {
+      this.stopAnimation();
+    }
+    if (this.isActive) this.updateLeafSpeeds();
   }
 
   ngOnDestroy(): void {
     this.stopAnimation();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isAutumn'] || changes['animationsEnabled']) {
-      if (this.isAutumn && this.animationsEnabled) {
-        if (this.leaves.length === 0) {
-          this.initializeLeaves();
-        }
-        this.startAnimation();
-      } else {
-        this.stopAnimation();
-      }
-    }
-    if (changes['windSpeed']) {
-      this.updateLeafSpeeds();
-    }
+  getLeafPosition(leaf: FallLeaf): Record<string, string> {
+    return getLeafPositionStyles(leaf);
   }
 
-  private initializeLeaves(): void {
+  getLeafSizeClass(leaf: FallLeaf): string {
+    return getLeafSizeClass(leaf);
+  }
+
+  private startAnimation(): void {
+    if (this.isActive) return;
+    this.isActive = true;
     this.leaves = [];
-    // Force rebuild to pick up SCSS changes
-    const colorClasses = ['leaf-red', 'leaf-orange', 'leaf-yellow'];
-
-    for (let i = 0; i < this.leafCount; i++) {
-      this.leaves.push({
-        id: i,
-        x: Math.random() * 100, // Random horizontal position
-        y: Math.random() * -20, // Start above the viewport
-        rotation: Math.random() * 360,
-        scale: 0.3 + Math.random() * 0.4, // Scale between 0.3 and 0.7
-        colorClass:
-          colorClasses[Math.floor(Math.random() * colorClasses.length)],
-        progress: Math.random(), // Random starting progress
-        speed: this.calculateLeafSpeed(),
-        swayOffset: Math.random() * Math.PI * 2, // Random sway phase
-      });
-    }
+    this.scheduleSpawning();
+    this.startLoop();
   }
 
-  private calculateLeafSpeed(): number {
-    // Base speed plus wind influence (wind speed in m/s, convert to animation factor)
-    const windFactor = Math.max(0.5, Math.min(2.0, 1 + this.windSpeed / 10));
-    return this.baseFallSpeed * windFactor * (0.3 + Math.random() * 1.4); // More speed variation (0.3x to 1.7x)
+  private stopAnimation(): void {
+    this.isActive = false;
+    if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+    if (this.spawnTimer) clearTimeout(this.spawnTimer);
+    this.leaves = [];
+    this.cdr.markForCheck();
+  }
+
+  private scheduleSpawning(): void {
+    const config = DEFAULT_FALL_LEAVES_CONFIG;
+    let spawned = 0;
+    const spawnNext = () => {
+      if (!this.isActive || spawned >= config.leafCount) return;
+      this.leaves = [...this.leaves, createFallLeaf(this.windSpeed, config)];
+      spawned++;
+      this.cdr.markForCheck();
+      if (spawned < config.leafCount) {
+        const delay = config.spawnDelay + (Math.random() - 0.5) * config.spawnDelay * 0.5;
+        this.spawnTimer = setTimeout(spawnNext, delay);
+      }
+    };
+    spawnNext();
   }
 
   private updateLeafSpeeds(): void {
     this.leaves.forEach((leaf) => {
-      leaf.speed = this.calculateLeafSpeed();
+      leaf.speed = calculateLeafSpeed(this.windSpeed, DEFAULT_FALL_LEAVES_CONFIG.baseSpeed);
     });
   }
 
-  private startAnimation(): void {
-    if (this.animationFrameId) return;
-
-    const animate = () => {
-      this.updateLeaves();
-      this.animationFrameId = requestAnimationFrame(animate);
+  private startLoop(): void {
+    this.lastUpdateTime = performance.now();
+    const animate = (now: number) => {
+      if (!this.isActive) return;
+      const delta = now - this.lastUpdateTime;
+      this.leaves = tickLeaves(this.leaves.map((l) => ({ ...l })));
+      this.lastUpdateTime = now;
+      this.cdr.markForCheck();
+      this.animationFrame = requestAnimationFrame(animate);
     };
-    this.animationFrameId = requestAnimationFrame(animate);
-  }
-
-  private stopAnimation(): void {
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-  }
-
-  private updateLeaves(): void {
-    this.leaves.forEach((leaf) => {
-      // Update progress based on speed
-      leaf.progress += leaf.speed;
-
-      // Reset leaf when it falls off screen
-      if (leaf.progress >= 1) {
-        leaf.progress = 0;
-        leaf.x = Math.random() * 100;
-        leaf.y = Math.random() * -20;
-        leaf.rotation = Math.random() * 360;
-        leaf.swayOffset = Math.random() * Math.PI * 2;
-        leaf.speed = this.calculateLeafSpeed();
-      }
-
-      // Calculate current position
-      leaf.y = -20 + leaf.progress * 120; // Fall from -20 to 100
-
-      // Horizontal position stays mostly steady (very subtle drift only)
-      // Removed active horizontal swaying to keep leaves more vertical
-
-      // Wrap around horizontally
-      if (leaf.x > 100) leaf.x = 0;
-      if (leaf.x < 0) leaf.x = 100;
-
-      // Add rotation
-      leaf.rotation += (this.baseSwaySpeed * 180) / Math.PI;
-    });
+    this.animationFrame = requestAnimationFrame(animate);
   }
 }

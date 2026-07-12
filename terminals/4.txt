@@ -1,0 +1,204 @@
+---
+pid: 38652
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd C:\\Users\\dalex\\Repos\\plane-alert && npm start 2>&1"
+started_at: 2026-07-10T17:10:13.965Z
+running_for_ms: 22784997 
+---
+
+> plane-alert@0.0.0 prestart
+> npm run lint:ui
+
+
+> plane-alert@0.0.0 lint:ui
+> npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout
+
+
+> plane-alert@0.0.0 lint:bem
+> node ../directory/scripts/check-no-bem.mjs
+
+no-BEM check passed
+
+> plane-alert@0.0.0 lint:lines
+> node ../directory/scripts/check-max-lines.mjs
+
+max-lines check passed (≤200)
+
+> plane-alert@0.0.0 lint:component-budget
+> node ../directory/scripts/check-component-budget.mjs
+
+component-budget check passed (folder ≤500 lines / ≤10 files; orchestrator ≤200; feature tree ≤700; helper folders ≤120)
+
+> plane-alert@0.0.0 lint:typography
+> node ../directory/scripts/check-typography-inherit.mjs
+
+typography-inherit check passed
+
+> plane-alert@0.0.0 lint:spacing
+> node ../directory/scripts/check-spacing-scale.mjs
+
+spacing-scale check passed
+
+> plane-alert@0.0.0 lint:flex-gap
+> node ../directory/scripts/check-flex-gap.mjs
+
+flex-gap check passed
+
+> plane-alert@0.0.0 lint:mobile-first
+> node ../directory/scripts/lint-mobile-first.mjs
+
+[ok] mobile-first SCSS — no max-width media queries in src/app
+
+> plane-alert@0.0.0 lint:inline-layout
+> node ../directory/scripts/lint-no-inline-layout.mjs
+
+[ok] no inline layout styles in templates
+
+> plane-alert@0.0.0 start
+> concurrently "node server.js" "ng serve --host 0.0.0.0 --proxy-config proxy.conf.json"
+
+[0] 📁 File server running on http://localhost:3001
+[0] 📝 Aircraft DB: C:\Users\dalex\Repos\plane-alert\user-aircraft-db-auto.json
+[0] ⚠️  This file is outside src/ to prevent dev server refresh loops
+[1] 
+[1] Warning: This is a simple server for use in testing or debugging Angular applications
+[1] locally. It hasn't been reviewed for security issues.
+[1] 
+[1] Binding this server to an open connection can result in compromising your application or
+[1] computer. Using a different host than the one passed to the "--host" flag might result in
+[1] websocket connection issues. You might need to use "--disable-host-check" if that's the
+[1] case.
+[1]     
+[1] Component HMR has been enabled.
+[1] If you encounter application reload issues, you can manually reload the page to bypass HMR and/or disable this feature with the `--no-hmr` command line option.
+[1] Please consider reporting any issues you encounter here: https://github.com/angular/angular-cli/issues
+[1] 
+[1] ❯ Building...
+[1] ✔ Building...
+[1] Initial chunk files | Names           | Raw size
+[1] main.js             | main            |  1.01 MB | 
+[1] polyfills.js        | polyfills       | 90.20 kB | 
+[1] styles.css          | styles          | 31.74 kB | 
+[1] 
+[1]                     | Initial total   |  1.13 MB
+[1] 
+[1] Lazy chunk files    | Names           | Raw size
+[1] dryl-bug-report.css | dryl-bug-report | 18.56 kB | 
+[1] 
+[1] Application bundle generation complete. [4.171 seconds]
+[1] 
+[1] Watch mode enabled. Watching for file changes...
+[1] NOTE: Raw file sizes do not reflect development server per-request transformations.
+[1] 19:10:24 [vite] (client) Re-optimizing dependencies because vite config has changed
+[1]   ➜  Local:   http://localhost:4200/
+[1]   ➜  Network: http://192.168.178.60:4200/
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [1.201 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.238 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.163 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.208 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.303 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.176 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.218 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names           | Raw size
+[1] main.js             | main            |  1.01 MB | 
+[1] polyfills.js        | polyfills       | 90.20 kB | 
+[1] styles.css          | styles          | 31.74 kB | 
+[1] 
+[1]                     | Initial total   |  1.13 MB
+[1] 
+[1] Lazy chunk files    | Names           | Raw size
+[1] dryl-bug-report.css | dryl-bug-report | 18.56 kB | 
+[1] 
+[1] Application bundle generation complete. [0.004 seconds]
+[1] 
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.413 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.233 seconds]
+[1] 
+[1] Component update sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.153 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.164 seconds]
+[1] 
+[1] Page reload sent to client(s).
+[1] ❯ Changes detected. Rebuilding...
+[1] ✔ Changes detected. Rebuilding...
+[1] Initial chunk files | Names | Raw size
+[1] main.js             | main  |  1.01 MB | 
+[1] 
+[1] Application bundle generation complete. [0.193 seconds]
+[1] 
+[1] Page reload sent to client(s).

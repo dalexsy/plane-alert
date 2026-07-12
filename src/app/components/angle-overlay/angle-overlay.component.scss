@@ -12,8 +12,6 @@
   height: 100%;
 
   span {
-    font-size: 5rem !important;
-    font-variation-settings: "FILL" 0, "wght" 140, "GRAD" 0, "opsz" 20 !important;
     position: relative;
   }
 }
@@ -28,14 +26,12 @@
   margin-right: 3rem;
 
   @media (min-width: 1400px) {
-    margin-bottom: -1rem;
+    margin-bottom: -1rem; // gap-ok: overlap window-view bezel on wide screens
     margin-right: 3rem;
   }
 }
 
-// Remove extra bottom margin when date/time hidden
 :host-context(.dateTimeHidden) {
-  margin-bottom: 1rem;
   margin-right: 0;
 }
 
@@ -129,6 +125,20 @@
     @extend %overlay-info;
   }
   .wind-intensity-icon {
-    transform: rotate(var(--angle, 0deg));
+    transform: var(--transform, rotate(var(--angle, 0deg)));
   }
 }
+
+.moon-icon {
+  transform: var(--transform);
+}
+
+.angle-clickable {
+  cursor: pointer;
+}
+
+:host .wind-angle-overlay .wind-intensity-icon {
+  font-size: 5rem;
+  font-variation-settings: "FILL" 0, "wght" 140, "GRAD" 0, "opsz" 20;
+}
+

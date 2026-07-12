@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BrightnessState } from '../../../services/brightness.service';
+import { BrightnessState } from '../../../services/brightness/brightness.service';
 
 export interface DimSegment {
   left: number;

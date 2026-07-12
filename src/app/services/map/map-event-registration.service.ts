@@ -2,10 +2,9 @@ import { Injectable, ChangeDetectorRef, NgZone } from '@angular/core';
 import { MapRuntimeService } from './map-runtime.service';
 import { MapOverlayStateService } from './map-overlay-state.service';
 import { MapPlaneOperationsService } from './map-plane-operations.service';
-import { FollowCoordinatorService } from '../follow-coordinator.service';
-import { SettingsService, ViewConeConfig } from '../settings.service';
-import { BrightnessService } from '../brightness.service';
-import { MapHostRefs } from './map-bootstrap.service';
+import { FollowCoordinatorService } from '../follow-coordinator/follow-coordinator.service';
+import { SettingsService, ViewConeConfig } from '../settings/settings.service';
+import { BrightnessService } from '../brightness/brightness.service';
 
 @Injectable({ providedIn: 'root' })
 export class MapEventRegistrationService {
@@ -19,8 +18,7 @@ export class MapEventRegistrationService {
     private brightnessService: BrightnessService
   ) {}
 
-  registerOnConstruct(refs: MapHostRefs): void {
-    const { cdr } = refs;
+  registerOnConstruct(cdr: ChangeDetectorRef): void {
     this.runtime.viewConesConfig = this.settings.viewConesConfig as ViewConeConfig[];
 
     const currentLocation = { lat: this.settings.lat, lon: this.settings.lon };

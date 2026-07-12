@@ -1,33 +1,25 @@
 import { Injectable, ChangeDetectorRef } from '@angular/core';
-import { Subscription, combineLatest } from 'rxjs';
-import { SettingsService } from '../settings.service';
-import { ScanService } from '../scan.service';
-import { LocationContextService } from '../location-context.service';
-import { LocationUpdateService } from '../location-update.service';
+import { SettingsService } from '../settings/settings.service';
+import { LocationContextService } from '../location-context/location-context.service';
+import { LocationUpdateService } from '../location-update/location-update.service';
 import type { InputComponent } from '../../components/ui/input/input.component';
 import {
   DistanceUnit,
   convertFromKm,
   convertToKm,
   formatDistance,
-} from '../../utils/units.util';
-import { formatScanCountdown } from './input-overlay-form.util';
-
+} from '../../utils/units/units.util';
 @Injectable({ providedIn: 'root' })
 export class InputOverlayFacadeService {
   collapsed = true;
   otherControlsHidden = false;
   currentAddress = '';
-  scanButtonText = '';
   lastScanTime: Date | null = null;
   isUserEditingRadius = false;
   isUserEditingAddress = false;
 
-  private sub?: Subscription;
-
   constructor(
     public settings: SettingsService,
-    private scanService: ScanService,
     private locationContext: LocationContextService,
     public locationUpdate: LocationUpdateService
   ) {}
@@ -50,20 +42,9 @@ export class InputOverlayFacadeService {
         cdr.detectChanges();
       }
     });
-    this.sub = combineLatest([
-      this.scanService.countdown$,
-      this.scanService.isActive$,
-    ]).subscribe(([count, active]) => {
-      this.scanButtonText = active
-        ? `Update now (next update in ${formatScanCountdown(count)})`
-        : 'Start scanning at location';
-      cdr.detectChanges();
-    });
   }
 
-  destroy(): void {
-    this.sub?.unsubscribe();
-  }
+  destroy(): void {}
 
   toggleCollapsed(cdr: ChangeDetectorRef): void {
     this.collapsed = !this.collapsed;

@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { MapRuntimeService } from './map-runtime.service';
-import { MapInitializerService } from '../map-initializer.service';
-import { SettingsService } from '../settings.service';
-import { LocationContextService } from '../location-context.service';
-import { UiStateService } from '../ui-state.service';
+import { MapInitializerService } from '../map-initializer/map-initializer.service';
+import { SettingsService } from '../settings/settings.service';
+import { LocationContextService } from '../location-context/location-context.service';
+import { UiStateService } from '../ui-state/ui-state.service';
 import { MapPlaneOperationsService } from './map-plane-operations.service';
 
 @Injectable({ providedIn: 'root' })
@@ -131,7 +131,7 @@ export class MapHomeNavigationService {
             this.runtime.DEFAULT_COORDS[1],
             currentMainRadius
           );
-          inputOverlayComponent.addressInputRef.setValue(
+          inputOverlayComponent.addressInputRef?.setValue(
             'Unable to fetch location; using default'
           );
           this.runtime.locationErrorShown = true;

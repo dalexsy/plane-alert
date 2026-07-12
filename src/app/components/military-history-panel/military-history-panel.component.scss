@@ -1,0 +1,86 @@
+:host {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: var(--space-md);
+  pointer-events: none;
+}
+
+.military-history-panel {
+  pointer-events: auto;
+  width: min(90vw, 60rem);
+  max-height: min(80vh, 100%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+.panel-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-sm);
+  border-bottom: 1px solid var(--border-primary);
+
+  h3 {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.panel-controls {
+  flex-shrink: 0;
+
+  app-input {
+    display: block;
+    height: auto;
+  }
+}
+
+.panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel-loading,
+.panel-error,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.panel-error {
+  color: var(--danger-primary);
+}
+
+.panel-loading .loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 0.1875rem solid rgb(255 255 255 / 20%);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: history-spin 1s linear infinite;
+}
+
+@keyframes history-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

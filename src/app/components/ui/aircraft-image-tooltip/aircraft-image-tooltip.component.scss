@@ -1,0 +1,77 @@
+:host {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6);
+  max-width: 15.625rem;
+  min-width: 9.375rem;
+  pointer-events: none;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  backdrop-filter: blur(0.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  @media (min-width: 48.0625rem) {
+    max-width: 18.75rem;
+    min-width: 12.5rem;
+  }
+
+  &.loading {
+    min-height: 6.25rem;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-sm);
+
+  .material-symbols-sharp {
+    animation: aircraft-tooltip-spin 1s linear infinite;
+    font-size: 1.5rem;
+  }
+}
+
+.image-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+  }
+}
+
+.image-source {
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.no-image {
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+@keyframes aircraft-tooltip-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

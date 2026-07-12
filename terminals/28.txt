@@ -1,0 +1,47 @@
+---
+pid: 31624
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "node -e \"
+const { join } = require('path');
+const { pathToFileURL } = require('url');
+const { createServer } = require('http');
+const { readFileSync, existsSync } = require('fs');
+(async () => {
+  const dist = join(process.cwd(), 'dist/plane-alert/browser');
+  const port = 4383;
+  const mime = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css', '.ico':'image/x-icon', '.json':'application/json', '.svg':'image/svg+xml', '.woff2':'font/woff2' };
+  const server = createServer((req, res) => {
+    let p = join(dist, req.url.split('?')[0].replace(/^\\//,'') || 'index.html');
+    if (!existsSync(p) || req.url.endsWith('/')) p = join(dist, 'index.html');
+    const ext = p.slice(p.lastIndexOf('.'));
+    res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
+    res.end(readFileSync(p));
+  });
+  await new Promise(r => server.listen(port, '127.0.0.1', r));
+  const pw = join('..','directory','node_modules','playwright-core');
+  const { chromium } = await import(pathToFileURL(join(pw,'index.mjs')).href);
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle', timeout: 30000 });
+  await page.waitForTimeout(4000);
+  const inBundle = (await readFileSync(join(dist, 'main-YK2WL4YU.js'), 'utf8')).includes('military-history');
+  const historyBtn = await page.locator('app-button.military-history').count();
+  const historyIcon = await page.locator('app-tab[side=right] app-button.military-history').count();
+  const tabButtons = await page.locator('app-tab[side=right] app-button').count();
+  const bodyHasHistory = await page.locator('text=View military aircraft history').count();
+  console.log(JSON.stringify({ inBundle, historyBtn, historyIcon, tabButtons, bodyHasHistory, bundle: 'main-YK2WL4YU.js' }, null, 2));
+  await browser.close();
+  server.close();
+})();
+\""
+started_at: 2026-07-11T07:38:32.330Z
+running_for_ms: 24784988 
+---
+{
+  "inBundle": true,
+  "historyBtn": 1,
+  "historyIcon": 1,
+  "tabButtons": 13,
+  "bodyHasHistory": 0,
+  "bundle": "main-YK2WL4YU.js"
+}

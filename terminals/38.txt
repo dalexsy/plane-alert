@@ -1,0 +1,152 @@
+---
+pid: 18596
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "npm run deploy:dryl"
+started_at: 2026-07-11T08:58:13.773Z
+running_for_ms: 20004991 
+---
+
+Traceback (most recent call last):
+> plane-alert@0.0.0 deploy:dryl
+> npm run verify:dist && python ..\directory\scripts\pi-deploy-dryl-site.py planes --skip-build && npm run verify:console && npm run verify:visual
+
+
+> plane-alert@0.0.0 verify:dist
+> npm run build && node ..\directory\scripts\smoke-spa-console.mjs planes --local
+
+
+> plane-alert@0.0.0 prebuild
+> npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui
+
+
+> plane-alert@0.0.0 build:shared
+> npm run build --prefix shared
+
+
+> @plane-alert/shared@1.0.0 build
+> npm run build:esm && npm run build:cjs && npm run build:types && npm run copy:data
+
+
+> @plane-alert/shared@1.0.0 build:esm
+> tsc -p tsconfig.esm.json
+
+
+> @plane-alert/shared@1.0.0 build:cjs
+> tsc -p tsconfig.cjs.json
+
+
+> @plane-alert/shared@1.0.0 build:types
+> tsc -p tsconfig.types.json
+
+
+> @plane-alert/shared@1.0.0 copy:data
+> node -e "require('fs').cpSync('data', 'dist/data', {recursive: true})"
+
+
+> plane-alert@0.0.0 sync:favicons
+> node ..\directory\scripts\sync-favicons.mjs plane-alert
+
+  plane-alert -> plane-alert (C:\Users\dalex\Repos\plane-alert\public)
+
+Done.
+
+> plane-alert@0.0.0 sync:errors
+> node ..\directory\scripts\sync-error-reporter.mjs --only plane-alert
+
+[ok] plane-alert (planes)
+[ok] plane-alert (plane-alert)
+
+> plane-alert@0.0.0 lint:ui
+> npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout
+
+
+> plane-alert@0.0.0 lint:bem
+> node ../directory/scripts/check-no-bem.mjs
+
+no-BEM check passed
+
+> plane-alert@0.0.0 lint:lines
+> node ../directory/scripts/check-max-lines.mjs
+
+max-lines check passed (≤200)
+
+> plane-alert@0.0.0 lint:component-budget
+> node ../directory/scripts/check-component-budget.mjs
+
+component-budget check passed (folder ≤500 lines / ≤10 files; orchestrator ≤200; feature tree ≤700; helper folders ≤120)
+
+> plane-alert@0.0.0 lint:typography
+> node ../directory/scripts/check-typography-inherit.mjs
+
+typography-inherit check passed
+
+> plane-alert@0.0.0 lint:spacing
+> node ../directory/scripts/check-spacing-scale.mjs
+
+spacing-scale check passed
+
+> plane-alert@0.0.0 lint:flex-gap
+> node ../directory/scripts/check-flex-gap.mjs
+
+flex-gap check passed
+
+> plane-alert@0.0.0 lint:mobile-first
+> node ../directory/scripts/lint-mobile-first.mjs
+
+[ok] mobile-first SCSS — no max-width media queries in src/app
+
+> plane-alert@0.0.0 lint:inline-layout
+> node ../directory/scripts/lint-no-inline-layout.mjs
+
+[ok] no inline layout styles in templates
+
+> plane-alert@0.0.0 build
+> node ../directory/scripts/ng-build-gate.mjs build && node scripts/post-build.js
+
+❯ Building...
+✔ Building...
+Initial chunk files   | Names           | Raw size | Estimated transfer size
+main-I5EG7TM7.js      | main            |  1.02 MB |               237.87 kB
+polyfills-FFHMD2TL.js | polyfills       | 34.52 kB |                11.28 kB
+styles-Q2CVVYHW.css   | styles          | 32.84 kB |                 5.81 kB
+
+                      | Initial total   |  1.09 MB |               254.96 kB
+
+Lazy chunk files      | Names           | Raw size | Estimated transfer size
+dryl-bug-report.css   | dryl-bug-report | 16.07 kB |                 2.62 kB
+
+Application bundle generation complete. [4.383 seconds]
+
+Output location: C:\Users\dalex\Repos\plane-alert\dist\plane-alert
+
+[info] Synced auth-probe favicon assets to dist
+[ok] stamped C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-dist-source.json → 516d231defae (main)
+max-lines check passed (≤200)
+[smoke] serving C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser at http://127.0.0.1:4383
+[smoke] planes open http://127.0.0.1:4383 (anonymous)
+[smoke] bundle main-I5EG7TM7.js
+[screenshot] desktop 1280x800 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-desktop.png
+[screenshot] mobile 390x844 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-mobile.png
+[screenshot] wide 1920x1080 → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest-wide.png
+[screenshot] meta → C:\Users\dalex\Repos\directory\logs\deploy-screenshots\planes\latest.json
+[ok] visual checks for planes (all routes)
+[ok] planes loaded with no console errors
+[ok] VERIFY_EXIT_0 — smoke-spa-console planes; Read PNGs and quote QUOTE_VISIBLE before done
+[deploy] planes (skip_build=True)
+  File "C:\Users\dalex\Repos\directory\scripts\pi-deploy-dryl-site.py", line 380, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\dalex\Repos\directory\scripts\pi-deploy-dryl-site.py", line 368, in main
+    deploy_site(
+    ~~~~~~~~~~~^
+        site_id,
+        ^^^^^^^^
+    ...<5 lines>...
+        clear_client_errors=not args.no_clear_client_errors,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\dalex\Repos\directory\scripts\pi-deploy-dryl-site.py", line 152, in deploy_site
+    project = project_dir(site)
+              ^^^^^^^^^^^
+NameError: name 'project_dir' is not defined

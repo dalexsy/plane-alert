@@ -15,17 +15,17 @@ import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import * as L from 'leaflet';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
-import { SettingsService } from '../../services/settings.service';
-import { AnnouncementService } from '../../services/announcement.service';
-import { haversineDistance } from '../../utils/geo-utils';
+import { SettingsService } from '../../services/settings/settings.service';
+import { AnnouncementService } from '../../services/announcement/announcement.service';
+import { haversineDistance } from '../../utils/geo-utils/geo-utils';
 import {
   DistanceUnit,
   convertFromKm,
   getDistanceUnitShortLabel,
-} from '../../utils/units.util';
+} from '../../utils/units/units.util';
 import { isPlaneAtClickedAirport } from '../../services/results/results-airport-match.util';
 import { PlaneListItemTopComponent } from './plane-list-item-top/plane-list-item-top.component';
-import { PlaneListItemBottomComponent } from './plane-list-item-bottom/plane-list-item-bottom.component';
+import { PlaneListItemBottomComponent } from '../plane-list-item-bottom/plane-list-item-bottom.component';
 
 @Component({
   selector: 'app-plane-list-item',

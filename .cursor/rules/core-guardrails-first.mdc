@@ -16,8 +16,9 @@ The `record-user-prompt` hook injects a `[MANDATORY FIRST READ]` reminder on the
 | Section | Requirement |
 |---------|-------------|
 | **Default mode: fix and ship** | Fix/heal/change requests → ship loop unless Daryl opts out (`explain only`, `don't deploy`, `plan only`, `no code`, `review only`) |
-| **Hard gates before "done"** | Deploy + verify changed route + Read PNGs + quote `QUOTE_VISIBLE` — not "build passed" |
+| **Hard gates before "done"** | UI/scss/html → `verify:localhost` + `--must-contain` + quote `QUOTE_VISIBLE`; ship → deploy + prod PNGs — not "build passed" |
 | **Context-aware model tiers** | Plan HEAVY when unsure; implement LIGHT/MEDIUM once steps are clear |
+| **Cursor token discipline** | `cursor-model-tiers.mdc` — Composer Fast for LIGHT; Ask for explain-only; subagents fast-only |
 | **Agent compliance gate** | Read order, `@dryl/ui`, bootstrap, AVS — lint pass ≠ done |
 
 ## Read order after core-guardrails

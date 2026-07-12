@@ -6,27 +6,15 @@ function normalizeCooldownIcao(icao: string): string {
   return icao.trim().toUpperCase();
 }
 
-function normalizeDeviceName(deviceName: string): string {
-  return deviceName.trim();
-}
-
-function buildCooldownDocId(
-  userKey: string,
-  deviceName: string,
-  normalizedIcao: string,
-): string {
-  const trimmedDevice = normalizeDeviceName(deviceName);
-  if (trimmedDevice) {
-    return `${userKey}__${trimmedDevice}__${normalizedIcao}`;
-  }
-  return `${userKey}__${normalizedIcao}`;
-}
-
 /**
- * Check if notification should be sent and atomically mark as notified if allowed.
- * Targeted delivery uses one cooldown per Pushover device + ICAO so each phone
- * on a shared Pushover account (e.g. household) gets its own alert. Broadcast
- * (empty deviceName) uses user+ICAO.
+ * Check if notification should be sent and atomically mark as notified if allowed
+ * Uses Firestore transactions to prevent duplicate notifications
+ *
+ * @param db - Firestore database instance
+ * @param userKey - Pushover user key
+ * @param deviceName - Pushover device name (legacy per-device cooldown lookup only)
+ * @param icao - Aircraft ICAO hex code
+ * @param cooldownMs - Cooldown period in milliseconds
  */
 export async function checkAndMarkNotified(
   db: admin.firestore.Firestore,
@@ -40,11 +28,16 @@ export async function checkAndMarkNotified(
     return false;
   }
 
-  const trimmedDevice = normalizeDeviceName(deviceName);
-  const cooldownId = buildCooldownDocId(userKey, trimmedDevice, normalizedIcao);
+  // One cooldown per user+ICAO so duplicate registrations cannot double-notify.
+  const cooldownId = `${userKey}__${normalizedIcao}`;
   const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
+  const legacyCooldownRef = deviceName
+    ? db
+        .collection(COOLDOWN_COLLECTION)
+        .doc(`${userKey}__${deviceName}__${normalizedIcao}`)
+    : null;
   const legacyProximityCooldownRef =
-    trimmedDevice && !normalizedIcao.startsWith('PROXIMITY_')
+    !normalizedIcao.startsWith('PROXIMITY_')
       ? db
           .collection(COOLDOWN_COLLECTION)
           .doc(`${userKey}__proximity_${normalizedIcao}`)
@@ -56,18 +49,13 @@ export async function checkAndMarkNotified(
   try {
     const shouldNotify = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(cooldownRef);
-      const legacyAccountWideDoc =
-        !trimmedDevice
-          ? await transaction.get(
-              db.collection(COOLDOWN_COLLECTION).doc(`${userKey}__${normalizedIcao}`),
-            )
-          : null;
+      const legacyDoc = legacyCooldownRef
+        ? await transaction.get(legacyCooldownRef)
+        : null;
       const legacyProximityDoc = legacyProximityCooldownRef
         ? await transaction.get(legacyProximityCooldownRef)
         : null;
-      const legacyLowercaseDoc = !trimmedDevice
-        ? await transaction.get(legacyLowercaseCooldownRef)
-        : null;
+      const legacyLowercaseDoc = await transaction.get(legacyLowercaseCooldownRef);
       const now = Date.now();
 
       const isInCooldown = (lastSent: number) =>
@@ -75,20 +63,20 @@ export async function checkAndMarkNotified(
 
       const lastSentValues = [
         doc.exists ? doc.data()?.lastSent || 0 : 0,
-        legacyAccountWideDoc?.exists
-          ? legacyAccountWideDoc.data()?.lastSent || 0
-          : 0,
+        legacyDoc?.exists ? legacyDoc.data()?.lastSent || 0 : 0,
         legacyProximityDoc?.exists
           ? legacyProximityDoc.data()?.lastSent || 0
           : 0,
-        legacyLowercaseDoc?.exists ? legacyLowercaseDoc.data()?.lastSent || 0 : 0,
+        legacyLowercaseDoc.exists
+          ? legacyLowercaseDoc.data()?.lastSent || 0
+          : 0,
       ];
       const recentLastSent = Math.max(...lastSentValues);
 
       if (isInCooldown(recentLastSent)) {
         logger.info('Aircraft in cooldown, skipping', {
           userKey: userKey.slice(0, 8),
-          deviceName: trimmedDevice || 'ALL',
+          deviceName,
           icao: normalizedIcao,
           timeSinceLastMs: now - recentLastSent,
           cooldownMs,
@@ -98,7 +86,6 @@ export async function checkAndMarkNotified(
 
       logger.info('Claiming notification for aircraft', {
         userKey: userKey.slice(0, 8),
-        deviceName: trimmedDevice || 'ALL',
         icao: normalizedIcao,
         docExists: doc.exists,
       });
@@ -107,18 +94,21 @@ export async function checkAndMarkNotified(
         cooldownRef,
         {
           userKey,
-          ...(trimmedDevice ? { deviceName: trimmedDevice } : {}),
           icao: normalizedIcao,
           lastSent: now,
         },
         { merge: true }
       );
 
-      if (legacyProximityDoc?.exists && legacyProximityCooldownRef) {
+      if (legacyCooldownRef && legacyDoc?.exists) {
+        transaction.delete(legacyCooldownRef);
+      }
+
+      if (legacyProximityCooldownRef && legacyProximityDoc?.exists) {
         transaction.delete(legacyProximityCooldownRef);
       }
 
-      if (legacyLowercaseDoc?.exists) {
+      if (legacyLowercaseDoc.exists) {
         transaction.delete(legacyLowercaseCooldownRef);
       }
 
@@ -127,7 +117,6 @@ export async function checkAndMarkNotified(
 
     logger.info('Transaction result', {
       userKey: userKey.slice(0, 8),
-      deviceName: trimmedDevice || 'ALL',
       icao: normalizedIcao,
       shouldNotify,
     });
@@ -136,7 +125,6 @@ export async function checkAndMarkNotified(
   } catch (error: any) {
     logger.error('checkAndMarkNotified transaction failed', {
       userKey: userKey.slice(0, 8),
-      deviceName: trimmedDevice || 'ALL',
       icao: normalizedIcao,
       error,
     });
@@ -147,7 +135,7 @@ export async function checkAndMarkNotified(
 export async function releaseNotificationClaim(
   db: admin.firestore.Firestore,
   userKey: string,
-  deviceName: string,
+  _deviceName: string,
   icao: string
 ): Promise<void> {
   const normalizedIcao = normalizeCooldownIcao(icao);
@@ -155,19 +143,17 @@ export async function releaseNotificationClaim(
     return;
   }
 
-  const cooldownId = buildCooldownDocId(userKey, deviceName, normalizedIcao);
+  const cooldownId = `${userKey}__${normalizedIcao}`;
 
   try {
     await db.collection(COOLDOWN_COLLECTION).doc(cooldownId).delete();
     logger.info('Released notification claim', {
       userKey: userKey.slice(0, 8),
-      deviceName: deviceName || 'ALL',
       icao: normalizedIcao,
     });
   } catch (error: any) {
     logger.error('Failed to release notification claim', {
       userKey: userKey.slice(0, 8),
-      deviceName: deviceName || 'ALL',
       icao: normalizedIcao,
       error,
     });

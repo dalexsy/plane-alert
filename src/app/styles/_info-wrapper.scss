@@ -1,0 +1,45 @@
+.info-wrapper {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  left: 0;
+  top: 0;
+  padding: 0 1rem;
+  height: 100%;
+  z-index: 1000;
+  pointer-events: none;
+  justify-content: flex-end;
+  transition: padding-left 0.3s ease, padding-right 0.3s ease;
+
+  &:not(.window-view-hidden) {
+    height: calc(100% - 11rem);
+  }
+
+  &.window-view-hidden {
+    bottom: 0.5rem;
+  }
+
+  &.left-bar-visible {
+    padding-left: 4rem;
+  }
+
+  &.results-expanded {
+    padding-right: calc(1rem + 28rem);
+  }
+
+  > app-angle-overlay {
+    align-self: flex-end;
+    pointer-events: all;
+  }
+}
+
+.time-temp-container {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  width: 100%;
+  gap: 1rem;
+  justify-content: space-between;
+}

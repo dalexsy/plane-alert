@@ -1,10 +1,10 @@
 import type { WindowViewPlane } from '../../components/window-view-overlay/window-view-overlay.component';
-import { computeWindowHistoryPositions } from '../../utils/window-history-trail-utils';
-import { getIconPathForModel } from '../../utils/plane-icons';
-import { calculateVerticalRateFromHistory } from '../../utils/vertical-rate.util';
-import { haversineDistance } from '../../utils/geo-utils';
+import { computeWindowHistoryPositions } from '../../utils/window-history-trail-utils/window-history-trail-utils';
+import { getIconPathForModel } from '../../utils/plane-icons/plane-icons';
+import { calculateVerticalRateFromHistory } from '../../utils/vertical-rate/vertical-rate.util';
+import { haversineDistance } from '../../utils/geo-utils/geo-utils';
 import type { PlaneModel } from '../../models/plane-model';
-import type { PlaneLogService } from '../plane-log.service';
+import type { PlaneLogService } from './plane-log.service';
 import { computeBearing } from './plane-log-geo.util';
 import { updateWindowViewMarkers } from './plane-log-markers.util';
 
@@ -42,9 +42,19 @@ export function updateWindowViewPlanes(
         scale = Math.max(0.5, 1.0 - beyondNormalized * 0.5);
       }
       const rawHistory = computeWindowHistoryPositions(plane.positionHistory, centerLat, centerLon);
-      const historyTrail = rawHistory.map((hp: any, idx: number, arr: any[]) => ({
-        x: hp.x, y: hp.y, opacity: 0.1 + (0.9 * idx) / (arr.length - 1 || 1),
+      const historyTrail = rawHistory.map((hp, idx, arr) => ({
+        x: hp.x,
+        y: hp.y,
+        opacity: 0.1 + (0.9 * idx) / (arr.length - 1 || 1),
       }));
+      const lastTrail = historyTrail[historyTrail.length - 1];
+      if (
+        !lastTrail ||
+        Math.abs(lastTrail.x - x) > 0.01 ||
+        Math.abs(lastTrail.y - y) > 0.01
+      ) {
+        historyTrail.push({ x, y, opacity: 1 });
+      }
       return {
         x, y, callsign: plane.callsign || '', altitude: alt, lat: plane.lat!, lon: plane.lon!,
         bearing: plane.track ?? 0, iconPath: iconData.path, iconType: iconData.iconType,

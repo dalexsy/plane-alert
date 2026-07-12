@@ -1,0 +1,18 @@
+---
+pid: 5216
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "npm run deploy:pi-api"
+started_at: 2026-07-11T16:31:39.056Z
+running_for_ms: 67340000 
+---
+
+> plane-alert@0.0.0 deploy:pi-api
+> python scripts/pi-install-planes-api.py
+
+[build] shared package
+[build] prepare functions shared-package
+[build] functions TypeScript
+[upload] planes-api -> 192.168.178.74:/home/pi/planes-api
+{"ok":true,"service":"planes-api","storePath":"/home/pi/planes-api/data/planes-api-store.json"}
+[ok] planes-api deployed and healthy on :8795
+[nginx] refresh dryl-apps.conf (planes /api/planes/ proxy)

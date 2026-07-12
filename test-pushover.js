@@ -27,7 +27,7 @@ async function testPushover() {
     title: "Test Military Plane Alert",
     message:
       "This is a test notification from your plane alert system. If you receive this, Pushover is working correctly!",
-    url: "https://plane-alert.surge.sh/",
+    url: "https://planes.dryl.io/",
     url_title: "View on Map",
     priority: "1",
     sound: "intermission",

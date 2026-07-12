@@ -1,0 +1,98 @@
+$font-body: "Instrument Sans", sans-serif;
+$font-header: "Instrument Sans", sans-serif;
+$font-mono: "JetBrains Mono", monospace;
+
+@mixin instrument-sans-regular {
+  font-family: $font-body;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+@mixin instrument-sans-bold {
+  font-family: $font-header;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+}
+
+@mixin jetbrains-mono-regular {
+  font-family: $font-mono;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+body {
+  @include instrument-sans-regular;
+}
+
+h1,
+h2 {
+  @include instrument-sans-bold;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  @include instrument-sans-bold;
+}
+
+h1 {
+  line-height: 1.2;
+}
+
+h3 {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
+  border-bottom: 1px solid white;
+  padding-bottom: 0.5rem;
+}
+
+.leaflet-container svg text {
+  font-family: $font-body;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+label,
+input {
+  font-size: 0.875rem;
+}
+
+.fi {
+  border: 1px solid rgb(255 255 255 / 40%);
+  width: 1.25em;
+  line-height: 0.9em;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+app-input-overlay.collapsed ~ app-clock .clock-container {
+  left: 3.5rem;
+}
+
+html body.animations-disabled *,
+html body.animations-disabled *::before,
+html body.animations-disabled *::after {
+  animation-duration: 0s;
+  animation-delay: 0s;
+  transition-duration: 0s;
+  transition-delay: 0s;
+}

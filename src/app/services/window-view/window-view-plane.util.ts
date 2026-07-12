@@ -1,7 +1,7 @@
 import type { DimSegment } from '../../components/window-view-overlay/dim-overlay/dim-overlay.component';
 import type { AltitudeTick } from '../../components/window-view-overlay/altitude-bands/altitude-bands.component';
-import type { CelestialService } from '../celestial.service';
-import type { AltitudeColorService } from '../altitude-color.service';
+import type { CelestialService } from '../celestial/celestial.service';
+import type { AltitudeColorService } from '../altitude-color/altitude-color.service';
 import type { WindowViewPlane } from '../../types/window-view-plane';
 
 export function computeDimSegments(

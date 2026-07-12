@@ -27,7 +27,7 @@
           width="2rem"
           height="2rem"
           viewBox="0 0 22 22"
-          [style.transform]="'rotate(90deg)'"
+          [style.--transform]="'rotate(90deg)'"
         >
           <circle cx="11" cy="11" r="10" [attr.fill]="getMoonLitColor()" />
         </svg>
@@ -38,7 +38,7 @@
           width="2rem"
           height="2rem"
           viewBox="0 0 22 22"
-          [style.transform]="'rotate(-90deg)'"
+          [style.--transform]="'rotate(-90deg)'"
         >
           <defs>
             <mask id="moon-phase-mask">
@@ -80,10 +80,9 @@
 <!-- Wind direction indicator overlay -->
 <div
   *ngIf="showWindDirection"
-  class="wind-angle-overlay"
+  class="wind-angle-overlay angle-clickable"
   title="Click to change units"
   (click)="cycleWindUnit.emit()"
-  style="cursor: pointer"
 >
   <span class="wind-info">
     {{ windSpeed.toFixed(1) }} {{ windUnit }} {{ windDirection }}
@@ -93,7 +92,7 @@
     class="wind-intensity-icon"
     variant="outlined"
     size="large"
-    [style.transform]="windStat > 0 ? 'rotate(' + windAngle + 'deg)' : ''"
+    [style.--transform]="windStat > 0 ? 'rotate(' + windAngle + 'deg)' : ''"
     [attr.aria-label]="'Wind intensity level ' + windStat"
   ></app-icon>
 </div>

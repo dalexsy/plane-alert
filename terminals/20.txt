@@ -1,0 +1,34 @@
+---
+pid: 10780
+cwd: "C:\Users\dalex\Repos\directory"
+command: "node --input-type=module -e \"
+import { chromium } from 'playwright-core';
+import { resolveDrylCredentials } from './scripts/lib/dryl-credentials.mjs';
+import { ensureLoggedIn } from './scripts/lib/smoke-spa-session.mjs';
+
+for (const vp of [{w:1280,h:800,name:'1280'}, {w:1920,h:1080,name:'1920'}]) {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: vp.w, height: vp.h } });
+  await ensureLoggedIn(context, resolveDrylCredentials(), 'https://planes.dryl.io', { required: true });
+  const page = await context.newPage();
+  await page.goto('https://planes.dryl.io', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForTimeout(6000);
+  const m = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll('.leaflet-tile-pane img')].filter(i => i.getBoundingClientRect().width > 8);
+    const rects = tiles.map(i => i.getBoundingClientRect());
+    const cx = innerWidth * 0.45, cy = innerHeight * 0.4;
+    const centerCovered = tiles.some(img => { const r = img.getBoundingClientRect(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; });
+    const sky = document.querySelector('app-results-sky-list')?.innerText || '';
+    const iconLeak = /location_searching|visibility_off|\\\\bnavigation\\\\b/.test(sky);
+    return { tiles: tiles.length, centerCovered, iconLeak, skySample: sky.slice(0, 200) };
+  });
+  await page.screenshot({ path: 'C:/Users/dalex/Repos/directory/logs/deploy-screenshots/planes/repro-' + vp.name + '-now.png' });
+  console.log(vp.name, JSON.stringify(m));
+  await browser.close();
+}
+\""
+started_at: 2026-07-10T21:17:52.861Z
+running_for_ms: 7909988  
+---
+1280 {"tiles":24,"centerCovered":true,"iconLeak":true,"skySample":"PLANES IN THE SKY (9)\nProcessing airports\nlocation_searching\nTYW758\nNE\nnavigation\n1.8 km\nvisibility\nStuttgarter Flugdienst\nGULFSTREAM AEROSPACE Gulfstream G100\nlocation_searching\nSRR6227\nNNE\nnavigatio"}
+1920 {"tiles":45,"centerCovered":false,"iconLeak":true,"skySample":"Planes in the Sky (9)\nProcessing airports\nlocation_searching\nTYW758\nNE\nnavigation\n1.9 km\nvisibility\nUnknown\nGULFSTREAM AEROSPACE Gulfstream G100\nlocation_searching\nSRR6227\nN\nnavigation\n18.4 km\nvisibil"}

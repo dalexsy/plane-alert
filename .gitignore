@@ -49,5 +49,8 @@ Thumbs.db
 # Environment secrets
 .env
 .env.local
+scripts/firestore-export-*.json
 functions/.env
 functions/.env.local
+functions/firebase-admin.json
+functions/data/

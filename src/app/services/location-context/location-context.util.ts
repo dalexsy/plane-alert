@@ -1,4 +1,4 @@
-import { TimezoneData } from '../location-context.service';
+import { TimezoneData } from './location-context.service';
 
 export function parseUtcOffset(offsetString: string): number {
   if (!offsetString) return 0;

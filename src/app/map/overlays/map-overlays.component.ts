@@ -1,69 +1,54 @@
-/**
- * Map Overlays Component
- * Handles all overlay elements for the map like plane markers, paths, and visual indicators
- */
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy,
+  ViewChild,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { InputOverlayComponent } from '../../components/input-overlay/input-overlay.component';
+import { ResultsOverlayComponent } from '../../components/results-overlay/results-overlay.component';
+import { ClosestPlaneOverlayComponent } from '../../components/closest-plane-overlay/closest-plane-overlay.component';
+import { LocationOverlayComponent } from '../../components/location-overlay/location-overlay.component';
+import { MapOverlayStateService } from '../../services/map/map-overlay-state.service';
+import { MapComponentFacadeService } from '../../services/map/map-component-facade.service';
+import { UiStateService } from '../../services/ui-state/ui-state.service';
+import { BrightnessDisplayService } from '../../services/brightness-display/brightness-display.service';
+import { AirportService } from '../../services/airport/airport.service';
+import type { PlaneLogEntry } from '../../components/results-overlay/results-overlay.component';
 
-// Types for the component interfaces
-export interface PlaneDataState {
-  planes: any[];
-  isLoading: boolean;
-  lastUpdated: number;
-}
-
-export interface EnvironmentalData {
-  isLoading: boolean;
-  weather?: any;
-  astronomical?: any;
-}
-
-export interface UIState {
-  showTrails: boolean;
-  showPredictedPaths: boolean;
-  showAltitudeColors: boolean;
-}
-
-export interface FollowState {
-  followedPlaneIcao: string | null;
-  isActive: boolean;
-}
-
-export interface PlaneSelectionEvent {
-  icao: string;
-  action: 'center' | 'follow' | 'info';
-}
-
-export interface LocationChangeEvent {
-  lat: number;
-  lon: number;
-  radius?: number;
-  zoom?: number;
-}
-
+/** Top overlays: closest plane, location, input bar, results sidebar. */
 @Component({
   selector: 'app-map-overlays',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    InputOverlayComponent,
+    ResultsOverlayComponent,
+    ClosestPlaneOverlayComponent,
+    LocationOverlayComponent,
+  ],
   templateUrl: './map-overlays.component.html',
   styleUrls: ['./map-overlays.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MapOverlaysComponent {
-  @Input() planeData: PlaneDataState | null = null;
-  @Input() environmentalData: EnvironmentalData | null = null;
-  @Input() uiState: UIState | null = null;
-  @Input() followState: FollowState | null = null;
+  @ViewChild(InputOverlayComponent, { static: true })
+  inputOverlayComponent!: InputOverlayComponent;
+  @ViewChild(ResultsOverlayComponent, { static: true })
+  resultsOverlayComponent!: ResultsOverlayComponent;
 
-  @Output() planeSelected = new EventEmitter<PlaneSelectionEvent>();
-  @Output() locationChanged = new EventEmitter<LocationChangeEvent>();
+  constructor(
+    public overlay: MapOverlayStateService,
+    public facade: MapComponentFacadeService,
+    public uiState: UiStateService,
+    public brightnessDisplay: BrightnessDisplayService,
+    public airportService: AirportService,
+    public cdr: ChangeDetectorRef
+  ) {}
 
-  // This component serves as a coordination point for map overlays
-  // The actual rendering is handled by the services
+  get loadingAirports(): boolean {
+    return this.airportService.isLoading();
+  }
+
+  followNearestPlane(plane: PlaneLogEntry): void {
+    this.facade.followNearestPlane(plane, this.cdr);
+  }
 }

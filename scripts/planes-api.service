@@ -1,0 +1,16 @@
+[Unit]
+Description=Plane Alert API (Pushover + ADS-B on Pi)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/planes-api
+ExecStart=/usr/bin/node lib/pi-server.js
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=-/home/pi/planes-api/.env
+
+[Install]
+WantedBy=multi-user.target

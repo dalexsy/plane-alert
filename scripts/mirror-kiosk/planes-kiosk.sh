@@ -2,7 +2,7 @@
 # Full-screen planes.dryl.io for magicmirror (labwc + wayland), with dryl-auth session.
 set -euo pipefail
 
-URL="${PLANES_KIOSK_URL:-https://planes.dryl.io/}"
+URL="${PLANES_KIOSK_URL:-https://planes.dryl.io/?kiosk=1}"
 CONFIG_DIR="${PLANES_KIOSK_CONFIG:-/home/pi/.config/planes-kiosk}"
 PROFILE="${PLANES_KIOSK_PROFILE:-/home/pi/.config/planes-kiosk-chromium}"
 UID_NUM="$(id -u)"

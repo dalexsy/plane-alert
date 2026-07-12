@@ -49,16 +49,21 @@
   }
 }
 
-.options-overlay:not(.collapsed) .top-buttons {
-  height: calc(100vh - 0.5rem) !important;
+.options-overlay:not(.collapsed) > .top-buttons {
+  height: calc(100vh - 0.5rem);
 }
 
-.options-overlay.collapsed .top-buttons {
-  height: auto !important;
+.options-overlay.collapsed > .top-buttons {
+  height: auto;
 }
 
-@media (max-width: 600px) {
+::ng-deep [appTooltip]:hover::after {
+  display: none;
+}
+
+@media (min-width: 601px) {
   ::ng-deep [appTooltip]:hover::after {
-    display: none !important;
+    display: block;
   }
 }
+

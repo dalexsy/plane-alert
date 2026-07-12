@@ -8,7 +8,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import * as L from 'leaflet';
-import { AltitudeColorService } from '../../services/altitude-color.service';
+import { AltitudeColorService } from '../../services/altitude-color/altitude-color.service';
 import { ViewConeConfig } from '../../services/cone/cone-types';
 import {
   cleanupConeLayers,

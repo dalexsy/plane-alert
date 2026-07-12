@@ -1,5 +1,5 @@
 /* Extracted from aircraft-country.service.ts */
-import type { AircraftCountryService } from '../aircraft-country.service';
+import type { AircraftCountryService } from './aircraft-country.service';
 
 export type Ctx = AircraftCountryService;
 

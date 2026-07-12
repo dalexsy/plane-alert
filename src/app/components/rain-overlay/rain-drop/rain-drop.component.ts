@@ -1,5 +1,5 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { RainDrop } from '../../../services/rain.service';
+import { RainDrop } from '../../../services/rain/rain.service';
 
 @Component({
   selector: 'app-rain-drop',

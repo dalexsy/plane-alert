@@ -58,9 +58,10 @@ $hover-opacity: 0.8;
 }
 
 @mixin airport-tag-style($color) {
-  color: $color !important;
-  background: rgba($color, 0.2) !important;
+  color: $color;
+  background: rgba($color, 0.2);
   font-weight: $font-weight-semibold;
   border: $border-width-airport-tag solid $color;
   box-shadow: 0 0 6px rgba($color, 0.3);
 }
+

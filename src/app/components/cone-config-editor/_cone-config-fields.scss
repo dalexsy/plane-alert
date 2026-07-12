@@ -1,17 +1,14 @@
 @mixin editor-fields {
   .cones-list {
-    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .cone-item {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     padding: 15px;
-    margin-bottom: 10px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
   }
 
   .cone-fields {
@@ -77,8 +74,6 @@
   }
 
   .actions {
-    margin-bottom: 20px;
-
     .add-btn {
       background: #28a745;
       color: white;
@@ -100,13 +95,12 @@
     padding: var(--space-sm);
     font-size: var(--font-sm);
     color: #ccc;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
 
     p {
-      margin: 0 0 var(--space-xs) 0;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
+      margin: 0;
     }
 
     strong {
@@ -116,27 +110,49 @@
 }
 
 @mixin editor-responsive {
-  @media (max-width: 768px) {
-    padding: 15px;
+  padding: 15px;
+
+  .cone-fields {
+    flex-direction: column;
+    gap: 10px;
+
+    .field-group {
+      flex-direction: row;
+      align-items: center;
+
+      label {
+        min-width: 100px;
+        margin-right: 10px;
+        margin-bottom: 0;
+      }
+    }
+
+    .remove-btn {
+      align-self: center;
+    }
+  }
+
+  @media (min-width: 769px) {
+    padding: var(--space-md);
 
     .cone-fields {
-      flex-direction: column;
-      gap: 10px;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: var(--space-md);
 
       .field-group {
-        flex-direction: row;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
 
         label {
-          min-width: 100px;
-          margin-right: 10px;
-          margin-bottom: 0;
+          min-width: auto;
+          margin-right: 0;
         }
       }
 
       .remove-btn {
-        align-self: center;
-        margin-top: 10px;
+        align-self: auto;
+        margin-top: 0;
       }
     }
   }

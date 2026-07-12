@@ -78,17 +78,16 @@
   }
 
   &.window-view-closed {
-    max-height: calc(100vh - 0.5rem) !important;
-
-    @media (min-width: 601px) {
-      max-height: calc(100vh - 0.5rem) !important;
-    }
+    max-height: calc(100vh - 0.5rem);
   }
 }
 
-.pushover-config-backdrop {
+.pushover-config-backdrop,
+.military-history-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 2000;
+  z-index: 1999;
+  backdrop-filter: blur(0.25rem);
 }
+

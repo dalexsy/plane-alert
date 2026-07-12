@@ -1,0 +1,49 @@
+---
+description: MANDATORY — Cursor model/token discipline (SDLC with Grok)
+alwaysApply: true
+---
+
+# Cursor token discipline
+
+**SDLC uses Cursor + Grok.** Tier definitions: `Repos/speculation/core-guardrails.md` § Context-aware model tiers. Grok quick rules: `Repos/.grok/rules/04-model-tiers.md`.
+
+## Model picks (Cursor IDE / Cursor CLI)
+
+| Tier | When | Cursor model / mode |
+|------|------|---------------------|
+| **LIGHT** | Playbook fix, deploy, verify, lint split, log fetch, ticket resolve | **Composer Fast** (`composer-2.5-fast`) in **Agent** mode |
+| **MEDIUM** | Feature on existing `*.dryl.io` app after todos exist | Default Agent model on the **owning repo** |
+| **HEAVY** | New hostname, fleet nginx, deep multi-repo investigation | **One planning turn** on the strongest available model — then **switch down** to MEDIUM/LIGHT for all code/deploy |
+
+**Ask mode** — explain-only, scope questions, "how does X work?" No deploy, no edits, no ticket ship loop.
+
+**Never burn premium Cursor tokens on:** `deploy:dryl`, `verify:console` / `verify:visual`, Read PNG + `QUOTE_VISIBLE`, `npm run lint:ui` splits, `GET :3905` / deploy-log fetch, parallel-agent ticket check, resolving ops tickets.
+
+## Subagents (Task tool)
+
+- Model: **`composer-2.5-fast` only** (when explicit model is required).
+- Use for: isolated search or a bounded sub-repo read — not for deploy, verify, or visual proof.
+- **Coordinator** (parent agent) owns: diff review, deploy, production verify, Read PNG, ticket resolve. Subagent "done" is not proof.
+
+Do not spawn background Task agents when `session-pc-guard` or Daryl's message indicates design/local-only work.
+
+## Context discipline
+
+- Prefer opening **one app repo** (e.g. `row/`) for a single-site fix — not the whole `Repos/` tree in context.
+- Grep/Read targeted paths; do not load `master-spec.md` + every `debugging.md` unless the task is fleet-wide.
+- Read **repo** `.cursor/rules/debugging.md` before retry loops — avoids repeated failed experiments (token burn).
+
+## Zero-token operator paths (tell Daryl — do not do in chat)
+
+```bash
+cd directory && npm run heal:fleet      # audit + deploy all hosted sites
+cd directory && npm run deploy:fleet -- --only <site-id>
+```
+
+Bulk fleet deploy in one Cursor session is forbidden unless Daryl explicitly requests it.
+
+## Automated Cursor agents
+
+Ticket auto-fix uses `CLIENT_ERROR_CURSOR_MODEL` (default `auto`). Disable with `CLIENT_ERROR_CURSOR_ENABLED=0` when Cursor quota is low.
+
+**Edit only** `Repos/speculation/.cursor/rules/cursor-model-tiers.mdc`. Fan out: `cd directory && npm run bootstrap:agent-rules`.

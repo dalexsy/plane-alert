@@ -1,0 +1,52 @@
+.bug-hunter {
+  --text-primary: #fff;
+  --text-secondary: rgb(255 255 255 / 70%);
+  --background-primary: #000;
+  --background-secondary: #1a1a1a;
+  --background-tertiary: #2a2a2a;
+  --border-primary: rgb(255 255 255 / 20%);
+  --border-secondary: rgb(255 255 255 / 15%);
+  color: var(--text-primary);
+}
+
+.bug-hunter .dryl-modal-content {
+  color: var(--text-primary);
+  background: var(--background-primary);
+}
+
+.bug-hunter .dryl-modal-content .label,
+.bug-hunter .dryl-modal-content h3,
+.bug-hunter .dryl-modal-content .modal-header h3 {
+  color: var(--text-secondary);
+}
+
+.bug-hunter .dryl-modal-content .modal-body,
+.bug-hunter .dryl-modal-content .modal-actions {
+  background: var(--background-primary);
+}
+
+.bug-hunter .dryl-modal-content .dryl-select-control,
+.bug-hunter .dryl-modal-content textarea.control-plain,
+.bug-hunter .dryl-modal-content .dryl-textarea,
+.bug-hunter .dryl-modal-content textarea.dryl-textarea {
+  color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
+  caret-color: var(--text-primary);
+  background: var(--background-secondary);
+  border-color: var(--border-primary);
+  color-scheme: dark;
+}
+
+.bug-hunter .dryl-modal-content .dryl-select-control option,
+.bug-hunter .dryl-modal-content .dryl-select-control optgroup {
+  color: var(--text-primary);
+  background: var(--background-secondary);
+}
+
+.bug-hunter .dryl-textarea::placeholder,
+.bug-hunter .dryl-modal-content textarea.control-plain::placeholder,
+.bug-hunter .dryl-modal-content textarea.dryl-textarea::placeholder {
+  color: var(--text-secondary);
+  -webkit-text-fill-color: var(--text-secondary);
+  opacity: 0.6;
+}

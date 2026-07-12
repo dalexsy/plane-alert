@@ -1,0 +1,11 @@
+---
+pid: 36180
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "cd C:\\Users\\dalex\\Repos\\plane-alert && python ..\\directory\\scripts\\pi-deploy-dryl-site.py planes --skip-build 2>&1"
+started_at: 2026-07-10T18:23:10.519Z
+running_for_ms: 18395000 
+---
+[deploy] planes (skip_build=True)
+[upload] C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser -> 192.168.178.74:/home/pi/.dryl-deploy/planes -> /var/www/dryl/planes
+[ok] uploaded planes to /var/www/dryl/planes
+[ok] published apps-hub catalog -> 192.168.178.74:/var/www/dryl/apps/catalog.json

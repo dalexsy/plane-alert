@@ -1,4 +1,4 @@
-import { EngineIconType } from '../../utils/plane-icons';
+import { EngineIconType } from '../utils/plane-icons/plane-icons';
 
 export interface WindowViewPlane {
   x: number;

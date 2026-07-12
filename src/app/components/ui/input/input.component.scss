@@ -15,7 +15,7 @@
   .input-label {
     display: block;
     color: white;
-    font-size: 1rem; /* Mobile-first: larger text */
+    font-size: 1rem; /* typography-ok mobile-first label */
     font-weight: 500;
     flex-shrink: 0; /* Don't let label shrink */
   }
@@ -28,7 +28,7 @@
     background: rgba(255, 255, 255, 0.18);
     color: white;
     font-family: "JetBrains Mono", monospace;
-    font-size: 1rem; /* Mobile-first: larger text */
+    font-size: 1rem; /* typography-ok mobile-first input */
     padding: 1rem 1.25rem; /* Mobile-first: larger padding */
     transition: background 0.2s ease, outline 0.2s ease;
 
@@ -80,7 +80,7 @@
   // Desktop and larger screens - reduce sizes
   @media (min-width: 601px) {
     height: auto; /* Desktop: don't force full height */
-    gap: 0.3rem; /* Smaller gap on desktop */
+    gap: var(--space-xs); /* Smaller gap on desktop */
 
     .input-label {
       font-size: 0.875rem; /* Smaller label text */
@@ -128,7 +128,7 @@
 
     @media (min-width: 601px) {
       padding: 0.75rem 1.25rem; /* Desktop large */
-      font-size: 1rem;
+      font-size: 1rem; /* typography-ok large variant desktop */
 
       &.textarea {
         padding: 1rem 1.25rem; /* Desktop large textarea */

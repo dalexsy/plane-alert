@@ -14,12 +14,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as L from 'leaflet';
-import { SettingsService } from '../../services/settings.service';
+import { SettingsService } from '../../services/settings/settings.service';
 import { PushoverConfigEditorComponent } from '../pushover-config-editor/pushover-config-editor.component';
+import { MilitaryHistoryPanelComponent } from '../military-history-panel/military-history-panel.component';
 import { ResultsOverlayFacadeService } from '../../services/results/results-overlay-facade.service';
-import { ResultsToolbarComponent } from './results-toolbar/results-toolbar.component';
+import { ResultsToolbarComponent } from '../results-toolbar/results-toolbar.component';
 import { ResultsSkyListComponent } from './results-sky-list/results-sky-list.component';
-import { ResultsSeenListComponent } from './results-seen-list/results-seen-list.component';
+import { ResultsSeenListComponent } from '../results-seen-list/results-seen-list.component';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 
 export type { PlaneLogEntry } from '../../types/plane-log-entry';
@@ -30,6 +31,7 @@ export type { PlaneLogEntry } from '../../types/plane-log-entry';
   imports: [
     CommonModule,
     PushoverConfigEditorComponent,
+    MilitaryHistoryPanelComponent,
     ResultsToolbarComponent,
     ResultsSkyListComponent,
     ResultsSeenListComponent,
@@ -155,6 +157,10 @@ export class ResultsOverlayComponent
       seen: this.seenList?.listRef?.nativeElement,
     });
     this.cdr.markForCheck();
+  }
+
+  onToggleSeenCollapsed(): void {
+    this.facade.toggleSeenCollapsed(() => this.updateScrollFade());
   }
 
   toggleWindowView(): void {

@@ -1,0 +1,30 @@
+---
+pid: 25020
+cwd: "C:\Users\dalex\Repos\plane-alert"
+command: "robocopy \"C:\\Users\\dalex\\Repos\\plane-alert-restore\\dist\\plane-alert\\browser\" \"C:\\Users\\dalex\\Repos\\plane-alert\\dist\\plane-alert\\browser\" /MIR /NFL /NDL /NJH /NJS; python C:\\Users\\dalex\\Repos\\directory\\scripts\\pi-deploy-dryl-site.py planes --skip-build --no-verify-client-errors --no-logged-verify"
+started_at: 2026-07-11T07:55:55.005Z
+running_for_ms: 23744992 
+---
+
+  *EXTRA File    61906C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\android-chrome-192x192.png
+  *EXTRA File   383677C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\android-chrome-512x512.png
+  *EXTRA File    55821C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\apple-touch-icon.png
+  *EXTRA File    16067C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-bug-report.css
+  *EXTRA File    23451C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-bug-report.js
+  *EXTRA File       84C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-build-version.json
+  *EXTRA File     2360C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-report-error-filter.js
+  *EXTRA File     2797C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-report-error-payload.js
+  *EXTRA File     1829C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-report-error-queue-storage.js
+  *EXTRA File     4483C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-report-error-queue.js
+  *EXTRA File     2143C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\dryl-report-error.js
+  *EXTRA File      825C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\favicon-16x16.png
+  *EXTRA File     2544C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\favicon-32x32.png
+  *EXTRA File  1022643C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\main-V7IY7ZH7.js
+  *EXTRA File    34519C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\polyfills-FFHMD2TL.js
+  *EXTRA File      263C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\site.webmanifest
+  *EXTRA File    32841C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser\styles-Q2CVVYHW.css
+[deploy] planes (skip_build=True)
+[upload] C:\Users\dalex\Repos\plane-alert\dist\plane-alert\browser -> 192.168.178.74:/home/pi/.dryl-deploy/planes -> /var/www/dryl/planes
+[deploy] planes — wipe kiosk Chromium cache and restart
+[ok] uploaded planes to /var/www/dryl/planes
+[ok] published apps-hub catalog -> 192.168.178.74:/var/www/dryl/apps/catalog.json

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ElementRef } from '@angular/core';
-import type { BrightnessState } from '../brightness.service';
+import type { BrightnessState } from '../brightness/brightness.service';
 
 const WINDOW_DIM_FACTOR = 0.5;
 

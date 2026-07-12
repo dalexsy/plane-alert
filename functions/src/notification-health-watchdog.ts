@@ -32,6 +32,58 @@ function describeStalls(
   return stalls;
 }
 
+export async function runNotificationHealthWatchdog(
+  db: admin.firestore.Firestore,
+): Promise<void> {
+  const deviceSnapshot = await db.collection(DEVICE_COLLECTION).get();
+  if (deviceSnapshot.empty) {
+    return;
+  }
+
+  const now = Date.now();
+  const health = await readNotificationHealth(db);
+  const stalls = describeStalls(health, now);
+
+  if (!stalls.length) {
+    return;
+  }
+
+  logger.warn('Notification pipeline stalled, attempting recovery', {
+    stalls,
+  });
+
+  try {
+    if (isStale(health.processPlanesLastSuccessAt, now)) {
+      if (isProcessPlanesLockHeld(health, now)) {
+        logger.info('processPlanes lock held, skipping watchdog recovery run');
+      } else {
+        await runNotificationProcessing(db);
+      }
+    }
+    if (isStale(health.collectAircraftLastSuccessAt, now)) {
+      await runAircraftCollection(db);
+    }
+
+    const after = await readNotificationHealth(db);
+    const remaining = describeStalls(after, now);
+    if (remaining.length) {
+      await recordWatchdogRecoveryFailure(
+        db,
+        `still stalled after recovery: ${remaining.join(', ')}`,
+      );
+      logger.warn('Recovery incomplete', { remaining });
+      return;
+    }
+
+    await recordWatchdogRecovery(db);
+    logger.info('Notification pipeline recovered');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    await recordWatchdogRecoveryFailure(db, message);
+    logger.error('Watchdog recovery failed', { error: message });
+  }
+}
+
 export function createNotificationHealthWatchdog(
   db: admin.firestore.Firestore,
 ) {
@@ -42,57 +94,6 @@ export function createNotificationHealthWatchdog(
       maxInstances: 1,
       region: 'europe-west3',
     },
-    async () => {
-      const deviceSnapshot = await db.collection(DEVICE_COLLECTION).get();
-      if (deviceSnapshot.empty) {
-        return;
-      }
-
-      const now = Date.now();
-      const health = await readNotificationHealth(db);
-      const stalls = describeStalls(health, now);
-
-      if (!stalls.length) {
-        return;
-      }
-
-      logger.warn('Notification pipeline stalled, attempting recovery', {
-        stalls,
-      });
-
-      try {
-        if (isStale(health.processPlanesLastSuccessAt, now)) {
-          if (isProcessPlanesLockHeld(health, now)) {
-            logger.info(
-              'processPlanes lock held, skipping watchdog recovery run',
-            );
-          } else {
-            await runNotificationProcessing(db);
-          }
-        }
-        if (isStale(health.collectAircraftLastSuccessAt, now)) {
-          await runAircraftCollection(db);
-        }
-
-        const after = await readNotificationHealth(db);
-        const remaining = describeStalls(after, now);
-        if (remaining.length) {
-          await recordWatchdogRecoveryFailure(
-            db,
-            `still stalled after recovery: ${remaining.join(', ')}`,
-          );
-          logger.warn('Recovery incomplete', { remaining });
-          return;
-        }
-
-        await recordWatchdogRecovery(db);
-        logger.info('Notification pipeline recovered');
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : String(error);
-        await recordWatchdogRecoveryFailure(db, message);
-        logger.error('Watchdog recovery failed', { error: message });
-      }
-    },
+    async () => runNotificationHealthWatchdog(db),
   );
 }

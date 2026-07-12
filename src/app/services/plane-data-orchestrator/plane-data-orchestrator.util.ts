@@ -1,6 +1,6 @@
 import { PlaneModel } from '../../models/plane-model';
-import { PlaneFilterService } from '../plane-filter.service';
-import { SettingsService } from '../settings.service';
+import { PlaneFilterService } from '../plane-filter/plane-filter.service';
+import { SettingsService } from '../settings/settings.service';
 
 export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;

@@ -1,0 +1,58 @@
+<form (submit)="onSubmit($event)" autocomplete="off">
+  <div class="form-group">
+    <app-input
+      #addressInput
+      type="text"
+      label="Address"
+      placeholder="Enter address to search"
+      [value]="facade.currentAddress"
+      (inputChange)="onAddressChange($event)"
+      (focusEvent)="onAddressFocus()"
+      (blurEvent)="onAddressBlur()"
+      autocomplete="off"
+    ></app-input>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label for="searchRadius">Search Radius</label>
+      <div class="radius-slider-container">
+        <input
+          #searchRadiusInput
+          type="range"
+          autocomplete="off"
+          id="searchRadius"
+          min="1"
+          max="200"
+          step="1"
+          [value]="getRadiusInKm()"
+          (input)="onRadiusSlide($event)"
+          (change)="onRadiusChange($event)"
+        />
+        <span class="radius-value">{{ displaySliderRadius }} {{ getDistanceUnitLabel() }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="button-group">
+    <app-button
+      id="useLocationButton"
+      text="Use my current location"
+      type="secondary"
+      (click)="useCurrentLocation.emit()"
+    ></app-button>
+    <app-button
+      id="setHomeButton"
+      text="Set this location as home"
+      type="secondary"
+      (click)="setHome.emit()"
+    ></app-button>
+    <app-button
+      id="goHomeButton"
+      text="Go to home"
+      type="secondary"
+      (click)="goToHome.emit()"
+    ></app-button>
+  </div>
+  <div class="location-tracking-status" *ngIf="facade.locationUpdate.isAutoUpdateRunning()">
+    Auto-location: {{ facade.lastLocationUpdateText }}
+  </div>
+</form>

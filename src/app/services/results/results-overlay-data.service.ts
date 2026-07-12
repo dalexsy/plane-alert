@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
-import { CountryService } from '../country.service';
+import { CountryService } from '../country/country.service';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 import {
   buildPlaneComparator,

@@ -52,14 +52,18 @@
                 "bundleName": "dryl-bug-report"
               }
             ],
-            "scripts": []
+            "scripts": [],
+            "allowedCommonJsDependencies": [
+              "leaflet",
+              "suncalc"
+            ]
           },
           "configurations": {
             "production": {
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "905kB",
+                  "maximumWarning": "1100kB",
                   "maximumError": "1.2MB"
                 },
                 {

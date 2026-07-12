@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-07-10T17:10:47.122Z",
+  "baseUrl": "http://127.0.0.1:4200",
+  "port": 4200,
+  "scheme": "http",
+  "route": "http://127.0.0.1:4200/",
+  "screenshot": "C:\\Users\\dalex\\Repos\\directory\\logs\\deploy-screenshots\\plane-alert\\localhost-_-1783703446919.png",
+  "quoteVisible": "Search Radius · Check Interval · Address — must-contain: Search Radius · Check Interval · Address — route / on http://127.0.0.1:4200/",
+  "mustContain": [
+    "Search Radius",
+    "Check Interval",
+    "Address"
+  ]
+}

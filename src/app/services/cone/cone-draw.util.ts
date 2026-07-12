@@ -15,7 +15,7 @@ export function buildVisibilityBands(
   const maxDistanceKm = DISTANCES_KM[DISTANCES_KM.length - 1];
   const maxPracticalAltitudeM = 10000;
   const C = maxPracticalAltitudeM / Math.pow(maxDistanceKm * 1000, 2);
-  const bands = DISTANCES_KM.map((outerKm, i) => {
+  const bands: PracticalVisibilityBand[] = DISTANCES_KM.map((outerKm, i) => {
     const innerKm = i === 0 ? 0 : DISTANCES_KM[i - 1];
     const practicalAltM = C * Math.pow(outerKm * 1000, 2);
     return { innerKm, outerKm, practicalAltM };

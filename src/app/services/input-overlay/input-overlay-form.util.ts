@@ -1,4 +1,4 @@
-import type { BrightnessState } from '../brightness.service';
+import type { BrightnessState } from '../brightness/brightness.service';
 
 export function inputOverlayBrightnessIcon(state: BrightnessState | null): string {
   if (!state) return 'brightness_empty';

@@ -5,8 +5,12 @@
 }
 
 .section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
   h4 {
-    margin: 0 0 10px 0;
+    margin: 0;
     font-size: 1em;
     font-weight: 500;
   }
@@ -14,8 +18,6 @@
   .section-desc {
     color: #ccc;
     font-size: var(--font-sm);
-    margin-bottom: 10px;
-
     a {
       color: #007bff;
       text-decoration: none;
@@ -51,7 +53,6 @@ textarea {
 .help-text {
   color: #888;
   font-size: var(--font-sm);
-  margin-top: var(--space-xs);
 }
 
 .slider-group {
