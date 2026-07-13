@@ -2,13 +2,13 @@
 // Operator Symbol Shared Styles
 // =============================================================================
 
-// Simple mixin for operator symbol styling
-@mixin operator-symbol($padding: 0) {
+// Inline size matches flag width (16px); map tooltips pass a larger $size.
+@mixin operator-symbol($padding: 0, $size: 1rem) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: $size;
+  height: $size;
   padding: $padding;
 
   img {

@@ -49,7 +49,7 @@
     top: -2.75rem;
 
     .operator-symbol {
-      @include op.operator-symbol();
+      @include op.operator-symbol(0, 1.5rem);
     }
   }
 }
@@ -64,9 +64,9 @@
 }
 
 .leaflet-tooltip .operator-symbol {
-  @include op.operator-symbol();
+  @include op.operator-symbol(0, 2rem);
 }
 
 .plane-tooltip-left-variant .operator-symbol {
-  @include op.operator-symbol();
+  @include op.operator-symbol(0, 2rem);
 }
