@@ -54,3 +54,6 @@ functions/.env
 functions/.env.local
 functions/firebase-admin.json
 functions/data/
+agent-tools/
+__pycache__/
+*.pyc
