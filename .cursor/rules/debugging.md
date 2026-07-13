@@ -65,5 +65,6 @@ Replace this table with symptoms **specific to plane-alert**. Fleet-generic chec
 | Public 502 / 522 / 530 | Pi service, tunnel, or DNS | See directory debugging notes |
 | CORS/`ERR_FAILED` flood to `cloudfunctions.net` on planes.dryl.io | Wrong bundle deployed (Firebase-era `feature/*` dist) or bypass deploy | Hard refresh; confirm `main-*.js` has no `cloudfunctions.net`; ship only `npm run deploy:dryl` from `main` after merge |
 | Missing history panel / wrong scan UI ("Update now") | `main` diverged from `feature/notifications` | Merge feature branch to `main` — never robocopy worktree `dist/` to production |
+| One phone gets Pushover alert, other misses same plane | Shared Pushover user key + per-device Firestore rows + account-level cooldown (`userKey__icao`) — first device wins, second skipped | Set `PUSHOVER_BROADCAST_ALL_DEVICES=true` in Pi `/home/pi/planes-api/.env`; restart `planes-api.service`. Logs show `Aircraft in cooldown, skipping` on the second device 1–2s after `Notification sent successfully` on the first |
 
 **After any failure:** append under a **Symptom** section (add one) or **Failed experiments** with date + what not to repeat.
