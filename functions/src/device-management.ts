@@ -1,14 +1,11 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import type { DeviceRegistration, Location } from './types';
+import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
 import {
-  sanitizeDeviceName,
-  getDeviceDocId,
   validatePushoverUserKey,
-  clampRadius,
 } from './utils';
 import { createDeviceDebugHandlers } from './device-management-debug';
 import {

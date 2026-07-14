@@ -1,7 +1,6 @@
 import { logger } from 'firebase-functions/v2';
 import fetch from 'node-fetch';
 import {
-  matchPushoverDeviceName,
   resolvePushoverDeliveryTarget,
 } from '@plane-alert/shared';
 import {
@@ -25,15 +24,6 @@ export function getPushoverApiToken(): string {
 }
 
 /**
- * When enabled, notifications are sent to all Pushover devices for a user key
- * instead of targeting only the Firestore-registered device name.
- */
-export function shouldBroadcastToAllDevices(): boolean {
-  const flag = process.env.PUSHOVER_BROADCAST_ALL_DEVICES?.trim().toLowerCase();
-  return flag === 'true' || flag === '1';
-}
-
-/**
  * Map a Firestore registration to a Pushover device for delivery.
  * Returns null when unmatched — callers must skip (never broadcast).
  */
@@ -47,9 +37,9 @@ export function resolvePushoverDeviceName(
     return null;
   }
 
-  // Pushover validate failed — use the device name stored at registration.
+  // Pushover validate failed — we can't safely target a specific opted-in device.
   if (registeredDevices == null) {
-    return trimmed;
+    return null;
   }
 
   if (!registeredDevices.size) {
