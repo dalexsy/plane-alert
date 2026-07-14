@@ -88,6 +88,9 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
         client,
         f"cp -a {STAGING}/. {REMOTE_ROOT}/",
     )
+    # npm can keep stale `file:` deps around (esp. @plane-alert/shared).
+    # Force a reinstall so new shared exports land on the Pi.
+    run_remote(client, f"rm -rf {REMOTE_ROOT}/node_modules/@plane-alert/shared")
     run_remote(client, f"cd {REMOTE_ROOT} && npm install --omit=dev")
     run_remote(
         client,

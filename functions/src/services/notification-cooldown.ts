@@ -6,13 +6,17 @@ function normalizeCooldownIcao(icao: string): string {
   return icao.trim().toUpperCase();
 }
 
+function normalizeCooldownDeviceName(deviceName: string): string {
+  return (deviceName ?? '').trim().toLowerCase();
+}
+
 /**
  * Check if notification should be sent and atomically mark as notified if allowed
  * Uses Firestore transactions to prevent duplicate notifications
  *
  * @param db - Firestore database instance
  * @param userKey - Pushover user key
- * @param deviceName - Pushover device name (legacy per-device cooldown lookup only)
+ * @param deviceName - Pushover device name (scoped cooldown key)
  * @param icao - Aircraft ICAO hex code
  * @param cooldownMs - Cooldown period in milliseconds
  */
@@ -28,10 +32,14 @@ export async function checkAndMarkNotified(
     return false;
   }
 
-  // One cooldown per user+ICAO so duplicate registrations cannot double-notify.
-  const cooldownId = `${userKey}__${normalizedIcao}`;
+  // Cooldown should be per household device so two opted-in phones both notify.
+  // When deviceName is empty (broadcast), it falls back to a per-user cooldown.
+  const normalizedDevice = normalizeCooldownDeviceName(deviceName);
+  const cooldownId = normalizedDevice
+    ? `${userKey}__${normalizedDevice}__${normalizedIcao}`
+    : `${userKey}__${normalizedIcao}`;
   const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
-  const legacyCooldownRef = deviceName
+  const legacyCooldownRef = normalizedDevice
     ? db
         .collection(COOLDOWN_COLLECTION)
         .doc(`${userKey}__${deviceName}__${normalizedIcao}`)
@@ -135,7 +143,7 @@ export async function checkAndMarkNotified(
 export async function releaseNotificationClaim(
   db: admin.firestore.Firestore,
   userKey: string,
-  _deviceName: string,
+  deviceName: string,
   icao: string
 ): Promise<void> {
   const normalizedIcao = normalizeCooldownIcao(icao);
@@ -143,7 +151,10 @@ export async function releaseNotificationClaim(
     return;
   }
 
-  const cooldownId = `${userKey}__${normalizedIcao}`;
+  const normalizedDevice = normalizeCooldownDeviceName(deviceName);
+  const cooldownId = normalizedDevice
+    ? `${userKey}__${normalizedDevice}__${normalizedIcao}`
+    : `${userKey}__${normalizedIcao}`;
 
   try {
     await db.collection(COOLDOWN_COLLECTION).doc(cooldownId).delete();

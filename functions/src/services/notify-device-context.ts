@@ -6,7 +6,6 @@ import {
   inferDeviceName,
   resolvePushoverDeviceName,
   sanitizeDeviceName,
-  shouldBroadcastToAllDevices,
 } from '../utils';
 import { resolveAircraftForNotification } from './resolve-aircraft-for-notification';
 import { getDeviceLocation } from './notification-snapshot-cache';
@@ -16,7 +15,6 @@ export interface NotifyDeviceContext {
   deviceLocation: { lat: number; lon: number };
   pushoverTargetDeviceName: string;
   cooldownDeviceName: string;
-  deliverToAllDevices: boolean;
   radiusKm: number;
   aircraft: Awaited<ReturnType<typeof resolveAircraftForNotification>>;
 }
@@ -29,7 +27,6 @@ export async function buildNotifyDeviceContext(
   registeredPushoverDevices?: Set<string> | null,
   cachedSnapshot?: CachedAircraftSnapshot
 ): Promise<NotifyDeviceContext | null> {
-  const broadcastAllDevices = shouldBroadcastToAllDevices();
   const deviceLocation = getDeviceLocation(data);
   if (!data.pushoverUserKey || !deviceLocation) {
     return null;
@@ -46,18 +43,14 @@ export async function buildNotifyDeviceContext(
     data.deviceSlug = slug;
   }
 
-  const pushoverTargetName = broadcastAllDevices
-    ? ''
-    : resolvePushoverDeviceName(
-        data.deviceName || '',
-        registeredPushoverDevices,
-        data.platform
-      );
+  const pushoverTargetName = resolvePushoverDeviceName(
+    data.deviceName || '',
+    registeredPushoverDevices,
+    data.platform
+  );
 
-  const deliverToAllDevices = broadcastAllDevices || pushoverTargetName === null;
-
-  if (!broadcastAllDevices && pushoverTargetName === null) {
-    logger.warn('No Pushover device match; broadcasting to all account devices', {
+  if (pushoverTargetName === null) {
+    logger.warn('No Pushover device match; skipping this registration', {
       docId,
       userKey: data.pushoverUserKey.slice(0, 8),
       firestoreDeviceName: data.deviceName,
@@ -65,10 +58,10 @@ export async function buildNotifyDeviceContext(
         ? [...registeredPushoverDevices]
         : [],
     });
+    return null;
   }
 
   if (
-    !broadcastAllDevices &&
     pushoverTargetName &&
     pushoverTargetName !== data.deviceName
   ) {
@@ -83,13 +76,13 @@ export async function buildNotifyDeviceContext(
     docId,
     userKey: data.pushoverUserKey.slice(0, 8),
     deviceName: data.deviceName,
-    broadcastAllDevices: deliverToAllDevices,
+    pushoverDeviceName: pushoverTargetName,
     radiusKm: data.radiusKm,
     notifyProximity: data.notifyProximity,
     ignoredTypesCount: data.ignoredTypes?.length || 0,
   });
 
-  const pushoverTargetDeviceName = deliverToAllDevices ? '' : pushoverTargetName || '';
+  const pushoverTargetDeviceName = pushoverTargetName;
   const radiusKm = clampRadius(data.radiusKm);
   const aircraft = await resolveAircraftForNotification(
     deviceLocation,
@@ -110,7 +103,6 @@ export async function buildNotifyDeviceContext(
     deviceLocation,
     pushoverTargetDeviceName,
     cooldownDeviceName: pushoverTargetDeviceName,
-    deliverToAllDevices,
     radiusKm,
     aircraft,
   };

@@ -5,12 +5,10 @@ import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import {
   validatePushoverUserKey,
-  shouldBroadcastToAllDevices,
 } from './utils';
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import {
   dedupeDeviceRegistrationsByPushoverTarget,
-  dedupeToOneRegistrationPerUser,
 } from './services/dedupe-device-registrations';
 import { processDevicesWithSnapshotCache } from './services/process-devices-notifications';
 import {
@@ -40,8 +38,6 @@ export async function runNotificationProcessing(
 async function runNotificationProcessingBody(
   db: admin.firestore.Firestore,
 ): Promise<void> {
-  const broadcastAllDevices = shouldBroadcastToAllDevices();
-
   const snapshot = await db.collection(DEVICE_COLLECTION).get();
   if (snapshot.empty) {
     logger.info('No registered devices.');
@@ -129,12 +125,10 @@ async function runNotificationProcessingBody(
     }
   }
 
-  const dedupeResult = broadcastAllDevices
-    ? dedupeToOneRegistrationPerUser(activeDevices)
-    : dedupeDeviceRegistrationsByPushoverTarget(
-        activeDevices,
-        registeredDevicesByUserKey,
-      );
+  const dedupeResult = dedupeDeviceRegistrationsByPushoverTarget(
+    activeDevices,
+    registeredDevicesByUserKey,
+  );
 
   const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
@@ -142,7 +136,6 @@ async function runNotificationProcessingBody(
     await Promise.all(duplicateRefs.map((ref) => ref.delete()));
     logger.info('Pruned duplicate device registrations', {
       pruned: duplicateRefs.length,
-      broadcastAllDevices,
     });
   }
 
@@ -150,27 +143,19 @@ async function runNotificationProcessingBody(
     logger.info('Deduped device registrations before notify', {
       before: activeDevices.length,
       after: devicesToProcess.length,
-      broadcastAllDevices,
     });
   }
 
   if (activeDevices.length > 0 && devicesToProcess.length === 0) {
     logger.warn('No device registrations resolved for notification delivery', {
       registeredCount: activeDevices.length,
-      broadcastAllDevices,
-    });
-  }
-
-  if (broadcastAllDevices) {
-    logger.info('Broadcast mode: processing deduped devices', {
-      deviceCount: devicesToProcess.length,
     });
   }
 
   await processDevicesWithSnapshotCache(
     db,
     devicesToProcess,
-    broadcastAllDevices ? undefined : getRegisteredPushoverDevices,
+    getRegisteredPushoverDevices,
   );
   await recordProcessPlanesSuccess(db);
 }

@@ -13,21 +13,21 @@ export async function seedDefaultDeviceRegistrations(
   db: admin.firestore.Firestore,
 ): Promise<number> {
   const snapshot = await db.collection(DEVICE_COLLECTION).get();
-  const hasHouseholdRegistration = snapshot.docs.some((doc) => {
-    const data = doc.data() as DeviceRegistration;
-    return data.pushoverUserKey === PUSHOVER_USER_KEY;
-  });
-
-  if (hasHouseholdRegistration) {
-    return 0;
-  }
+  const existingIds = new Set(snapshot.docs.map((doc) => doc.id));
 
   const timestamp = Date.now();
   let seeded = 0;
 
-  for (const deviceName of DEFAULT_PUSH_DEVICE_NAMES) {
+  const deviceNames = Array.isArray(DEFAULT_PUSH_DEVICE_NAMES)
+    ? DEFAULT_PUSH_DEVICE_NAMES
+    : [];
+
+  for (const deviceName of deviceNames) {
     const deviceSlug = sanitizeDeviceName(deviceName);
     const docId = getDeviceDocId(PUSHOVER_USER_KEY, deviceName);
+    if (existingIds.has(docId)) {
+      continue;
+    }
     const doc: DeviceRegistration = {
       pushoverUserKey: PUSHOVER_USER_KEY,
       platform: 'auto-synced',
