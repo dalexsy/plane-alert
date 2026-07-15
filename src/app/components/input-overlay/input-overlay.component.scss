@@ -1,4 +1,4 @@
-﻿.options-overlay {
+.options-overlay {
   position: absolute;
   top: 0.25rem;
   left: 2.75rem;
@@ -9,13 +9,18 @@
   border-radius: 0 0.5rem 0.5rem 0;
   backdrop-filter: blur(0.5rem);
   overflow: visible;
+  // Mobile: sheet, not full-screen takeover (was 100vh and covered results/map)
   width: calc(100vw - 3rem);
-  height: calc(100vh - 0.5rem);
+  height: auto;
+  max-height: min(42dvh, 22rem);
+  overflow-y: auto;
 
   @media (min-width: 601px) {
     padding: 1rem;
     width: 25rem;
     height: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .top-buttons {
@@ -30,12 +35,19 @@
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-right: none;
     min-height: 3rem;
-    max-height: calc(100vh - 0.5rem);
+    // Match panel height — do not stretch full viewport on mobile
+    max-height: min(42dvh, 22rem);
+    overflow-y: auto;
+
+    @media (min-width: 601px) {
+      max-height: calc(100vh - 0.5rem);
+    }
   }
 
   &.collapsed {
     width: 0;
     padding: 0;
+    max-height: none;
     background: transparent;
     border-color: transparent;
     backdrop-filter: none;
@@ -45,12 +57,19 @@
       height: auto;
       min-height: 3rem;
       max-height: none;
+      overflow: visible;
     }
   }
 }
 
+// Mobile: expanded options rail is content-sized, not full viewport
 .options-overlay:not(.collapsed) > .top-buttons {
-  height: calc(100vh - 0.5rem);
+  height: auto;
+
+  @media (min-width: 601px) {
+    height: auto;
+    max-height: calc(100vh - 0.5rem);
+  }
 }
 
 .options-overlay.collapsed > .top-buttons {
@@ -66,4 +85,3 @@
     display: block;
   }
 }
-

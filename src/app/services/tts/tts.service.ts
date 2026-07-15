@@ -6,6 +6,10 @@ import {
   selectVoicesForLanguages,
 } from './tts-speech.util';
 
+/**
+ * Browser speechSynthesis requires a user gesture before autoplay.
+ * Auto-announce without gesture throws TTS Error: not-allowed (console spam).
+ */
 @Injectable({ providedIn: 'root' })
 export class TtsService {
   private spokenKeys = new Set<string>();
@@ -13,17 +17,18 @@ export class TtsService {
   private speechQueue: Array<{ key: string; text: string; lang?: string }> = [];
   private isCurrentlySpeaking = false;
   private voicesInitialized = false;
+  private userUnlocked = false;
 
   constructor() {
     this.initializeVoices();
+    this.armUserGestureUnlock();
 
-    window.speechSynthesis.onvoiceschanged = () => {
-      if (!this.voicesInitialized) {
-        this.initializeVoices();
-      }
-    };
-
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        if (!this.voicesInitialized) {
+          this.initializeVoices();
+        }
+      };
       (window as any).testTTS = () => this.test();
       (window as any).clearTTSCache = () => this.clearSpokenKeys();
       (window as any).testGermanTTS = () => this.testGerman();
@@ -31,34 +36,46 @@ export class TtsService {
     }
   }
 
+  private armUserGestureUnlock(): void {
+    if (typeof window === 'undefined') return;
+    const unlock = () => {
+      this.userUnlocked = true;
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      window.removeEventListener('touchend', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('touchend', unlock, { once: true, passive: true });
+  }
+
   private initializeVoices(): void {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
     const allVoices = window.speechSynthesis.getVoices();
     if (allVoices.length === 0) return;
 
-    this.usedVoices = selectVoicesForLanguages(
-      allVoices,
-      SUPPORTED_TTS_LANGUAGES
-    );
+    this.usedVoices = selectVoicesForLanguages(allVoices, SUPPORTED_TTS_LANGUAGES);
     this.voicesInitialized = true;
   }
 
   speak(text: string, lang?: string): void {
-    if (!window.speechSynthesis) {
-      console.warn('TTS: SpeechSynthesis not supported in this browser.');
-      return;
-    }
-
+    if (!window.speechSynthesis) return;
     this.speakImmediately(text, lang);
   }
 
   private speakImmediately(text: string, lang?: string): void {
+    if (!window.speechSynthesis) return;
+    // Gate autoplay until a user gesture — prevents not-allowed console errors
+    if (!this.userUnlocked) {
+      return;
+    }
+
     window.speechSynthesis.cancel();
     this.isCurrentlySpeaking = true;
 
     setTimeout(() => {
       const processedText = preprocessTextForSpeech(text);
       const utterance = new SpeechSynthesisUtterance(processedText);
-
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
@@ -66,13 +83,14 @@ export class TtsService {
       if (lang) {
         utterance.lang = lang;
         const voice = resolveVoiceForLanguage(lang, this.usedVoices);
-        if (voice) {
-          utterance.voice = voice;
-        }
+        if (voice) utterance.voice = voice;
       }
 
       utterance.onerror = (event) => {
-        console.error('TTS Error:', event.error, 'for text:', text);
+        // not-allowed = no user gesture; interrupted = cancel — not app bugs
+        if (event.error !== 'not-allowed' && event.error !== 'interrupted') {
+          console.error('TTS Error:', event.error, 'for text:', text);
+        }
         this.isCurrentlySpeaking = false;
         this.processQueue();
       };
@@ -81,23 +99,24 @@ export class TtsService {
         this.processQueue();
       };
 
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        setTimeout(() => {
+      try {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+        } else {
           window.speechSynthesis.speak(utterance);
-        }, 100);
-      } else {
-        window.speechSynthesis.speak(utterance);
+        }
+      } catch {
+        this.isCurrentlySpeaking = false;
+        this.processQueue();
       }
     }, 100);
   }
 
   speakOnce(key: string, text: string, lang?: string): void {
-    if (this.spokenKeys.has(key)) {
-      return;
-    }
-
+    if (this.spokenKeys.has(key)) return;
     this.spokenKeys.add(key);
+    if (!this.userUnlocked) return;
     if (this.isCurrentlySpeaking) {
       this.speechQueue.push({ key, text, lang });
     } else {
@@ -108,13 +127,12 @@ export class TtsService {
   private processQueue(): void {
     if (this.speechQueue.length > 0 && !this.isCurrentlySpeaking) {
       const next = this.speechQueue.shift();
-      if (next) {
-        this.speakImmediately(next.text, next.lang);
-      }
+      if (next) this.speakImmediately(next.text, next.lang);
     }
   }
 
   test(): void {
+    this.userUnlocked = true;
     this.speak('Testing text to speech', 'en-US');
   }
 
@@ -125,7 +143,7 @@ export class TtsService {
   }
 
   cancelAll(): void {
-    window.speechSynthesis.cancel();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     this.speechQueue.length = 0;
     this.isCurrentlySpeaking = false;
   }
@@ -135,23 +153,17 @@ export class TtsService {
   }
 
   testGerman(): void {
+    this.userUnlocked = true;
     this.speak('Luftwaffe', 'de-DE');
   }
 
   listAvailableVoices(): void {
-    const allVoices = window.speechSynthesis.getVoices();
+    const allVoices = window.speechSynthesis?.getVoices() ?? [];
     console.log('All available TTS voices:');
     allVoices.forEach((voice, index) => {
       console.log(
-        `${index + 1}. ${voice.name} (${voice.lang}) - Local: ${
-          voice.localService
-        }`
+        `${index + 1}. ${voice.name} (${voice.lang}) - Local: ${voice.localService}`,
       );
-    });
-
-    console.log('\nCurrently cached voices:');
-    this.usedVoices.forEach((voice, lang) => {
-      console.log(`${lang}: ${voice.name} (${voice.lang})`);
     });
   }
 }

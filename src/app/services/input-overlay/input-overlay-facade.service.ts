@@ -49,6 +49,14 @@ export class InputOverlayFacadeService {
   toggleCollapsed(cdr: ChangeDetectorRef): void {
     this.collapsed = !this.collapsed;
     this.settings.setInputOverlayCollapsed(this.collapsed);
+    // Mobile: one expanded panel at a time — settings vs results
+    if (
+      !this.collapsed &&
+      typeof window !== 'undefined' &&
+      window.innerWidth <= 600
+    ) {
+      this.settings.setResultsOverlayCollapsed(true);
+    }
     cdr.detectChanges();
   }
 

@@ -20,6 +20,14 @@ export class ResultsOverlayActionsService {
   toggleCollapsed(facade: ResultsOverlayFacadeCore, cdr: ChangeDetectorRef): void {
     facade.collapsed = !facade.collapsed;
     facade.settings.setResultsOverlayCollapsed(facade.collapsed);
+    // Mobile: one expanded panel at a time — results vs settings
+    if (
+      !facade.collapsed &&
+      typeof window !== 'undefined' &&
+      window.innerWidth <= 600
+    ) {
+      facade.settings.setInputOverlayCollapsed(true);
+    }
     cdr.detectChanges();
   }
 

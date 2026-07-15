@@ -11,14 +11,14 @@
   display: flex;
   flex-direction: column;
   height: fit-content;
-  min-height: 18rem;
-  overflow: visible;
+  min-height: 12rem;
+  overflow: hidden;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
-  // Mobile first: leave room for fixed window-view (4rem + 0.5rem bottom) so the list is not covered.
+  // Mobile: leave room for window-view + left tool rail; do not cover full map
   max-height: calc(100dvh - 5.5rem);
-  width: calc(100vw - 3rem);
+  width: calc(100vw - 3.5rem);
 
   &:hover {
     z-index: 1005;
@@ -31,7 +31,9 @@
 
   @media (min-width: 601px) {
     width: 25rem;
+    min-height: 18rem;
     max-height: calc(100vh - 11rem);
+    overflow: visible;
   }
 
   .top-buttons {
