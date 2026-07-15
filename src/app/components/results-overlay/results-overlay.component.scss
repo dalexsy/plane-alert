@@ -16,7 +16,8 @@
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
-  max-height: calc(100vh - 0.5rem);
+  // Mobile first: leave room for fixed window-view (4rem + 0.5rem bottom) so the list is not covered.
+  max-height: calc(100dvh - 5.5rem);
   width: calc(100vw - 3rem);
 
   &:hover {
@@ -77,8 +78,13 @@
     flex: 1 1 calc(100% - 3rem);
   }
 
+  // Window view hidden: use full viewport height again.
   &.window-view-closed {
-    max-height: calc(100vh - 0.5rem);
+    max-height: calc(100dvh - 0.5rem);
+
+    @media (min-width: 601px) {
+      max-height: calc(100vh - 0.5rem);
+    }
   }
 }
 

@@ -13,8 +13,13 @@
   justify-content: flex-end;
   transition: padding-left 0.3s ease, padding-right 0.3s ease;
 
+  // Match window-view-overlay heights (mobile 4rem + 0.5rem; desktop 10rem + 0.5rem).
   &:not(.window-view-hidden) {
-    height: calc(100% - 11rem);
+    height: calc(100% - 4.5rem);
+
+    @media (min-width: 601px) {
+      height: calc(100% - 11rem);
+    }
   }
 
   &.window-view-hidden {

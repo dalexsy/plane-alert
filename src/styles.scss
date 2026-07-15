@@ -36,6 +36,17 @@ body {
     auto;
 }
 
+// Bug-hunter FAB sits in bottom-right; when the window view strip is open it must
+// sit above that band (mobile 4rem + 0.5rem gap; desktop 10rem + 0.5rem).
+body:has(.window-view-overlay) #dryl-corner-stack,
+body:has(.window-view-overlay) .dryl-corner-stack {
+  inset-block-end: calc(4.5rem + max(0.75rem, env(safe-area-inset-bottom)));
+
+  @media (min-width: 601px) {
+    inset-block-end: calc(10.5rem + max(0.75rem, env(safe-area-inset-bottom)));
+  }
+}
+
 img,
 picture,
 video,
