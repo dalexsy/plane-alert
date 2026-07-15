@@ -20,6 +20,11 @@ export class ResultsOverlayActionsService {
   toggleCollapsed(facade: ResultsOverlayFacadeCore, cdr: ChangeDetectorRef): void {
     facade.collapsed = !facade.collapsed;
     facade.settings.setResultsOverlayCollapsed(facade.collapsed);
+    // Opening results always shows the right icon rail
+    if (!facade.collapsed && facade.otherControlsHidden) {
+      facade.otherControlsHidden = false;
+      facade.settings.setResultsOverlayControlsHidden(false);
+    }
     // Mobile: one expanded panel at a time — results vs settings
     if (
       !facade.collapsed &&

@@ -67,6 +67,10 @@ export function applyMobileOverlayCaps(s: SettingsState): void {
   if (!s._inputOverlayCollapsed && !s._resultsOverlayCollapsed) {
     s._resultsOverlayCollapsed = true;
   }
+  // Always show left/right icon rails on mobile — "hide controls" was leaving
+  // only a chevron and looking like the sidebars were destroyed.
+  s._inputOverlayOtherControlsHidden = false;
+  s._resultsOverlayOtherControlsHidden = false;
 }
 
 export function loadSettingsFromStorage(s: SettingsState): void {

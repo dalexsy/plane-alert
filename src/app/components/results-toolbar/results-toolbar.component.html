@@ -9,7 +9,8 @@
     tooltipPosition="left"
     (click)="toggleOtherControls.emit()"
   ></app-button>
-  <ng-container *ngIf="!facade.otherControlsHidden">
+  <!-- Full icon stack when results panel is open, or when user has not hidden controls -->
+  <ng-container *ngIf="!facade.collapsed || !facade.otherControlsHidden">
     <app-button
       class="collapse-toggle"
       [icon]="facade.collapsed ? 'right_panel_open' : 'right_panel_close'"

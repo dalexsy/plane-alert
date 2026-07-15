@@ -49,6 +49,11 @@ export class InputOverlayFacadeService {
   toggleCollapsed(cdr: ChangeDetectorRef): void {
     this.collapsed = !this.collapsed;
     this.settings.setInputOverlayCollapsed(this.collapsed);
+    // Opening the panel always shows the left icon rail (never leave form open with icons hidden)
+    if (!this.collapsed && this.otherControlsHidden) {
+      this.otherControlsHidden = false;
+      this.settings.setInputOverlayControlsHidden(false);
+    }
     // Mobile: one expanded panel at a time — settings vs results
     if (
       !this.collapsed &&
@@ -63,8 +68,12 @@ export class InputOverlayFacadeService {
   toggleOtherControls(cdr: ChangeDetectorRef): void {
     this.otherControlsHidden = !this.otherControlsHidden;
     this.settings.setInputOverlayControlsHidden(this.otherControlsHidden);
+    // Show controls → open panel; hide controls → collapse panel (map space)
     if (!this.otherControlsHidden && this.collapsed) this.toggleCollapsed(cdr);
-    else if (this.otherControlsHidden && !this.collapsed) this.toggleCollapsed(cdr);
+    else if (this.otherControlsHidden && !this.collapsed) {
+      this.collapsed = true;
+      this.settings.setInputOverlayCollapsed(true);
+    }
     cdr.detectChanges();
   }
 

@@ -8,7 +8,9 @@
     [appTooltip]="facade.otherControlsHidden ? 'Show controls' : 'Hide controls'"
     (click)="toggleOtherControls.emit()"
   ></app-button>
-  <ng-container *ngIf="!facade.otherControlsHidden">
+  <!-- Full icon stack whenever the options panel is open; hide only when
+       panel is collapsed AND user chose "hide controls". -->
+  <ng-container *ngIf="!facade.collapsed || !facade.otherControlsHidden">
     <app-button
       class="collapse-toggle"
       [icon]="facade.collapsed ? 'left_panel_open' : 'left_panel_close'"
