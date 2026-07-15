@@ -12,8 +12,7 @@
   flex-direction: column;
   height: fit-content;
   min-height: 10rem;
-  // Outer shell overflow:visible so the right icon rail (right: -40px)
-  // is not clipped. Lists scroll in .middle-section / seen list.
+  // Never clip — right rail hangs at right: -40px outside this box
   overflow: visible;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
@@ -36,18 +35,20 @@
     max-height: calc(100vh - 11rem);
   }
 
-  .top-buttons {
+  // Positioning shell for the right icon rail
+  > .top-buttons {
     position: absolute;
     right: -40px;
     top: -1px;
-    border-radius: 0 0.5rem 0.5rem 0;
     display: flex;
     flex-direction: column;
-    z-index: 1006;
-    background: rgba(0, 0, 0, 0.7);
-    border: 1px solid rgb(255 255 255 / 40%);
-    // Rail always paints above map / window strip
+    z-index: 1100;
+    width: max-content;
+    height: auto;
     overflow: visible;
+    background: transparent;
+    border: none;
+    border-radius: 0;
   }
 
   &:not(.collapsed) > *:first-child:not(.top-buttons) {

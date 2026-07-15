@@ -8,8 +8,7 @@
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0 0.5rem 0.5rem 0;
   backdrop-filter: blur(0.5rem);
-  // Outer shell must stay overflow:visible so the left icon rail
-  // (left: -2.5rem) is not clipped. Scroll the form host instead.
+  // Never clip — left rail hangs at left: -2.5rem outside this box
   overflow: visible;
   width: calc(100vw - 3rem);
   height: auto;
@@ -18,26 +17,24 @@
   @media (min-width: 601px) {
     padding: 1rem;
     width: 25rem;
-    height: auto;
     max-height: none;
   }
 
-  .top-buttons {
+  // Positioning shell for the left icon rail (not the scrolling pane)
+  > .top-buttons {
     position: absolute;
     top: -1px;
     left: -2.5rem;
     display: flex;
     flex-direction: column;
-    z-index: 900;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 0.5rem 0 0 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-right: none;
-    min-height: 3rem;
+    z-index: 1100;
+    width: max-content;
     height: auto;
+    min-height: 3rem;
     max-height: min(42dvh, 22rem);
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: visible;
+    background: transparent;
+    border: none;
 
     @media (min-width: 601px) {
       max-height: calc(100vh - 0.5rem);
@@ -53,8 +50,7 @@
     backdrop-filter: none;
     overflow: visible;
 
-    .top-buttons {
-      height: auto;
+    > .top-buttons {
       min-height: 3rem;
       max-height: none;
       overflow: visible;
@@ -62,10 +58,10 @@
   }
 }
 
-// Form scrolls inside the sheet; rail stays outside the clip box
+// Scroll only the form body — never the rail
 .options-overlay:not(.collapsed) > app-input-overlay-form {
   display: block;
-  max-height: min(42dvh, 22rem);
+  max-height: min(38dvh, 20rem);
   overflow-x: hidden;
   overflow-y: auto;
 
@@ -73,14 +69,6 @@
     max-height: none;
     overflow: visible;
   }
-}
-
-.options-overlay:not(.collapsed) > .top-buttons {
-  height: auto;
-}
-
-.options-overlay.collapsed > .top-buttons {
-  height: auto;
 }
 
 ::ng-deep [appTooltip]:hover::after {

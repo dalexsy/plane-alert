@@ -1,60 +1,42 @@
+// In-flow icon stack. Parent overlay (.options / .results .top-buttons)
+// is position:absolute and hangs the rail off the pane. Do NOT make this
+// absolute — that zeroed the parent width and clipped every icon.
 .top-buttons {
-  position: absolute;
-  top: -1px;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  width: max-content;
+  height: auto;
   z-index: 900;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgb(255 255 255 / 40%);
-  // Content-height only — never 100vh (full-page rail ate the map)
-  height: auto;
-  overflow: visible;
-}
-
-.left,
-.right {
-  top: -0.5px;
-  // Do not use overflow:hidden here — it clips multi-icon stacks
-  overflow: visible;
 }
 
 .left {
-  left: -2px;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   border-right: none;
 }
 
 .right {
-  right: -2px;
-  top: -0.5px;
   border-radius: 0 0.5rem 0.5rem 0;
   border-left: none;
 }
 
-/* Collapsed: keep absolute placement, hug icon stack */
 :host-context(.collapsed) .top-buttons,
 .collapsed > .top-buttons {
-  position: absolute;
-  height: auto;
-  overflow: visible;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0.5rem;
 }
 
 :host-context(.options-overlay) .top-buttons.left {
-  height: auto;
   border-bottom-right-radius: 0;
 }
 
 :host-context(.options-overlay.collapsed) .top-buttons.left {
-  height: auto;
   border-bottom-right-radius: 0.5rem;
 }
 
 @media (min-width: 601px) {
   :host-context(.options-overlay) .top-buttons.left {
-    height: auto;
     border-bottom-right-radius: 0.5rem;
   }
 }
