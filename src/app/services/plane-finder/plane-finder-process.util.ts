@@ -85,6 +85,28 @@ export function processPlaneFinderAircraft(params: {
     }
 
     const userUnit = settings.distanceUnit as DistanceUnit;
+    // Seed previous ADS-B from history so onion-skin has a prior fix after throttle
+    if (planeModel.marker && planeModel.positionHistory?.length >= 2) {
+      const prev =
+        planeModel.positionHistory[planeModel.positionHistory.length - 2];
+      (planeModel.marker as any).__paLastAdsB = {
+        lat: prev.lat,
+        lon: prev.lon,
+      };
+    } else if (planeModel.marker && planeModel.lat != null && planeModel.lon != null) {
+      // Before model lat/lon were overwritten, createOrUpdate already assigned new lat —
+      // use marker latlng as previous when history is thin
+      const cur = planeModel.marker.getLatLng();
+      if (
+        Math.abs(cur.lat - processedData.lat) > 1e-6 ||
+        Math.abs(cur.lng - processedData.lon) > 1e-6
+      ) {
+        (planeModel.marker as any).__paLastAdsB = {
+          lat: cur.lat,
+          lon: cur.lng,
+        };
+      }
+    }
     const marker = planeVisualizationService.createPlaneMarker(
       planeModel,
       map,

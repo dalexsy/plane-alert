@@ -67,8 +67,8 @@ export class PlaneVisualizationService {
       isSpecial, isUnknown, altitude, false, this.settings.interval, icao, callsign,
       this.operatorTooltipService,
       planeData,
-      this.settings.animationsEnabled,
-      this.settings.showGhostPosition
+      this.settings.animationsEnabled !== false,
+      this.settings.showGhostPosition !== false
     );
     if (altitude != null) {
       const tooltipEl = marker.getTooltip()?.getElement();

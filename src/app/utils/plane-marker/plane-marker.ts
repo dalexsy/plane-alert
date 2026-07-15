@@ -108,16 +108,21 @@ export function createOrUpdatePlaneMarker(
   if (oldMarker) {
     const currentLatLng = oldMarker.getLatLng();
     const newLatLng = L.latLng(lat, lon);
-    const hasPositionChanged =
-      Math.abs(currentLatLng.lat - lat) > 0.000001 ||
-      Math.abs(currentLatLng.lng - lon) > 0.000001;
     const prevAdsB = (oldMarker as any).__paLastAdsB as
       | { lat: number; lon: number }
       | undefined;
+    const leafletMoved =
+      Math.abs(currentLatLng.lat - lat) > 0.000001 ||
+      Math.abs(currentLatLng.lng - lon) > 0.000001;
+    const adsBMoved =
+      !!prevAdsB &&
+      (Math.abs(prevAdsB.lat - lat) > 0.00005 ||
+        Math.abs(prevAdsB.lon - lon) > 0.00005);
+    const hasPositionChanged = leafletMoved || adsBMoved;
     (oldMarker as any).__paLastAdsB = { lat, lon };
 
-    // Onion-skin stays at previous ADS-B fix for the whole scan interval (not only mid-lerp)
-    if (showGhostPosition && prevAdsB && hasPositionChanged) {
+    // Onion-skin stays at previous ADS-B fix for the whole scan interval
+    if (showGhostPosition && prevAdsB && adsBMoved) {
       updateGhostMarker(
         oldMarker,
         map,
