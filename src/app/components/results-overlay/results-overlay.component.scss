@@ -16,8 +16,8 @@
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
-  // Mobile sheet: leave map majority + window strip (~4rem) free
-  max-height: min(36dvh, 16rem);
+  // Mobile: sheet over map — not full-screen (was ~100dvh and ate the map)
+  max-height: min(48dvh, 22rem);
   width: calc(100vw - 3.5rem);
 
   &:hover {
@@ -80,9 +80,9 @@
     flex: 1 1 calc(100% - 3rem);
   }
 
-  // Window view hidden: still a sheet on mobile (map stays usable).
+  // Window view hidden: still keep mobile as a sheet so map stays usable.
   &.window-view-closed {
-    max-height: min(40dvh, 18rem);
+    max-height: min(52dvh, 24rem);
 
     @media (min-width: 601px) {
       max-height: calc(100vh - 0.5rem);

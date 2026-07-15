@@ -3,24 +3,22 @@
   top: 0.25rem;
   left: 2.75rem;
   z-index: 1001;
-  display: flex;
-  flex-direction: column;
   background: rgba(0, 0, 0, 0.7);
-  // Flex gap only (no padding/margin) — sheet sits over map
-  gap: 0.5rem;
+  padding: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0 0.5rem 0.5rem 0;
   backdrop-filter: blur(0.5rem);
-  // Mobile sheet: leave most of the map visible (window strip ~4rem at bottom)
+  overflow: visible;
+  // Mobile: sheet, not full-screen takeover (was 100vh and covered results/map)
   width: calc(100vw - 3rem);
   height: auto;
-  max-height: min(34dvh, 16rem);
-  overflow-x: hidden;
+  max-height: min(42dvh, 22rem);
   overflow-y: auto;
 
   @media (min-width: 601px) {
-    gap: 1rem;
+    padding: 1rem;
     width: 25rem;
+    height: auto;
     max-height: none;
     overflow-y: visible;
   }
@@ -37,8 +35,8 @@
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-right: none;
     min-height: 3rem;
-    height: auto;
-    max-height: min(34dvh, 16rem);
+    // Match panel height ΓÇö do not stretch full viewport on mobile
+    max-height: min(42dvh, 22rem);
     overflow-y: auto;
 
     @media (min-width: 601px) {
@@ -48,7 +46,7 @@
 
   &.collapsed {
     width: 0;
-    gap: 0;
+    padding: 0;
     max-height: none;
     background: transparent;
     border-color: transparent;
@@ -64,21 +62,18 @@
   }
 }
 
+// Mobile: expanded options rail is content-sized, not full viewport
 .options-overlay:not(.collapsed) > .top-buttons {
   height: auto;
+
+  @media (min-width: 601px) {
+    height: auto;
+    max-height: calc(100vh - 0.5rem);
+  }
 }
 
 .options-overlay.collapsed > .top-buttons {
   height: auto;
-}
-
-// Form fills remaining sheet height and scrolls inside the cap
-.options-overlay:not(.collapsed) > app-input-overlay-form {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
 }
 
 ::ng-deep [appTooltip]:hover::after {

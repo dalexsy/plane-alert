@@ -6,17 +6,14 @@
   z-index: 900;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgb(255 255 255 / 40%);
-  // Content-sized rail — match options sheet cap (map must stay usable)
+  // Hug icon stack — never 100vh (that ate the map and clipped side rails)
   height: auto;
-  max-height: min(34dvh, 16rem);
-  overflow-y: auto;
 }
 
 .left,
 .right {
   top: -0.5px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .left {
@@ -32,32 +29,29 @@
   border-left: none;
 }
 
-/* Collapsed: keep absolute placement, hug icon stack only */
+/* When overlay is collapsed, keep the tab absolutely positioned */
 :host-context(.collapsed) .top-buttons,
 .collapsed > .top-buttons {
   position: absolute;
   height: auto;
-  max-height: none;
-  overflow: visible;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0.5rem;
 }
 
 :host-context(.options-overlay) .top-buttons.left {
+  height: auto;
   border-bottom-right-radius: 0;
 }
 
 :host-context(.options-overlay.collapsed) .top-buttons.left {
+  height: auto;
   border-bottom-right-radius: 0.5rem;
 }
 
 @media (min-width: 601px) {
-  .top-buttons {
-    max-height: calc(100vh - 0.5rem);
-  }
-
   :host-context(.options-overlay) .top-buttons.left {
+    height: auto;
     border-bottom-right-radius: 0.5rem;
   }
 }
