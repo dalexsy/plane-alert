@@ -74,7 +74,14 @@ export class MapUiControlsService {
     this.planeDisplayService.applyAnimationSetting(enabled, this.document);
     if (!enabled) {
       this.rainService.stopRain();
+      // Ghost only makes sense with fake-motion animations.
+      this.uiState.setShowGhostPosition(false);
     }
+    cdr.detectChanges();
+  }
+
+  onToggleGhostPosition(enabled: boolean, cdr: ChangeDetectorRef): void {
+    this.uiState.setShowGhostPosition(enabled);
     cdr.detectChanges();
   }
 

@@ -26,6 +26,7 @@ export class InputOverlayTogglesComponent {
   @Input() showRainCover = true;
   @Input() showViewAxes = false;
   @Input() animationsEnabled = true;
+  @Input() showGhostPosition = false;
 
   @Output() toggleOtherControls = new EventEmitter<void>();
   @Output() toggleCollapsed = new EventEmitter<void>();
@@ -37,6 +38,7 @@ export class InputOverlayTogglesComponent {
   @Output() coneVisibilityChange = new EventEmitter<boolean>();
   @Output() coneConfigChange = new EventEmitter<void>();
   @Output() animationsEnabledChange = new EventEmitter<boolean>();
+  @Output() ghostPositionChange = new EventEmitter<boolean>();
   @Output() goToHome = new EventEmitter<void>();
   @Output() resolveAndUpdate = new EventEmitter<Event>();
   @Output() zoomIn = new EventEmitter<void>();
@@ -78,7 +80,17 @@ export class InputOverlayTogglesComponent {
     return this.animationsEnabled ? 'Disable animations' : 'Enable animations';
   }
 
+  get ghostPositionTooltip(): string {
+    return this.showGhostPosition
+      ? 'Hide ghost at last reported position'
+      : 'Show ghost at last reported position (onion skin while motion is faked)';
+  }
+
   onToggleAnimations(): void {
     this.animationsEnabledChange.emit(!this.animationsEnabled);
+  }
+
+  onToggleGhostPosition(): void {
+    this.ghostPositionChange.emit(!this.showGhostPosition);
   }
 }

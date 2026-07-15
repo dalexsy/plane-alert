@@ -112,6 +112,9 @@ export function createMapComponentDelegates(deps: {
     onToggleAnimations(enabled: boolean, cdr: ChangeDetectorRef): void {
       deps.uiControls.onToggleAnimations(enabled, cdr);
     },
+    onToggleGhostPosition(enabled: boolean, cdr: ChangeDetectorRef): void {
+      deps.uiControls.onToggleGhostPosition(enabled, cdr);
+    },
     onToggleWindDirection(enabled: boolean, cdr: ChangeDetectorRef): void {
       deps.uiControls.onToggleWindDirection(enabled, cdr);
     },

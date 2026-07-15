@@ -76,6 +76,7 @@ export class MapComponentFacadeService implements MapComponentDelegateMethods {
   onUnhoverOverlayPlane!: MapComponentDelegateMethods['onUnhoverOverlayPlane'];
   onToggleAltitudeBorders!: MapComponentDelegateMethods['onToggleAltitudeBorders'];
   onToggleAnimations!: MapComponentDelegateMethods['onToggleAnimations'];
+  onToggleGhostPosition!: MapComponentDelegateMethods['onToggleGhostPosition'];
   onToggleWindDirection!: MapComponentDelegateMethods['onToggleWindDirection'];
   onToggleSunDirection!: MapComponentDelegateMethods['onToggleSunDirection'];
   onToggleDateTimeOverlays!: MapComponentDelegateMethods['onToggleDateTimeOverlays'];

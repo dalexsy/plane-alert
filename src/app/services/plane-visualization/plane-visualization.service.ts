@@ -2,7 +2,10 @@ import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { PlaneModel } from '../../models/plane-model';
 import { DistanceUnit } from '../../utils/units/units.util';
-import { createOrUpdatePlaneMarker, removeLeftMarkerFromPlane } from '../../utils/plane-marker/plane-marker';
+import {
+  createOrUpdatePlaneMarker,
+  removeLeftMarkerFromPlane,
+} from '../../utils/plane-marker/plane-marker';
 import { AltitudeColorService } from '../altitude-color/altitude-color.service';
 import { HelicopterIdentificationService } from '../helicopter-identification/helicopter-identification.service';
 import { OperatorTooltipService } from '../operator-tooltip/operator-tooltip.service';
@@ -62,7 +65,10 @@ export class PlaneVisualizationService {
       isMilitary, model,
       this.helicopterIdentificationService.isHelicopter(icao, model, plane.operator),
       isSpecial, isUnknown, altitude, false, this.settings.interval, icao, callsign,
-      this.operatorTooltipService, planeData, this.settings.animationsEnabled
+      this.operatorTooltipService,
+      planeData,
+      this.settings.animationsEnabled,
+      this.settings.showGhostPosition
     );
     if (altitude != null) {
       const tooltipEl = marker.getTooltip()?.getElement();

@@ -50,6 +50,8 @@ export class InputOverlayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() altitudeBordersChange = new EventEmitter<boolean>();
   @Input() animationsEnabled = true;
   @Output() animationsEnabledChange = new EventEmitter<boolean>();
+  @Input() showGhostPosition = false;
+  @Output() ghostPositionChange = new EventEmitter<boolean>();
 
   constructor(
     public facade: InputOverlayFacadeService,

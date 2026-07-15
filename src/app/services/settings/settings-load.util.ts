@@ -27,6 +27,7 @@ export interface SettingsState {
   _showRainCover: boolean;
   _showAltitudeBorders: boolean;
   _animationsEnabled: boolean;
+  _showGhostPosition: boolean;
   _showWindowView: boolean;
   _inputOverlayCollapsed: boolean;
   _resultsOverlayCollapsed: boolean;
@@ -38,6 +39,7 @@ export interface SettingsState {
   rainCoverKey: string;
   altitudeBordersKey: string;
   animationsEnabledKey: string;
+  showGhostPositionKey: string;
   seenCollapsedKey: string;
   militaryMuteKey: string;
   dateTimeOverlayKey: string;
@@ -71,6 +73,7 @@ export function loadSettingsFromStorage(s: SettingsState): void {
   bool(s.rainCoverKey, '_showRainCover');
   bool(s.altitudeBordersKey, '_showAltitudeBorders');
   bool(s.animationsEnabledKey, '_animationsEnabled');
+  bool(s.showGhostPositionKey, '_showGhostPosition');
   bool(s.seenCollapsedKey, '_seenCollapsed');
   bool(s.militaryMuteKey, '_militaryMute');
   bool(s.dateTimeOverlayKey, '_showDateTimeOverlay');

@@ -135,6 +135,12 @@ export function bindSettingsOverlayAccessors(
     setAnimationsEnabled(v: boolean): void {
       persistBool(s, s.animationsEnabledKey, '_animationsEnabled', v);
     },
+    getShowGhostPosition(): boolean {
+      return s._showGhostPosition;
+    },
+    setShowGhostPosition(v: boolean): void {
+      persistBool(s, s.showGhostPositionKey, '_showGhostPosition', v);
+    },
     getBrightnessAutoMode(): boolean {
       return s._brightnessAutoMode;
     },

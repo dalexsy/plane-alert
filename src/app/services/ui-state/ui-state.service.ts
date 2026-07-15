@@ -13,6 +13,8 @@ export class UiStateService {
   public showWindDirection = true;
   public showSunDirection = true;
   public animationsEnabled = true;
+  /** Onion-skin: fixed ghost at last reported ADS-B position while icon animates. */
+  public showGhostPosition = false;
   public showWindowView = true;
 
   // Weather layer toggles
@@ -34,6 +36,7 @@ export class UiStateService {
     this.showWindDirection = this.settings.showWindDirection;
     this.showSunDirection = this.settings.showSunDirection;
     this.animationsEnabled = this.settings.animationsEnabled;
+    this.showGhostPosition = this.settings.showGhostPosition;
     this.showWindowView = this.settings.showWindowView;
     this.coneVisible = this.settings.showViewAxes;
     this.cloudVisible = this.settings.showCloudCover;
@@ -80,6 +83,17 @@ export class UiStateService {
   public toggleAnimations(): void {
     this.animationsEnabled = !this.animationsEnabled;
     this.settings.setAnimationsEnabled(this.animationsEnabled);
+  }
+
+  // Ghost position (onion skin) toggle — only meaningful when animations are on
+  public toggleGhostPosition(): void {
+    this.showGhostPosition = !this.showGhostPosition;
+    this.settings.setShowGhostPosition(this.showGhostPosition);
+  }
+
+  public setShowGhostPosition(enabled: boolean): void {
+    this.showGhostPosition = enabled;
+    this.settings.setShowGhostPosition(enabled);
   }
 
   // Window view toggle

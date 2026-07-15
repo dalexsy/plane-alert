@@ -42,6 +42,8 @@
   (altitudeBordersChange)="facade.onToggleAltitudeBorders($event, cdr)"
   [animationsEnabled]="uiState.animationsEnabled"
   (animationsEnabledChange)="facade.onToggleAnimations($event, cdr)"
+  [showGhostPosition]="uiState.showGhostPosition"
+  (ghostPositionChange)="facade.onToggleGhostPosition($event, cdr)"
 ></app-input-overlay>
 
 <app-results-overlay
