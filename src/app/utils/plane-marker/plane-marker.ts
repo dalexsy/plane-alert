@@ -116,22 +116,25 @@ export function createOrUpdatePlaneMarker(
       | undefined;
     (oldMarker as any).__paLastAdsB = { lat, lon };
 
-    if (hasPositionChanged && animationsEnabled) {
-      const ghostLat = prevAdsB?.lat ?? currentLatLng.lat;
-      const ghostLon = prevAdsB?.lon ?? currentLatLng.lng;
+    // Onion-skin stays at previous ADS-B fix for the whole scan interval (not only mid-lerp)
+    if (showGhostPosition && prevAdsB && hasPositionChanged) {
       updateGhostMarker(
         oldMarker,
         map,
-        ghostLat,
-        ghostLon,
-        showGhostPosition,
+        prevAdsB.lat,
+        prevAdsB.lon,
+        true,
         true,
         ghostMarkerHtml
       );
+    } else if (!showGhostPosition) {
+      updateGhostMarker(oldMarker, map, lat, lon, false, false, ghostMarkerHtml);
+    }
+
+    if (hasPositionChanged && animationsEnabled) {
       const animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
       smoothLerpMarkerToPosition(oldMarker, currentLatLng, newLatLng, animationDuration);
     } else {
-      updateGhostMarker(oldMarker, map, lat, lon, false, false, ghostMarkerHtml);
       oldMarker.setLatLng([lat, lon]);
     }
     oldMarker.setIcon(icon);
