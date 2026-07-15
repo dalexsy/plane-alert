@@ -89,9 +89,10 @@ app.get('/reverseGeocode', async (req, res) => {
   try {
     const { reverseGeocodeDetailed } = await import('./services/geocoding');
     const result = await reverseGeocodeDetailed(lat, lon);
+    // Never return lat/lon as "address" — humans cannot read coordinates.
     res.json({
       ok: true,
-      address: result.address ?? `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      address: result.address ?? '',
       addressDetails: result.details,
       fallback: !result.address,
     });
@@ -100,7 +101,7 @@ app.get('/reverseGeocode', async (req, res) => {
     logger.warn('reverseGeocode handler failed', { lat, lon, error: message });
     res.json({
       ok: true,
-      address: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      address: '',
       addressDetails: null,
       fallback: true,
     });

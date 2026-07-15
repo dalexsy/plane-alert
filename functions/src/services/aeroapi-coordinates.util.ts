@@ -5,11 +5,18 @@ export type AirportInfoWithCoord = AirportInfo & { _rawCoordCode?: string };
 
 export function looksLikeCoordinate(code: string): boolean {
   if (!code) return false;
-  const c = code.trim().toUpperCase();
+  const raw = code.trim();
+  if (!raw) return false;
+  const c = raw.toUpperCase().replace(/\s+/g, '');
   if (/^\d{4}[NS]\d{5}[EW]$/.test(c)) return true;
   if (/^[NS]\d{4,6}[EW]\d{4,6}$/.test(c)) return true;
   if (/^\d{2,4}[NS]\/\d{3,5}[EW]$/.test(c)) return true;
-  if (/^-?\d{1,3}\.\d+[,\/ ]\s*-?\d{1,3}\.\d+$/.test(c)) return true;
+  // Decimal pair with comma/slash/space
+  if (/^-?\d{1,3}\.\d+[,\/\s]\s*-?\d{1,3}\.\d+$/.test(raw.trim())) return true;
+  // Degree symbols: 52°31'N 13°24'E
+  if (/\d{1,3}\s*°/.test(raw) && /[NS]/i.test(raw) && /[EW]/i.test(raw)) {
+    return true;
+  }
   return false;
 }
 

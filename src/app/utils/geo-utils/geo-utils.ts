@@ -59,10 +59,9 @@ export function getArrowForDirection(direction: string): string {
 
 /**
  * Reverse geocode via planes-api. Never hit /nominatim from the browser (504).
- * Silent coordinate fallback — no console spam.
+ * Empty string when unknown — never lat/lon (not human-readable for end users).
  */
 export async function reverseGeocode(lat: number, lon: number): Promise<string> {
-  const fallback = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -71,10 +70,10 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
-    if (!response.ok) return fallback;
+    if (!response.ok) return '';
     const data = (await response.json()) as { address?: string };
-    return String(data.address || '').trim() || fallback;
+    return String(data.address || '').trim();
   } catch {
-    return fallback;
+    return '';
   }
 }

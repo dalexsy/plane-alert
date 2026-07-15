@@ -1,4 +1,27 @@
 import type { FlightData } from './aeroapi.types';
+import { looksLikeCoordinate } from './aeroapi-coordinates.util';
+
+function airportLabel(endpoint?: {
+  city?: string;
+  name?: string;
+  codeIata?: string;
+  code?: string;
+}): string | null {
+  if (!endpoint) return null;
+  const candidates = [
+    endpoint.city,
+    endpoint.name,
+    endpoint.codeIata,
+    endpoint.code,
+  ];
+  for (const raw of candidates) {
+    const value = raw?.trim();
+    if (!value) continue;
+    if (looksLikeCoordinate(value)) continue;
+    return value;
+  }
+  return null;
+}
 
 export function formatETA(flightData: FlightData): string | null {
   const eta = flightData.estimatedIn || flightData.scheduledIn;
@@ -17,20 +40,20 @@ export function formatETA(flightData: FlightData): string | null {
 export function formatRoute(flightData: FlightData): string | null {
   if (!flightData.origin && !flightData.destination) return null;
 
-  const originCode = flightData.origin?.codeIata || flightData.origin?.code;
-  const destCode =
-    flightData.destination?.codeIata || flightData.destination?.code;
+  const originCode = airportLabel(flightData.origin);
+  const destCode = airportLabel(flightData.destination);
 
   if (!originCode && !destCode) return null;
 
   return `${originCode || '???'}→${destCode || '???'}`;
 }
 
+/** Prefer city/name over ICAO — never emit lat/lon-style codes. */
 export function formatRouteWithCities(flightData: FlightData): string | null {
   if (!flightData.origin && !flightData.destination) return null;
 
-  const originCity = flightData.origin?.city || flightData.origin?.code;
-  const destCity = flightData.destination?.city || flightData.destination?.code;
+  const originCity = airportLabel(flightData.origin);
+  const destCity = airportLabel(flightData.destination);
 
   if (!originCity && !destCity) return null;
 

@@ -14,9 +14,16 @@ export interface NotificationData {
     altitude?: number;
     altitudeUnit: 'ft' | 'm';
     verticalRate?: number;
+    /** Human-readable place name only — never lat/lon or ARINC coord codes */
     location?: string;
     route?: string;
 }
+/**
+ * True when a string is lat/lon (decimal, ARINC, NSEW packs) — not for end users.
+ */
+export declare function isCoordinateLikeLocation(value: string | null | undefined): boolean;
+/** Keep only place names humans can read. Drops lat/lon and coord codes. */
+export declare function humanReadableLocation(value: string | null | undefined): string | undefined;
 /**
  * Get arrow for cardinal direction
  */

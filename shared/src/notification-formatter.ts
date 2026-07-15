@@ -15,8 +15,42 @@ export interface NotificationData {
   altitude?: number;
   altitudeUnit: 'ft' | 'm';
   verticalRate?: number; // in ft/min for consistency with ADS-B data
-  location?: string; // Human-readable location or coordinates
+  /** Human-readable place name only — never lat/lon or ARINC coord codes */
+  location?: string;
   route?: string; // Flight route: "LAX→JFK (ETA 14:30 UTC)"
+}
+
+/**
+ * True when a string is lat/lon (decimal, ARINC, NSEW packs) — not for end users.
+ */
+export function isCoordinateLikeLocation(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const c = value.trim();
+  if (!c) return false;
+  // Decimal pair: 52.5200, 13.4050  |  52.52 13.40  |  52.52/13.40
+  if (/^-?\d{1,3}\.\d{2,}\s*[,/\s]\s*-?\d{1,3}\.\d{2,}$/.test(c)) return true;
+  // Compact decimals without separator noise: 52.5200,13.4050
+  if (/^-?\d{1,3}\.\d+,\s*-?\d{1,3}\.\d+$/.test(c)) return true;
+  // ARINC / packed: 5230N01320E, N5230E01320, 5230N/01320E
+  const upper = c.toUpperCase().replace(/\s+/g, '');
+  if (/^\d{4}[NS]\d{5}[EW]$/.test(upper)) return true;
+  if (/^[NS]\d{4,6}[EW]\d{4,6}$/.test(upper)) return true;
+  if (/^\d{2,4}[NS]\/\d{3,5}[EW]$/.test(upper)) return true;
+  // Degree symbols / DMS-ish: 52°31'N 13°24'E
+  if (/\d{1,3}\s*°/.test(c) && /[NS]/i.test(c) && /[EW]/i.test(c)) return true;
+  // Bare "lat, lon" labels
+  if (/\blat(itude)?\b/i.test(c) && /\blon(gitude)?\b/i.test(c)) return true;
+  return false;
+}
+
+/** Keep only place names humans can read. Drops lat/lon and coord codes. */
+export function humanReadableLocation(
+  value: string | null | undefined
+): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (isCoordinateLikeLocation(trimmed)) return undefined;
+  return trimmed;
 }
 
 /**
@@ -100,10 +134,11 @@ export function formatNotificationBody(
   const callsign = data.callsign?.trim() || data.icao.toUpperCase();
   const flagEmoji = data.flagEmoji || '🏳️';
 
-  // Build location/direction header
+  // Build location/direction header (place names only — never lat/lon)
   let header = '';
-  if (data.location) {
-    header = `over ${data.location}`;
+  const place = humanReadableLocation(data.location);
+  if (place) {
+    header = `over ${place}`;
   }
 
   // Add "to the [bearing]" if bearing available

@@ -9,6 +9,7 @@ import {
   getCountryFlagEmoji,
   formatNotificationTitle,
   getAircraftTypeName,
+  humanReadableLocation,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from '../types';
 import { FRONTEND_BASE_URL } from '../constants';
@@ -104,6 +105,7 @@ export async function buildMilitaryPendingNotification(
     ? 'favicon/special'
     : 'favicon/military';
   const iconUrl = `${FRONTEND_BASE_URL}/assets/${iconPath}/android-chrome-192x192.png?v=${Date.now()}`;
+  const homeAddress = humanReadableLocation(deviceLocation.address);
 
   return {
     icao,
@@ -111,13 +113,13 @@ export async function buildMilitaryPendingNotification(
     location: {
       lat: deviceLocation.lat,
       lon: deviceLocation.lon,
-      ...(deviceLocation.address && { address: deviceLocation.address }),
+      ...(homeAddress && { address: homeAddress }),
     },
     message: {
       title: title,
       message: body,
-      url: `${FRONTEND_BASE_URL}/?lat=${plane.lat}&lon=${plane.lon}&zoom=12`,
-      url_title: 'View Location',
+      url: `${FRONTEND_BASE_URL}/?icao=${icao}&follow=1`,
+      url_title: 'View on Map',
       icon: iconUrl,
       model: plane.t || plane.desc,
       operator: plane.desc,

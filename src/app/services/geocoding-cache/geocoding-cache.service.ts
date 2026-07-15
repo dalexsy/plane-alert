@@ -25,7 +25,7 @@ export class GeocodingCacheService {
   }
 
   public async reverseGeocode(lat: number, lon: number): Promise<string> {
-    if (!this.geocodingEnabled) return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    if (!this.geocodingEnabled) return '';
     const now = Date.now();
     const key = `${lat.toFixed(this.COORDINATE_PRECISION)},${lon.toFixed(this.COORDINATE_PRECISION)}`;
     const entry = this.cache.get(key);

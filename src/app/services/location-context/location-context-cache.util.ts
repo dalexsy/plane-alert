@@ -56,8 +56,8 @@ export function refreshAddressForLocation(
       addressSubject.next(address);
     })
     .catch(() => {
-      const fallback = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-      addressCache.set(cacheKey, { data: fallback, timestamp: Date.now() });
-      addressSubject.next(fallback);
+      // Empty when geocode fails — never show lat/lon to users.
+      addressCache.set(cacheKey, { data: '', timestamp: Date.now() });
+      addressSubject.next('');
     });
 }

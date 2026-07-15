@@ -11,7 +11,7 @@ export { looksMilitary, isBoringMilitaryAircraft, normalizeCallsign, isMilitaryC
 // Export geo utilities
 export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';
 // Export notification formatting
-export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, getCountryFlagEmoji, } from './notification-formatter';
+export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, getCountryFlagEmoji, isCoordinateLikeLocation, humanReadableLocation, } from './notification-formatter';
 // Export aircraft database utilities
 export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from './aircraft-db-loader';
 // Export military types for filtering

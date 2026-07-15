@@ -157,8 +157,10 @@ function formatDeviceName(deviceName: string): string {
 function getNotificationLocationDisplay(sighting: MilitaryHistorySighting): string {
   const location = sighting.notificationLocation;
   const address = location?.address?.trim();
-  if (address) return getCondensedLocation(address);
-  if (location) return `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`;
+  // Never show raw lat/lon to people — coordinates are not human-readable.
+  if (address && !/^-?\d{1,3}\.\d+[,/\s]\s*-?\d{1,3}\.\d+$/.test(address)) {
+    return getCondensedLocation(address);
+  }
   return 'Location unavailable';
 }
 

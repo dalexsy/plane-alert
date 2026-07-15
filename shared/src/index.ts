@@ -53,6 +53,8 @@ export {
   formatNotificationTitle,
   getArrowForDirection,
   getCountryFlagEmoji,
+  isCoordinateLikeLocation,
+  humanReadableLocation,
 } from './notification-formatter';
 export type { NotificationData } from './notification-formatter';
 

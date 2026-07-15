@@ -4,10 +4,11 @@ import {
   getAircraftCountry,
   getCountryFlagEmoji,
   formatNotificationBody,
+  humanReadableLocation,
 } from '@plane-alert/shared';
 import { reverseGeocode } from './geocoding';
 import type { FlightData } from './aeroapi-client';
-import { formatRoute, formatETA } from './aeroapi-client';
+import { formatRouteWithCities, formatETA } from './aeroapi-client';
 
 /**
  * Get operator from callsign
@@ -127,19 +128,18 @@ export async function buildNotificationBody(
     altitudeUnit = distanceUnit === 'miles' ? 'ft' : 'm';
   }
 
-  // Format location - try reverse geocoding, omit if it fails
+  // Place name only — never lat/lon or ARINC coord packs in push body
   let location: string | undefined;
   if (plane.lat !== undefined && plane.lon !== undefined) {
-    const placeName = await reverseGeocode(plane.lat, plane.lon);
-    if (placeName) {
-      location = placeName; // Formatter adds "over" prefix
-    }
+    location = humanReadableLocation(
+      await reverseGeocode(plane.lat, plane.lon),
+    );
   }
 
-  // Format flight route and ETA if available
+  // Human-readable cities/airports only (formatRoute can leak coord codes)
   let routeInfo: string | undefined;
   if (flightData) {
-    const route = formatRoute(flightData);
+    const route = formatRouteWithCities(flightData);
     const eta = formatETA(flightData);
     if (route && eta) {
       routeInfo = `${route} (ETA ${eta})`;

@@ -9,10 +9,12 @@ import {
   getAircraftTypeName,
   looksMilitary,
   isMilitaryCallsign,
+  humanReadableLocation,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from '../types';
 import { FRONTEND_BASE_URL, RECENT_NOTIFICATION_TTL_MS } from '../constants';
 import { checkAndMarkNotified } from './notification-cooldown';
+import { reverseGeocode } from './geocoding';
 import type { PendingNotification } from './notification-types';
 
 const PROXIMITY_THRESHOLD_KM = 3.0;
@@ -131,19 +133,24 @@ export async function collectProximityNotifications(
       );
       const direction = bearingToCardinal(bearing);
 
+      const place =
+        humanReadableLocation(await reverseGeocode(plane.lat, plane.lon)) ||
+        humanReadableLocation(deviceLocation.address);
+      const placePart = place ? `over ${place} • ` : '';
+
+      const homeAddress = humanReadableLocation(deviceLocation.address);
+
       pending.push({
         icao,
         deviceName: pushoverTargetDeviceName,
         location: {
           lat: deviceLocation.lat,
           lon: deviceLocation.lon,
-          ...(deviceLocation.address && {
-            address: deviceLocation.address,
-          }),
+          ...(homeAddress && { address: homeAddress }),
         },
         message: {
           title: `✈️ Plane Nearby: ${callsign}`,
-          message: `${model} • ${direction} • ${distanceM}m away`,
+          message: `${placePart}${model} • ${direction} • ${distanceM}m away`,
           url: `${FRONTEND_BASE_URL}/?icao=${icao}&follow=1`,
           url_title: 'View on Map',
           icon: `${FRONTEND_BASE_URL}/assets/favicon/android-chrome-192x192.png?v=${Date.now()}`,

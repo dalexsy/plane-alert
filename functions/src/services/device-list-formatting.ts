@@ -160,12 +160,12 @@ export async function formatListAllDeviceEntry(
     typeof deviceLocation.lat === 'number' &&
     typeof deviceLocation.lon === 'number';
 
-  let location = 'Unknown';
-  if (hasLocation) {
-    const lat = Number(deviceLocation?.lat ?? 0);
-    const lon = Number(deviceLocation?.lon ?? 0);
-    location = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-  }
+  const addressText =
+    typeof deviceLocation?.address === 'string'
+      ? deviceLocation.address.trim()
+      : '';
+  // Prefer human address; never surface raw lat/lon as the location label.
+  const location = addressText || (hasLocation ? 'Location set' : 'Unknown');
 
   return {
     id: doc.id,
@@ -177,7 +177,7 @@ export async function formatListAllDeviceEntry(
     radiusKm: data.radiusKm || 100,
     notifyProximity: data.notifyProximity || false,
     location,
-    address: deviceLocation?.address || '',
+    address: addressText,
     ignoredTypesCount: data.ignoredTypes?.length || 0,
     specialIcaosCount: data.specialIcaos?.length || 0,
     createdAt: data.createdAt,
