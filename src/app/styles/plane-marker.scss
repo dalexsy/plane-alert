@@ -124,16 +124,16 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
   cursor: pointer;
 }
 
-// Onion-skin ghost at the last reported ADS-B position (fake-motion companion)
+// Onion-skin ghost at previous ADS-B fix while main icon animates
 .plane-marker-container.ghost-position-marker {
-  opacity: 0.35;
+  opacity: 0.55;
   pointer-events: none;
-  filter: grayscale(0.2);
+  filter: grayscale(0.35) brightness(1.15);
   z-index: 0;
 }
 
 .plane-marker.ghost-plane-marker {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 // Add styling for historical trail segments

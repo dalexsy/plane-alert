@@ -105,10 +105,29 @@ export function createOrUpdatePlaneMarker(
     const latDiff = Math.abs(currentLatLng.lat - lat);
     const lngDiff = Math.abs(currentLatLng.lng - lon);
     const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
+    const prevAdsB = (oldMarker as any).__paLastAdsB as
+      | { lat: number; lon: number }
+      | undefined;
+    (oldMarker as any).__paLastAdsB = { lat, lon };
+
     if (hasPositionChanged && animationsEnabled) {
+      // Onion-skin: freeze ghost at previous ADS-B fix while main icon lerps to new
+      const ghostLat = prevAdsB?.lat ?? currentLatLng.lat;
+      const ghostLon = prevAdsB?.lon ?? currentLatLng.lng;
+      updateGhostMarker(
+        oldMarker,
+        map,
+        ghostLat,
+        ghostLon,
+        showGhostPosition,
+        true,
+        ghostMarkerHtml
+      );
       const animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
       smoothLerpMarkerToPosition(oldMarker, currentLatLng, newLatLng, animationDuration);
     } else {
+      // Not animating — hide ghost (would sit under main at same lat/lon)
+      updateGhostMarker(oldMarker, map, lat, lon, false, false, ghostMarkerHtml);
       oldMarker.setLatLng([lat, lon]);
     }
     oldMarker.setIcon(icon);
@@ -117,19 +136,11 @@ export function createOrUpdatePlaneMarker(
     oldMarker.bindTooltip(tooltipContent, rightTooltipOptions);
     syncLeftTooltip(oldMarker);
     wireMarkerHoverEvents(oldMarker);
-    updateGhostMarker(
-      oldMarker,
-      map,
-      lat,
-      lon,
-      showGhostPosition,
-      animationsEnabled,
-      ghostMarkerHtml
-    );
     return { marker: oldMarker, isNewMarker: false };
   }
 
   const marker = L.marker([lat, lon], { icon });
+  (marker as any).__paLastAdsB = { lat, lon };
   marker.bindTooltip(tooltipContent, rightTooltipOptions);
   marker.addTo(map);
   if (altitude != null) {
@@ -138,15 +149,7 @@ export function createOrUpdatePlaneMarker(
   }
   syncLeftTooltip(marker);
   wireMarkerHoverEvents(marker);
-  updateGhostMarker(
-    marker,
-    map,
-    lat,
-    lon,
-    showGhostPosition,
-    animationsEnabled,
-    ghostMarkerHtml
-  );
+  // First paint: no prior fix for onion-skin yet
   return { marker, isNewMarker: true };
 }
 

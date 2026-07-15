@@ -66,7 +66,8 @@ export class SettingsService {
   private _showAltitudeBorders = true;
   animationsEnabledKey = 'animationsEnabled';
   private _animationsEnabled = true;
-  showGhostPositionKey = 'showGhostPosition'; private _showGhostPosition = true;
+  // v2 key: force onion-skin on by default (old showGhostPosition=false in localStorage ignored)
+  showGhostPositionKey = 'showGhostPositionV2'; private _showGhostPosition = true;
   private clickedAirportsKey = 'clickedAirports';
   windowViewKey = 'showWindowView';
   private _showWindowView = true;
