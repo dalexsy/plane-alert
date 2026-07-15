@@ -6,17 +6,22 @@
   z-index: 900;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgb(255 255 255 / 40%);
+  // Content-sized rail — never stretch to full viewport (map must stay usable)
+  height: auto;
+  max-height: min(42dvh, 22rem);
+  overflow-y: auto;
 }
 
 .left,
 .right {
   top: -0.5px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .left {
   left: -2px;
-  border-radius: 0.5rem 0 0.5rem 0.5rem; // round bottom-right corner as well
+  border-radius: 0.5rem 0 0.5rem 0.5rem;
   border-right: none;
 }
 
@@ -27,30 +32,32 @@
   border-left: none;
 }
 
-/* When overlay is collapsed, keep the tab absolutely positioned - don't change layout */
+/* Collapsed: keep absolute placement, hug icon stack only */
 :host-context(.collapsed) .top-buttons,
 .collapsed > .top-buttons {
-  /* Keep absolute positioning and exact same values as expanded state */
   position: absolute;
-
+  height: auto;
+  max-height: none;
+  overflow: visible;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 0.5rem; /* Keep bottom-right rounded corner */
+  border-radius: 0.5rem;
 }
 
-/* Only apply height for .top-buttons.left on mobile (mobile-first approach) */
 :host-context(.options-overlay) .top-buttons.left {
-  height: calc(100vh - 0.5rem);
   border-bottom-right-radius: 0;
 }
+
 :host-context(.options-overlay.collapsed) .top-buttons.left {
-  height: auto;
   border-bottom-right-radius: 0.5rem;
 }
 
 @media (min-width: 601px) {
+  .top-buttons {
+    max-height: calc(100vh - 0.5rem);
+  }
+
   :host-context(.options-overlay) .top-buttons.left {
-    height: auto;
     border-bottom-right-radius: 0.5rem;
   }
 }

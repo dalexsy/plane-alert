@@ -1,23 +1,24 @@
-/* src/app/components/ui/input.component.scss */
+/* Compact by default — map overlays must stay usable on mobile.
+   Do not force height: 100% (that made options a full-page takeover). */
 :host {
   display: block;
   width: 100%;
-  height: 100%; /* Allow host to take full height */
+  height: auto;
 }
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%; /* Mobile-first: full height by default */
-  gap: 0.5rem;
+  height: auto;
+  gap: 0.375rem;
 
   .input-label {
     display: block;
     color: white;
-    font-size: 1rem; /* typography-ok mobile-first label */
+    font-size: 0.875rem; /* typography-ok compact label */
     font-weight: 500;
-    flex-shrink: 0; /* Don't let label shrink */
+    flex-shrink: 0;
   }
 
   .input-field {
@@ -28,8 +29,8 @@
     background: rgba(255, 255, 255, 0.18);
     color: white;
     font-family: "JetBrains Mono", monospace;
-    font-size: 1rem; /* typography-ok mobile-first input */
-    padding: 1rem 1.25rem; /* Mobile-first: larger padding */
+    font-size: 0.875rem; /* typography-ok compact input */
+    padding: 0.5rem 0.875rem;
     transition: background 0.2s ease, outline 0.2s ease;
 
     &::placeholder {
@@ -37,7 +38,7 @@
     }
 
     &:focus {
-      outline: 3px solid rgba(255, 255, 255, 0.3); /* Mobile-first: thicker outline */
+      outline: 2px solid rgba(255, 255, 255, 0.3);
       background: rgba(255, 255, 255, 0.25);
     }
 
@@ -59,50 +60,31 @@
       appearance: textfield;
     }
 
-    // Specific styling for textarea
     &.textarea {
       border-radius: 1rem;
-      line-height: 1.7;
+      line-height: 1.5;
       resize: vertical;
-      height: 100%; /* Mobile-first: fill available height */
-      min-height: 2.5rem; /* Mobile-first: larger minimum height */
+      height: auto;
+      min-height: 2.5rem;
       font-family: "JetBrains Mono", monospace;
       outline: 1px solid white;
-      flex: 1; /* Take remaining space in flex container */
-      padding: 0.5; /* Mobile-first: larger padding for textarea */
+      flex: none;
+      padding: 0.5rem 0.75rem;
 
       &:focus {
-        outline: 3px solid white;
+        outline: 2px solid white;
       }
     }
   }
 
-  // Desktop and larger screens - reduce sizes
   @media (min-width: 601px) {
-    height: auto; /* Desktop: don't force full height */
-    gap: var(--space-xs); /* Smaller gap on desktop */
-
-    .input-label {
-      font-size: 0.875rem; /* Smaller label text */
-    }
+    gap: var(--space-xs);
 
     .input-field {
-      font-size: 0.875rem; /* Smaller input text */
-      padding: 0.5rem 1rem; /* Smaller padding */
-
-      &:focus {
-        outline: 2px solid rgba(255, 255, 255, 0.3); /* Thinner outline */
-      }
+      padding: 0.5rem 1rem;
 
       &.textarea {
-        min-height: 2.5rem; /* Smaller minimum height */
-        padding: 0.75rem 1rem; /* Smaller textarea padding */
-        height: auto; /* Desktop: auto height */
-        flex: none; /* Don't stretch on desktop */
-
-        &:focus {
-          outline: 2px solid white; /* Thinner outline */
-        }
+        padding: 0.75rem 1rem;
       }
     }
   }

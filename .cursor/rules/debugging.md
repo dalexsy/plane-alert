@@ -12,6 +12,7 @@ Daryl maintains this solo — avoid burning cycles on approaches already ruled o
 
 ## Failed experiments (do not repeat)
 
+- **2026-07-15** — Mobile options/results “fixed” by only editing `input-overlay.component.scss` / `results-overlay.component.scss` max-height, then declaring done from smoke screenshots that **still showed the expanded sheet covering half the map**. **Root causes left live:** (1) `ui/tab/tab.component.scss` mobile-first `height: calc(100vh - 0.5rem)` on `.top-buttons.left` (from “full page input on mobile” 20899bf) — `app-tab` is encapsulated, parent max-height does **not** shrink the rail; (2) `ui/input` mobile-first `height: 100%` + `padding: 1rem 1.25rem` made the address field full-page sized; (3) `settings.load()` reapplied localStorage expanded state **after** constructor mobile collapse; (4) verification gates treated “Search Radius visible” as pass — **wrong**. **Must pass:** mobile expanded options leaves **≥ half the map** visible under the sheet; left icon rail is content-height not 100vh; Read production mobile PNG with options **expanded**. Layout is SCSS (flex + rem max-height), not TS geometry.
 - **2026-07-11** — Do not deploy `feature/notifications` (or any non-`main` worktree build) to production. Bundle `main-YKWORA5P.js` called `cloudfunctions.net` → CORS/`ERR_FAILED` flood; Pi only serves `/api/planes/*`. Do not bypass deploy QA (`--no-verify-client-errors`, direct `pi-deploy`, `robocopy` into `dist/`). Ship only `npm run deploy:dryl` from `main` after merge. Correct UI lives on `feature/notifications` — merge to `main` first, never upload side-tree dist.
 - **2026-07-04** — Do not keep Plane Alert on Firebase Blaze Cloud Functions for two users — scheduled `processPlanes` / `collectAircraftData` every 2 min caused ~$0.43/mo. **Pi backend** (`planes-api.service` on `:8795`, nginx `/api/planes/`) replaces all Cloud Functions; delete Firebase functions and downgrade project to Spark.
 
@@ -23,17 +24,17 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 
 | Metric | Value |
 |--------|-------|
-| Typical (median) | 103s |
-| p75 | 108s |
-| p90 | 111s |
-| Last deploy | 103s |
-| Samples | 9 |
+| Typical (median) | 111s |
+| p75 | 132s |
+| p90 | 141s |
+| Last deploy | 135s |
+| Samples | 17 |
 
-- **Agent shell wait:** use `block_until_ms` **136894** (~137s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **170291** (~170s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-07-15T17:39:18Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-07-15T19:36:36Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 

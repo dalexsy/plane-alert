@@ -61,6 +61,14 @@ export interface SettingsState {
   homeLocationKey: string;
 }
 
+/** After storage restore: mobile map-first, never both sheets expanded. */
+export function applyMobileOverlayCaps(s: SettingsState): void {
+  if (typeof window === 'undefined' || window.innerWidth > 768) return;
+  if (!s._inputOverlayCollapsed && !s._resultsOverlayCollapsed) {
+    s._resultsOverlayCollapsed = true;
+  }
+}
+
 export function loadSettingsFromStorage(s: SettingsState): void {
   const bool = (key: string, field: keyof SettingsState) => {
     const v = localStorage.getItem(key);
@@ -88,6 +96,7 @@ export function loadSettingsFromStorage(s: SettingsState): void {
   bool(s.inputOverlayControlsKey, '_inputOverlayOtherControlsHidden');
   bool(s.resultsOverlayCollapsedKey, '_resultsOverlayCollapsed');
   bool(s.resultsOverlayControlsKey, '_resultsOverlayOtherControlsHidden');
+  applyMobileOverlayCaps(s);
 
   const lat = parseFloat(localStorage.getItem('lastLat') || '');
   const lon = parseFloat(localStorage.getItem('lastLon') || '');
