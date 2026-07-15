@@ -6,9 +6,9 @@
   z-index: 900;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgb(255 255 255 / 40%);
-  // Content-sized rail — never stretch to full viewport (map must stay usable)
+  // Content-sized rail — match options sheet cap (map must stay usable)
   height: auto;
-  max-height: min(42dvh, 22rem);
+  max-height: min(34dvh, 16rem);
   overflow-y: auto;
 }
 
