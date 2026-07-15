@@ -10,6 +10,12 @@ import {
   removeLeftMarker,
   wireMarkerHoverEvents,
 } from '../plane-marker-tooltip/plane-marker-tooltip.util';
+import {
+  removeGhostMarkerFromPlane,
+  updateGhostMarker,
+} from './plane-marker-ghost.util';
+
+export { removeGhostMarkerFromPlane } from './plane-marker-ghost.util';
 
 export function createOrUpdatePlaneMarker(
   oldMarker: L.Marker | undefined,
@@ -102,16 +108,15 @@ export function createOrUpdatePlaneMarker(
   if (oldMarker) {
     const currentLatLng = oldMarker.getLatLng();
     const newLatLng = L.latLng(lat, lon);
-    const latDiff = Math.abs(currentLatLng.lat - lat);
-    const lngDiff = Math.abs(currentLatLng.lng - lon);
-    const hasPositionChanged = latDiff > 0.000001 || lngDiff > 0.000001;
+    const hasPositionChanged =
+      Math.abs(currentLatLng.lat - lat) > 0.000001 ||
+      Math.abs(currentLatLng.lng - lon) > 0.000001;
     const prevAdsB = (oldMarker as any).__paLastAdsB as
       | { lat: number; lon: number }
       | undefined;
     (oldMarker as any).__paLastAdsB = { lat, lon };
 
     if (hasPositionChanged && animationsEnabled) {
-      // Onion-skin: freeze ghost at previous ADS-B fix while main icon lerps to new
       const ghostLat = prevAdsB?.lat ?? currentLatLng.lat;
       const ghostLon = prevAdsB?.lon ?? currentLatLng.lng;
       updateGhostMarker(
@@ -126,7 +131,6 @@ export function createOrUpdatePlaneMarker(
       const animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
       smoothLerpMarkerToPosition(oldMarker, currentLatLng, newLatLng, animationDuration);
     } else {
-      // Not animating — hide ghost (would sit under main at same lat/lon)
       updateGhostMarker(oldMarker, map, lat, lon, false, false, ghostMarkerHtml);
       oldMarker.setLatLng([lat, lon]);
     }
@@ -149,51 +153,7 @@ export function createOrUpdatePlaneMarker(
   }
   syncLeftTooltip(marker);
   wireMarkerHoverEvents(marker);
-  // First paint: no prior fix for onion-skin yet
   return { marker, isNewMarker: true };
-}
-
-/** Onion-skin ghost at last reported ADS-B lat/lon while the main icon animates. */
-function updateGhostMarker(
-  mainMarker: L.Marker,
-  map: L.Map,
-  lat: number,
-  lon: number,
-  showGhost: boolean,
-  animationsActive: boolean,
-  ghostMarkerHtml: string
-): void {
-  const shouldShow = showGhost && animationsActive;
-  const existing: L.Marker | undefined = (mainMarker as any).__paGhostMarker;
-  if (!shouldShow) {
-    if (existing) {
-      map.removeLayer(existing);
-      delete (mainMarker as any).__paGhostMarker;
-    }
-    return;
-  }
-  const ghostIcon = L.divIcon({
-    className: 'plane-marker-container ghost-position-marker',
-    html: ghostMarkerHtml,
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-  });
-  if (existing) {
-    existing.setLatLng([lat, lon]);
-    existing.setIcon(ghostIcon);
-  } else {
-    const ghost = L.marker([lat, lon], { icon: ghostIcon, interactive: false });
-    ghost.addTo(map);
-    (mainMarker as any).__paGhostMarker = ghost;
-  }
-}
-
-export function removeGhostMarkerFromPlane(marker: L.Marker, map: L.Map): void {
-  const ghostMarker = (marker as any).__paGhostMarker as L.Marker | undefined;
-  if (ghostMarker) {
-    map.removeLayer(ghostMarker);
-    delete (marker as any).__paGhostMarker;
-  }
 }
 
 export function removeLeftMarkerFromPlane(marker: L.Marker, map: L.Map): void {
