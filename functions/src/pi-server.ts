@@ -74,6 +74,39 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'planes-api', storePath });
 });
 
+/** Browser reverse-geocode — never call nominatim from the SPA (504 / CORS / no nginx proxy). */
+app.get('/reverseGeocode', async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lon = Number(req.query.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    res.status(400).json({ ok: false, error: 'lat and lon required' });
+    return;
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    res.status(400).json({ ok: false, error: 'lat/lon out of range' });
+    return;
+  }
+  try {
+    const { reverseGeocodeDetailed } = await import('./services/geocoding');
+    const result = await reverseGeocodeDetailed(lat, lon);
+    res.json({
+      ok: true,
+      address: result.address ?? `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      addressDetails: result.details,
+      fallback: !result.address,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn('reverseGeocode handler failed', { lat, lon, error: message });
+    res.json({
+      ok: true,
+      address: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      addressDetails: null,
+      fallback: true,
+    });
+  }
+});
+
 async function safeRun(label: string, fn: () => Promise<void>): Promise<void> {
   try {
     await fn();

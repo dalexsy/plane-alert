@@ -11,5 +11,6 @@ export const environment = {
     saveMilitarySighting: '/api/planes/saveMilitarySighting',
     getMilitaryHistory: '/api/planes/getMilitaryHistory',
     adsbPointProxy: '/api/planes/adsbPointProxy',
+    reverseGeocode: '/api/planes/reverseGeocode',
   },
 };

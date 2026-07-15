@@ -14,7 +14,7 @@ export class UiStateService {
   public showSunDirection = true;
   public animationsEnabled = true;
   /** Onion-skin: fixed ghost at last reported ADS-B position while icon animates. */
-  public showGhostPosition = false;
+  public showGhostPosition = true;
   public showWindowView = true;
 
   // Weather layer toggles

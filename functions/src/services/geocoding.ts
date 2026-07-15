@@ -2,14 +2,18 @@ import { logger } from 'firebase-functions/v2';
 import fetch from 'node-fetch';
 import { ORIGIN_HEADER } from '../constants';
 
+export type ReverseGeocodeResult = {
+  address: string | null;
+  details: Record<string, string> | null;
+};
+
 /**
- * Reverse geocode coordinates to human-readable location
- * Optimized for German locations with international fallback
+ * Reverse geocode coordinates via Nominatim from the Pi (not the browser).
  */
-export async function reverseGeocode(
+export async function reverseGeocodeDetailed(
   lat: number,
   lon: number
-): Promise<string | null> {
+): Promise<ReverseGeocodeResult> {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=14`;
     const response = await fetch(url, {
@@ -19,16 +23,19 @@ export async function reverseGeocode(
     });
 
     if (!response.ok) {
-      return null;
+      return { address: null, details: null };
     }
 
-    const data = (await response.json()) as any;
+    const data = (await response.json()) as {
+      address?: Record<string, string>;
+      display_name?: string;
+    };
 
-    // Try to get neighborhood, suburb, or city with context
     const address = data.address;
-    if (!address) return null;
+    if (!address) {
+      return { address: data.display_name ?? null, details: null };
+    }
 
-    // Get the most specific location
     const primaryLocation =
       address.neighbourhood ||
       address.suburb ||
@@ -36,27 +43,34 @@ export async function reverseGeocode(
       address.town ||
       address.city;
 
-    // Determine second level: use country name if not Germany, otherwise use district
     const country = address.country;
     let secondLevel: string | null = null;
 
     if (country && country !== 'Germany' && country !== 'Deutschland') {
-      // For non-German locations, show country
       secondLevel = country;
     } else {
-      // For Germany, show district/county for local context
-      secondLevel = address.county || address.state_district;
+      secondLevel = address.county || address.state_district || null;
     }
 
-    // Combine primary location with second level if both exist
+    let formatted: string | null = null;
     if (primaryLocation && secondLevel) {
-      return `${primaryLocation}, ${secondLevel}`;
+      formatted = `${primaryLocation}, ${secondLevel}`;
+    } else {
+      formatted = primaryLocation || secondLevel || data.display_name || null;
     }
 
-    // Fall back to just the primary location or second level
-    return primaryLocation || secondLevel || null;
+    return { address: formatted, details: address };
   } catch (error) {
     logger.warn('Reverse geocoding failed', { lat, lon, error });
-    return null;
+    return { address: null, details: null };
   }
+}
+
+/** Used by notifications and Pi HTTP handler. */
+export async function reverseGeocode(
+  lat: number,
+  lon: number
+): Promise<string | null> {
+  const result = await reverseGeocodeDetailed(lat, lon);
+  return result.address;
 }

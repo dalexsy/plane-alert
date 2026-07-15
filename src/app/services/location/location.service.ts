@@ -33,23 +33,32 @@ export class LocationService {
     lat: number,
     lng: number
   ): Observable<{ street: string | null; district: string | null }> {
-    const url = `/nominatim/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`;
+    // Pi reverseGeocode — never /nominatim (504 Gateway Timeout on production)
+    const url = `/api/planes/reverseGeocode?lat=${lat}&lon=${lng}`;
 
-    return this.http.get<LocationResponse>(url).pipe(
-      timeout(5000),
-      map((response) => {
-        const street = response.address.road || null;
-        const district =
-          response.address.suburb ||
-          response.address.city_district ||
-          response.address.town ||
-          response.address.village ||
-          null;
-
-        return { street, district };
-      }),
-      catchError(() => of({ street: null, district: null }))
-    );
+    return this.http
+      .get<{
+        address?: string;
+        addressDetails?: LocationResponse['address'] | null;
+      }>(url)
+      .pipe(
+        timeout(8000),
+        map((response) => {
+          const details = response.addressDetails;
+          if (!details) {
+            return { street: null, district: response.address || null };
+          }
+          const street = details.road || null;
+          const district =
+            details.suburb ||
+            details.city_district ||
+            details.town ||
+            details.village ||
+            null;
+          return { street, district };
+        }),
+        catchError(() => of({ street: null, district: null }))
+      );
   }
 
   reverseGeocode(lat: number, lon: number): Promise<string> {

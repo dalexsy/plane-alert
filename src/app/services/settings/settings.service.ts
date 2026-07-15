@@ -66,7 +66,7 @@ export class SettingsService {
   private _showAltitudeBorders = true;
   animationsEnabledKey = 'animationsEnabled';
   private _animationsEnabled = true;
-  showGhostPositionKey = 'showGhostPosition'; private _showGhostPosition = false;
+  showGhostPositionKey = 'showGhostPosition'; private _showGhostPosition = true;
   private clickedAirportsKey = 'clickedAirports';
   windowViewKey = 'showWindowView';
   private _showWindowView = true;

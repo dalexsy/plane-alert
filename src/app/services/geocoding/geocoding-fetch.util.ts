@@ -4,6 +4,15 @@ import { firstValueFrom } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { buildAddressString, ReverseGeocodeResponse } from './geocoding-address.util';
 
+function coordFallback(lat: number, lon: number): string {
+  return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+}
+
+/**
+ * Reverse geocode via Pi planes-api (same-origin /api/planes/*).
+ * Do not call /nominatim from the browser — production has no working proxy (504).
+ * Failures return coordinates silently (no console.error — that used to spam deploy noise).
+ */
 export async function performGeocodeRequest(
   http: HttpClient,
   ngZone: NgZone,
@@ -11,42 +20,45 @@ export async function performGeocodeRequest(
   lon: number,
   retryCount = 0
 ): Promise<string> {
-  const maxRetries = 2;
+  const maxRetries = 1;
   try {
-    const nominatimUrl = `/nominatim/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&accept-language=en`;
-    const nominatimResponse = await ngZone.runOutsideAngular(() =>
-      firstValueFrom(http.get<any>(nominatimUrl).pipe(timeout(5000)))
+    const apiUrl = `/api/planes/reverseGeocode?lat=${lat}&lon=${lon}`;
+    const apiBody = await ngZone.runOutsideAngular(() =>
+      firstValueFrom(
+        http.get<{ ok?: boolean; address?: string }>(apiUrl).pipe(timeout(8000))
+      )
     );
-    if (nominatimResponse?.address) {
-      const addr = nominatimResponse.address;
-      const parts: string[] = [];
-      const district = addr.suburb || addr.city_district || addr.neighbourhood;
-      if (district) parts.push(district);
-      const city = addr.city || addr.town || addr.village;
-      if (city && city !== district) parts.push(city);
-      if (addr.state && addr.state !== city) parts.push(addr.state);
-      if (parts.length > 0) return parts.join(', ');
-    }
+    const fromApi = String(apiBody?.address ?? '').trim();
+    if (fromApi) return fromApi;
+
+    // Secondary: client-side bigdatacloud (no key) when Pi cannot reach Nominatim
     const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
     const response = await ngZone.runOutsideAngular(() =>
       firstValueFrom(http.get<ReverseGeocodeResponse>(url).pipe(timeout(5000)))
     );
     const formatted = buildAddressString(response);
     if (formatted) return formatted;
-    return response.locality || response.city || response.principalSubdivision || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    return (
+      response.locality ||
+      response.city ||
+      response.principalSubdivision ||
+      coordFallback(lat, lon)
+    );
   } catch (error: any) {
-    if (
+    const retryable =
       retryCount < maxRetries &&
-      (error.message?.includes('Http failure response') ||
-        error.message?.includes('TimeoutError') ||
-        error.name === 'TimeoutError' ||
-        error.status === 0)
-    ) {
-      await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)));
+      (error?.message?.includes('Http failure response') ||
+        error?.message?.includes('TimeoutError') ||
+        error?.name === 'TimeoutError' ||
+        error?.status === 0 ||
+        error?.status === 502 ||
+        error?.status === 503 ||
+        error?.status === 504);
+    if (retryable) {
+      await new Promise((resolve) => setTimeout(resolve, 800 * (retryCount + 1)));
       return performGeocodeRequest(http, ngZone, lat, lon, retryCount + 1);
     }
-    if (error.status === 403) console.warn('Geocoding rate limited (403). Caching will reduce future requests.');
-    else console.warn('Geocoding failed:', error);
-    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    // Expected network/gateway failures: coordinate string only — never console.error
+    return coordFallback(lat, lon);
   }
 }

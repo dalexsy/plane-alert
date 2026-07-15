@@ -5,6 +5,7 @@ import {
 } from '@angular/common/http/testing';
 
 import { LocationService } from './location.service';
+import { GeocodingCacheService } from '../geocoding-cache/geocoding-cache.service';
 
 describe('LocationService', () => {
   let service: LocationService;
@@ -13,7 +14,13 @@ describe('LocationService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [LocationService],
+      providers: [
+        LocationService,
+        {
+          provide: GeocodingCacheService,
+          useValue: { reverseGeocode: () => Promise.resolve('test') },
+        },
+      ],
     });
     service = TestBed.inject(LocationService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -23,9 +30,10 @@ describe('LocationService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should return location information', () => {
+  it('should return location information from planes-api reverseGeocode', () => {
     const mockResponse = {
-      address: {
+      address: 'Main Street, Downtown',
+      addressDetails: {
         road: 'Main Street',
         suburb: 'Downtown',
       },
@@ -37,7 +45,7 @@ describe('LocationService', () => {
     });
 
     const req = httpMock.expectOne(
-      'https://nominatim.openstreetmap.org/reverse?format=json&lat=51.5074&lon=-0.1278&zoom=18'
+      '/api/planes/reverseGeocode?lat=51.5074&lon=-0.1278'
     );
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
@@ -50,7 +58,7 @@ describe('LocationService', () => {
     });
 
     const req = httpMock.expectOne(
-      'https://nominatim.openstreetmap.org/reverse?format=json&lat=51.5074&lon=-0.1278&zoom=18'
+      '/api/planes/reverseGeocode?lat=51.5074&lon=-0.1278'
     );
     req.error(new ErrorEvent('Network error'));
   });
