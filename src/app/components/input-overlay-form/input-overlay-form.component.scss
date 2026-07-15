@@ -1,5 +1,8 @@
+// Block (not contents) so the parent can scroll this host as the sheet body
+// without clipping the left icon rail on .options-overlay.
 :host {
-  display: contents;
+  display: block;
+  min-width: 0;
 }
 
 form {

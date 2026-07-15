@@ -12,11 +12,12 @@
   flex-direction: column;
   height: fit-content;
   min-height: 10rem;
-  overflow: hidden;
+  // Outer shell overflow:visible so the right icon rail (right: -40px)
+  // is not clipped. Lists scroll in .middle-section / seen list.
+  overflow: visible;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
-  // Mobile: sheet over map — not full-screen (was ~100dvh and ate the map)
   max-height: min(48dvh, 22rem);
   width: calc(100vw - 3.5rem);
 
@@ -33,7 +34,6 @@
     width: 25rem;
     min-height: 18rem;
     max-height: calc(100vh - 11rem);
-    overflow: visible;
   }
 
   .top-buttons {
@@ -46,6 +46,8 @@
     z-index: 1006;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgb(255 255 255 / 40%);
+    // Rail always paints above map / window strip
+    overflow: visible;
   }
 
   &:not(.collapsed) > *:first-child:not(.top-buttons) {
@@ -58,6 +60,7 @@
     z-index: 1000;
     background: transparent;
     border-color: transparent;
+    overflow: visible;
 
     &:hover {
       z-index: 1005;
@@ -74,13 +77,17 @@
     flex: 0 1 auto;
     min-height: 0;
     overflow: hidden;
+    max-height: min(48dvh, 22rem);
+
+    @media (min-width: 601px) {
+      max-height: none;
+    }
   }
 
   &:has(app-results-seen-list.collapsed) .middle-section {
     flex: 1 1 calc(100% - 3rem);
   }
 
-  // Window view hidden: still keep mobile as a sheet so map stays usable.
   &.window-view-closed {
     max-height: min(52dvh, 24rem);
 
@@ -98,4 +105,3 @@
   z-index: 1999;
   backdrop-filter: blur(0.25rem);
 }
-
