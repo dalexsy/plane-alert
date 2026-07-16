@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
 Name=planes.dryl.io kiosk
-Comment=Open planes.dryl.io fullscreen on login
-Exec=/home/pi/bin/planes-kiosk.sh
+Comment=Start planes.dryl.io kiosk via systemd user unit (do not double-launch Chromium)
+Exec=/usr/bin/systemctl --user start planes-kiosk.service
 X-GNOME-Autostart-enabled=true

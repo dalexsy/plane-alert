@@ -55,7 +55,8 @@ export class NoonRefreshService implements OnDestroy {
   private async performRefresh(_type: string): Promise<void> {
     await this.clearServiceWorkers();
 
-    const url = new URL(window.location.origin + window.location.pathname);
+    // Keep ?kiosk=1 (and other query params) — dropping them forces a full non-kiosk reload.
+    const url = new URL(window.location.href);
     url.searchParams.set('_refresh', Date.now().toString());
     window.location.replace(url.toString());
   }

@@ -31,6 +31,18 @@ pkill -f 'chromium.*planes\.dryl' 2>/dev/null || true
 sleep 3
 rm -f "${LOCK}"
 
+# Wait for labwc — restarting before wayland-0 causes Chromium to exit and Restart= storms.
+for _ in $(seq 1 60); do
+  if [ -S "${XDG_RUNTIME_DIR}/wayland-0" ]; then
+    break
+  fi
+  sleep 1
+done
+if [ ! -S "${XDG_RUNTIME_DIR}/wayland-0" ]; then
+  echo "planes-kiosk-restart: wayland still missing after wait" >&2
+  exit 1
+fi
+
 if [ -f /home/pi/.config/planes-kiosk/credentials.env ]; then
   sudo -u "${PI_USER}" env \
     DRYL_AUTH_LOGIN_JSON="${DRYL_AUTH_LOGIN_JSON:-http://127.0.0.1:8790/api/auth/login-json}" \
@@ -41,6 +53,7 @@ touch "${LOG}"
 chown "${PI_USER}:${PI_USER}" "${LOG}"
 
 user_systemctl reset-failed "${USER_UNIT}" 2>/dev/null || true
+user_systemctl daemon-reload 2>/dev/null || true
 if ! sudo -u "${PI_USER}" env \
   XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
   DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS}" \

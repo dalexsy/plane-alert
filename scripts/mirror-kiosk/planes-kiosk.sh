@@ -11,11 +11,25 @@ export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
 
 LOCK="${XDG_RUNTIME_DIR}/planes-kiosk.lock"
+WAYLAND_SOCK="${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
 QUICK_START="${PLANES_KIOSK_QUICK_START:-0}"
+WAYLAND_WAIT_SEC="${PLANES_KIOSK_WAYLAND_WAIT:-90}"
 
 mkdir -p "${CONFIG_DIR}" "${PROFILE}"
 
 export DRYL_AUTH_LOGIN_JSON="${DRYL_AUTH_LOGIN_JSON:-http://127.0.0.1:8790/api/auth/login-json}"
+
+# User systemd can start before labwc publishes wayland-0 — wait or Chromium exits and Restart= storms.
+for _ in $(seq 1 "${WAYLAND_WAIT_SEC}"); do
+  if [ -S "${WAYLAND_SOCK}" ]; then
+    break
+  fi
+  sleep 1
+done
+if [ ! -S "${WAYLAND_SOCK}" ]; then
+  echo "planes-kiosk: no wayland socket yet (${WAYLAND_SOCK})" >&2
+  exit 1
+fi
 
 if [[ "${QUICK_START}" != "1" && -f "${CONFIG_DIR}/credentials.env" ]]; then
   if ! python3 /home/pi/bin/planes-kiosk-session.py; then
@@ -48,10 +62,24 @@ fi
 # Never land on admin.dryl.io (kiosk must not expose the admin hub).
 START_URL="${URL}"
 
+kiosk_chromium_running() {
+  pgrep -f "user-data-dir=${PROFILE}" >/dev/null 2>&1
+}
+
 exec 9>"${LOCK}"
 if ! flock -n 9; then
-  echo "planes-kiosk: another instance holds ${LOCK}" >&2
-  exit 1
+  if kiosk_chromium_running; then
+    # Desktop autostart and user service used to race — treat as healthy so Restart= stops.
+    echo "planes-kiosk: already running (lock held)" >&2
+    exit 0
+  fi
+  echo "planes-kiosk: stale lock without chromium — clearing" >&2
+  rm -f "${LOCK}"
+  exec 9>"${LOCK}"
+  if ! flock -n 9; then
+    echo "planes-kiosk: cannot acquire ${LOCK}" >&2
+    exit 1
+  fi
 fi
 
 exec "${CHROMIUM}" \

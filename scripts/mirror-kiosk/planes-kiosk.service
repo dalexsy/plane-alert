@@ -1,10 +1,16 @@
 [Unit]
 Description=planes.dryl.io fullscreen kiosk
+# Labwc / wayland must exist before Chromium --ozone-platform=wayland.
 After=default.target
+After=graphical-session.target
+# Cap restart storms if wayland/GPU flaps (was unbounded every 20s).
+StartLimitIntervalSec=300
+StartLimitBurst=8
 
 [Service]
 Type=simple
 Environment=PLANES_KIOSK_QUICK_START=1
+Environment=PLANES_KIOSK_WAYLAND_WAIT=90
 ExecStart=/home/pi/bin/planes-kiosk.sh
 Restart=on-failure
 RestartSec=20
