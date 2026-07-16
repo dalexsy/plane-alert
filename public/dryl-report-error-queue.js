@@ -1,5 +1,6 @@
 /**
  * HTTP queue helpers for dryl client error reporter.
+ * Always try health.dryl.io when same-origin is 502 (deploy restart / app down).
  */
 (function () {
   "use strict";
@@ -9,6 +10,7 @@
 
   var BASE_FLUSH_MS = 400;
   var MAX_FLUSH_MS = 30_000;
+  var HEALTH_ERRORS = "https://health.dryl.io/api/client-errors";
   var flushing = false;
 
   function defaultHttpEndpoints() {
@@ -16,6 +18,9 @@
     var host = typeof location !== "undefined" ? location.hostname || "" : "";
     if (host === "localhost" || host === "127.0.0.1") {
       list.push("http://localhost:3905/api/client-errors");
+    } else if (host && host !== "health.dryl.io") {
+      // Origin 502 cannot reach Directory via same-host /api/client-errors.
+      list.push(HEALTH_ERRORS);
     }
     return list;
   }
@@ -40,42 +45,44 @@
     return Math.min(ms, MAX_FLUSH_MS);
   }
 
+  function isSameOrigin(endpoint) {
+    return (
+      typeof location !== "undefined" &&
+      (endpoint.startsWith("/") || endpoint.indexOf(location.origin) === 0)
+    );
+  }
+
+  /** Fire-and-forget post: walk endpoints until one accepts (502 must fall through). */
   function postHttp(entry, allowQueue, endpoints) {
     var body = JSON.stringify(entry);
-    for (var i = 0; i < endpoints.length; i += 1) {
-      var endpoint = endpoints[i];
-      var sameOrigin =
-        typeof location !== "undefined" &&
-        (endpoint.startsWith("/") || endpoint.indexOf(location.origin) === 0);
-      try {
-        void fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: body,
-          credentials: sameOrigin ? "same-origin" : "omit",
-          keepalive: true,
-        })
-          .then(function (res) {
-            if (res.ok || res.status === 204) {
-              storage.bumpStat("delivered");
-              flushQueue(endpoints);
-            } else if (allowQueue) {
-              storage.bumpStat("retryableHttp");
-              storage.enqueueEntry(entry);
-            }
-          })
-          .catch(function () {
-            if (allowQueue) {
-              storage.bumpStat("retryableNet");
-              storage.enqueueEntry(entry);
-            }
-          });
+    var ep = 0;
+    (function tryEndpoint() {
+      if (ep >= endpoints.length) {
+        if (allowQueue) storage.enqueueEntry(entry);
         return;
-      } catch {
-        // try next endpoint
       }
-    }
-    if (allowQueue) storage.enqueueEntry(entry);
+      var endpoint = endpoints[ep++];
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body,
+        credentials: isSameOrigin(endpoint) ? "same-origin" : "omit",
+        keepalive: true,
+      })
+        .then(function (res) {
+          if (res.ok || res.status === 204) {
+            storage.bumpStat("delivered");
+            flushQueue(endpoints);
+            return;
+          }
+          storage.bumpStat("retryableHttp");
+          tryEndpoint();
+        })
+        .catch(function () {
+          storage.bumpStat("retryableNet");
+          tryEndpoint();
+        });
+    })();
   }
 
   function flushQueue(endpoints) {
@@ -114,14 +121,11 @@
         return;
       }
       var endpoint = endpoints[ep++];
-      var sameOrigin =
-        typeof location !== "undefined" &&
-        (endpoint.startsWith("/") || endpoint.indexOf(location.origin) === 0);
       fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: body,
-        credentials: sameOrigin ? "same-origin" : "omit",
+        credentials: isSameOrigin(endpoint) ? "same-origin" : "omit",
         keepalive: true,
       })
         .then(function (res) {
