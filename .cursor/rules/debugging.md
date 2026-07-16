@@ -24,17 +24,17 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 
 | Metric | Value |
 |--------|-------|
-| Typical (median) | 111s |
-| p75 | 132s |
-| p90 | 141s |
-| Last deploy | 135s |
-| Samples | 17 |
+| Typical (median) | 119s |
+| p75 | 130s |
+| p90 | 139s |
+| Last deploy | 110s |
+| Samples | 21 |
 
-- **Agent shell wait:** use `block_until_ms` **170291** (~170s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **167486** (~167s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-07-15T19:36:36Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-07-15T20:23:04Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
@@ -60,6 +60,7 @@ Replace this table with symptoms **specific to plane-alert**. Fleet-generic chec
 |--------|----------------|---------------|
 | White screen after noon refresh | Service worker cached stale `index.html` | Fixed in `public/sw.js` + `NoonRefreshService` unregisters SW before reload |
 | Kiosk stuck on admin.dryl.io / login | SSO sent admins to apps hub; kiosk opened login URL | `dryl-auth` login guard uses `/api/auth/next`; kiosk always starts at `planes.dryl.io` |
+| Kiosk SSO login despite credentials.env | Stale `session.jar` token reused after auth secret/redeploy; login-json Set-Cookie from 127.0.0.1 ignored | `planes-kiosk-session.py` clears jar + reads Set-Cookie only; `npm run kiosk:planes` |
 | Watchdog left desktop visible | session-stale killed working Chromium; 5min cooldown; restart timed out at 35s | Fixed: session strikes, fast cooldown, 90s wait, quick-start skips blocking curl/session |
 | Deploy log `[ok]` but app broken in browser | Smoke hit login redirect only | `npm run verify:console` |
 | `custom-token` 503 / CORS | dryl-auth down or sites.json stale | Redeploy `dryl-auth`; re-run verify |

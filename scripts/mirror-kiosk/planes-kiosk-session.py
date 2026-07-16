@@ -78,11 +78,17 @@ def persist_session_token(token: str) -> None:
     jar.save(ignore_discard=True, ignore_expires=True)
 
 
+def clear_session_jar() -> None:
+    """Drop cached session so a stale token cannot shadow a fresh Set-Cookie."""
+    if JAR_FILE.is_file():
+        JAR_FILE.unlink()
+
+
 def login_json(user: str, password: str) -> str:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    jar = MozillaCookieJar(str(JAR_FILE))
-    if JAR_FILE.is_file():
-        jar.load(ignore_discard=True, ignore_expires=True)
+    # login-json is on 127.0.0.1 but Set-Cookie Domain=.dryl.io — cookiejar often
+    # rejects that host/domain pair. Never reuse a prior jar entry as the token.
+    clear_session_jar()
 
     body = json.dumps({"username": user, "password": password}).encode("utf-8")
     req = urllib.request.Request(
@@ -91,12 +97,19 @@ def login_json(user: str, password: str) -> str:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
     set_cookie = ""
     try:
-        with opener.open(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=20) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
-            set_cookie = resp.headers.get("Set-Cookie", "")
+            headers = resp.headers
+            if hasattr(headers, "get_all"):
+                parts = headers.get_all("Set-Cookie") or headers.get_all("set-cookie") or []
+                for part in parts:
+                    if COOKIE_NAME.lower() in part.lower():
+                        set_cookie = part
+                        break
+            if not set_cookie:
+                set_cookie = headers.get("Set-Cookie") or headers.get("set-cookie") or ""
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:200]
         raise SystemExit(f"login-json HTTP {exc.code}: {detail}") from exc
@@ -106,13 +119,7 @@ def login_json(user: str, password: str) -> str:
     if not payload.get("ok"):
         raise SystemExit(f"login-json rejected: {payload}")
 
-    jar.save(ignore_discard=True, ignore_expires=True)
-    token = ""
-    for cookie in jar:
-        if cookie.name == COOKIE_NAME:
-            token = cookie.value
-    if not token:
-        token = token_from_set_cookie_header(set_cookie)
+    token = token_from_set_cookie_header(set_cookie)
     if not token:
         raise SystemExit(f"login ok but no {COOKIE_NAME} cookie in response")
     persist_session_token(token)
@@ -122,10 +129,28 @@ def login_json(user: str, password: str) -> str:
 def token_from_set_cookie_header(header: str) -> str:
     if not header:
         return ""
+    # Prefer a direct parse — SimpleCookie can choke on multi-cookie joins.
+    for part in header.split(","):
+        for segment in part.split(";"):
+            segment = segment.strip()
+            if segment.lower().startswith(f"{COOKIE_NAME.lower()}="):
+                raw = segment.split("=", 1)[1].strip().strip('"')
+                try:
+                    return urllib.parse.unquote(raw)
+                except Exception:
+                    return raw
     jar = SimpleCookie()
-    jar.load(header)
+    try:
+        jar.load(header)
+    except Exception:
+        return ""
     morsel = jar.get(COOKIE_NAME)
-    return morsel.value if morsel else ""
+    if not morsel:
+        return ""
+    try:
+        return urllib.parse.unquote(morsel.value)
+    except Exception:
+        return morsel.value
 
 
 def chrome_time() -> int:
@@ -334,21 +359,32 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.verify_only:
-        sys.exit(0 if verify_planes() else 1)
+        ok, reason = fetch_planes_html()
+        if not ok and reason:
+            print(f"[verify-only] fail: {reason}", file=sys.stderr)
+        sys.exit(0 if ok else 1)
 
     jar_token = token_from_jar()
     if jar_token:
         import_cookie(jar_token)
-    if verify_planes():
+    ok, reason = fetch_planes_html()
+    if ok:
         print("[ok] planes session already valid")
         return
+    if reason:
+        print(f"[info] cached session unusable ({reason}) — logging in again")
+    clear_session_jar()
     user, password = load_credentials()
     token = login_json(user, password)
     import_cookie(token)
-    if verify_planes():
+    ok, reason = fetch_planes_html()
+    if ok:
         print("[ok] dryl_session imported — planes reachable")
         return
-    print("[warn] cookie imported but planes verify still failed", file=sys.stderr)
+    print(
+        f"[warn] cookie imported but planes verify still failed ({reason or 'unknown'})",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
