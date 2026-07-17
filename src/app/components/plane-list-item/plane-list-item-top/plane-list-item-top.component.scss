@@ -26,7 +26,7 @@
 
 .direction-info {
   display: grid;
-  grid-template-columns: auto auto t.$space-lg auto;
+  grid-template-columns: auto auto t.$grid-direction-icon-size auto;
   align-items: center;
   gap: t.$space-sm;
   justify-items: end;
@@ -35,6 +35,8 @@
   .direction-icon {
     width: t.$grid-direction-icon-size;
     height: t.$grid-direction-icon-size;
+    font-size: t.$font-size-base; /* typography-ok icon glyph */
+    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -62,6 +64,13 @@
   a {
     color: var(--color);
   }
+}
+
+.icon.small {
+  font-size: t.$font-size-base; /* typography-ok icon glyph */
+  width: t.$font-size-base;
+  height: t.$font-size-base;
+  line-height: 1;
 }
 
 .military-star {
