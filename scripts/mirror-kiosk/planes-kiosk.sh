@@ -82,12 +82,15 @@ if ! flock -n 9; then
   fi
 fi
 
+# no-user-gesture-required: kiosk never gets a click; without this, Alert/TTS stay silent
+# while system sounds still work (matches "other audio works, plane-alert doesn't").
 exec "${CHROMIUM}" \
   --ozone-platform=wayland \
   --use-angle=gl \
   --disable-dev-shm-usage \
   --user-data-dir="${PROFILE}" \
   --password-store=basic \
+  --autoplay-policy=no-user-gesture-required \
   --kiosk \
   --noerrdialogs \
   --disable-infobars \

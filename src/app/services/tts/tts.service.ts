@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
 import {
   SUPPORTED_TTS_LANGUAGES,
   preprocessTextForSpeech,
@@ -9,6 +10,7 @@ import {
 /**
  * Browser speechSynthesis requires a user gesture before autoplay.
  * Auto-announce without gesture throws TTS Error: not-allowed (console spam).
+ * Kiosk (?kiosk=1) never gets a gesture — unlock immediately there.
  */
 @Injectable({ providedIn: 'root' })
 export class TtsService {
@@ -21,7 +23,11 @@ export class TtsService {
 
   constructor() {
     this.initializeVoices();
-    this.armUserGestureUnlock();
+    if (isKioskMode()) {
+      this.userUnlocked = true;
+    } else {
+      this.armUserGestureUnlock();
+    }
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {

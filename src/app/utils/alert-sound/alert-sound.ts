@@ -31,6 +31,32 @@ let currentAudio: HTMLAudioElement | null = null;
 let lastPlayTime = 0;
 const MIN_PLAY_INTERVAL = 1000; // Minimum 1 second between alert sounds
 
+function ensureAudioGraph(): AudioContext {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
+  }
+  if (!gainNode) {
+    gainNode = audioContext.createGain();
+    gainNode.gain.value = 5; // Amplify beyond 100%
+    gainNode.connect(audioContext.destination);
+  }
+  return audioContext;
+}
+
+/** Call on kiosk boot so AlertContext is running before the first plane alert. */
+export function unlockAlertAudio(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = ensureAudioGraph();
+    if (ctx.state === 'suspended') {
+      void ctx.resume();
+    }
+  } catch {
+    /* autoplay still blocked until Chromium --autoplay-policy */
+  }
+}
+
 function playAudio(soundPath: string): void {
   const now = Date.now();
 
@@ -47,65 +73,38 @@ function playAudio(soundPath: string): void {
   lastPlayTime = now;
 
   try {
-    // Create or reuse audio context
-    if (!audioContext) {
-      audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-    }
-
-    // Resume context if suspended (required by some browsers)
-    if (audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-
-    // Create or reuse gain node
-    if (!gainNode) {
-      gainNode = audioContext.createGain();
-      gainNode.gain.value = 5; // Amplify beyond 100%
-      gainNode.connect(audioContext.destination);
-    }
-
-    // Create new audio element
-    currentAudio = new Audio(soundPath);
-    const source = audioContext.createMediaElementSource(currentAudio);
-
-    // Disconnect previous source if it exists
-    if (source) {
-      source.connect(gainNode);
-    }
-
-    // Play the audio
-    const playPromise = currentAudio.play();
-
-    // Handle play promise (required for some browsers)
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          // Audio started playing
-        })
-        .catch((error) => {
+    const ctx = ensureAudioGraph();
+    const start = () => {
+      currentAudio = new Audio(soundPath);
+      const source = ctx.createMediaElementSource(currentAudio);
+      source.connect(gainNode!);
+      const playPromise = currentAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
           console.warn('Audio play failed:', error);
         });
-    }
-
-    // Clean up when audio ends
-    currentAudio.addEventListener('ended', () => {
-      currentAudio = null;
-    });
-
-    // Fallback cleanup after 10 seconds (in case ended event doesn't fire)
-    setTimeout(() => {
-      if (currentAudio && currentAudio.paused) {
-        currentAudio = null;
       }
-    }, 10000);
+      currentAudio.addEventListener('ended', () => {
+        currentAudio = null;
+      });
+      setTimeout(() => {
+        if (currentAudio && currentAudio.paused) {
+          currentAudio = null;
+        }
+      }, 10000);
+    };
+
+    if (ctx.state === 'suspended') {
+      void ctx.resume().then(start).catch(start);
+    } else {
+      start();
+    }
   } catch (error) {
     console.warn('Audio playback error:', error);
-    // Fallback to simple audio play without Web Audio API
     try {
       const fallbackAudio = new Audio(soundPath);
-      fallbackAudio.volume = 5; // Try to amplify (though browser may limit to 1.0)
-      fallbackAudio.play();
+      fallbackAudio.volume = 1;
+      void fallbackAudio.play();
     } catch (fallbackError) {
       console.warn('Fallback audio playback also failed:', fallbackError);
     }

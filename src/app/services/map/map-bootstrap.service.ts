@@ -24,6 +24,7 @@ import { MapUpdateService } from '../map-update/map-update.service';
 import { UiStateService } from '../ui-state/ui-state.service';
 import { ScanService } from '../scan/scan.service';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
+import { unlockAlertAudio } from '../../utils/alert-sound/alert-sound';
 import { initializeMapForBootstrap } from './map-bootstrap-init.util';
 import {
   applyBootstrapInputOverlayState,
@@ -73,6 +74,7 @@ export class MapBootstrapService {
     this.settings.load();
     if (isKioskMode()) {
       this.document.body.classList.add('kiosk-mode');
+      unlockAlertAudio();
     }
     const aircraftDbReady = this.aircraftDb.load();
     this.overlay.clickedAirports = this.settings.getClickedAirports();
