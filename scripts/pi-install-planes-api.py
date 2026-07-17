@@ -56,6 +56,17 @@ def build_functions() -> None:
     if result.returncode != 0:
         raise SystemExit(result.returncode or "[fail] functions build")
 
+    print("[gate] local transaction cooldown")
+    result = run_subprocess(
+        ["node", str(FUNCTIONS_DIR / "scripts" / "test-local-transaction.mjs")],
+        cwd=FUNCTIONS_DIR,
+        shell=sys.platform == "win32",
+    )
+    if result.returncode != 0:
+        raise SystemExit(
+            result.returncode or "[fail] local transaction cooldown gate"
+        )
+
 
 def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     if not skip_build:

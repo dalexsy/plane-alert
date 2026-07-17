@@ -168,9 +168,16 @@ export class LocalTransaction {
     );
   }
 
+  delete(ref: LocalDocumentReference): void {
+    this.pending.set(ref.path, null);
+  }
+
   commit(state: Store): void {
     for (const [docPath, data] of this.pending.entries()) {
-      const [collectionName, docId] = docPath.split('/');
+      const slash = docPath.indexOf('/');
+      const collectionName =
+        slash === -1 ? docPath : docPath.slice(0, slash);
+      const docId = slash === -1 ? '' : docPath.slice(slash + 1);
       state[collectionName] ??= {};
       if (data === null) {
         delete state[collectionName][docId];

@@ -23,15 +23,24 @@ export function applyPatch(
       delete next[key];
       continue;
     }
-    if (
-      value &&
-      typeof value === 'object' &&
-      INCREMENT_FIELD in (value as Record<symbol, number>)
-    ) {
-      const delta = (value as Record<symbol, number>)[INCREMENT_FIELD];
-      const current = typeof next[key] === 'number' ? (next[key] as number) : 0;
-      next[key] = current + delta;
-      continue;
+    if (value && typeof value === 'object') {
+      const asRec = value as Record<string | symbol, number>;
+      if (INCREMENT_FIELD in asRec) {
+        const delta = asRec[INCREMENT_FIELD];
+        const current = typeof next[key] === 'number' ? (next[key] as number) : 0;
+        next[key] = current + (typeof delta === 'number' ? delta : 0);
+        continue;
+      }
+      // Unpatched firebase-admin Increment leaked into JSON as { operand: n }.
+      if (
+        'operand' in asRec &&
+        typeof asRec.operand === 'number' &&
+        Object.keys(asRec).length === 1
+      ) {
+        const current = typeof next[key] === 'number' ? (next[key] as number) : 0;
+        next[key] = current + asRec.operand;
+        continue;
+      }
     }
     next[key] = value;
   }
@@ -44,13 +53,20 @@ export function normalizeWrite(data: DocData): DocData {
     if (value === DELETE_FIELD) {
       continue;
     }
-    if (
-      value &&
-      typeof value === 'object' &&
-      INCREMENT_FIELD in (value as Record<symbol, number>)
-    ) {
-      next[key] = (value as Record<symbol, number>)[INCREMENT_FIELD];
-      continue;
+    if (value && typeof value === 'object') {
+      const asRec = value as Record<string | symbol, number>;
+      if (INCREMENT_FIELD in asRec) {
+        next[key] = asRec[INCREMENT_FIELD];
+        continue;
+      }
+      if (
+        'operand' in asRec &&
+        typeof asRec.operand === 'number' &&
+        Object.keys(asRec).length === 1
+      ) {
+        next[key] = asRec.operand;
+        continue;
+      }
     }
     next[key] = value;
   }
