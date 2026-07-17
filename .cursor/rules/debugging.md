@@ -73,5 +73,7 @@ Replace this table with symptoms **specific to plane-alert**. Fleet-generic chec
 | Logs mention `firebase-functions` / `admin.firestore` | Leftover API surface: Pi `pi-server.ts` uses `createLocalFirestore` + patches FieldValue; services still typed against firebase-admin | Not Cloud Firestore. Do not `admin.initializeApp()` / `admin.firestore()` on Pi — that path is legacy `functions/src/index.ts` only |
 | Window view covers bottom of results list on phone | Results `max-height` was full viewport while window view is fixed 4rem at bottom (z-index higher) | Mobile `max-height: calc(100dvh - 5.5rem)` when window open; `.window-view-closed` restores full height. FAB: `body:has(.window-view-overlay) #dryl-corner-stack` lifts above strip |
 | Bug hunter FAB overlaps window view | Corner stack `inset-block-end: 1rem` ignores window strip | Same `body:has(.window-view-overlay)` lift — FAB is intentional when signed in; do not remove |
+| JOKER / CHX show fixed-wing map marker | Jul 12 heli ID split dropped callsign/type checks; `unknown-plane::before` overrode `toys_fan` | `isHelicopterByCallsign` + type/model patterns; CSS `unknown-plane:not(.copter-plane)` |
+| Anonymous fetch of planes.dryl.io looks like admin | `planes` missing `"public": true` → nginx SSO → admin login HTML | Set `public: true` in `dryl-static-sites.json` + `pi-setup-dryl-host.py` |
 
 **After any failure:** append under a **Symptom** section (add one) or **Failed experiments** with date + what not to repeat.
