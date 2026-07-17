@@ -200,6 +200,7 @@ export const BORING_MIL_CALLSIGN_PREFIXES = [
     'SPAR', // Special Air Resource
     'CTM', // Cargo Transport Mission
     'MAM', // Military air movement
+    'JOKER', // Helicopter callsigns — rarely over Berlin
 ];
 /**
  * Military operator keywords (for operator name matching)
