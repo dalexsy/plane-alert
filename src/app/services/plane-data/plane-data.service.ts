@@ -130,17 +130,18 @@ export class PlaneDataService {
     const prefixOperator = this.operatorCallSignService.getOperatorWithLogging(callsign);
     let operator = prefixOperator ?? (dbAircraft?.ownop || '');
     let model = apiModel || dbAircraft?.model || '';
-    if (!model && this.helicopterIdentificationService.isHelicopter(id, model, operator)) model = 'Helicopter';
+    const asHeli = (m: string) =>
+      this.helicopterIdentificationService.isHelicopter(id, m, operator, callsign, apiIcaoType);
+    if (!model && asHeli(model)) model = 'Helicopter';
     const isSpecial = this.specialListService.isSpecial(id);
     const isA380 = model && /a\s*-?\s*380/i.test(model);
     if (!dbAircraft) {
-      let dbModel = apiModel || '';
-      if (!dbModel && this.helicopterIdentificationService.isHelicopter(id, dbModel, operator)) dbModel = 'Helicopter';
-      const aircraftRecord: AircraftRecord = {
-        icao: id, reg: reg || id, icaotype: apiIcaoType || '', year: '', manufacturer: '', model: dbModel,
-        ownop: operator || '', faa_pia: false, faa_ladd: false, short_type: dbModel, mil: isMilitary,
-      };
-      this.aircraftDb.addRecord(aircraftRecord);
+      const dbModel = apiModel || (asHeli('') ? 'Helicopter' : '');
+      this.aircraftDb.addRecord({
+        icao: id, reg: reg || id, icaotype: apiIcaoType || '', year: '', manufacturer: '',
+        model: dbModel, ownop: operator || '', faa_pia: false, faa_ladd: false,
+        short_type: dbModel, mil: isMilitary,
+      });
     }
     this.unknownLogger.track({
       icao: id, registration: reg || 'N/A', operator: operator || 'N/A', rawCountry: rawCountry || 'N/A',

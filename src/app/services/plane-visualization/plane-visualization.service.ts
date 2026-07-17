@@ -63,7 +63,7 @@ export class PlaneVisualizationService {
     const { marker } = createOrUpdatePlaneMarker(
       plane.marker, map, lat, lon, trackForMarker, extraStyle, isNew, onGround, tooltip, '',
       isMilitary, model,
-      this.helicopterIdentificationService.isHelicopter(icao, model, plane.operator),
+      this.helicopterIdentificationService.isHelicopter(icao, model, plane.operator, callsign),
       isSpecial, isUnknown, altitude, false, this.settings.interval, icao, callsign,
       this.operatorTooltipService,
       planeData,

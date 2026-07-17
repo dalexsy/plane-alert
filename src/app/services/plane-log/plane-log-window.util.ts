@@ -27,7 +27,9 @@ export function updateWindowViewPlanes(
       const x = ((azimuth + 180) % 360 / 360) * 100;
       const alt = isGrounded ? 0 : plane.altitude ?? 0;
       const y = (Math.min(alt, 20000) / 20000) * 100;
-      const isHelicopter = ctx.helicopterIdentificationService.isHelicopter(plane.icao, plane.model, plane.operator);
+      const isHelicopter = ctx.helicopterIdentificationService.isHelicopter(
+        plane.icao, plane.model, plane.operator, plane.callsign
+      );
       const iconData = getIconPathForModel(plane.model, plane.callsign, alt, isHelicopter);
       const distKm = haversineDistance(centerLat, centerLon, plane.lat!, plane.lon!);
       const maxRadius = ctx.settings.radius ?? 5;
@@ -58,7 +60,7 @@ export function updateWindowViewPlanes(
       return {
         x, y, callsign: plane.callsign || '', altitude: alt, lat: plane.lat!, lon: plane.lon!,
         bearing: plane.track ?? 0, iconPath: iconData.path, iconType: iconData.iconType,
-        isHelicopter: ctx.helicopterIdentificationService.isHelicopter(plane.icao, plane.model, plane.operator),
+        isHelicopter,
         velocity: plane.velocity ?? 0,
         verticalRate: plane.verticalRate ?? calculateVerticalRateFromHistory(plane.positionHistory) ?? undefined,
         historyTrail, scale, distanceKm: distKm, isNew: plane.isNew, isMilitary: plane.isMilitary,

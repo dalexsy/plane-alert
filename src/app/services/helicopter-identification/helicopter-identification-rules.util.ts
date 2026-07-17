@@ -18,6 +18,36 @@ export function isHelicopterByOperator(operator: string): boolean {
   return helicopterOperators.some((pattern) => operatorLower.includes(pattern));
 }
 
+/** Callsigns that are almost always rotorcraft (no ADS-B category required). */
+export function isHelicopterByCallsign(callsign: string): boolean {
+  if (!callsign || typeof callsign !== 'string') return false;
+  const normalized = callsign.trim().toUpperCase();
+  if (!normalized) return false;
+  const patterns = [
+    /^(JOKER|TIGER|VIPER|COBRA|APACHE)\d+$/,
+    /^(RESCUE|MEDIC|LIFEGUARD|HEMS|HELIMED)\d*$/,
+    /^(POLICE|POLIZEI|POLAIR|POLIS)\d*$/,
+    /^(CHX|ADAC|DRF|HTM)\d+$/,
+  ];
+  return patterns.some((pattern) => pattern.test(normalized));
+}
+
+/** ICAO type designators that map to rotorcraft (ADS-B `t` / DB icaotype). */
+export function isHelicopterByTypeDesignator(icaoType: string): boolean {
+  if (!icaoType || typeof icaoType !== 'string') return false;
+  const normalized = icaoType.trim().toUpperCase();
+  if (!normalized) return false;
+  if (/^(EC|AS|BK)(\d{2}|\d{3})$/.test(normalized)) return true;
+  if (/^(H1[2-7]\d|UH\d{2}|AH\d{2}|CH\d{2}|NH\d{2}|TIGR|S76|S92|R22|R44|R66)$/.test(normalized)) {
+    return true;
+  }
+  const known = new Set([
+    'A109', 'A119', 'A139', 'A149', 'A169', 'A189', 'B06', 'B206', 'B212', 'B407',
+    'B412', 'B429', 'EC35', 'EC45', 'EC55', 'H145', 'H135', 'H125', 'H160', 'H175',
+  ]);
+  return known.has(normalized);
+}
+
 export function isHelicopterByModel(model: string): boolean {
   if (!model || typeof model !== 'string') return false;
   const modelLower = model.toLowerCase().trim();
