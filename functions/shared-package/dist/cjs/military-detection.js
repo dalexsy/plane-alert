@@ -198,18 +198,11 @@ exports.MIL_CALLSIGN_PREFIXES = [
     'WCO',
 ];
 /**
- * Military callsign prefixes that almost always indicate cargo, VIP, or
- * liaison flights — not fighters. Used when ADS-B has no mil flag or type.
+ * Callsign prefixes that should never notify. Everything else (RCH, PAT, SPAR,
+ * CTM, MAM, CNV, GAF, …) is judged by type/desc — those fleets carry models we want.
  */
 exports.BORING_MIL_CALLSIGN_PREFIXES = [
-    // GAF (Luftwaffe) is NOT boring — household wants those alerts.
     'MMF', // NATO Multinational MRTT Fleet (A330 tankers)
-    'RCH', // AMC Reach cargo
-    'CNV', // Convoy
-    'PAT', // Special Air Mission (VIP transport)
-    'SPAR', // Special Air Resource
-    'CTM', // Cargo Transport Mission
-    'MAM', // Military air movement
     'JOKER', // Helicopter callsigns — rarely over Berlin
 ];
 /**
@@ -327,8 +320,8 @@ function isBoringMilitaryAircraft(plane) {
         if (normalizeCallsign(callsign).startsWith('USAF')) {
             return true;
         }
-        // Interesting callsigns (RRR, BAF, …) without type/desc still warrant alerts.
-        // Boring VIP/cargo prefixes (GAF, RCH, …) are filtered above via isBoringMilitaryCallsign.
+        // Interesting callsigns (RRR, GAF, RCH, BAF, …) without type/desc still warrant alerts.
+        // Only MMF/JOKER are filtered above via isBoringMilitaryCallsign.
         if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
             return false;
         }

@@ -12,8 +12,8 @@ export declare const BORING_AIRCRAFT_TYPES: string[];
  */
 export declare const MIL_CALLSIGN_PREFIXES: string[];
 /**
- * Military callsign prefixes that almost always indicate cargo, VIP, or
- * liaison flights — not fighters. Used when ADS-B has no mil flag or type.
+ * Callsign prefixes that should never notify. Everything else (RCH, PAT, SPAR,
+ * CTM, MAM, CNV, GAF, …) is judged by type/desc — those fleets carry models we want.
  */
 export declare const BORING_MIL_CALLSIGN_PREFIXES: string[];
 /**
