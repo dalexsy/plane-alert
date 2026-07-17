@@ -8,7 +8,7 @@
     "build": "node ../directory/scripts/ng-build-gate.mjs build && node scripts/post-build.js",
     "deploy": "npm run deploy:dryl",
     "deploy:dryl": "node ..\\directory\\scripts\\run-full-deploy.mjs planes",
-    "verify:dist": "npm run build && node ..\\directory\\scripts\\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes && node ..\\directory\\scripts\\smoke-spa-console.mjs planes --local",
+    "verify:dist": "npm run build && node ..\\directory\\scripts\\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes",
     "verify:console": "node ..\\directory\\scripts\\smoke-spa-console.mjs planes",
     "sync:errors": "node ..\\directory\\scripts\\sync-error-reporter.mjs --only plane-alert",
     "kiosk:planes": "python scripts/pi-install-planes-kiosk.py --launch",
@@ -32,7 +32,8 @@
     "lint:inline-layout": "node ../directory/scripts/lint-no-inline-layout.mjs",
     "prestart": "npm run lint:ui",
     "verify:visual": "node ..\\directory\\scripts\\assert-deploy-screenshots.mjs planes",
-    "verify:localhost": "node ..\\directory\\scripts\\verify-localhost-ui.mjs --repo plane-alert"
+    "verify:localhost": "node ..\\directory\\scripts\\verify-localhost-ui.mjs --repo plane-alert",
+    "verify:dist:local": "npm run build && node ..\\directory\\scripts\\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes && node ..\\directory\\scripts\\smoke-spa-console.mjs planes --local"
   },
   "private": true,
   "dependencies": {
