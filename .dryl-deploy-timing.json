@@ -1,10 +1,10 @@
 {
   "project": "plane-alert",
-  "medianMs": 222536,
-  "p75Ms": 264489,
-  "p90Ms": 264489,
-  "lastElapsedMs": 222536,
-  "agentWaitMs": 305938,
-  "sampleCount": 2,
-  "updatedAt": "2026-07-17T08:37:07.651Z"
+  "medianMs": 232608,
+  "p75Ms": 232608,
+  "p90Ms": 232608,
+  "lastElapsedMs": 232608,
+  "agentWaitMs": 270869,
+  "sampleCount": 1,
+  "updatedAt": "2026-07-17T08:43:14.414Z"
 }
