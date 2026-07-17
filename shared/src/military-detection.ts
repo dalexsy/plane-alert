@@ -347,8 +347,8 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
     if (normalizeCallsign(callsign).startsWith('USAF')) {
       return true;
     }
-    // Interesting callsigns (RRR, BAF, …) without type/desc still warrant alerts.
-    // Boring VIP/cargo prefixes (GAF, RCH, …) are filtered above via isBoringMilitaryCallsign.
+    // Interesting callsigns (RRR, GAF, BAF, …) without type/desc still warrant alerts.
+    // Boring VIP/cargo prefixes (RCH, PAT, …) are filtered above via isBoringMilitaryCallsign.
     if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
       return false;
     }
