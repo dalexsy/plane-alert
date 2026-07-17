@@ -1,10 +1,10 @@
 {
   "name": "plane-alert-functions",
-  "version": "0.0.1",
-  "description": "Firebase Cloud Functions for Plane Alert background notifications",
-  "main": "lib/index.js",
+  "version": "2026.7.17",
+  "description": "Plane Alert Pi API (local JSON store) + legacy Cloud Functions exports",
+  "main": "lib/pi-server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/write-build-info.mjs",
     "gcp-build": "npm run build",
     "clean": "rimraf lib",
     "lint": "eslint --ext .ts src",

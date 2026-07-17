@@ -1,6 +1,6 @@
 {
   "name": "plane-alert",
-  "version": "0.0.0",
+  "version": "2026.7.17",
   "scripts": {
     "ng": "ng",
     "start": "concurrently \"node server.js\" \"ng serve --host 0.0.0.0 --proxy-config proxy.conf.json\"",

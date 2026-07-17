@@ -18,8 +18,13 @@ import { runNotificationHealthWatchdog } from './notification-health-watchdog';
 import { adsbPointProxy } from './adsb-point-proxy';
 import { createMilitaryHistoryFunctions } from './military-history';
 import { seedDefaultDeviceRegistrations } from './services/seed-default-device-registrations';
+import { readPlanesApiBuildInfo } from './services/planes-api-build-info';
+import { buildPlanesApiHealthResponse } from './services/planes-api-health';
+import { readNotificationHealth } from './services/notification-health';
+import { DEVICE_COLLECTION } from './constants';
 
 patchAdminFirestoreNamespace(admin);
+const buildInfo = readPlanesApiBuildInfo();
 
 const storePath =
   process.env.PLANES_API_STORE_PATH?.trim() ||
@@ -70,8 +75,30 @@ app.all(
   ),
 );
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'planes-api', storePath });
+app.get('/health', async (_req, res) => {
+  try {
+    const devices = await db.collection(DEVICE_COLLECTION).get();
+    const health = await readNotificationHealth(db);
+    res.json(
+      buildPlanesApiHealthResponse({
+        storePath,
+        build: buildInfo,
+        deviceCount: devices.size,
+        health,
+      }),
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('health handler failed', { error: message });
+    res.status(500).json({
+      ok: false,
+      service: 'planes-api',
+      storePath,
+      version: buildInfo.version,
+      gitSha: buildInfo.gitSha,
+      error: message,
+    });
+  }
 });
 
 /** Browser reverse-geocode — never call nominatim from the SPA (504 / CORS / no nginx proxy). */

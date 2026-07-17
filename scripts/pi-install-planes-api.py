@@ -88,6 +88,13 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     sftp.put(str(SCRIPT_DIR / "planes-api.service"), f"{STAGING}/planes-api.service")
     upload_directory(sftp, FUNCTIONS_DIR / "lib", f"{STAGING}/lib")
     upload_directory(sftp, FUNCTIONS_DIR / "shared-package", f"{STAGING}/shared-package")
+    for build_info in (
+        FUNCTIONS_DIR / "build-info.json",
+        FUNCTIONS_DIR / "lib" / "build-info.json",
+    ):
+        if build_info.is_file():
+            sftp.put(str(build_info), f"{STAGING}/{build_info.name}")
+            sftp.put(str(build_info), f"{STAGING}/lib/build-info.json")
 
     env_local = FUNCTIONS_DIR / ".env"
     if env_local.is_file():
@@ -119,6 +126,18 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     if '"ok"' not in health:
         raise SystemExit(f"[fail] planes-api health: {health}")
     print(health)
+    import subprocess as _sp
+
+    expected_sha = _sp.check_output(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT,
+        text=True,
+    ).strip()
+    if expected_sha and expected_sha not in health and expected_sha[:12] not in health:
+        raise SystemExit(
+            f"[fail] planes-api health gitSha mismatch — live health does not contain "
+            f"HEAD {expected_sha[:12]}. Stale binary would miss cool-plane alerts.\n{health}"
+        )
     client.close()
     print("[ok] planes-api deployed and healthy on :8795")
 
