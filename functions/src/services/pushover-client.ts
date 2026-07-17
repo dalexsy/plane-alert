@@ -67,8 +67,9 @@ export async function sendPushoverNotification(
       message: message.message,
       url: message.url || '',
       url_title: message.url_title || '',
+      // Audible — silent ('none') made one household phone look "broken".
       priority: '0',
-      sound: 'none',
+      sound: 'pushover',
       icon: message.icon || '',
     };
 
@@ -95,13 +96,15 @@ export async function sendPushoverNotification(
     if (response.ok && result.status === 1) {
       logger.info('Sent Pushover notification', {
         userKey: userKey.slice(0, 8),
-        message: message.message,
+        deviceName: deviceName || 'ALL',
+        request: result.request,
         withImage: !!attachmentBase64,
       });
       return true;
     } else {
       logger.error('Pushover API error', {
         userKey: userKey.slice(0, 8),
+        deviceName: deviceName || 'ALL',
         error: result,
       });
       return false;
