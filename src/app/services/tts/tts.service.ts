@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
-import { isPageAudible } from '../../utils/page-audible/page-audible.util';
 import {
   SUPPORTED_TTS_LANGUAGES,
   preprocessTextForSpeech,
@@ -12,7 +11,8 @@ import {
  * Browser speechSynthesis requires a user gesture before autoplay.
  * Auto-announce without gesture throws TTS Error: not-allowed (console spam).
  * Kiosk (?kiosk=1) never gets a gesture — unlock immediately there.
- * Background / hidden documents stay silent (PWA "closed" or other tab).
+ * Background tabs / unfocused PWA must still announce — that is the product.
+ * A fully closed window has no document, so it cannot speak (browser rule).
  */
 @Injectable({ providedIn: 'root' })
 export class TtsService {
@@ -30,7 +30,6 @@ export class TtsService {
     } else {
       this.armUserGestureUnlock();
     }
-    this.armVisibilitySilence();
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -43,15 +42,6 @@ export class TtsService {
       (window as any).testGermanTTS = () => this.testGerman();
       (window as any).listTTSVoices = () => this.listAvailableVoices();
     }
-  }
-
-  private armVisibilitySilence(): void {
-    if (typeof document === 'undefined') return;
-    document.addEventListener('visibilitychange', () => {
-      if (!isPageAudible()) {
-        this.cancelAll();
-      }
-    });
   }
 
   private armUserGestureUnlock(): void {
@@ -84,7 +74,7 @@ export class TtsService {
   private speakImmediately(text: string, lang?: string): void {
     if (!window.speechSynthesis) return;
     // Gate autoplay until a user gesture — prevents not-allowed console errors
-    if (!this.userUnlocked || !isPageAudible()) {
+    if (!this.userUnlocked) {
       return;
     }
 
@@ -134,7 +124,7 @@ export class TtsService {
   speakOnce(key: string, text: string, lang?: string): void {
     if (this.spokenKeys.has(key)) return;
     this.spokenKeys.add(key);
-    if (!this.userUnlocked || !isPageAudible()) return;
+    if (!this.userUnlocked) return;
     if (this.isCurrentlySpeaking) {
       this.speechQueue.push({ key, text, lang });
     } else {

@@ -1,5 +1,3 @@
-import { isPageAudible } from '../page-audible/page-audible.util';
-
 export function playAlertSound(): void {
   // Randomly choose between the two alert sounds
   const alertSounds = [
@@ -60,10 +58,6 @@ export function unlockAlertAudio(): void {
 }
 
 function playAudio(soundPath: string): void {
-  if (!isPageAudible()) {
-    return;
-  }
-
   const now = Date.now();
 
   // Prevent alerts from playing too frequently
