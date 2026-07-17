@@ -52,11 +52,20 @@ export function isHelicopterByModel(model: string): boolean {
   if (!model || typeof model !== 'string') return false;
   const modelLower = model.toLowerCase().trim();
   if (!modelLower) return false;
+  // Type codes with optional hyphen/space (AS-332, EC 145, H-145)
+  if (/\b(as|ec|bk|h|uh|ah|ch|nh|bo|md|aw|sa|mi)[-\s]?\d{2,3}\b/.test(modelLower)) {
+    return true;
+  }
   const helicopterPatterns = [
     'copter',
     'helicopter',
     'heli',
     'chopper',
+    'super puma',
+    'dauphin',
+    'fennec',
+    'tiger',
+    'nh90',
     'r22',
     'r44',
     'r66',
