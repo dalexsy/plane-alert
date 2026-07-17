@@ -5,9 +5,22 @@
 (function () {
   "use strict";
 
-  var storage = window.__DRYL_ERROR_QUEUE_STORAGE__;
-  if (!storage) return;
+  var MAX_STORAGE_WAITS = 40;
 
+  function start(attempt) {
+    var storage = window.__DRYL_ERROR_QUEUE_STORAGE__;
+    if (!storage) {
+      if (attempt < MAX_STORAGE_WAITS) {
+        setTimeout(function () {
+          start(attempt + 1);
+        }, attempt < 4 ? 0 : 25);
+      }
+      return;
+    }
+    bindQueue(storage);
+  }
+
+  function bindQueue(storage) {
   var BASE_FLUSH_MS = 400;
   var MAX_FLUSH_MS = 30_000;
   var HEALTH_ERRORS = "https://health.dryl.io/api/client-errors";
@@ -150,4 +163,7 @@
     flushQueue: flushQueue,
     loadStats: storage.loadStats,
   };
+  }
+
+  start(0);
 })();
