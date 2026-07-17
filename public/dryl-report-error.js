@@ -3,20 +3,15 @@
   "use strict";
 
   var booted = false;
-  var MAX_BOOT_ATTEMPTS = 40;
 
-  function boot(attempt) {
+  function boot(retry) {
     if (booted || window.drylReportError) return;
     var filter = window.__DRYL_ERROR_FILTER__;
     var payload = window.__DRYL_ERROR_PAYLOAD__;
     var queue = window.__DRYL_ERROR_QUEUE__;
-    // Main before deps (mis-ordered index.html) — poll until sibling sync tags run.
+    // Main script before deps (mis-ordered index.html) — wait for sibling sync tags.
     if (!filter || !payload || !queue) {
-      if (attempt < MAX_BOOT_ATTEMPTS) {
-        setTimeout(function () {
-          boot(attempt + 1);
-        }, attempt < 4 ? 0 : 25);
-      }
+      if (!retry) setTimeout(function () { boot(true); }, 0);
       return;
     }
     booted = true;
@@ -84,5 +79,5 @@
     }, 800);
   }
 
-  boot(0);
+  boot(false);
 })();
