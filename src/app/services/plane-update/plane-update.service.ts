@@ -21,6 +21,10 @@ import {
   reapplyTooltipHighlight,
   updatePlaneLogsAndVisuals,
 } from './plane-update-processing.util';
+import {
+  loadSeenIcaosFromSession,
+  saveSeenIcaosToSession,
+} from '../../utils/seen-icao-session/seen-icao-session.util';
 
 @Injectable({ providedIn: 'root' })
 export class PlaneUpdateService {
@@ -58,7 +62,14 @@ export class PlaneUpdateService {
       this.locationUpdateService.checkAutoLocationUpdate(() => undefined);
     }
 
+    // After noon refresh / cold boot, planeLog is empty so every ICAO looks
+    // "new". Seed from sessionStorage so already-visible traffic does not alert.
     const previousPlaneKeys = new Set(planeLog.keys());
+    if (previousPlaneKeys.size === 0) {
+      for (const icao of loadSeenIcaosFromSession()) {
+        previousPlaneKeys.add(icao);
+      }
+    }
     const lat = this.settings.lat ?? 52.3667;
     const lon = this.settings.lon ?? 13.5033;
     const radius = this.settings.radius ?? 5;
@@ -102,6 +113,7 @@ export class PlaneUpdateService {
       activePlaneIcaos,
       map,
     );
+    saveSeenIcaosToSession(planeLog.keys());
 
     this.planeLogService.updatePlaneLog(Array.from(planeLog.values()));
     this.closestPlaneService.computeClosestPlane(planeLog, highlightedPlaneIcao);
