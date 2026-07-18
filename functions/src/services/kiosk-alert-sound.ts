@@ -12,7 +12,8 @@ const KIOSK_QUIET_TZ = 'Europe/Berlin';
 const KIOSK_QUIET_START_HOUR = 22;
 const KIOSK_QUIET_END_HOUR = 7;
 const MIN_PLAY_INTERVAL_MS = 8000;
-const ICAO_COOLDOWN_MS = 10 * 60 * 1000;
+/** Match Pushover TTL so loitering mil does not re-chime every few minutes. */
+const ICAO_COOLDOWN_MS = 30 * 60 * 1000;
 
 let lastPlayAt = 0;
 const lastPlayedByIcao = new Map<string, number>();

@@ -14,6 +14,7 @@ import {
 } from '../constants';
 import { checkAndMarkNotified } from './notification-cooldown';
 import { buildMilitaryPendingNotification } from './build-military-notification';
+import { playKioskAlertSound } from './kiosk-alert-sound';
 import type { FlightData } from './aeroapi-client';
 import type {
   MilitaryCollectionStats,
@@ -163,6 +164,12 @@ export async function collectMilitaryNotifications(
       continue;
     }
 
+    // Chime when mil/special is in radius — do not wait for Pushover delivery.
+    // Phones alert via SPA on first sighting; after a missed chime (prefix-only
+    // gate) or while Pushover cooldown skips re-send, deliver-only never fires
+    // and magicmirror stays silent for the rest of the visit.
+    playKioskAlertSound(icao, 'military-in-range');
+
     const shouldNotify = await checkAndMarkNotified(
       db,
       data.pushoverUserKey,
@@ -183,10 +190,6 @@ export async function collectMilitaryNotifications(
       pushoverTargetDeviceName,
       flightDataMap,
     );
-    // Live SPA kiosk MP3 unreliable (stale bundle). Phones TTS; Pi PipeWire covers
-    // all military/special Pushover. Prefix-only was wrong: GAF/RCH almost always
-    // have dbFlags so that gate never fired.
-    notification.playKioskAlert = true;
     pending.push(notification);
 
     if (pending.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
