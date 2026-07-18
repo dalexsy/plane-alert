@@ -15,6 +15,8 @@ export interface PendingNotification {
   altitude?: number;
   bearing?: number;
   cardinal?: string;
+  /** Play local PipeWire MP3 on magicmirror after Pushover delivery. */
+  playKioskAlert?: boolean;
 }
 
 export interface MilitaryCollectionStats {

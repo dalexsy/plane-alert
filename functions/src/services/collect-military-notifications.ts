@@ -183,6 +183,8 @@ export async function collectMilitaryNotifications(
       pushoverTargetDeviceName,
       flightDataMap,
     );
+    // Backup if in-range scan missed this visit; cooldown skips duplicate play.
+    notification.playKioskAlert = true;
     pending.push(notification);
 
     if (pending.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
