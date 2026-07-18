@@ -30,24 +30,36 @@ export function playAlertsForNewPlanes(
   exclude: boolean,
 ): void {
   const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
-  const hasHercules = newVisible.some((p) =>
-    p.model?.toLowerCase().includes('hercules'),
-  );
-  const hasA400 = newVisible.some((p) => p.model?.match(/a\s*-?\s*400/i));
-  // Use plane.isMilitary (DB mil OR callsign prefix) — same gate as TTS on phones.
-  // Kiosk has no TTS; DB-only checks left prefix-military silent on magicmirror.
-  // A380 / luxury-liner alert removed — commercial A380s were firing with nothing mil/special.
-  const hasAlertPlanes = newVisible.some(
+  // Same gate as list military/special styling — never alert on model string alone
+  // (commercial A380 / stray "hercules" in desc used to sound with nothing mil on list).
+  const alertable = newVisible.filter(
     (p) => p.isMilitary || svc['specialListService'].isSpecial(p.icao),
   );
+  const hasHercules = alertable.some((p) =>
+    p.model?.toLowerCase().includes('hercules'),
+  );
+  const hasA400 = alertable.some((p) => p.model?.match(/a\s*-?\s*400/i));
+  const hasAlertPlanes = alertable.length > 0;
   const militaryPlanes = newVisible.filter((p) => p.isMilitary);
 
-  if (!svc['settings'].militaryMute) {
+  if (!svc['settings'].militaryMute && hasAlertPlanes) {
+    const sample = alertable.slice(0, 5).map((p) => ({
+      icao: p.icao,
+      callsign: p.callsign,
+      model: p.model,
+      isMilitary: p.isMilitary,
+    }));
+    const reason = hasHercules
+      ? 'hercules'
+      : hasA400
+        ? 'a400'
+        : 'mil-or-special';
+    console.info('[plane-alert] SPA MP3', { reason, count: alertable.length, sample });
     if (hasHercules) {
       playHerculesAlert();
     } else if (hasA400) {
       playA400Alert();
-    } else if (hasAlertPlanes) {
+    } else {
       playAlertSound();
     }
   }

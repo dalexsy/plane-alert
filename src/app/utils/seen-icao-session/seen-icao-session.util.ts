@@ -1,14 +1,29 @@
-/** Persist ICAOs across SPA reloads (noon refresh) so cold-start scans
- * do not treat every plane already in the air as brand-new for MP3 alerts.
+/** Persist ICAOs across SPA reloads AND Chromium session wipes.
+ * Daytime kiosk restart deletes Session Storage; sessionStorage alone let every
+ * in-air plane look brand-new and fire MP3s with nothing newly interesting.
  */
 
 const SEEN_ICAOS_KEY = 'plane-alert:seen-icaos';
 const MAX_SEEN = 400;
 
+function readStore(): Storage | null {
+  if (typeof localStorage === 'undefined') return null;
+  return localStorage;
+}
+
 export function loadSeenIcaosFromSession(): Set<string> {
-  if (typeof sessionStorage === 'undefined') return new Set();
+  const store = readStore();
+  if (!store) return new Set();
   try {
-    const raw = sessionStorage.getItem(SEEN_ICAOS_KEY);
+    // Migrate once from sessionStorage (noon-refresh era) into localStorage.
+    if (typeof sessionStorage !== 'undefined') {
+      const legacy = sessionStorage.getItem(SEEN_ICAOS_KEY);
+      if (legacy && !store.getItem(SEEN_ICAOS_KEY)) {
+        store.setItem(SEEN_ICAOS_KEY, legacy);
+        sessionStorage.removeItem(SEEN_ICAOS_KEY);
+      }
+    }
+    const raw = store.getItem(SEEN_ICAOS_KEY);
     if (!raw) return new Set();
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
@@ -21,21 +36,12 @@ export function loadSeenIcaosFromSession(): Set<string> {
 }
 
 export function saveSeenIcaosToSession(icaos: Iterable<string>): void {
-  if (typeof sessionStorage === 'undefined') return;
+  const store = readStore();
+  if (!store) return;
   try {
     const list = [...new Set(icaos)].slice(0, MAX_SEEN);
-    sessionStorage.setItem(SEEN_ICAOS_KEY, JSON.stringify(list));
+    store.setItem(SEEN_ICAOS_KEY, JSON.stringify(list));
   } catch {
     /* private mode / quota */
-  }
-}
-
-/** True when this navigation came from NoonRefreshService (`?_refresh=`). */
-export function isNoonRefreshNavigation(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return new URL(window.location.href).searchParams.has('_refresh');
-  } catch {
-    return false;
   }
 }
