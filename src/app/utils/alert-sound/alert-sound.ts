@@ -1,13 +1,29 @@
-export function playAlertSound(): void {
-  // Randomly choose between the two alert sounds
-  const alertSounds = [
-    'assets/alerts/precious_little_life_forms.mp3',
-    'assets/alerts/tiny_little_life_forms.mp3',
-  ];
-  const randomSound =
-    alertSounds[Math.floor(Math.random() * alertSounds.length)];
+/** Plane-alert MP3 alerts — plain HTMLAudioElement (no Web Audio).
+ * Web Audio + createMediaElementSource stays silent on kiosk Chromium even with
+ * --autoplay-policy=no-user-gesture-required; element.play() works.
+ */
 
-  playAudio(randomSound);
+const ALERT_SOUNDS = [
+  'assets/alerts/precious_little_life_forms.mp3',
+  'assets/alerts/tiny_little_life_forms.mp3',
+] as const;
+
+let currentAudio: HTMLAudioElement | null = null;
+let lastPlayTime = 0;
+const MIN_PLAY_INTERVAL = 1000;
+
+function resolveAssetUrl(path: string): string {
+  if (typeof window === 'undefined') return path;
+  try {
+    return new URL(path, window.location.href).toString();
+  } catch {
+    return path;
+  }
+}
+
+export function playAlertSound(): void {
+  const pick = ALERT_SOUNDS[Math.floor(Math.random() * ALERT_SOUNDS.length)];
+  playAudio(pick);
 }
 
 export function playHerculesAlert(): void {
@@ -24,54 +40,20 @@ export function playA380Alert(): void {
   );
 }
 
-// Shared audio context and gain node to prevent multiple simultaneous plays
-let audioContext: AudioContext | null = null;
-let gainNode: GainNode | null = null;
-let currentAudio: HTMLAudioElement | null = null;
-let lastPlayTime = 0;
-const MIN_PLAY_INTERVAL = 1000; // Minimum 1 second between alert sounds
+/** Near-silent wav so Chromium media autoplay is armed before the first alert. */
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
-function ensureAudioGraph(): AudioContext {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
-  }
-  if (!gainNode) {
-    gainNode = audioContext.createGain();
-    gainNode.gain.value = 5; // Amplify beyond 100%
-    gainNode.connect(audioContext.destination);
-  }
-  return audioContext;
-}
-
-/** Play a near-silent buffer so Chromium marks the graph as user-activated. */
-function primeAudioContext(ctx: AudioContext): void {
-  try {
-    const buffer = ctx.createBuffer(1, 1, 22050);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
-  } catch {
-    /* ignore — resume() below still helps */
-  }
-}
-
-/** Call on kiosk boot so AlertContext is running before the first plane alert. */
+/** Call on kiosk boot so the first plane alert is not blocked. */
 export function unlockAlertAudio(): void {
   if (typeof window === 'undefined') return;
   try {
-    const ctx = ensureAudioGraph();
-    const finish = () => primeAudioContext(ctx);
-    if (ctx.state === 'suspended') {
-      void ctx.resume().then(finish).catch(finish);
-    } else {
-      finish();
-    }
+    const primer = new Audio(SILENT_WAV);
+    primer.volume = 0.01;
+    void primer.play().catch(() => undefined);
   } catch {
     /* autoplay still blocked until Chromium --autoplay-policy */
   }
-  // Kiosk / console isolation: run testAlertSound() in Chromium console.
   (window as any).testAlertSound = () => {
     unlockAlertAudio();
     playAlertSound();
@@ -80,54 +62,34 @@ export function unlockAlertAudio(): void {
 
 function playAudio(soundPath: string): void {
   const now = Date.now();
-
-  // Prevent alerts from playing too frequently
-  if (now - lastPlayTime < MIN_PLAY_INTERVAL) {
-    return;
-  }
-
-  // If audio is already playing, don't play another one
-  if (currentAudio && !currentAudio.paused) {
-    return;
-  }
-
+  if (now - lastPlayTime < MIN_PLAY_INTERVAL) return;
+  if (currentAudio && !currentAudio.paused) return;
   lastPlayTime = now;
 
+  const url = resolveAssetUrl(soundPath);
   try {
-    const ctx = ensureAudioGraph();
-    const start = () => {
-      currentAudio = new Audio(soundPath);
-      const source = ctx.createMediaElementSource(currentAudio);
-      source.connect(gainNode!);
-      const playPromise = currentAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.warn('Audio play failed:', error);
-        });
-      }
-      currentAudio.addEventListener('ended', () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    const audio = new Audio(url);
+    audio.volume = 1;
+    currentAudio = audio;
+    audio.addEventListener('ended', () => {
+      if (currentAudio === audio) currentAudio = null;
+    });
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        console.warn('Audio play failed:', error);
         currentAudio = null;
       });
-      setTimeout(() => {
-        if (currentAudio && currentAudio.paused) {
-          currentAudio = null;
-        }
-      }, 10000);
-    };
-
-    if (ctx.state === 'suspended') {
-      void ctx.resume().then(start).catch(start);
-    } else {
-      start();
     }
+    window.setTimeout(() => {
+      if (currentAudio === audio && audio.paused) currentAudio = null;
+    }, 15000);
   } catch (error) {
     console.warn('Audio playback error:', error);
-    try {
-      const fallbackAudio = new Audio(soundPath);
-      fallbackAudio.volume = 1;
-      void fallbackAudio.play();
-    } catch (fallbackError) {
-      console.warn('Fallback audio playback also failed:', fallbackError);
-    }
+    currentAudio = null;
   }
 }

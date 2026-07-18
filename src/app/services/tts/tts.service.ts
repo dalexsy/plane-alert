@@ -73,6 +73,8 @@ export class TtsService {
 
   private speakImmediately(text: string, lang?: string): void {
     if (!window.speechSynthesis) return;
+    // Kiosk uses MP3 alerts only — no TTS voices installed on the Pi display.
+    if (isKioskMode()) return;
     // Gate autoplay until a user gesture — prevents not-allowed console errors
     if (!this.userUnlocked) {
       return;
