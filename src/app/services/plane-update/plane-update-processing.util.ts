@@ -36,14 +36,12 @@ export function playAlertsForNewPlanes(
   );
   const hasA400 = newVisible.some((p) => p.model?.match(/a\s*-?\s*400/i));
   const hasA380 = newVisible.some((p) => p.model?.match(/a\s*-?\s*380/i));
+  // Use plane.isMilitary (DB mil OR callsign prefix) — same gate as TTS on phones.
+  // Kiosk has no TTS; DB-only checks left prefix-military silent on magicmirror.
   const hasAlertPlanes = newVisible.some(
-    (p) =>
-      svc['aircraftDb'].lookup(p.icao)?.mil ||
-      svc['specialListService'].isSpecial(p.icao),
+    (p) => p.isMilitary || svc['specialListService'].isSpecial(p.icao),
   );
-  const militaryPlanes = newVisible.filter(
-    (p) => svc['aircraftDb'].lookup(p.icao)?.mil,
-  );
+  const militaryPlanes = newVisible.filter((p) => p.isMilitary);
 
   if (!svc['settings'].militaryMute) {
     if (hasHercules) {

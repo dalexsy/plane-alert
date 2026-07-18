@@ -30,6 +30,11 @@ pkill -f "chromium.*${PROFILE}" 2>/dev/null || true
 pkill -f 'chromium.*planes\.dryl' 2>/dev/null || true
 sleep 3
 rm -f "${LOCK}"
+# SIGKILL leaves Session Storage on disk; Chromium can restore kiosk-audio-primed
+# and skip the boot chirp that proves MP3 → Jabra after quiet-hours flips.
+rm -rf "${PROFILE}/Default/Session Storage"
+mkdir -p "${PROFILE}/Default/Session Storage"
+chown -R "${PI_USER}:${PI_USER}" "${PROFILE}/Default/Session Storage"
 
 # Wait for labwc — restarting before wayland-0 causes Chromium to exit and Restart= storms.
 for _ in $(seq 1 60); do
