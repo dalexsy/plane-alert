@@ -6,6 +6,10 @@
  * Same gate as SPA isMilitary / special (plane-data + plane-update):
  * aircraftDb.mil OR military-prefixes OR ADS-B mil/dbFlags OR special.
  *
+ * Point `/v2/point` near dense hubs drops in-range mil (returns ~20–30 nearest).
+ * Merge `/v2/mil` filtered to radius so magicmirror hears what phones announce
+ * when their map center differs from the home pin.
+ *
  * Do not persist “seen in range” before pw-play succeeds — that blocked retries
  * after silent/failed spawns (same class of bug as ICAO cooldown-before-exit).
  * playKioskAlertSound already rate-limits per ICAO after exit 0.
@@ -15,6 +19,7 @@ import type { AdsBPlane } from '@plane-alert/shared';
 import { haversineDistanceKm } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
 import { clampRadius, isSpecialAircraft } from '../utils';
+import { fetchMilitaryAircraftInRadius } from './aircraft-collection-fetch';
 import { playKioskAlertSound } from './kiosk-alert-sound';
 import {
   hasAdsBMilitarySignal,
@@ -41,6 +46,22 @@ function isSpaAlertAircraft(
   return isSpaMilitaryCallsign(plane.flight || plane.callsign);
 }
 
+function mergeAircraftByHex(
+  primary: AdsBPlane[],
+  extra: AdsBPlane[],
+): AdsBPlane[] {
+  const byHex = new Map<string, AdsBPlane>();
+  for (const plane of primary) {
+    const hex = plane.hex?.toUpperCase();
+    if (hex) byHex.set(hex, plane);
+  }
+  for (const plane of extra) {
+    const hex = plane.hex?.toUpperCase();
+    if (hex && !byHex.has(hex)) byHex.set(hex, plane);
+  }
+  return [...byHex.values()];
+}
+
 export async function chimeKioskForMilitaryInRange(
   docs: Array<{ id: string; data: DeviceRegistration }>,
   aircraftCache: Map<string, CachedAircraftSnapshot>,
@@ -56,12 +77,14 @@ export async function chimeKioskForMilitaryInRange(
     if (scannedKeys.has(key)) continue;
     scannedKeys.add(key);
 
-    const aircraft = await resolveAircraftForNotification(
+    const pointAircraft = await resolveAircraftForNotification(
       loc,
       radiusKm,
       aircraftCache.get(key),
       `kiosk-chime:${entry.id}`,
     );
+    const milInRadius = await fetchMilitaryAircraftInRadius(loc, radiusKm);
+    const aircraft = mergeAircraftByHex(pointAircraft, milInRadius);
     if (!aircraft.length) continue;
 
     const specialIcaos = (entry.data.specialIcaos ?? []).map((s) =>
@@ -91,6 +114,7 @@ export async function chimeKioskForMilitaryInRange(
         locationKey: key,
         count: alertIcaos.length,
         icaos: alertIcaos.slice(0, 8),
+        milFeedAdded: milInRadius.length,
       });
     }
   }
