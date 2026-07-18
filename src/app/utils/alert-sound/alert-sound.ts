@@ -3,6 +3,8 @@
  * --autoplay-policy=no-user-gesture-required; element.play() works.
  */
 
+import { isKioskQuietHours } from '../kiosk-quiet-hours/kiosk-quiet-hours.util';
+
 const ALERT_SOUNDS = [
   'assets/alerts/precious_little_life_forms.mp3',
   'assets/alerts/tiny_little_life_forms.mp3',
@@ -54,13 +56,19 @@ export function unlockAlertAudio(): void {
   } catch {
     /* autoplay still blocked until Chromium --autoplay-policy */
   }
+  // Bypass quiet hours — console isolation only.
   (window as any).testAlertSound = () => {
     unlockAlertAudio();
-    playAlertSound();
+    playAudio(ALERT_SOUNDS[0], { force: true });
   };
 }
 
-function playAudio(soundPath: string): void {
+function playAudio(
+  soundPath: string,
+  options: { force?: boolean } = {}
+): void {
+  if (!options.force && isKioskQuietHours()) return;
+
   const now = Date.now();
   if (now - lastPlayTime < MIN_PLAY_INTERVAL) return;
   if (currentAudio && !currentAudio.paused) return;
