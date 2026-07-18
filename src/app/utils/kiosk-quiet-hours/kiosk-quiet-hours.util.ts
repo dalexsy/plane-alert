@@ -14,7 +14,10 @@ export function isKioskQuietHours(now: Date = new Date()): boolean {
       timeZone: KIOSK_QUIET_TZ,
       hour: 'numeric',
       hourCycle: 'h23',
+      hour12: false,
     }).format(now)
   );
+  // NaN ⇒ not quiet (fail open so a bad formatter never silences daytime alerts).
+  if (!Number.isFinite(hour)) return false;
   return hour >= KIOSK_QUIET_START_HOUR || hour < KIOSK_QUIET_END_HOUR;
 }
