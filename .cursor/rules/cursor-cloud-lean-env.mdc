@@ -1,0 +1,35 @@
+---
+description: Lean Cursor Cloud multi-repo env — MUST siblings + clone overflow on demand
+alwaysApply: true
+---
+
+# Cursor Cloud lean fleet env
+
+One Cloud environment (≤20 repos). **MUST siblings** are always cloned; overflow app repos are **not**. Still ship the whole fleet — clone missing apps on demand.
+
+## MUST siblings (parent folder)
+
+`directory` · `dryl` · `speculation` · `dryl-auth` · `dryl-health`
+
+Confirm `../directory`, `../dryl`, etc. Resolve `@dryl/ui` via `../dryl/ui` (`file:../dryl/ui/dist/dryl/ui`); build/link if dist missing.
+
+## On-demand clone
+
+If the task’s owning app is missing:
+
+```bash
+git clone https://github.com/dalexsy/<repo>.git ../<repo>
+```
+
+Use the env’s GitHub token (`GITHUB_TOKEN` / PAT). Do **not** ask Daryl to multi-select more repos in the dashboard. Do **not** tell her to shrink the fleet for the 20-repo cap.
+
+## Ship path
+
+- Work in the **owning** app repo.
+- Lint / deploy / verify via `../directory/scripts/…` (`npm run deploy:dryl`, `verify-dryl-app`, etc.).
+- Ship loop unless she opts out (`explain only`, `don't deploy`, `plan only`, `no code`, `review only`).
+- Never commit secrets or `directory/data/local.env`.
+
+## Missing access
+
+Name the exact secret or GitHub App permission needed (`PI_SSH_PASS`, `DRYL_PASS`, `GITHUB_TOKEN`, Pi LAN reachability). Do not invent credentials.

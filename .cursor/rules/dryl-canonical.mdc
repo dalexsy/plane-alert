@@ -13,6 +13,7 @@ alwaysApply: true
 | **Mandatory first read** | `Repos/speculation/core-guardrails.md` |
 | Session gate (alwaysApply) | `.cursor/rules/core-guardrails-first.mdc` |
 | Cursor token discipline (alwaysApply) | `.cursor/rules/cursor-model-tiers.mdc` |
+| Cursor Cloud lean env (alwaysApply) | `.cursor/rules/cursor-cloud-lean-env.mdc` |
 | Agent index | `Repos/speculation/AGENTS.md` |
 | Mindset + finish line | `Repos/speculation/.cursor/rules/ecosystem-health.mdc` |
 | Tickets + production proof | `Repos/speculation/.cursor/rules/agent-pipeline.mdc` |
