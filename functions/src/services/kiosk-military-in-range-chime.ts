@@ -7,8 +7,8 @@
  * aircraftDb.mil OR military-prefixes OR ADS-B mil/dbFlags OR special.
  *
  * Point `/v2/point` near dense hubs drops in-range mil (returns ~20–30 nearest).
- * Merge `/v2/mil` filtered to radius so magicmirror hears what phones announce
- * when their map center differs from the home pin.
+ * Merge `/v2/mil` (all upstreams) and, when that is empty, a ring of offset
+ * point queries so magicmirror hears what phones announce from another map center.
  *
  * Do not persist “seen in range” before pw-play succeeds — that blocked retries
  * after silent/failed spawns (same class of bug as ICAO cooldown-before-exit).
@@ -19,7 +19,10 @@ import type { AdsBPlane } from '@plane-alert/shared';
 import { haversineDistanceKm } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
 import { clampRadius, isSpecialAircraft } from '../utils';
-import { fetchMilitaryAircraftInRadius } from './aircraft-collection-fetch';
+import {
+  fetchAircraftRingAroundHome,
+  fetchMilitaryAircraftInRadius,
+} from './aircraft-collection-fetch';
 import { playKioskAlertSound } from './kiosk-alert-sound';
 import {
   hasAdsBMilitarySignal,
@@ -84,7 +87,15 @@ export async function chimeKioskForMilitaryInRange(
       `kiosk-chime:${entry.id}`,
     );
     const milInRadius = await fetchMilitaryAircraftInRadius(loc, radiusKm);
-    const aircraft = mergeAircraftByHex(pointAircraft, milInRadius);
+    // Mil feed often lists nearby hexes with no lat/lon — ring fills those gaps.
+    const ringAircraft =
+      milInRadius.length === 0
+        ? await fetchAircraftRingAroundHome(loc, radiusKm)
+        : [];
+    const aircraft = mergeAircraftByHex(
+      mergeAircraftByHex(pointAircraft, milInRadius),
+      ringAircraft,
+    );
     if (!aircraft.length) continue;
 
     const specialIcaos = (entry.data.specialIcaos ?? []).map((s) =>
@@ -115,6 +126,7 @@ export async function chimeKioskForMilitaryInRange(
         count: alertIcaos.length,
         icaos: alertIcaos.slice(0, 8),
         milFeedAdded: milInRadius.length,
+        ringAdded: ringAircraft.length,
       });
     }
   }
