@@ -89,8 +89,6 @@ export async function collectMilitaryNotifications(
     const prefixMil = isMilitaryCallsign(callsign);
     const isMilitaryCandidate =
       looksMilitary(plane) || prefixMil || dbMil;
-    // Live SPA kiosk MP3 still gates on DB mil; phones TTS on prefix. Bridge the gap on Pi.
-    const playKioskAlert = prefixMil && !dbMil;
 
     if (!isMilitaryCandidate && !isSpecialPlane) {
       continue;
@@ -185,9 +183,10 @@ export async function collectMilitaryNotifications(
       pushoverTargetDeviceName,
       flightDataMap,
     );
-    if (playKioskAlert) {
-      notification.playKioskAlert = true;
-    }
+    // Live SPA kiosk MP3 unreliable (stale bundle). Phones TTS; Pi PipeWire covers
+    // all military/special Pushover. Prefix-only was wrong: GAF/RCH almost always
+    // have dbFlags so that gate never fired.
+    notification.playKioskAlert = true;
     pending.push(notification);
 
     if (pending.length >= MAX_NOTIFICATIONS_PER_DEVICE) {

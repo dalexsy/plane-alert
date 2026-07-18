@@ -1,9 +1,9 @@
 /**
- * Play a local MP3 on magicmirror when prefix-only military is notified.
- * Live SPA gates kiosk MP3 on DB mil only; phones still TTS via callsign prefix.
- * planes-api can ship this without republishing the SPA (deploy:fast).
+ * Play a local MP3 on magicmirror when military/special Pushover is delivered.
+ * Live SPA kiosk audio is unreliable (stale bundle); phones still TTS.
+ * planes-api ships this without republishing the SPA (deploy:fast).
  */
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from 'firebase-functions/v2';
@@ -41,15 +41,21 @@ function resolveAlertMp3(): string | null {
   return candidates.find((p) => fs.existsSync(p)) ?? null;
 }
 
-function playWithPlayer(player: string, mp3Path: string): boolean {
+function resolvePlayer(): string | null {
+  for (const absolute of ['/usr/bin/pw-play', '/usr/bin/paplay']) {
+    if (fs.existsSync(absolute)) return absolute;
+  }
+  return null;
+}
+
+function playWithPlayer(player: string, mp3Path: string): ChildProcess | null {
   try {
     const child = spawn(player, [mp3Path], {
       detached: true,
       stdio: 'ignore',
       env: {
         ...process.env,
-        XDG_RUNTIME_DIR:
-          process.env.XDG_RUNTIME_DIR || '/run/user/1000',
+        XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || '/run/user/1000',
       },
     });
     child.unref();
@@ -59,16 +65,16 @@ function playWithPlayer(player: string, mp3Path: string): boolean {
         error: err.message,
       });
     });
-    return true;
+    return child;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn('Kiosk alert spawn failed', { player, error: message });
-    return false;
+    return null;
   }
 }
 
 /**
- * Fire-and-forget local alert for prefix-military that SPA cannot hear yet.
+ * Fire-and-forget local alert for military/special that SPA may not hear.
  * No-op during quiet hours, when disabled, or when the MP3 is missing.
  */
 export function playKioskAlertSound(icao: string, reason: string): void {
@@ -91,14 +97,18 @@ export function playKioskAlertSound(icao: string, reason: string): void {
     return;
   }
 
-  const players = ['pw-play', 'paplay', 'aplay'];
-  for (const player of players) {
-    if (playWithPlayer(player, mp3Path)) {
-      lastPlayAt = now;
-      lastPlayedByIcao.set(key, now);
-      logger.info('Kiosk alert sound started', { icao, reason, player, mp3Path });
-      return;
-    }
+  const player = resolvePlayer();
+  if (!player) {
+    logger.warn('Kiosk alert: no audio player found', { icao, reason });
+    return;
   }
-  logger.warn('Kiosk alert: no audio player worked', { icao, reason });
+
+  if (!playWithPlayer(player, mp3Path)) {
+    logger.warn('Kiosk alert: spawn failed', { icao, reason, player });
+    return;
+  }
+
+  lastPlayAt = now;
+  lastPlayedByIcao.set(key, now);
+  logger.info('Kiosk alert sound started', { icao, reason, player, mp3Path });
 }
