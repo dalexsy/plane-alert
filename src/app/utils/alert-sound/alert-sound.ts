@@ -70,8 +70,15 @@ function playAudio(
   if (!options.force && isKioskQuietHours()) return;
 
   const now = Date.now();
-  if (now - lastPlayTime < MIN_PLAY_INTERVAL) return;
-  if (currentAudio && !currentAudio.paused) return;
+  // Rate-limit only when nothing is already playing. isNew plane alerts fire once;
+  // blocking them while the session chirp (or a prior MP3) is still playing
+  // permanently silences that aircraft on kiosk (phones still TTS).
+  if (
+    now - lastPlayTime < MIN_PLAY_INTERVAL &&
+    !(currentAudio && !currentAudio.paused)
+  ) {
+    return;
+  }
   lastPlayTime = now;
 
   const url = resolveAssetUrl(soundPath);

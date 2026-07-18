@@ -79,13 +79,21 @@ export class MapBootstrapService {
       this.uiState.setAnimationsEnabled(false);
       unlockAlertAudio();
       // One MP3 per Chromium session outside quiet hours (10pm–7am Berlin).
+      // Mark primed when the chirp runs — not before — so a failed/aborted boot
+      // can retry; plane alerts may interrupt this chirp (see playAudio).
       try {
         if (
           !isKioskQuietHours() &&
           !sessionStorage.getItem('plane-alert:kiosk-audio-primed')
         ) {
-          sessionStorage.setItem('plane-alert:kiosk-audio-primed', '1');
-          window.setTimeout(() => playAlertSound(), 2500);
+          window.setTimeout(() => {
+            try {
+              sessionStorage.setItem('plane-alert:kiosk-audio-primed', '1');
+            } catch {
+              /* private mode */
+            }
+            playAlertSound();
+          }, 2500);
         }
       } catch {
         /* private mode */
