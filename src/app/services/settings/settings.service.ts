@@ -189,6 +189,9 @@ export class SettingsService {
     if (isKioskMode()) {
       this._animationsEnabled = kioskDefaultAnimationsEnabled();
       localStorage.setItem(this.animationsEnabledKey, String(this._animationsEnabled));
+      // Kiosk must hear plane alerts — mute in Chromium localStorage would silence MP3 + TTS.
+      this._militaryMute = false;
+      localStorage.setItem(this.militaryMuteKey, 'false');
     }
   }
 }

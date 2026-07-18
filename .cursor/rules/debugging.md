@@ -25,17 +25,17 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 
 | Metric | Value |
 |--------|-------|
-| Typical (median) | 109s |
-| p75 | 112s |
-| p90 | 112s |
-| Last deploy | 109s |
-| Samples | 3 |
+| Typical (median) | 111s |
+| p75 | 111s |
+| p90 | 111s |
+| Last deploy | 111s |
+| Samples | 1 |
 
-- **Agent shell wait:** use `block_until_ms` **138555** (~139s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **137042** (~137s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-07-17T14:25:27Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-07-18T07:58:08Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
@@ -64,7 +64,7 @@ Replace this table with symptoms **specific to plane-alert**. Fleet-generic chec
 | Kiosk SSO login despite credentials.env | Stale `session.jar` token reused after auth secret/redeploy; login-json Set-Cookie from 127.0.0.1 ignored | `planes-kiosk-session.py` clears jar + reads Set-Cookie only; `npm run kiosk:planes` |
 | Kiosk blank map + “refreshing often” after boot | User service starts before wayland → Chromium dies; desktop autostart then holds lock while `Restart=on-failure` spam-exits every 20s; map looks blank while tiles load after real restart | Wait for wayland socket; flock exit 0 if already running; desktop only `systemctl --user start`; `npm run kiosk:planes` |
 | Kiosk basemap tiles flash / full-map refresh every ~30–60s (daylight) | `MapThemeService` rebuilt Esri layers on every `brightness$` tick, not only day↔night | Only swap tiles when mode changes; do not re-`initializeWithMap` after boot |
-| Kiosk silent alerts (speaker OK; works in desktop browsers) | Chromium blocks media/TTS without a user gesture; kiosk never clicks. TTS also gated on `userUnlocked` | `--autoplay-policy=no-user-gesture-required` in `planes-kiosk.sh`; kiosk unlocks TTS + `unlockAlertAudio()`; console: `testAlertSound()` / `testTTS()`; `npm run kiosk:planes` + deploy |
+| Kiosk silent alerts (speaker OK; works in desktop browsers) | Chromium blocks media/TTS without gesture; **or** `militaryMute=true` in kiosk localStorage (`volume_off` icon) | `--autoplay-policy=no-user-gesture-required`; kiosk unlocks TTS + `unlockAlertAudio()`; kiosk forces `militaryMute=false`; console `testAlertSound()` / `testTTS()`; `npm run kiosk:planes` + deploy |
 | TTS while PWA seems closed | `speechSynthesis` needs a live document — SW cannot speak (FCM = OS toast only). Background/unfocused open app is intentional. If truly no window, look for leftover Chrome/Edge Planes tab/PWA or misheard OS/Pushover toast | Do not mute on `visibilitychange` (breaks away-from-page alerts). Confirm no Planes process/window; check taskbar / chrome://apps |
 | Watchdog left desktop visible | session-stale killed working Chromium; 5min cooldown; restart timed out at 35s | Fixed: session strikes, fast cooldown, 90s wait, quick-start skips blocking curl/session |
 | Deploy log `[ok]` but app broken in browser | Smoke hit login redirect only | `npm run verify:console` |
