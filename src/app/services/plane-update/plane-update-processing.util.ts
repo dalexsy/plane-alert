@@ -87,7 +87,8 @@ export function processPlaneModels(
     const prefixMil = svc['militaryPrefixService'].isMilitaryCallsign(
       planeModel.callsign,
     );
-    const isMilitary = dbMil || prefixMil;
+    // Keep ADS-B mil/dbFlags already set in plane-data (do not wipe feed flags).
+    const isMilitary = dbMil || prefixMil || planeModel.isMilitary === true;
     planeModel.isMilitary = isMilitary;
 
     planeModel.filteredOut = !svc['planeFilter'].shouldIncludeCallsign(

@@ -100,7 +100,9 @@ export class PlaneDataService {
     const apiIcaoType = ac.t?.trim() || '';
     const dbAircraft = getAircraftInfo(id);
     const prefixIsMil = this.militaryPrefixService.isMilitaryCallsign(callsign);
-    const isMilitary = prefixIsMil || dbAircraft?.mil || false;
+    // Single military picture: ADS-B Exchange mil/dbFlags OR local DB mil OR callsign prefix.
+    const adsBMil = ac.mil === true || Number(ac.dbFlags) === 1;
+    const isMilitary = prefixIsMil || !!dbAircraft?.mil || adsBMil;
     const rawCountry = ac.ctry ?? ac.countryCode;
     const origin = this.aircraftCountryService.getAircraftCountry(reg, id, rawCountry, isMilitary);
     const lat = ac.lat;

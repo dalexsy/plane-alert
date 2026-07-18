@@ -24,9 +24,7 @@ import { MapUpdateService } from '../map-update/map-update.service';
 import { UiStateService } from '../ui-state/ui-state.service';
 import { ScanService } from '../scan/scan.service';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
-import { isKioskQuietHours } from '../../utils/kiosk-quiet-hours/kiosk-quiet-hours.util';
-import { playAlertSound, unlockAlertAudio } from '../../utils/alert-sound/alert-sound';
-import { isNoonRefreshNavigation } from '../../utils/seen-icao-session/seen-icao-session.util';
+import { unlockAlertAudio } from '../../utils/alert-sound/alert-sound';
 import { initializeMapForBootstrap } from './map-bootstrap-init.util';
 import {
   applyBootstrapInputOverlayState,
@@ -79,32 +77,11 @@ export class MapBootstrapService {
       // Force off even if Chromium localStorage still has animationsEnabled=true.
       this.uiState.setAnimationsEnabled(false);
       unlockAlertAudio();
-      // One MP3 per Chromium session outside quiet hours (10pm–7am Berlin).
-      // Skip after noon refresh (`?_refresh=`) — audio already proven; chirp
-      // sounded like a real alert with nothing new on the list.
-      // Mark primed when the chirp runs — not before — so a failed/aborted boot
-      // can retry; plane alerts may interrupt this chirp (see playAudio).
+      // Silent unlock only — do NOT play the military alert MP3 on boot.
+      // Daytime kiosk restart (08:00/13:00/18:00/21:30) clears a Chromium session and
+      // was firing playAlertSound() with zero mil on the list (journal 2026-07-18 13:00).
       try {
-        if (
-          !isNoonRefreshNavigation() &&
-          !isKioskQuietHours() &&
-          !sessionStorage.getItem('plane-alert:kiosk-audio-primed')
-        ) {
-          window.setTimeout(() => {
-            try {
-              sessionStorage.setItem('plane-alert:kiosk-audio-primed', '1');
-            } catch {
-              /* private mode */
-            }
-            playAlertSound();
-          }, 2500);
-        } else if (isNoonRefreshNavigation()) {
-          try {
-            sessionStorage.setItem('plane-alert:kiosk-audio-primed', '1');
-          } catch {
-            /* private mode */
-          }
-        }
+        sessionStorage.setItem('plane-alert:kiosk-audio-primed', '1');
       } catch {
         /* private mode */
       }
