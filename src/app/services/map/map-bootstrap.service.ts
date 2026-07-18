@@ -74,6 +74,8 @@ export class MapBootstrapService {
     this.settings.load();
     if (isKioskMode()) {
       this.document.body.classList.add('kiosk-mode');
+      // Force off even if Chromium localStorage still has animationsEnabled=true.
+      this.uiState.setAnimationsEnabled(false);
       unlockAlertAudio();
     }
     const aircraftDbReady = this.aircraftDb.load();

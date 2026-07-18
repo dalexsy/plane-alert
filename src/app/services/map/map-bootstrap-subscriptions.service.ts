@@ -138,7 +138,7 @@ export class MapBootstrapSubscriptionsService {
     });
 
     this.brightnessService.setLocation(startLat, startLon);
-    this.mapThemeService.initializeWithMap(this.runtime.map);
+    // Theme already applied in MapInitializerService — do not re-init (full tile rebuild).
     this.environmentalData.setLocation(startLat, startLon);
     this.environmentalData.windData$.subscribe((windData) => {
       if (windData) {

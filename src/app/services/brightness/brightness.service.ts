@@ -110,22 +110,37 @@ export class BrightnessService implements OnDestroy {
     const sunPos = SunCalc.getPosition(now, this.currentLat, this.currentLon);
     const sunElevationDegrees = (sunPos.altitude * 180) / Math.PI;
     const brightness = this.calculateBrightness();
-
-    this.brightnessSubject.next({
+    const next: BrightnessState = {
       brightness,
       isDimming: brightness < 0.8,
       sunElevation: sunElevationDegrees,
       isDayTime: sunElevationDegrees > 0,
       mode: this.isAutoDimmingEnabled ? 'auto' : 'manual',
-    });
+    };
+    this.emitIfChanged(next);
   }
 
   private emitState(): void {
     const current = this.brightnessSubject.value;
-    this.brightnessSubject.next({
+    this.emitIfChanged({
       ...current,
       mode: this.isAutoDimmingEnabled ? 'auto' : 'manual',
     });
+  }
+
+  /** Avoid re-notifying subscribers when nothing meaningful changed (stops map tile churn). */
+  private emitIfChanged(next: BrightnessState): void {
+    const prev = this.brightnessSubject.value;
+    if (
+      prev.mode === next.mode &&
+      prev.isDimming === next.isDimming &&
+      prev.isDayTime === next.isDayTime &&
+      Math.abs(prev.brightness - next.brightness) < 0.01 &&
+      Math.abs(prev.sunElevation - next.sunElevation) < 0.25
+    ) {
+      return;
+    }
+    this.brightnessSubject.next(next);
   }
 
   private startUpdateInterval(): void {

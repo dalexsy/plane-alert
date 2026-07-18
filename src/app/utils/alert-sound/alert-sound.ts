@@ -44,17 +44,38 @@ function ensureAudioGraph(): AudioContext {
   return audioContext;
 }
 
+/** Play a near-silent buffer so Chromium marks the graph as user-activated. */
+function primeAudioContext(ctx: AudioContext): void {
+  try {
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+  } catch {
+    /* ignore — resume() below still helps */
+  }
+}
+
 /** Call on kiosk boot so AlertContext is running before the first plane alert. */
 export function unlockAlertAudio(): void {
   if (typeof window === 'undefined') return;
   try {
     const ctx = ensureAudioGraph();
+    const finish = () => primeAudioContext(ctx);
     if (ctx.state === 'suspended') {
-      void ctx.resume();
+      void ctx.resume().then(finish).catch(finish);
+    } else {
+      finish();
     }
   } catch {
     /* autoplay still blocked until Chromium --autoplay-policy */
   }
+  // Kiosk / console isolation: run testAlertSound() in Chromium console.
+  (window as any).testAlertSound = () => {
+    unlockAlertAudio();
+    playAlertSound();
+  };
 }
 
 function playAudio(soundPath: string): void {

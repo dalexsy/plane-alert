@@ -3,53 +3,43 @@ import * as L from 'leaflet';
 import { MAP_THEMES } from '../../config/map-themes.config';
 import { BrightnessService, BrightnessState } from '../brightness/brightness.service';
 
+type MapThemeMode = 'day' | 'night';
+
 @Injectable({
   providedIn: 'root',
 })
 export class MapThemeService {
   private currentTileLayers: L.TileLayer[] = [];
   private map: L.Map | null = null;
+  /** Last applied basemap mode — skip rebuild when unchanged (avoids full-map flash). */
+  private appliedMode: MapThemeMode | null = null;
 
   constructor(private brightnessService: BrightnessService) {
-    // Listen for day/night changes and switch themes automatically
-    this.brightnessService.brightness$.subscribe(
-      (brightnessState: BrightnessState) => {
-        this.updateMapTheme(brightnessState);
-      }
-    );
+    this.brightnessService.brightness$.subscribe((brightnessState: BrightnessState) => {
+      this.updateMapTheme(brightnessState);
+    });
   }
 
-  /**
-   * Initialize with map instance
-   */
   initializeWithMap(map: L.Map): void {
     this.map = map;
-    // Apply initial theme based on current time
-    const currentState = this.brightnessService.getCurrentState();
-    this.updateMapTheme(currentState);
+    this.appliedMode = null;
+    this.updateMapTheme(this.brightnessService.getCurrentState());
   }
 
-  /**
-   * Switch map theme based on day/night
-   */
   private updateMapTheme(brightnessState: BrightnessState): void {
     if (!this.map) return;
 
-    // Remove current tile layers
-    this.currentTileLayers.forEach((layer) => {
-      this.map!.removeLayer(layer);
-    });
+    // Civil twilight (-6°) — same threshold as before; only rebuild on day↔night flip.
+    const mode: MapThemeMode = brightnessState.sunElevation < -6 ? 'night' : 'day';
+    if (mode === this.appliedMode && this.currentTileLayers.length > 0) {
+      return;
+    }
+
+    this.currentTileLayers.forEach((layer) => this.map!.removeLayer(layer));
     this.currentTileLayers = [];
 
-    // Choose theme: day or night based on sun elevation
-    // Use civil twilight (-6°) as the threshold for day/night switching
-    // This provides a more natural transition that matches when people consider it "night"
-    const isNight = brightnessState.sunElevation < -6;
-    const theme = isNight ? MAP_THEMES.night : MAP_THEMES.day;
-
-    if (isNight) {
-      // Night theme: single layer
-      const nightTheme = theme as { url: string; attribution: string };
+    if (mode === 'night') {
+      const nightTheme = MAP_THEMES.night;
       const tileLayer = L.tileLayer(nightTheme.url, {
         attribution: nightTheme.attribution,
         maxZoom: 18,
@@ -58,40 +48,31 @@ export class MapThemeService {
       this.currentTileLayers.push(tileLayer);
       tileLayer.addTo(this.map);
     } else {
-      // Day theme: satellite imagery + places labels only (cleaner)
-      const dayTheme = theme as {
-        imagery: { url: string; attribution: string };
-        labels: { url: string; attribution: string };
-      };
-
+      const dayTheme = MAP_THEMES.day;
       const imageryLayer = L.tileLayer(dayTheme.imagery.url, {
         attribution: dayTheme.imagery.attribution,
         maxZoom: 18,
         minZoom: 1,
       });
-
       const placesLayer = L.tileLayer(dayTheme.labels.url, {
         attribution: dayTheme.labels.attribution,
         maxZoom: 18,
         minZoom: 1,
       });
-
       this.currentTileLayers.push(imageryLayer, placesLayer);
       imageryLayer.addTo(this.map);
       placesLayer.addTo(this.map);
     }
+
+    this.appliedMode = mode;
   }
 
-  /**
-   * Cleanup when component is destroyed
-   */
   destroy(): void {
     this.currentTileLayers.forEach((layer) => {
-      if (this.map) {
-        this.map.removeLayer(layer);
-      }
+      if (this.map) this.map.removeLayer(layer);
     });
     this.currentTileLayers = [];
+    this.appliedMode = null;
     this.map = null;
   }
 }
