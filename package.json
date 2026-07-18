@@ -18,6 +18,7 @@
     "prebuild": "npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui",
     "build:shared": "npm run build --prefix shared",
     "lint:ui": "npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout",
+    "deploy:fast": "python scripts/pi-install-planes-api.py",
     "deploy:pi-api": "python scripts/pi-install-planes-api.py",
     "test:local-tx": "npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs",
     "watch": "ng build --watch --configuration development",
