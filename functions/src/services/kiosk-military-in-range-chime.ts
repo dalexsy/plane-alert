@@ -2,13 +2,21 @@
  * Kiosk PipeWire chime for mil/special in radius — SPA-parity, not Pushover.
  * Live SPA kiosk MP3 is unreliable; phones still TTS on first sighting.
  * Must not depend on device match, boring filter, or cooldown claim.
+ *
+ * SPA gate (playAlertsForNewPlanes): aircraftDb.mil OR military-prefixes OR special.
+ * ADS-B mil/dbFlags alone misses DB-mil planes that phones already announce.
  */
 import { logger } from 'firebase-functions/v2';
 import type { AdsBPlane } from '@plane-alert/shared';
-import { haversineDistanceKm, isMilitaryCallsign } from '@plane-alert/shared';
+import { haversineDistanceKm } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
-import { clampRadius } from '../utils';
+import { clampRadius, isSpecialAircraft } from '../utils';
 import { playKioskAlertSound } from './kiosk-alert-sound';
+import {
+  hasAdsBMilitarySignal,
+  isSpaDbMilitaryIcao,
+  isSpaMilitaryCallsign,
+} from './kiosk-spa-military-lookup';
 import {
   getDeviceLocation,
   locationCacheKey,
@@ -23,11 +31,12 @@ function isSpaAlertAircraft(
   const icao = plane.hex?.toUpperCase();
   if (!icao) return false;
   if (specialIcaos.includes(icao)) return true;
+  if (isSpecialAircraft(plane.hex)) return true;
+  // Same as SPA aircraftDb.lookup(icao)?.mil
+  if (isSpaDbMilitaryIcao(icao)) return true;
   const callsign = plane.flight || plane.callsign;
-  // Same gate as SPA playAlertsForNewPlanes (db mil OR callsign prefix).
-  return (
-    plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign)
-  );
+  // ADS-B flags + shared/SPA callsign prefixes
+  return hasAdsBMilitarySignal(plane) || isSpaMilitaryCallsign(callsign);
 }
 
 export async function chimeKioskForMilitaryInRange(

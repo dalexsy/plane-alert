@@ -98,6 +98,19 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     else:
         print(f"[warn] missing kiosk alert mp3: {alert_mp3}")
 
+    # SPA-parity mil lookup (aircraftDb.mil + military-prefixes) for Pi chime.
+    run_remote(client, f"mkdir -p {STAGING}/data")
+    mil_db = FUNCTIONS_DIR / "src" / "data" / "military-aircraft-db.json"
+    if mil_db.is_file():
+        sftp.put(str(mil_db), f"{STAGING}/data/{mil_db.name}")
+    else:
+        print(f"[warn] missing military aircraft db: {mil_db}")
+    spa_prefixes = REPO_ROOT / "src" / "assets" / "military-prefixes.json"
+    if spa_prefixes.is_file():
+        sftp.put(str(spa_prefixes), f"{STAGING}/data/{spa_prefixes.name}")
+    else:
+        print(f"[warn] missing SPA military prefixes: {spa_prefixes}")
+
     for build_info in (
         FUNCTIONS_DIR / "build-info.json",
         FUNCTIONS_DIR / "lib" / "build-info.json",
