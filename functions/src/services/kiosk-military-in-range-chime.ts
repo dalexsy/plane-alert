@@ -3,6 +3,7 @@
  * Live SPA kiosk MP3 is unreliable; phones still TTS on first sighting.
  * Must not depend on device match, boring filter, or cooldown claim.
  */
+import { logger } from 'firebase-functions/v2';
 import type { AdsBPlane } from '@plane-alert/shared';
 import { haversineDistanceKm, isMilitaryCallsign } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
@@ -56,6 +57,7 @@ export async function chimeKioskForMilitaryInRange(
       s.toUpperCase(),
     );
 
+    const alertIcaos: string[] = [];
     for (const plane of aircraft) {
       if (!isSpaAlertAircraft(plane, specialIcaos)) continue;
       const icao = plane.hex!.toUpperCase();
@@ -69,7 +71,16 @@ export async function chimeKioskForMilitaryInRange(
         plane.lon,
       );
       if (distanceKm > radiusKm) continue;
+      alertIcaos.push(icao);
       playKioskAlertSound(icao, 'military-in-range');
+    }
+
+    if (alertIcaos.length) {
+      logger.info('Kiosk chime candidates in range', {
+        locationKey: key,
+        count: alertIcaos.length,
+        icaos: alertIcaos.slice(0, 8),
+      });
     }
   }
 }

@@ -51,20 +51,33 @@ function resolvePlayer(): string | null {
 
 function playWithPlayer(player: string, mp3Path: string): ChildProcess | null {
   try {
+    // Do not detach/unref — detached pw-play under systemd often exits before
+    // PipeWire attaches to the Jabra sink (spawn "succeeds", no audible chime).
     const child = spawn(player, [mp3Path], {
-      detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', 'ignore', 'pipe'],
       env: {
         ...process.env,
         XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || '/run/user/1000',
       },
     });
-    child.unref();
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
     child.on('error', (err) => {
       logger.warn('Kiosk alert player failed', {
         player,
         error: err.message,
       });
+    });
+    child.on('exit', (code) => {
+      if (code !== 0 && code !== null) {
+        logger.warn('Kiosk alert player exit', {
+          player,
+          code,
+          stderr: stderr.slice(0, 300),
+        });
+      }
     });
     return child;
   } catch (err: unknown) {
