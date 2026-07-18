@@ -4,7 +4,6 @@ import {
   playAlertSound,
   playHerculesAlert,
   playA400Alert,
-  playA380Alert,
 } from '../../utils/alert-sound/alert-sound';
 import type { PlaneUpdateService } from './plane-update.service';
 
@@ -35,9 +34,9 @@ export function playAlertsForNewPlanes(
     p.model?.toLowerCase().includes('hercules'),
   );
   const hasA400 = newVisible.some((p) => p.model?.match(/a\s*-?\s*400/i));
-  const hasA380 = newVisible.some((p) => p.model?.match(/a\s*-?\s*380/i));
   // Use plane.isMilitary (DB mil OR callsign prefix) — same gate as TTS on phones.
   // Kiosk has no TTS; DB-only checks left prefix-military silent on magicmirror.
+  // A380 / luxury-liner alert removed — commercial A380s were firing with nothing mil/special.
   const hasAlertPlanes = newVisible.some(
     (p) => p.isMilitary || svc['specialListService'].isSpecial(p.icao),
   );
@@ -48,8 +47,6 @@ export function playAlertsForNewPlanes(
       playHerculesAlert();
     } else if (hasA400) {
       playA400Alert();
-    } else if (hasA380) {
-      playA380Alert();
     } else if (hasAlertPlanes) {
       playAlertSound();
     }
