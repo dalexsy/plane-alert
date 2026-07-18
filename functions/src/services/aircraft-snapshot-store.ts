@@ -96,10 +96,11 @@ export async function storeAircraftForLocationGroup(
     history: history,
     deviceCount: location.devices.length,
     devices: location.devices,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    expiresAt: admin.firestore.Timestamp.fromMillis(
-      Date.now() + 2 * 60 * 60 * 1000, // 2 hours TTL
-    ),
+    // Date.now() — do not use FieldValue.serverTimestamp(); admin.firestore is a
+    // getter that returns a fresh namespace each access, so LocalFieldValue patches
+    // never stick and Sentinels JSON-serialize to `{}` (perpetual stale cache).
+    timestamp: Date.now(),
+    expiresAt: Date.now() + 2 * 60 * 60 * 1000,
   });
 
   logger.info('Aircraft data stored', {
@@ -155,10 +156,8 @@ export async function collectAircraftForLocation(
       history: history,
       deviceCount: 0,
       devices: [],
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromMillis(
-        Date.now() + 2 * 60 * 60 * 1000, // 2 hours TTL
-      ),
+      timestamp: Date.now(),
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000,
     });
 
     logger.info('On-demand aircraft data collected', {

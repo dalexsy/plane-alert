@@ -117,10 +117,10 @@ export async function storeAircraftSnapshot(
     aircraft: aircraft,
     deviceCount: location.devices.length,
     devices: location.devices,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    expiresAt: admin.firestore.Timestamp.fromMillis(
-      Date.now() + 2 * 60 * 60 * 1000,
-    ),
+    // Plain millis — FieldValue.serverTimestamp() does not survive JSON store
+    // (admin.firestore getter defeats LocalFieldValue patch → `{}` timestamps).
+    timestamp: Date.now(),
+    expiresAt: Date.now() + 2 * 60 * 60 * 1000,
   });
 
   logger.info('Aircraft data stored', {
