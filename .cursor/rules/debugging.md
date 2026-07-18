@@ -12,6 +12,7 @@ Daryl maintains this solo — avoid burning cycles on approaches already ruled o
 
 ## Failed experiments (do not repeat)
 
+- **2026-07-18** — Empty-list speaker events (morning ~11:06–12:38): journal attribution — **agent `sudo pw-play` / deploy-verify** of `tiny_little`/`precious_little` (many times), **not** natural `Kiosk alert sound started` (count 0). Real mil that morning: GAF650/RESQ87/GAF300 C-130J Hercules (would be mil on list). Do not invent Hercules/A400 false-positive product bugs without feed proof; do not seize Pi for speculative deploys.
 - **2026-07-18** — Do **not** ship speculative empty-list alert “fixes” without a replicated trigger (ICAO + path + timestamp). Hercules/A400/localStorage seen-ICAO changes without proof those models were in air / that session wipe caused the event = bad engineering and burns Pi deploy lock for other agents. Stop, log attribution first (`[plane-alert] SPA MP3` / journal `Kiosk alert sound started`), then fix. Daryl: reboot chirp ≠ the bug; prove before code.
 - **2026-07-18** — Kiosk silent after “newly-in-range” edge state (`6882043`): persisting ICAOs to `kiosk-chime-in-range-state.json` **before** pw-play exit 0 meant a failed/silent spawn never retried while the plane stayed in radius (same bug class as cooldown-before-success). Also do not drop ADS-B mil/dbFlags from the Pi gate after SPA `isMilitary` includes them (`1f63a14`) — phones alert, Pi stays quiet. Use SPA gate (db | prefix | ADS-B | special) + ICAO cooldown only after exit 0; delete stale edge-state file on deploy.
 - **2026-07-18** — Empty-list / “nothing mil” SPA sounds: do **not** call reboot chirp the fix. Real gaps: (1) A380 model alert without mil; (2) Hercules/A400 model alerts without mil/special; (3) seen-ICAO seed in **sessionStorage** wiped by daytime kiosk restart Session Storage wipe → every in-air plane `isNew` again. Fix: alert only `isMilitary||special`; persist seen ICAOs in **localStorage**; log `[plane-alert] SPA MP3` with ICAOs.
@@ -41,17 +42,17 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 
 | Metric | Value |
 |--------|-------|
-| Typical (median) | 111s |
-| p75 | 115s |
-| p90 | 126s |
-| Last deploy | 99s |
-| Samples | 8 |
+| Typical (median) | 115s |
+| p75 | 124s |
+| p90 | 130s |
+| Last deploy | 130s |
+| Samples | 9 |
 
-- **Agent shell wait:** use `block_until_ms` **153095** (~153s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **158529** (~159s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-07-18T10:05:24Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-07-18T11:25:23Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
