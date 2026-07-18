@@ -164,10 +164,7 @@ export async function collectMilitaryNotifications(
       continue;
     }
 
-    // Chime when mil/special is in radius — do not wait for Pushover delivery.
-    // Phones alert via SPA on first sighting; after a missed chime (prefix-only
-    // gate) or while Pushover cooldown skips re-send, deliver-only never fires
-    // and magicmirror stays silent for the rest of the visit.
+    // In-radius chime (not deliver-only) — Pushover cooldown otherwise skips forever after a missed first play.
     playKioskAlertSound(icao, 'military-in-range');
 
     const shouldNotify = await checkAndMarkNotified(
