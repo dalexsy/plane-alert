@@ -183,10 +183,6 @@ export async function collectMilitaryNotifications(
       pushoverTargetDeviceName,
       flightDataMap,
     );
-    // Live SPA kiosk MP3 unreliable (stale bundle). Phones TTS; Pi PipeWire covers
-    // all military/special Pushover. Prefix-only was wrong: GAF/RCH almost always
-    // have dbFlags so that gate never fired.
-    notification.playKioskAlert = true;
     pending.push(notification);
 
     if (pending.length >= MAX_NOTIFICATIONS_PER_DEVICE) {

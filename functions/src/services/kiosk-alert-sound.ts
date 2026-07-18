@@ -12,7 +12,8 @@ const KIOSK_QUIET_TZ = 'Europe/Berlin';
 const KIOSK_QUIET_START_HOUR = 22;
 const KIOSK_QUIET_END_HOUR = 7;
 const MIN_PLAY_INTERVAL_MS = 8000;
-const ICAO_COOLDOWN_MS = 10 * 60 * 1000;
+/** Match Pushover TTL so loitering mil does not re-chime every few minutes. */
+const ICAO_COOLDOWN_MS = 30 * 60 * 1000;
 
 let lastPlayAt = 0;
 const lastPlayedByIcao = new Map<string, number>();
@@ -85,11 +86,17 @@ export function playKioskAlertSound(icao: string, reason: string): void {
   }
 
   const now = Date.now();
-  if (now - lastPlayAt < MIN_PLAY_INTERVAL_MS) return;
+  if (now - lastPlayAt < MIN_PLAY_INTERVAL_MS) {
+    logger.info('Kiosk alert skipped — min interval', { icao, reason });
+    return;
+  }
 
   const key = icao.toUpperCase();
   const prior = lastPlayedByIcao.get(key) ?? 0;
-  if (now - prior < ICAO_COOLDOWN_MS) return;
+  if (now - prior < ICAO_COOLDOWN_MS) {
+    logger.info('Kiosk alert skipped — icao cooldown', { icao, reason });
+    return;
+  }
 
   const mp3Path = resolveAlertMp3();
   if (!mp3Path) {

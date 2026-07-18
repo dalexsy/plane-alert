@@ -7,7 +7,6 @@ import {
 } from './notification-cooldown';
 import { sendPushoverNotification } from './pushover-client';
 import { recordNotificationSent } from './notification-health';
-import { playKioskAlertSound } from './kiosk-alert-sound';
 import type { PendingNotification } from './notification-types';
 
 export interface DeliverDeviceNotificationsParams {
@@ -79,10 +78,6 @@ export async function deliverDeviceNotifications(
       deviceName: pending.deviceName,
       icao: pending.icao,
     });
-
-    if (pending.playKioskAlert) {
-      playKioskAlertSound(pending.icao, 'military-pushover');
-    }
 
     await recordNotificationSent(db);
 

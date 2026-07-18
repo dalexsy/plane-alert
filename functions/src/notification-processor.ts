@@ -156,6 +156,8 @@ async function runNotificationProcessingBody(
     db,
     devicesToProcess,
     getRegisteredPushoverDevices,
+    // Chime every home even when Pushover target list is empty / unmatched.
+    activeDevices,
   );
   await recordProcessPlanesSuccess(db);
 }
