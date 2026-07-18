@@ -24,7 +24,7 @@ import { MapUpdateService } from '../map-update/map-update.service';
 import { UiStateService } from '../ui-state/ui-state.service';
 import { ScanService } from '../scan/scan.service';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
-import { unlockAlertAudio } from '../../utils/alert-sound/alert-sound';
+import { playAlertSound, unlockAlertAudio } from '../../utils/alert-sound/alert-sound';
 import { initializeMapForBootstrap } from './map-bootstrap-init.util';
 import {
   applyBootstrapInputOverlayState,
@@ -77,6 +77,15 @@ export class MapBootstrapService {
       // Force off even if Chromium localStorage still has animationsEnabled=true.
       this.uiState.setAnimationsEnabled(false);
       unlockAlertAudio();
+      // One MP3 per Chromium session so a deploy/restart proves the Jabra path (no TTS).
+      try {
+        if (!sessionStorage.getItem('plane-alert:kiosk-audio-primed')) {
+          sessionStorage.setItem('plane-alert:kiosk-audio-primed', '1');
+          window.setTimeout(() => playAlertSound(), 2500);
+        }
+      } catch {
+        /* private mode */
+      }
     }
     const aircraftDbReady = this.aircraftDb.load();
     this.overlay.clickedAirports = this.settings.getClickedAirports();
