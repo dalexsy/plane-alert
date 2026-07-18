@@ -78,7 +78,7 @@ export class MapBootstrapService {
       // Force off even if Chromium localStorage still has animationsEnabled=true.
       this.uiState.setAnimationsEnabled(false);
       unlockAlertAudio();
-      // One MP3 per Chromium session outside quiet hours (7am–10pm Berlin).
+      // One MP3 per Chromium session outside quiet hours (10pm–7am Berlin).
       try {
         if (
           !isKioskQuietHours() &&

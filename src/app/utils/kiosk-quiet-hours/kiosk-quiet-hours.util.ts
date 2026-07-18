@@ -2,11 +2,11 @@ import { isKioskMode } from '../kiosk-mode/kiosk-mode.util';
 
 /** Local civil time on the kiosk (Berlin). Quiet = no MP3 alerts. */
 export const KIOSK_QUIET_TZ = 'Europe/Berlin';
-/** Inclusive start hour (07:00) through exclusive end (22:00) → quiet 7am–10pm. */
-export const KIOSK_QUIET_START_HOUR = 7;
-export const KIOSK_QUIET_END_HOUR = 22;
+/** Quiet overnight: from 22:00 inclusive until 07:00 exclusive. */
+export const KIOSK_QUIET_START_HOUR = 22;
+export const KIOSK_QUIET_END_HOUR = 7;
 
-/** True when kiosk should stay silent (07:00 ≤ local hour < 22:00). */
+/** True when kiosk should stay silent (22:00 ≤ hour or hour < 07:00). */
 export function isKioskQuietHours(now: Date = new Date()): boolean {
   if (!isKioskMode()) return false;
   const hour = Number(
@@ -16,5 +16,5 @@ export function isKioskQuietHours(now: Date = new Date()): boolean {
       hourCycle: 'h23',
     }).format(now)
   );
-  return hour >= KIOSK_QUIET_START_HOUR && hour < KIOSK_QUIET_END_HOUR;
+  return hour >= KIOSK_QUIET_START_HOUR || hour < KIOSK_QUIET_END_HOUR;
 }
