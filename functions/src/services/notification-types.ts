@@ -15,6 +15,8 @@ export interface PendingNotification {
   altitude?: number;
   bearing?: number;
   cardinal?: string;
+  /** Prefix-military without DB mil — live SPA skips kiosk MP3 for these. */
+  playKioskAlert?: boolean;
 }
 
 export interface MilitaryCollectionStats {

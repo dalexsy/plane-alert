@@ -88,6 +88,16 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     sftp.put(str(SCRIPT_DIR / "planes-api.service"), f"{STAGING}/planes-api.service")
     upload_directory(sftp, FUNCTIONS_DIR / "lib", f"{STAGING}/lib")
     upload_directory(sftp, FUNCTIONS_DIR / "shared-package", f"{STAGING}/shared-package")
+
+    # Prefix-military kiosk chime (SPA MP3 still DB-mil gated on live bundle).
+    alerts_src = REPO_ROOT / "src" / "assets" / "alerts"
+    alert_mp3 = alerts_src / "precious_little_life_forms.mp3"
+    if alert_mp3.is_file():
+        run_remote(client, f"mkdir -p {STAGING}/assets/alerts")
+        sftp.put(str(alert_mp3), f"{STAGING}/assets/alerts/{alert_mp3.name}")
+    else:
+        print(f"[warn] missing kiosk alert mp3: {alert_mp3}")
+
     for build_info in (
         FUNCTIONS_DIR / "build-info.json",
         FUNCTIONS_DIR / "lib" / "build-info.json",
