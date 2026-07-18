@@ -36,12 +36,6 @@ export function playA400Alert(): void {
   playAudio('assets/alerts/iago.mp3');
 }
 
-export function playA380Alert(): void {
-  playAudio(
-    'assets/alerts/will-you-getting-soft-on-board-that-luxury-liner.mp3'
-  );
-}
-
 /** Near-silent wav so Chromium media autoplay is armed before the first alert. */
 const SILENT_WAV =
   'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
