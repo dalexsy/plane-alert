@@ -85,11 +85,12 @@ export async function collectMilitaryNotifications(
 
     const isSpecialPlane = specialIcaos.includes(icao);
     const callsign = plane.flight || plane.callsign;
+    const dbMil = plane.mil === true || plane.dbFlags === 1;
+    const prefixMil = isMilitaryCallsign(callsign);
     const isMilitaryCandidate =
-      looksMilitary(plane) ||
-      isMilitaryCallsign(callsign) ||
-      plane.mil === true ||
-      plane.dbFlags === 1;
+      looksMilitary(plane) || prefixMil || dbMil;
+    // Live SPA kiosk MP3 still gates on DB mil; phones TTS on prefix. Bridge the gap on Pi.
+    const playKioskAlert = prefixMil && !dbMil;
 
     if (!isMilitaryCandidate && !isSpecialPlane) {
       continue;
@@ -184,6 +185,9 @@ export async function collectMilitaryNotifications(
       pushoverTargetDeviceName,
       flightDataMap,
     );
+    if (playKioskAlert) {
+      notification.playKioskAlert = true;
+    }
     pending.push(notification);
 
     if (pending.length >= MAX_NOTIFICATIONS_PER_DEVICE) {
