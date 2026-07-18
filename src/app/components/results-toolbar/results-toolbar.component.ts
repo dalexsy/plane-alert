@@ -47,8 +47,8 @@ export class ResultsToolbarComponent {
 
   get militaryMuteTooltip(): string {
     return this.facade.militaryMute
-      ? 'Unmute military alerts'
-      : 'Mute military alerts';
+      ? 'Military alert sounds are muted (MP3 + speech) — click to unmute'
+      : 'Mute military alert sounds (MP3 + speech only — not all audio)';
   }
 
   get altitudeBordersTooltip(): string {

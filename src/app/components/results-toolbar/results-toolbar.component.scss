@@ -2,6 +2,11 @@
   display: contents;
 }
 
+.military-mute-toggle.active {
+  color: var(--text-secondary);
+  background-color: color-mix(in srgb, var(--text-secondary) 25%, transparent);
+}
+
 .shuffle-toggle.active {
   color: cyan;
   background-color: rgba(0, 255, 255, 0.2);

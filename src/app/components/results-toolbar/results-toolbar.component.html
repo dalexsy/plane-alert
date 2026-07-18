@@ -31,12 +31,14 @@
       (click)="toggleCommercialFilter.emit()"
     ></app-button>
     <app-button
+      class="military-mute-toggle"
       [icon]="facade.militaryMute ? 'volume_off' : 'volume_up'"
       type="tertiary"
       size="medium"
       [ariaLabel]="militaryMuteTooltip"
       [appTooltip]="militaryMuteTooltip"
       tooltipPosition="left"
+      [ngClass]="{ active: facade.militaryMute }"
       (click)="toggleMilitaryMute.emit()"
     ></app-button>
     <app-button
