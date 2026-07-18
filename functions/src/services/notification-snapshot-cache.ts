@@ -36,6 +36,16 @@ function getTimestampMillis(value: unknown): number | null {
   ) {
     return (value as { millis: number }).millis;
   }
+  // firebase-admin Timestamp JSON shape (patch miss / legacy writes).
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { _seconds?: number })._seconds === 'number'
+  ) {
+    const seconds = (value as { _seconds: number })._seconds;
+    const nanos = (value as { _nanoseconds?: number })._nanoseconds ?? 0;
+    return seconds * 1000 + Math.floor(nanos / 1e6);
+  }
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -43,6 +53,7 @@ function getTimestampMillis(value: unknown): number | null {
   ) {
     return (value as { seconds: number }).seconds * 1000;
   }
+  // Broken serverTimestamp Sentinel → `{}` — treat as missing (force refetch).
   return null;
 }
 
