@@ -1,5 +1,5 @@
 /**
- * Play a local MP3 on magicmirror when military/special Pushover is delivered.
+ * Play a local MP3 on magicmirror when military/special is in range or delivered.
  * Live SPA kiosk audio is unreliable (stale bundle); phones still TTS.
  * planes-api ships this without republishing the SPA (deploy:fast).
  */
@@ -17,6 +17,8 @@ const ICAO_COOLDOWN_MS = 30 * 60 * 1000;
 
 let lastPlayAt = 0;
 const lastPlayedByIcao = new Map<string, number>();
+/** ICAOs with an in-flight pw-play — avoid double-spawn before exit. */
+const inFlightIcaos = new Set<string>();
 
 /** Same overnight window as SPA `isKioskQuietHours` (22:00–07:00 Berlin). */
 export function isKioskQuietHoursBerlin(now: Date = new Date()): boolean {
@@ -28,6 +30,7 @@ export function isKioskQuietHoursBerlin(now: Date = new Date()): boolean {
       hour12: false,
     }).format(now),
   );
+  // NaN ⇒ not quiet (fail open — bad formatter must not silence daytime alerts).
   if (!Number.isFinite(hour)) return false;
   return hour >= KIOSK_QUIET_START_HOUR || hour < KIOSK_QUIET_END_HOUR;
 }
@@ -49,7 +52,12 @@ function resolvePlayer(): string | null {
   return null;
 }
 
-function playWithPlayer(player: string, mp3Path: string): ChildProcess | null {
+function playWithPlayer(
+  player: string,
+  mp3Path: string,
+  icao: string,
+  reason: string,
+): ChildProcess | null {
   try {
     // Do not detach/unref — detached pw-play under systemd often exits before
     // PipeWire attaches to the Jabra sink (spawn "succeeds", no audible chime).
@@ -65,24 +73,35 @@ function playWithPlayer(player: string, mp3Path: string): ChildProcess | null {
       stderr += chunk.toString();
     });
     child.on('error', (err) => {
+      inFlightIcaos.delete(icao.toUpperCase());
       logger.warn('Kiosk alert player failed', {
         player,
+        icao,
+        reason,
         error: err.message,
       });
     });
     child.on('exit', (code) => {
-      if (code !== 0 && code !== null) {
-        logger.warn('Kiosk alert player exit', {
-          player,
-          code,
-          stderr: stderr.slice(0, 300),
-        });
+      const key = icao.toUpperCase();
+      inFlightIcaos.delete(key);
+      if (code === 0 || code === null) {
+        // Only cooldown after a successful play — failed exits must retry next cycle.
+        lastPlayedByIcao.set(key, Date.now());
+        logger.info('Kiosk alert sound finished', { icao, reason, code });
+        return;
       }
+      logger.warn('Kiosk alert player exit', {
+        player,
+        icao,
+        reason,
+        code,
+        stderr: stderr.slice(0, 300),
+      });
     });
     return child;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn('Kiosk alert spawn failed', { player, error: message });
+    logger.warn('Kiosk alert spawn failed', { player, icao, reason, error: message });
     return null;
   }
 }
@@ -105,6 +124,11 @@ export function playKioskAlertSound(icao: string, reason: string): void {
   }
 
   const key = icao.toUpperCase();
+  if (inFlightIcaos.has(key)) {
+    logger.info('Kiosk alert skipped — already playing', { icao, reason });
+    return;
+  }
+
   const prior = lastPlayedByIcao.get(key) ?? 0;
   if (now - prior < ICAO_COOLDOWN_MS) {
     logger.info('Kiosk alert skipped — icao cooldown', { icao, reason });
@@ -123,12 +147,14 @@ export function playKioskAlertSound(icao: string, reason: string): void {
     return;
   }
 
-  if (!playWithPlayer(player, mp3Path)) {
+  inFlightIcaos.add(key);
+  if (!playWithPlayer(player, mp3Path, icao, reason)) {
+    inFlightIcaos.delete(key);
     logger.warn('Kiosk alert: spawn failed', { icao, reason, player });
     return;
   }
 
+  // Rate-limit spawn attempts only — ICAO cooldown waits for successful exit.
   lastPlayAt = now;
-  lastPlayedByIcao.set(key, now);
   logger.info('Kiosk alert sound started', { icao, reason, player, mp3Path });
 }
