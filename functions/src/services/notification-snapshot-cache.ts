@@ -27,6 +27,15 @@ function getTimestampMillis(value: unknown): number | null {
     const millis = (value as { toMillis: () => number }).toMillis();
     return typeof millis === 'number' && !Number.isNaN(millis) ? millis : null;
   }
+  // LocalTimestamp JSON round-trip → { millis: n } (no toMillis).
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { millis?: number }).millis === 'number' &&
+    Number.isFinite((value as { millis: number }).millis)
+  ) {
+    return (value as { millis: number }).millis;
+  }
   if (
     typeof value === 'object' &&
     value !== null &&

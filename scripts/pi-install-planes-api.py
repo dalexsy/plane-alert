@@ -110,6 +110,12 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
         sftp.put(str(spa_prefixes), f"{STAGING}/data/{spa_prefixes.name}")
     else:
         print(f"[warn] missing SPA military prefixes: {spa_prefixes}")
+    # Drop edge-trigger state that blocked retries after failed/silent pw-play.
+    run_remote(
+        client,
+        f"rm -f {REMOTE_ROOT}/data/kiosk-chime-in-range-state.json "
+        f"{STAGING}/data/kiosk-chime-in-range-state.json",
+    )
 
     for build_info in (
         FUNCTIONS_DIR / "build-info.json",
