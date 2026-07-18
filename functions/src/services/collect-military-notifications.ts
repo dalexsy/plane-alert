@@ -14,7 +14,6 @@ import {
 } from '../constants';
 import { checkAndMarkNotified } from './notification-cooldown';
 import { buildMilitaryPendingNotification } from './build-military-notification';
-import { playKioskAlertSound } from './kiosk-alert-sound';
 import type { FlightData } from './aeroapi-client';
 import type {
   MilitaryCollectionStats,
@@ -163,9 +162,6 @@ export async function collectMilitaryNotifications(
       });
       continue;
     }
-
-    // In-radius chime (not deliver-only) — Pushover cooldown otherwise skips forever after a missed first play.
-    playKioskAlertSound(icao, 'military-in-range');
 
     const shouldNotify = await checkAndMarkNotified(
       db,

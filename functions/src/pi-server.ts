@@ -152,11 +152,11 @@ app.listen(PORT, '127.0.0.1', () => {
     logger.warn('Default device registration seed failed', { error: message });
   });
 
-  // Every 5 minutes — enough for two users; no Cloud Scheduler billing.
+  // Collect every 5 min; process every 2 min so brief mil flyovers still chime.
   cron.schedule('*/5 * * * *', () =>
     safeRun('collectAircraftData', () => runAircraftCollection(db)),
   );
-  cron.schedule('2,7,12,17,22,27,32,37,42,47,52,57 * * * *', () =>
+  cron.schedule('*/2 * * * *', () =>
     safeRun('processPlanes', () => runNotificationProcessing(db)),
   );
   cron.schedule('*/15 * * * *', () =>

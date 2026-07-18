@@ -2,6 +2,7 @@ import { logger } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import type { DeviceRegistration } from '../types';
 import { notifyForDevice } from './notify-for-device';
+import { chimeKioskForMilitaryInRange } from './kiosk-military-in-range-chime';
 import {
   getDeviceLocation,
   loadAircraftSnapshotCache,
@@ -10,19 +11,24 @@ import {
   type CachedAircraftSnapshot,
 } from './notification-snapshot-cache';
 
+type DeviceDoc = {
+  ref: admin.firestore.DocumentReference;
+  id: string;
+  data: DeviceRegistration;
+};
+
 export async function processDevicesWithSnapshotCache(
   db: admin.firestore.Firestore,
-  docs: Array<{
-    ref: admin.firestore.DocumentReference;
-    id: string;
-    data: DeviceRegistration;
-  }>,
+  docs: DeviceDoc[],
   getRegisteredPushoverDevices?: (
     userKey: string,
   ) => Promise<Set<string> | null | undefined>,
+  /** Homes to scan for kiosk chime (defaults to docs). Use all active devices. */
+  chimeDocs?: DeviceDoc[],
 ): Promise<void> {
+  const chimeSource = chimeDocs ?? docs;
   const locationKeys = uniqueLocationKeysFromDevices(
-    docs.map((entry) => ({ data: entry.data })),
+    [...chimeSource, ...docs].map((entry) => ({ data: entry.data })),
   );
   const aircraftCache = await loadAircraftSnapshotCache(db, locationKeys);
 
@@ -31,7 +37,10 @@ export async function processDevicesWithSnapshotCache(
     cachedLocations: aircraftCache.size,
   });
 
-  const docsByUserKey = new Map<string, typeof docs>();
+  // Chime before Pushover notify — match fails / boring filter must not silence kiosk.
+  await chimeKioskForMilitaryInRange(chimeSource, aircraftCache);
+
+  const docsByUserKey = new Map<string, DeviceDoc[]>();
   for (const entry of docs) {
     const userKey = entry.data?.pushoverUserKey?.trim();
     if (!userKey) {

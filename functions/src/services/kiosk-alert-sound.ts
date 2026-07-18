@@ -86,11 +86,17 @@ export function playKioskAlertSound(icao: string, reason: string): void {
   }
 
   const now = Date.now();
-  if (now - lastPlayAt < MIN_PLAY_INTERVAL_MS) return;
+  if (now - lastPlayAt < MIN_PLAY_INTERVAL_MS) {
+    logger.info('Kiosk alert skipped — min interval', { icao, reason });
+    return;
+  }
 
   const key = icao.toUpperCase();
   const prior = lastPlayedByIcao.get(key) ?? 0;
-  if (now - prior < ICAO_COOLDOWN_MS) return;
+  if (now - prior < ICAO_COOLDOWN_MS) {
+    logger.info('Kiosk alert skipped — icao cooldown', { icao, reason });
+    return;
+  }
 
   const mp3Path = resolveAlertMp3();
   if (!mp3Path) {
