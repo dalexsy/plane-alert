@@ -81,7 +81,7 @@ export async function deliverDeviceNotifications(
     });
 
     if (pending.playKioskAlert) {
-      playKioskAlertSound(pending.icao, 'prefix-military');
+      playKioskAlertSound(pending.icao, 'military-pushover');
     }
 
     await recordNotificationSent(db);
