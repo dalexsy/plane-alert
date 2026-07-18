@@ -30,7 +30,8 @@ export class LocalFieldValue {
 }
 
 export class LocalTimestamp {
-  private readonly millis: number;
+  /** Public so JSON.stringify persists millis (private fields become `{}`). */
+  readonly millis: number;
 
   constructor(millis: number) {
     this.millis = millis;
@@ -42,6 +43,10 @@ export class LocalTimestamp {
 
   toMillis(): number {
     return this.millis;
+  }
+
+  toJSON(): { millis: number } {
+    return { millis: this.millis };
   }
 }
 
@@ -132,9 +137,22 @@ export function patchAdminFirestoreNamespace(
   adminModule: typeof import('firebase-admin'),
 ): void {
   const firestoreNs = adminModule.firestore as unknown as Record<string, unknown>;
-  firestoreNs.FieldValue = LocalFieldValue as unknown;
-  firestoreNs.Timestamp = LocalTimestamp as unknown;
-  firestoreNs.FieldPath = {
-    documentId: () => '__name__',
-  };
+  // Plain assignment is a no-op — firebase-admin FieldValue/Timestamp are
+  // non-writable. Without defineProperty, serverTimestamp() stays a Sentinel
+  // that JSON.stringifies to `{}` and every snapshot looks perpetually stale.
+  Object.defineProperty(firestoreNs, 'FieldValue', {
+    value: LocalFieldValue,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(firestoreNs, 'Timestamp', {
+    value: LocalTimestamp,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(firestoreNs, 'FieldPath', {
+    value: { documentId: () => '__name__' },
+    writable: true,
+    configurable: true,
+  });
 }
