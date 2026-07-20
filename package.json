@@ -17,7 +17,7 @@
     "sync:favicons": "node ..\\directory\\scripts\\sync-favicons.mjs plane-alert",
     "prebuild": "npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui",
     "build:shared": "npm run build --prefix shared",
-    "lint:ui": "npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout",
+    "lint:ui": "npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout && npm run lint:logical-padding && npm run lint:physical-borders && npm run lint:exceptions",
     "deploy:fast": "python scripts/pi-install-planes-api.py",
     "deploy:pi-api": "python scripts/pi-install-planes-api.py",
     "test:local-tx": "npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs",
@@ -34,7 +34,10 @@
     "prestart": "npm run lint:ui",
     "verify:visual": "node ..\\directory\\scripts\\assert-deploy-screenshots.mjs planes",
     "verify:localhost": "node ..\\directory\\scripts\\verify-localhost-ui.mjs --repo plane-alert",
-    "verify:dist:local": "npm run build && node ..\\directory\\scripts\\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes && node ..\\directory\\scripts\\smoke-spa-console.mjs planes --local"
+    "verify:dist:local": "npm run build && node ..\\directory\\scripts\\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes && node ..\\directory\\scripts\\smoke-spa-console.mjs planes --local",
+    "lint:logical-padding": "node ../directory/scripts/lint-logical-padding.mjs",
+    "lint:physical-borders": "node ../directory/scripts/lint-physical-borders.mjs",
+    "lint:exceptions": "node ../directory/scripts/check-lint-exceptions.mjs"
   },
   "private": true,
   "dependencies": {
