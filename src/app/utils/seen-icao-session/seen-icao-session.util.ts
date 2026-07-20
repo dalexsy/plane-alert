@@ -39,7 +39,15 @@ export function saveSeenIcaosToSession(icaos: Iterable<string>): void {
   const store = readStore();
   if (!store) return;
   try {
-    const list = [...new Set(icaos)].slice(0, MAX_SEEN);
+    // Union with prior seen — replacing with only currently visible ICAOs
+    // made ADS-B flicker drop a mil from storage so the next poll re-alerted.
+    const merged = loadSeenIcaosFromSession();
+    for (const icao of icaos) {
+      if (icao) merged.add(icao);
+    }
+    const current = [...new Set(icaos)].filter(Boolean);
+    const older = [...merged].filter((icao) => !current.includes(icao));
+    const list = [...older, ...current].slice(-MAX_SEEN);
     store.setItem(SEEN_ICAOS_KEY, JSON.stringify(list));
   } catch {
     /* private mode / quota */

@@ -62,13 +62,11 @@ export class PlaneUpdateService {
       this.locationUpdateService.checkAutoLocationUpdate(() => undefined);
     }
 
-    // After noon refresh / cold boot, planeLog is empty so every ICAO looks
-    // "new". Seed from sessionStorage so already-visible traffic does not alert.
+    // Seed from localStorage every scan so a one-poll ADS-B gap (plane dropped
+    // from planeLog) does not mark the same mil as isNew and re-fire MP3s.
     const previousPlaneKeys = new Set(planeLog.keys());
-    if (previousPlaneKeys.size === 0) {
-      for (const icao of loadSeenIcaosFromSession()) {
-        previousPlaneKeys.add(icao);
-      }
+    for (const icao of loadSeenIcaosFromSession()) {
+      previousPlaneKeys.add(icao);
     }
     const lat = this.settings.lat ?? 52.3667;
     const lon = this.settings.lon ?? 13.5033;

@@ -8,6 +8,10 @@ import {
 import { sendPushoverNotification } from './pushover-client';
 import { recordNotificationSent } from './notification-health';
 import { playKioskAlertSound } from './kiosk-alert-sound';
+import {
+  ackKioskInRange,
+  isKioskInRangeAcked,
+} from './kiosk-in-range-edge-state';
 import type { PendingNotification } from './notification-types';
 
 export interface DeliverDeviceNotificationsParams {
@@ -80,8 +84,10 @@ export async function deliverDeviceNotifications(
       icao: pending.icao,
     });
 
-    if (pending.playKioskAlert) {
-      playKioskAlertSound(pending.icao, 'military-pushover');
+    if (pending.playKioskAlert && !isKioskInRangeAcked(pending.icao)) {
+      playKioskAlertSound(pending.icao, 'military-pushover', {
+        onPlayed: () => ackKioskInRange(pending.icao),
+      });
     }
 
     await recordNotificationSent(db);

@@ -1,7 +1,10 @@
 /**
- * Play a local MP3 on magicmirror when military/special is in range or delivered.
+ * Play a local MP3 on magicmirror when military/special newly enters range.
  * Live SPA kiosk audio is unreliable (stale bundle); phones still TTS.
  * planes-api ships this without republishing the SPA (deploy:fast).
+ *
+ * Visit edge lives in kiosk-in-range-edge-state — do not re-chime loiterers
+ * on a rolling timer. Rate-limit only backs up multi-ICAO bursts.
  */
 import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
@@ -12,13 +15,15 @@ const KIOSK_QUIET_TZ = 'Europe/Berlin';
 const KIOSK_QUIET_START_HOUR = 22;
 const KIOSK_QUIET_END_HOUR = 7;
 const MIN_PLAY_INTERVAL_MS = 8000;
-/** Match Pushover TTL so loitering mil does not re-chime every few minutes. */
-const ICAO_COOLDOWN_MS = 30 * 60 * 1000;
 
 let lastPlayAt = 0;
-const lastPlayedByIcao = new Map<string, number>();
 /** ICAOs with an in-flight pw-play — avoid double-spawn before exit. */
 const inFlightIcaos = new Set<string>();
+
+export type KioskAlertPlayOptions = {
+  /** Called after successful audible play, or when quiet hours absorb the visit. */
+  onPlayed?: () => void;
+};
 
 /** Same overnight window as SPA `isKioskQuietHours` (22:00–07:00 Berlin). */
 export function isKioskQuietHoursBerlin(now: Date = new Date()): boolean {
@@ -30,7 +35,6 @@ export function isKioskQuietHoursBerlin(now: Date = new Date()): boolean {
       hour12: false,
     }).format(now),
   );
-  // NaN ⇒ not quiet (fail open — bad formatter must not silence daytime alerts).
   if (!Number.isFinite(hour)) return false;
   return hour >= KIOSK_QUIET_START_HOUR || hour < KIOSK_QUIET_END_HOUR;
 }
@@ -57,10 +61,9 @@ function playWithPlayer(
   mp3Path: string,
   icao: string,
   reason: string,
+  onPlayed?: () => void,
 ): ChildProcess | null {
   try {
-    // Do not detach/unref — detached pw-play under systemd often exits before
-    // PipeWire attaches to the Jabra sink (spawn "succeeds", no audible chime).
     const child = spawn(player, [mp3Path], {
       stdio: ['ignore', 'ignore', 'pipe'],
       env: {
@@ -85,8 +88,7 @@ function playWithPlayer(
       const key = icao.toUpperCase();
       inFlightIcaos.delete(key);
       if (code === 0 || code === null) {
-        // Only cooldown after a successful play — failed exits must retry next cycle.
-        lastPlayedByIcao.set(key, Date.now());
+        onPlayed?.();
         logger.info('Kiosk alert sound finished', { icao, reason, code });
         return;
       }
@@ -109,11 +111,17 @@ function playWithPlayer(
 /**
  * Fire-and-forget local alert for military/special that SPA may not hear.
  * No-op during quiet hours, when disabled, or when the MP3 is missing.
+ * Quiet hours still invoke onPlayed so the visit is absorbed (no 7am dump).
  */
-export function playKioskAlertSound(icao: string, reason: string): void {
+export function playKioskAlertSound(
+  icao: string,
+  reason: string,
+  options?: KioskAlertPlayOptions,
+): void {
   if (process.env.PLANES_KIOSK_LOCAL_ALERT === '0') return;
   if (isKioskQuietHoursBerlin()) {
     logger.info('Kiosk alert skipped — quiet hours', { icao, reason });
+    options?.onPlayed?.();
     return;
   }
 
@@ -126,12 +134,6 @@ export function playKioskAlertSound(icao: string, reason: string): void {
   const key = icao.toUpperCase();
   if (inFlightIcaos.has(key)) {
     logger.info('Kiosk alert skipped — already playing', { icao, reason });
-    return;
-  }
-
-  const prior = lastPlayedByIcao.get(key) ?? 0;
-  if (now - prior < ICAO_COOLDOWN_MS) {
-    logger.info('Kiosk alert skipped — icao cooldown', { icao, reason });
     return;
   }
 
@@ -148,13 +150,12 @@ export function playKioskAlertSound(icao: string, reason: string): void {
   }
 
   inFlightIcaos.add(key);
-  if (!playWithPlayer(player, mp3Path, icao, reason)) {
+  if (!playWithPlayer(player, mp3Path, icao, reason, options?.onPlayed)) {
     inFlightIcaos.delete(key);
     logger.warn('Kiosk alert: spawn failed', { icao, reason, player });
     return;
   }
 
-  // Rate-limit spawn attempts only — ICAO cooldown waits for successful exit.
   lastPlayAt = now;
   logger.info('Kiosk alert sound started', { icao, reason, player, mp3Path });
 }

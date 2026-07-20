@@ -10,9 +10,9 @@
  * Merge `/v2/mil` (all upstreams) and, when that is empty, a ring of offset
  * point queries so magicmirror hears what phones announce from another map center.
  *
- * Do not persist “seen in range” before pw-play succeeds — that blocked retries
- * after silent/failed spawns (same class of bug as ICAO cooldown-before-exit).
- * playKioskAlertSound already rate-limits per ICAO after exit 0.
+ * Chime once per visit (newly in range), not every processPlanes cycle and not
+ * on a rolling 30min timer while the same mil loiters. Ack only after pw-play
+ * exit 0 (or quiet-hours absorb); prune when the ICAO leaves radius.
  */
 import { logger } from 'firebase-functions/v2';
 import type { AdsBPlane } from '@plane-alert/shared';
@@ -24,6 +24,11 @@ import {
   fetchMilitaryAircraftInRadius,
 } from './aircraft-collection-fetch';
 import { playKioskAlertSound } from './kiosk-alert-sound';
+import {
+  ackKioskInRange,
+  isKioskInRangeAcked,
+  pruneKioskInRangeAcked,
+} from './kiosk-in-range-edge-state';
 import {
   hasAdsBMilitarySignal,
   isSpaDbMilitaryIcao,
@@ -103,6 +108,7 @@ export async function chimeKioskForMilitaryInRange(
     );
 
     const alertIcaos: string[] = [];
+    const newVisitIcaos: string[] = [];
     for (const plane of aircraft) {
       if (!isSpaAlertAircraft(plane, specialIcaos)) continue;
       const icao = plane.hex!.toUpperCase();
@@ -117,14 +123,22 @@ export async function chimeKioskForMilitaryInRange(
       );
       if (distanceKm > radiusKm) continue;
       alertIcaos.push(icao);
-      playKioskAlertSound(icao, 'military-in-range');
+      if (isKioskInRangeAcked(icao)) continue;
+      newVisitIcaos.push(icao);
+      playKioskAlertSound(icao, 'military-in-range', {
+        onPlayed: () => ackKioskInRange(icao),
+      });
     }
+
+    pruneKioskInRangeAcked(alertIcaos);
 
     if (alertIcaos.length) {
       logger.info('Kiosk chime candidates in range', {
         locationKey: key,
         count: alertIcaos.length,
+        newVisits: newVisitIcaos.length,
         icaos: alertIcaos.slice(0, 8),
+        newIcaos: newVisitIcaos.slice(0, 8),
         milFeedAdded: milInRadius.length,
         ringAdded: ringAircraft.length,
       });
