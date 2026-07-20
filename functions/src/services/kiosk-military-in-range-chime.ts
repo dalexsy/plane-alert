@@ -28,6 +28,7 @@ import {
   ackKioskInRange,
   isKioskInRangeAcked,
   pruneKioskInRangeAcked,
+  takeKioskBootAbsorb,
 } from './kiosk-in-range-edge-state';
 import {
   hasAdsBMilitarySignal,
@@ -75,6 +76,9 @@ export async function chimeKioskForMilitaryInRange(
   aircraftCache: Map<string, CachedAircraftSnapshot>,
 ): Promise<void> {
   const scannedKeys = new Set<string>();
+  // Consume once at process start so an empty first home does not leave absorb
+  // armed for a later real visit (which must chime).
+  const bootAbsorb = takeKioskBootAbsorb();
 
   for (const entry of docs) {
     const loc = getDeviceLocation(entry.data);
@@ -123,6 +127,10 @@ export async function chimeKioskForMilitaryInRange(
       );
       if (distanceKm > radiusKm) continue;
       alertIcaos.push(icao);
+      if (bootAbsorb) {
+        ackKioskInRange(icao);
+        continue;
+      }
       if (isKioskInRangeAcked(icao)) continue;
       newVisitIcaos.push(icao);
       playKioskAlertSound(icao, 'military-in-range', {
@@ -137,6 +145,7 @@ export async function chimeKioskForMilitaryInRange(
         locationKey: key,
         count: alertIcaos.length,
         newVisits: newVisitIcaos.length,
+        bootAbsorb,
         icaos: alertIcaos.slice(0, 8),
         newIcaos: newVisitIcaos.slice(0, 8),
         milFeedAdded: milInRadius.length,

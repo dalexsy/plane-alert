@@ -11,6 +11,8 @@ import { logger } from 'firebase-functions/v2';
 const STATE_FILE = 'kiosk-chime-in-range-state.json';
 
 let ackedIcaos: Set<string> | null = null;
+/** First scan after process start absorbs current in-range visits (no blast on deploy). */
+let bootAbsorbPending = true;
 
 function resolveStatePath(): string {
   const fromEnv = process.env.PLANES_KIOSK_EDGE_STATE?.trim();
@@ -57,6 +59,13 @@ function save(): void {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn('Kiosk edge state save failed', { error: message });
   }
+}
+
+/** True once after process start — caller should ack current ICAOs without playing. */
+export function takeKioskBootAbsorb(): boolean {
+  if (!bootAbsorbPending) return false;
+  bootAbsorbPending = false;
+  return true;
 }
 
 export function isKioskInRangeAcked(icao: string): boolean {
