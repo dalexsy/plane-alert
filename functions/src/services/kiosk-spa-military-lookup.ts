@@ -8,15 +8,18 @@ import { logger } from 'firebase-functions/v2';
 import { isMilitaryCallsign } from '@plane-alert/shared';
 
 let milIcaos: Set<string> | null = null;
+/** ICAO → model string from military-aircraft-db (for A400/Hercules chime pick). */
+let milModels: Map<string, string> | null = null;
 let spaPrefixes: string[] | null = null;
 
 function firstExisting(paths: string[]): string | null {
   return paths.find((p) => fs.existsSync(p)) ?? null;
 }
 
-function loadMilIcaos(): Set<string> {
-  if (milIcaos) return milIcaos;
+function loadMilDb(): void {
+  if (milIcaos && milModels) return;
   const set = new Set<string>();
+  const models = new Map<string, string>();
   const dbPath = firstExisting([
     path.join(process.cwd(), 'data', 'military-aircraft-db.json'),
     path.join(__dirname, '..', 'data', 'military-aircraft-db.json'),
@@ -25,28 +28,37 @@ function loadMilIcaos(): Set<string> {
   if (!dbPath) {
     logger.warn('Kiosk SPA mil DB missing — falling back to ADS-B flags only');
     milIcaos = set;
-    return set;
+    milModels = models;
+    return;
   }
   try {
     const raw = JSON.parse(fs.readFileSync(dbPath, 'utf8')) as Record<
       string,
-      { mil?: boolean }
+      { mil?: boolean; model?: string }
     >;
     for (const [icao, entry] of Object.entries(raw)) {
-      if (entry?.mil === true && icao) {
-        set.add(icao.toLowerCase());
-      }
+      if (!icao) continue;
+      const key = icao.toLowerCase();
+      if (entry?.mil === true) set.add(key);
+      const model = entry?.model?.trim();
+      if (model) models.set(key, model);
     }
     logger.info('Loaded kiosk SPA military ICAO set', {
       path: dbPath,
       count: set.size,
+      models: models.size,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn('Failed to load kiosk SPA military DB', { path: dbPath, error: message });
   }
   milIcaos = set;
-  return set;
+  milModels = models;
+}
+
+function loadMilIcaos(): Set<string> {
+  loadMilDb();
+  return milIcaos!;
 }
 
 function loadSpaPrefixes(): string[] {
@@ -83,6 +95,12 @@ function loadSpaPrefixes(): string[] {
 /** True when ICAO is marked military in the SPA aircraft DB extract. */
 export function isSpaDbMilitaryIcao(icao: string): boolean {
   return loadMilIcaos().has(icao.toLowerCase());
+}
+
+/** Aircraft model from military DB (empty when unknown). */
+export function getSpaAircraftModel(icao: string): string {
+  loadMilDb();
+  return milModels?.get(icao.toLowerCase()) ?? '';
 }
 
 /**

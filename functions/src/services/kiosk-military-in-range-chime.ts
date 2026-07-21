@@ -31,6 +31,7 @@ import {
   takeKioskBootAbsorb,
 } from './kiosk-in-range-edge-state';
 import {
+  getSpaAircraftModel,
   hasAdsBMilitarySignal,
   isSpaDbMilitaryIcao,
   isSpaMilitaryCallsign,
@@ -133,7 +134,13 @@ export async function chimeKioskForMilitaryInRange(
       }
       if (isKioskInRangeAcked(icao)) continue;
       newVisitIcaos.push(icao);
+      const model =
+        plane.desc?.trim() ||
+        getSpaAircraftModel(icao) ||
+        plane.t?.trim() ||
+        '';
       playKioskAlertSound(icao, 'military-in-range', {
+        model,
         onPlayed: () => ackKioskInRange(icao),
       });
     }

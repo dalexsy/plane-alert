@@ -5,6 +5,7 @@ import {
   playHerculesAlert,
   playA400Alert,
 } from '../../utils/alert-sound/alert-sound';
+import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
 import type { PlaneUpdateService } from './plane-update.service';
 
 export function getFaviconUrlForPlanes(
@@ -54,13 +55,27 @@ export function playAlertsForNewPlanes(
       : hasA400
         ? 'a400'
         : 'mil-or-special';
-    console.info('[plane-alert] SPA MP3', { reason, count: alertable.length, sample });
-    if (hasHercules) {
-      playHerculesAlert();
-    } else if (hasA400) {
-      playA400Alert();
+    // Magicmirror: Pi PipeWire owns the speaker. SPA + Pi both firing caused
+    // A400/Hercules then the generic mil chime back-to-back on the same Jabra.
+    if (isKioskMode()) {
+      console.info('[plane-alert] SPA MP3 skipped (kiosk — Pi chime)', {
+        reason,
+        count: alertable.length,
+        sample,
+      });
     } else {
-      playAlertSound();
+      console.info('[plane-alert] SPA MP3', {
+        reason,
+        count: alertable.length,
+        sample,
+      });
+      if (hasHercules) {
+        playHerculesAlert();
+      } else if (hasA400) {
+        playA400Alert();
+      } else {
+        playAlertSound();
+      }
     }
   }
 

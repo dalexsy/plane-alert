@@ -10,6 +10,11 @@ import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from 'firebase-functions/v2';
+import {
+  kioskAlertFileName,
+  kioskAlertVariantFromModel,
+  type KioskAlertVariant,
+} from './kiosk-alert-variant';
 
 const KIOSK_QUIET_TZ = 'Europe/Berlin';
 const KIOSK_QUIET_START_HOUR = 22;
@@ -23,6 +28,8 @@ const inFlightIcaos = new Set<string>();
 export type KioskAlertPlayOptions = {
   /** Called after successful audible play, or when quiet hours absorb the visit. */
   onPlayed?: () => void;
+  /** Aircraft model — picks hercules / A400 (iago) / default mil MP3. */
+  model?: string | null;
 };
 
 /** Same overnight window as SPA `isKioskQuietHours` (22:00–07:00 Berlin). */
@@ -39,14 +46,27 @@ export function isKioskQuietHoursBerlin(now: Date = new Date()): boolean {
   return hour >= KIOSK_QUIET_START_HOUR || hour < KIOSK_QUIET_END_HOUR;
 }
 
-function resolveAlertMp3(): string | null {
-  const fromEnv = process.env.PLANES_KIOSK_ALERT_MP3?.trim();
-  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+function resolveAlertMp3(variant: KioskAlertVariant): string | null {
+  const fileName = kioskAlertFileName(variant);
+  // Env override is default mil only — never force it over A400/Hercules.
+  if (variant === 'default') {
+    const fromEnv = process.env.PLANES_KIOSK_ALERT_MP3?.trim();
+    if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+  }
   const candidates = [
-    path.join(process.cwd(), 'assets', 'alerts', 'precious_little_life_forms.mp3'),
-    path.join(__dirname, '..', 'assets', 'alerts', 'precious_little_life_forms.mp3'),
+    path.join(process.cwd(), 'assets', 'alerts', fileName),
+    path.join(__dirname, '..', 'assets', 'alerts', fileName),
   ];
-  return candidates.find((p) => fs.existsSync(p)) ?? null;
+  const hit = candidates.find((p) => fs.existsSync(p));
+  if (hit) return hit;
+  if (variant !== 'default') {
+    logger.warn('Kiosk alert variant MP3 missing — falling back to default', {
+      variant,
+      fileName,
+    });
+    return resolveAlertMp3('default');
+  }
+  return null;
 }
 
 function resolvePlayer(): string | null {
@@ -137,9 +157,10 @@ export function playKioskAlertSound(
     return;
   }
 
-  const mp3Path = resolveAlertMp3();
+  const variant = kioskAlertVariantFromModel(options?.model);
+  const mp3Path = resolveAlertMp3(variant);
   if (!mp3Path) {
-    logger.warn('Kiosk alert MP3 missing', { icao, reason });
+    logger.warn('Kiosk alert MP3 missing', { icao, reason, variant });
     return;
   }
 
@@ -157,5 +178,11 @@ export function playKioskAlertSound(
   }
 
   lastPlayAt = now;
-  logger.info('Kiosk alert sound started', { icao, reason, player, mp3Path });
+  logger.info('Kiosk alert sound started', {
+    icao,
+    reason,
+    variant,
+    player,
+    mp3Path,
+  });
 }

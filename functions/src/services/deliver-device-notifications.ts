@@ -86,6 +86,7 @@ export async function deliverDeviceNotifications(
 
     if (pending.playKioskAlert && !isKioskInRangeAcked(pending.icao)) {
       playKioskAlertSound(pending.icao, 'military-pushover', {
+        model: pending.model,
         onPlayed: () => ackKioskInRange(pending.icao),
       });
     }

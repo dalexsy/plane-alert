@@ -89,14 +89,20 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     upload_directory(sftp, FUNCTIONS_DIR / "lib", f"{STAGING}/lib")
     upload_directory(sftp, FUNCTIONS_DIR / "shared-package", f"{STAGING}/shared-package")
 
-    # Prefix-military kiosk chime (SPA MP3 still DB-mil gated on live bundle).
+    # Kiosk PipeWire chimes (one of: default mil / Hercules / A400). SPA is muted on ?kiosk=1.
     alerts_src = REPO_ROOT / "src" / "assets" / "alerts"
-    alert_mp3 = alerts_src / "precious_little_life_forms.mp3"
-    if alert_mp3.is_file():
-        run_remote(client, f"mkdir -p {STAGING}/assets/alerts")
-        sftp.put(str(alert_mp3), f"{STAGING}/assets/alerts/{alert_mp3.name}")
-    else:
-        print(f"[warn] missing kiosk alert mp3: {alert_mp3}")
+    alert_names = (
+        "precious_little_life_forms.mp3",
+        "hercules.mp3",
+        "iago.mp3",
+    )
+    run_remote(client, f"mkdir -p {STAGING}/assets/alerts")
+    for name in alert_names:
+        alert_mp3 = alerts_src / name
+        if alert_mp3.is_file():
+            sftp.put(str(alert_mp3), f"{STAGING}/assets/alerts/{name}")
+        else:
+            print(f"[warn] missing kiosk alert mp3: {alert_mp3}")
 
     # SPA-parity mil lookup (aircraftDb.mil + military-prefixes) for Pi chime.
     run_remote(client, f"mkdir -p {STAGING}/data")
