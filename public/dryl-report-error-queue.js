@@ -75,11 +75,16 @@
         return;
       }
       var endpoint = endpoints[ep++];
+      var cross = !isSameOrigin(endpoint);
+      // text/plain avoids CORS preflight on health.dryl.io fallthrough; servers
+      // that only accept application/json still get a JSON body string.
       fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": cross ? "text/plain;charset=UTF-8" : "application/json",
+        },
         body: body,
-        credentials: isSameOrigin(endpoint) ? "same-origin" : "omit",
+        credentials: cross ? "omit" : "same-origin",
         keepalive: true,
       })
         .then(function (res) {
@@ -134,11 +139,14 @@
         return;
       }
       var endpoint = endpoints[ep++];
+      var cross = !isSameOrigin(endpoint);
       fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": cross ? "text/plain;charset=UTF-8" : "application/json",
+        },
         body: body,
-        credentials: isSameOrigin(endpoint) ? "same-origin" : "omit",
+        credentials: cross ? "omit" : "same-origin",
         keepalive: true,
       })
         .then(function (res) {
