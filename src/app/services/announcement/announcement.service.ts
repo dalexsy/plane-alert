@@ -5,17 +5,19 @@ import { AircraftCountryService } from '../aircraft-country/aircraft-country.ser
 import { LanguageSwitchService } from '../language-switch/language-switch.service';
 import { SettingsService } from '../settings/settings.service';
 import { OperatorCallSignService } from '../operator-call-sign/operator-call-sign.service';
+import {
+  planeFieldsToAdsB,
+  shouldAlertForAircraft,
+} from '@plane-alert/shared';
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 import {
   isSpecialModel,
-  shouldAnnounceMilitary,
   processCallsignForSpeech,
   preprocessForSpeech,
   airportLocale,
 } from './announcement-speech.util';
 import {
   buildCountryAnnouncementText,
-  buildOperatorGroupAnnouncement,
 } from './announcement-build.util';
 
 export interface AnnouncementContext {
@@ -48,7 +50,13 @@ export class AnnouncementService {
       this.announceSpecialModel(plane, baseKey);
     } else if (plane.isMilitary) {
       if (this.settings.militaryMute) return;
-      if (!shouldAnnounceMilitary(plane)) return;
+      const adsB = planeFieldsToAdsB({
+        icao: plane.icao,
+        callsign: plane.callsign,
+        model: plane.model,
+        isMilitary: true,
+      });
+      if (!shouldAlertForAircraft(adsB, { isSpecial: !!plane.isSpecial })) return;
       this.queueMilitaryAircraft(plane, baseKey);
     } else if (context.isAirportClicked) {
       this.announceAirportArrival(plane, baseKey);
@@ -187,14 +195,5 @@ export class AnnouncementService {
     this.langSwitch.speakWithOverrides(baseKey, announcement);
     this.militaryQueue.delete(countryKey);
     this.militaryQueueTimers.delete(countryKey);
-  }
-
-  private announceOperatorGroup(operator: string, planes: PlaneLogEntry[], countryKey: string): void {
-    if (planes.length === 0) return;
-    if (countryKey !== 'Unknown') this.announcedCountries.add(countryKey);
-    planes.forEach((plane) => this.announcedAircraft.add(plane.icao));
-    const announcement = buildOperatorGroupAnnouncement(operator, planes);
-    const baseKey = `operator-group-${operator.replace(/\s+/g, '-')}-${planes[0].icao}`;
-    this.langSwitch.speakWithOverrides(baseKey, announcement);
   }
 }

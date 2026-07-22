@@ -1,6 +1,5 @@
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 import type { AircraftCountryService } from '../aircraft-country/aircraft-country.service';
-import { shouldPlayMilitaryAudio } from '../../utils/boring-military/boring-military-alert.util';
 
 const MEANINGFUL_CALLSIGN_WORDS = [
   'HERKY', 'VALOR', 'FALCON', 'EAGLE', 'HAWK', 'VIPER', 'THUNDER',
@@ -20,17 +19,6 @@ export function isSpecialModel(plane: PlaneLogEntry): boolean {
   const model = plane.model?.toLowerCase().trim();
   if (!model) return false;
   return ['hercules', 'a400', 'a-400'].some((m) => model.includes(m));
-}
-
-/** Pushover-parity: skip TTS for boring mil unless special-listed. */
-export function shouldAnnounceMilitary(plane: PlaneLogEntry): boolean {
-  return shouldPlayMilitaryAudio({
-    icao: plane.icao,
-    callsign: plane.callsign,
-    model: plane.model,
-    isMilitary: plane.isMilitary === true,
-    isSpecial: plane.isSpecial === true,
-  });
 }
 
 export function processCallsignForSpeech(callsign: string): string {

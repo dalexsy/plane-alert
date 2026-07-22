@@ -3,9 +3,9 @@ import * as admin from 'firebase-admin';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   haversineDistanceKm,
-  looksMilitary,
-  isMilitaryCallsign,
   isBoringMilitaryAircraft,
+  isMilitaryCallsign,
+  shouldAlertForAircraft,
 } from '@plane-alert/shared';
 import type { DeviceRegistration, Location } from '../types';
 import {
@@ -87,28 +87,26 @@ export async function collectMilitaryNotifications(
     const callsign = plane.flight || plane.callsign;
     const dbMil = plane.mil === true || plane.dbFlags === 1;
     const prefixMil = isMilitaryCallsign(callsign);
-    const isMilitaryCandidate =
-      looksMilitary(plane) || prefixMil || dbMil;
-
-    if (!isMilitaryCandidate && !isSpecialPlane) {
-      continue;
-    }
+    const isMilitaryCandidate = prefixMil || dbMil;
 
     if (data.ignoredTypes?.some((type) => type.trim() === '*') && !isSpecialPlane) {
       continue;
     }
 
-    if (isBoringMilitaryAircraft(plane) && !isSpecialPlane) {
-      stats.boringCount++;
-      logger.info('Boring military aircraft filtered', {
-        docId,
-        hex: plane.hex,
-        type: plane.t,
-        desc: plane.desc,
-        callsign: plane.flight,
-        mil: plane.mil,
-        dbFlags: plane.dbFlags,
-      });
+    // Same gate as kiosk/SPA audio — shared shouldAlertForAircraft.
+    if (!shouldAlertForAircraft(plane, { isSpecial: isSpecialPlane })) {
+      if (isMilitaryCandidate && isBoringMilitaryAircraft(plane)) {
+        stats.boringCount++;
+        logger.info('Boring military aircraft filtered', {
+          docId,
+          hex: plane.hex,
+          type: plane.t,
+          desc: plane.desc,
+          callsign: plane.flight,
+          mil: plane.mil,
+          dbFlags: plane.dbFlags,
+        });
+      }
       continue;
     }
 

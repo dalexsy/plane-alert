@@ -1,25 +1,18 @@
 /**
- * Kiosk PipeWire chime for interesting mil/special in radius.
- * Same interestingness gate as Pushover (`isBoringMilitaryAircraft`) — audio is
- * the house speaker for those push alerts. Still independent of device match /
- * cooldown claim so a missed Pushover does not silence magicmirror.
+ * Kiosk PipeWire chime — same `shouldAlertForAircraft` gate as Pushover.
+ * Independent of device match / cooldown so a missed push does not silence
+ * the house speaker for an aircraft that would have been notified.
  *
- * Candidate mil: aircraftDb.mil OR military-prefixes OR ADS-B mil/dbFlags OR
- * special. Boring trainers/transports/VIP are skipped unless special.
+ * Point `/v2/point` near dense hubs drops in-range mil; merge `/v2/mil` and
+ * ring fills so magicmirror hears visits phones would push from another center.
  *
- * Point `/v2/point` near dense hubs drops in-range mil (returns ~20–30 nearest).
- * Merge `/v2/mil` (all upstreams) and, when that is empty, a ring of offset
- * point queries so magicmirror hears what phones announce from another map center.
- *
- * Chime once per visit (newly in range), not every processPlanes cycle and not
- * on a rolling 30min timer while the same mil loiters. Ack only after pw-play
- * exit 0 (or quiet-hours absorb); prune when the ICAO leaves radius.
+ * Chime once per visit; ack only after pw-play exit 0 (or quiet-hours absorb).
  */
 import { logger } from 'firebase-functions/v2';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   haversineDistanceKm,
-  isBoringMilitaryAircraft,
+  shouldAlertForAircraft,
 } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
 import { clampRadius, isSpecialAircraft } from '../utils';
@@ -34,42 +27,13 @@ import {
   pruneKioskInRangeAcked,
   takeKioskBootAbsorb,
 } from './kiosk-in-range-edge-state';
-import {
-  getSpaAircraftModel,
-  hasAdsBMilitarySignal,
-  isSpaDbMilitaryIcao,
-  isSpaMilitaryCallsign,
-} from './kiosk-spa-military-lookup';
+import { getSpaAircraftModel } from './kiosk-spa-military-lookup';
 import {
   getDeviceLocation,
   locationCacheKey,
   type CachedAircraftSnapshot,
 } from './notification-snapshot-cache';
 import { resolveAircraftForNotification } from './resolve-aircraft-for-notification';
-
-function isSpaAlertAircraft(
-  plane: AdsBPlane,
-  specialIcaos: string[],
-): boolean {
-  const icao = plane.hex?.toUpperCase();
-  if (!icao) return false;
-  if (specialIcaos.includes(icao)) return true;
-  if (isSpecialAircraft(plane.hex)) return true;
-  if (isSpaDbMilitaryIcao(icao)) return true;
-  if (hasAdsBMilitarySignal(plane)) return true;
-  return isSpaMilitaryCallsign(plane.flight || plane.callsign);
-}
-
-/** Same skip as collectMilitaryNotifications — special always alerts. */
-function shouldSkipBoringForChime(
-  plane: AdsBPlane,
-  specialIcaos: string[],
-): boolean {
-  const icao = plane.hex?.toUpperCase();
-  if (icao && specialIcaos.includes(icao)) return false;
-  if (isSpecialAircraft(plane.hex)) return false;
-  return isBoringMilitaryAircraft(plane);
-}
 
 function mergeAircraftByHex(
   primary: AdsBPlane[],
@@ -92,8 +56,6 @@ export async function chimeKioskForMilitaryInRange(
   aircraftCache: Map<string, CachedAircraftSnapshot>,
 ): Promise<void> {
   const scannedKeys = new Set<string>();
-  // Consume once at process start so an empty first home does not leave absorb
-  // armed for a later real visit (which must chime).
   const bootAbsorb = takeKioskBootAbsorb();
 
   for (const entry of docs) {
@@ -112,7 +74,6 @@ export async function chimeKioskForMilitaryInRange(
       `kiosk-chime:${entry.id}`,
     );
     const milInRadius = await fetchMilitaryAircraftInRadius(loc, radiusKm);
-    // Mil feed often lists nearby hexes with no lat/lon — ring fills those gaps.
     const ringAircraft =
       milInRadius.length === 0
         ? await fetchAircraftRingAroundHome(loc, radiusKm)
@@ -130,9 +91,11 @@ export async function chimeKioskForMilitaryInRange(
     const alertIcaos: string[] = [];
     const newVisitIcaos: string[] = [];
     for (const plane of aircraft) {
-      if (!isSpaAlertAircraft(plane, specialIcaos)) continue;
-      if (shouldSkipBoringForChime(plane, specialIcaos)) continue;
-      const icao = plane.hex!.toUpperCase();
+      const icao = plane.hex?.toUpperCase();
+      if (!icao) continue;
+      const isSpecial =
+        specialIcaos.includes(icao) || isSpecialAircraft(plane.hex);
+      if (!shouldAlertForAircraft(plane, { isSpecial })) continue;
       if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
         continue;
       }

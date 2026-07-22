@@ -37,6 +37,13 @@ export {
   MIL_OPERATOR_KEYWORDS,
 } from './military-detection';
 
+// Single Pushover + audio alert gate
+export {
+  shouldAlertForAircraft,
+  planeFieldsToAdsB,
+} from './military-alert-gate';
+export type { AlertAircraftOptions } from './military-alert-gate';
+
 // Export geo utilities
 export {
   toRadians,

@@ -1,11 +1,14 @@
 import * as L from 'leaflet';
 import { PlaneModel } from '../../models/plane-model';
 import {
+  planeFieldsToAdsB,
+  shouldAlertForAircraft,
+} from '@plane-alert/shared';
+import {
   playAlertSound,
   playHerculesAlert,
   playA400Alert,
 } from '../../utils/alert-sound/alert-sound';
-import { shouldPlayMilitaryAudio } from '../../utils/boring-military/boring-military-alert.util';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
 import type { PlaneUpdateService } from './plane-update.service';
 
@@ -32,15 +35,17 @@ export function playAlertsForNewPlanes(
   exclude: boolean,
 ): void {
   const newVisible = updatedLog.filter((p) => p.isNew && !p.filteredOut);
-  // Same interestingness as Pushover — skip boring mil (trainers/VIP/etc.).
+  // Shared gate with Pushover / Pi kiosk — shouldAlertForAircraft only.
   const alertable = newVisible.filter((p) =>
-    shouldPlayMilitaryAudio({
-      icao: p.icao,
-      callsign: p.callsign,
-      model: p.model,
-      isMilitary: p.isMilitary,
-      isSpecial: svc['specialListService'].isSpecial(p.icao),
-    }),
+    shouldAlertForAircraft(
+      planeFieldsToAdsB({
+        icao: p.icao,
+        callsign: p.callsign,
+        model: p.model,
+        isMilitary: p.isMilitary,
+      }),
+      { isSpecial: svc['specialListService'].isSpecial(p.icao) },
+    ),
   );
   const hasHercules = alertable.some((p) =>
     p.model?.toLowerCase().includes('hercules'),
