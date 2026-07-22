@@ -8,6 +8,7 @@ import { OperatorCallSignService } from '../operator-call-sign/operator-call-sig
 import type { PlaneLogEntry } from '../../types/plane-log-entry';
 import {
   isSpecialModel,
+  shouldAnnounceMilitary,
   processCallsignForSpeech,
   preprocessForSpeech,
   airportLocale,
@@ -47,6 +48,7 @@ export class AnnouncementService {
       this.announceSpecialModel(plane, baseKey);
     } else if (plane.isMilitary) {
       if (this.settings.militaryMute) return;
+      if (!shouldAnnounceMilitary(plane)) return;
       this.queueMilitaryAircraft(plane, baseKey);
     } else if (context.isAirportClicked) {
       this.announceAirportArrival(plane, baseKey);

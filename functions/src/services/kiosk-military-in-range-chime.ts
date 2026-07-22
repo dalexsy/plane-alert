@@ -1,10 +1,11 @@
 /**
- * Kiosk PipeWire chime for mil/special in radius — SPA-parity, not Pushover.
- * Live SPA kiosk MP3 is unreliable; phones still TTS on first sighting.
- * Must not depend on device match, boring filter, or cooldown claim.
+ * Kiosk PipeWire chime for interesting mil/special in radius.
+ * Same interestingness gate as Pushover (`isBoringMilitaryAircraft`) — audio is
+ * the house speaker for those push alerts. Still independent of device match /
+ * cooldown claim so a missed Pushover does not silence magicmirror.
  *
- * Same gate as SPA isMilitary / special (plane-data + plane-update):
- * aircraftDb.mil OR military-prefixes OR ADS-B mil/dbFlags OR special.
+ * Candidate mil: aircraftDb.mil OR military-prefixes OR ADS-B mil/dbFlags OR
+ * special. Boring trainers/transports/VIP are skipped unless special.
  *
  * Point `/v2/point` near dense hubs drops in-range mil (returns ~20–30 nearest).
  * Merge `/v2/mil` (all upstreams) and, when that is empty, a ring of offset
@@ -16,7 +17,10 @@
  */
 import { logger } from 'firebase-functions/v2';
 import type { AdsBPlane } from '@plane-alert/shared';
-import { haversineDistanceKm } from '@plane-alert/shared';
+import {
+  haversineDistanceKm,
+  isBoringMilitaryAircraft,
+} from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
 import { clampRadius, isSpecialAircraft } from '../utils';
 import {
@@ -54,6 +58,17 @@ function isSpaAlertAircraft(
   if (isSpaDbMilitaryIcao(icao)) return true;
   if (hasAdsBMilitarySignal(plane)) return true;
   return isSpaMilitaryCallsign(plane.flight || plane.callsign);
+}
+
+/** Same skip as collectMilitaryNotifications — special always alerts. */
+function shouldSkipBoringForChime(
+  plane: AdsBPlane,
+  specialIcaos: string[],
+): boolean {
+  const icao = plane.hex?.toUpperCase();
+  if (icao && specialIcaos.includes(icao)) return false;
+  if (isSpecialAircraft(plane.hex)) return false;
+  return isBoringMilitaryAircraft(plane);
 }
 
 function mergeAircraftByHex(
@@ -116,6 +131,7 @@ export async function chimeKioskForMilitaryInRange(
     const newVisitIcaos: string[] = [];
     for (const plane of aircraft) {
       if (!isSpaAlertAircraft(plane, specialIcaos)) continue;
+      if (shouldSkipBoringForChime(plane, specialIcaos)) continue;
       const icao = plane.hex!.toUpperCase();
       if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') {
         continue;

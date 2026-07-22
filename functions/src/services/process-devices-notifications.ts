@@ -37,7 +37,8 @@ export async function processDevicesWithSnapshotCache(
     cachedLocations: aircraftCache.size,
   });
 
-  // Chime before Pushover notify — match fails / boring filter must not silence kiosk.
+  // Chime before Pushover notify — same boring gate as Pushover; device match
+  // failures must not silence interesting mil on the house speaker.
   await chimeKioskForMilitaryInRange(chimeSource, aircraftCache);
 
   const docsByUserKey = new Map<string, DeviceDoc[]>();
