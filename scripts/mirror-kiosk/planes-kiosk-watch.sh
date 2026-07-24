@@ -28,6 +28,10 @@ LAN_FAIL_FILE="${STATE_DIR}/lan-fails"
 AUTH_STRIKES_FILE="${STATE_DIR}/auth-strikes"
 SESSION_STRIKES_FILE="${STATE_DIR}/session-strikes"
 LAN_FAIL_MAX="${PLANES_KIOSK_LAN_FAIL_MAX:-4}"
+# Set when heal_cloudflared_tunnel saw an error page (1033/530/000) this cycle —
+# Chromium's already-rendered tab is stale even if the tunnel heals same-cycle,
+# because nothing else ever tells that tab to reload (kiosk stuck on Error 1033).
+PAGE_ERROR_SEEN=0
 
 log() { logger -t planes-kiosk-watch "$*"; }
 
@@ -106,11 +110,13 @@ heal_cloudflared_tunnel() {
   if echo "${body}" | grep -q "Error 1033"; then
     log "Cloudflare 1033 on planes — restarting cloudflared-balcony"
     systemctl restart cloudflared-balcony 2>/dev/null || true
+    PAGE_ERROR_SEEN=1
     return 0
   fi
   if [ "${code}" = "530" ] || [ "${code}" = "000" ]; then
     log "planes tunnel HTTP ${code} — restarting cloudflared-balcony"
     systemctl restart cloudflared-balcony 2>/dev/null || true
+    PAGE_ERROR_SEEN=1
   fi
 }
 
@@ -258,6 +264,15 @@ if check_internet; then
   if [ -f "${NET_DOWN_FILE}" ]; then
     rm -f "${NET_DOWN_FILE}"
     do_restart "internet-restored"
+    exit 0
+  fi
+  # Tunnel blip that self-healed inside this single cycle (e.g. Cloudflare
+  # 1033) never wrote NET_DOWN_FILE, so "internet-restored" above never
+  # fires — but Chromium's tab is still showing the error page it loaded
+  # before the heal. Nothing else ever reloads that tab. Force it here.
+  if [ "${PAGE_ERROR_SEEN}" -eq 1 ]; then
+    log "page error healed mid-cycle — reloading kiosk tab (was showing error page)"
+    do_restart "page-error-healed"
     exit 0
   fi
 else

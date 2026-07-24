@@ -15,6 +15,11 @@ ExecStart=/home/pi/bin/planes-kiosk.sh
 Restart=on-failure
 RestartSec=20
 TimeoutStopSec=15
+# This Pi also runs balcony-log's real-time ffmpeg HLS pull — yield CPU/IO to
+# it under contention rather than starving the stream (cgroup-level, on top
+# of the nice/ionice the launcher applies to the chromium process itself).
+CPUWeight=25
+IOWeight=25
 
 [Install]
 WantedBy=default.target

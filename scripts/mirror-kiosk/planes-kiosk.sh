@@ -82,9 +82,24 @@ if ! flock -n 9; then
   fi
 fi
 
+# This Pi also hosts balcony-log's real-time HLS pull/encode (ffmpeg) — a
+# dropped CPU slice there means a frozen/choppy stream for everyone watching,
+# while a slightly slower kiosk repaint costs nothing visible. Deprioritize
+# the kiosk (and its GPU/renderer children, which inherit nice) so it yields
+# under contention instead of starving the stream.
+NICE_BIN="$(command -v nice || true)"
+IONICE_BIN="$(command -v ionice || true)"
+LAUNCH=()
+if [[ -n "${IONICE_BIN}" ]]; then
+  LAUNCH+=("${IONICE_BIN}" -c2 -n7)
+fi
+if [[ -n "${NICE_BIN}" ]]; then
+  LAUNCH+=("${NICE_BIN}" -n 10)
+fi
+
 # no-user-gesture-required: kiosk never gets a click; without this, Alert/TTS stay silent
 # while system sounds still work (matches "other audio works, plane-alert doesn't").
-exec "${CHROMIUM}" \
+exec "${LAUNCH[@]}" "${CHROMIUM}" \
   --ozone-platform=wayland \
   --use-angle=gl \
   --disable-dev-shm-usage \
