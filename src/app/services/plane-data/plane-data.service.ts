@@ -11,7 +11,7 @@ import { HelicopterIdentificationService } from '../helicopter-identification/he
 import { AircraftCountryService } from '../aircraft-country/aircraft-country.service';
 import { AircraftDbService, AircraftRecord } from '../aircraft-db/aircraft-db.service';
 import { filterPlaneByPrefix } from '../../utils/plane-log/plane-log';
-import { adsbPointProxyUrl } from '../../config/firebase.config';
+import { fetchPlaneDataFromApi } from './fetch-plane-data';
 import {
   UnknownCountryLogger,
   bearingToCardinal,
@@ -67,19 +67,7 @@ export class PlaneDataService {
   }
 
   async fetchPlaneData(centerLat: number, centerLon: number, radiusKm: number): Promise<any[]> {
-    try {
-      const params = new URLSearchParams({ lat: String(centerLat), lon: String(centerLon), radiusKm: String(radiusKm) });
-      const response = await fetch(`${adsbPointProxyUrl}?${params}`);
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        console.warn(`adsbPointProxy HTTP ${response.status}: ${body.slice(0, 120)}`);
-        throw new Error(`adsbPointProxy HTTP ${response.status}`);
-      }
-      return (await response.json()).ac || [];
-    } catch (err) {
-      console.warn('ADS-B API unavailable, using cached aircraft data:', err);
-      return [];
-    }
+    return fetchPlaneDataFromApi(centerLat, centerLon, radiusKm);
   }
 
   processAircraftData(

@@ -35,6 +35,9 @@ rm -f "${LOCK}"
 rm -rf "${PROFILE}/Default/Session Storage"
 mkdir -p "${PROFILE}/Default/Session Storage"
 chown -R "${PI_USER}:${PI_USER}" "${PROFILE}/Default/Session Storage"
+# API paths can temporarily fall through to the SPA shell while shared nginx
+# is being repaired. Never preserve that HTML response as aircraft data.
+rm -rf "${PROFILE}/Default/Cache" "${PROFILE}/Default/Code Cache"
 
 # Wait for labwc — restarting before wayland-0 causes Chromium to exit and Restart= storms.
 for _ in $(seq 1 60); do

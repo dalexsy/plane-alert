@@ -27,6 +27,8 @@ RESTART_COOLDOWN_FILE="${STATE_DIR}/last-restart"
 LAN_FAIL_FILE="${STATE_DIR}/lan-fails"
 AUTH_STRIKES_FILE="${STATE_DIR}/auth-strikes"
 SESSION_STRIKES_FILE="${STATE_DIR}/session-strikes"
+DATA_STRIKES_FILE="${STATE_DIR}/data-strikes"
+SESSION_JAR="/home/pi/.config/planes-kiosk/session.jar"
 LAN_FAIL_MAX="${PLANES_KIOSK_LAN_FAIL_MAX:-4}"
 # Set when heal_cloudflared_tunnel saw an error page (1033/530/000) this cycle —
 # Chromium's already-rendered tab is stale even if the tunnel heals same-cycle,
@@ -159,6 +161,15 @@ kiosk_on_admin_hub() {
 session_valid() {
   [ -f /home/pi/.config/planes-kiosk/credentials.env ] || return 0
   python3 /home/pi/bin/planes-kiosk-session.py --verify-only
+}
+
+plane_data_valid() {
+  local body
+  [ -f "${SESSION_JAR}" ] || return 1
+  body="$(curl -sf -m 15 -b "${SESSION_JAR}" -H 'Cache-Control: no-cache' \
+    'https://planes.dryl.io/api/planes/adsbPointProxy?lat=52.4605886&lon=13.523268&radiusKm=100' \
+    2>/dev/null || true)"
+  echo "${body}" | grep -q '^{"ac":\['
 }
 
 renderer_cpu_max() {
@@ -314,6 +325,20 @@ fi
 
 if [ "${internet_up}" -eq 0 ]; then
   exit 0
+fi
+
+if ! plane_data_valid; then
+  strikes="$(cat "${DATA_STRIKES_FILE}" 2>/dev/null || echo 0)"
+  strikes=$((strikes + 1))
+  echo "${strikes}" >"${DATA_STRIKES_FILE}"
+  log "aircraft API returned no JSON data (${strikes}/3)"
+  if [ "${strikes}" -ge 3 ]; then
+    do_restart "plane-data-unhealthy"
+    echo 0 >"${DATA_STRIKES_FILE}" 2>/dev/null || true
+    exit 0
+  fi
+else
+  echo 0 >"${DATA_STRIKES_FILE}" 2>/dev/null || true
 fi
 
 cpu_max="$(renderer_cpu_max)"
