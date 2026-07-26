@@ -10,8 +10,10 @@ Environment=PLANES_KIOSK_WATCH_GATEWAY=192.168.178.1
 Environment=PLANES_KIOSK_AUTH_URL=http://127.0.0.1:8790/health
 Environment=PLANES_KIOSK_CPU_HIGH=220
 Environment=PLANES_KIOSK_CPU_STRIKES=6
-Environment=PLANES_KIOSK_RESTART_COOLDOWN=300
-Environment=PLANES_KIOSK_MISSING_COOLDOWN=90
-Environment=PLANES_KIOSK_NIGHTLY_HOUR=4
+# Match planes-kiosk-watch.sh defaults — unit env overrides script fallbacks.
+Environment=PLANES_KIOSK_RESTART_COOLDOWN=1800
+Environment=PLANES_KIOSK_MISSING_COOLDOWN=600
+# Empty NIGHTLY — no 4am white flash while sleeping (noon stays via NOON_HOUR).
+Environment=PLANES_KIOSK_NIGHTLY_HOUR=
 Environment=PLANES_KIOSK_NOON_HOUR=12
 ExecStart=/usr/local/sbin/planes-kiosk-watch.sh
