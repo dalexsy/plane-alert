@@ -13,11 +13,12 @@ STATE_DIR="/run/planes-kiosk-watch"
 CPU_HIGH="${PLANES_KIOSK_CPU_HIGH:-180}"
 GPU_CPU_HIGH="${PLANES_KIOSK_GPU_CPU_HIGH:-60}"
 CPU_STRIKES_NEEDED="${PLANES_KIOSK_CPU_STRIKES:-4}"
-RESTART_COOLDOWN_SEC="${PLANES_KIOSK_RESTART_COOLDOWN:-300}"
-MISSING_COOLDOWN_SEC="${PLANES_KIOSK_MISSING_COOLDOWN:-90}"
+RESTART_COOLDOWN_SEC="${PLANES_KIOSK_RESTART_COOLDOWN:-1800}"
+MISSING_COOLDOWN_SEC="${PLANES_KIOSK_MISSING_COOLDOWN:-600}"
 SESSION_STRIKES_NEEDED="${PLANES_KIOSK_SESSION_STRIKES:-3}"
 AUTH_STRIKES_NEEDED="${PLANES_KIOSK_AUTH_STRIKES:-3}"
-NIGHTLY_HOUR="${PLANES_KIOSK_NIGHTLY_HOUR:-4}"
+# Empty NIGHTLY disables 4am flash (sleep / bright white). Noon alone is fine.
+NIGHTLY_HOUR="${PLANES_KIOSK_NIGHTLY_HOUR:-}"
 NOON_HOUR="${PLANES_KIOSK_NOON_HOUR:-12}"
 PI_USER="${PLANES_KIOSK_USER:-pi}"
 PI_UID="$(id -u "${PI_USER}" 2>/dev/null || echo 1000)"
@@ -44,7 +45,8 @@ mkdir -p "${STATE_DIR}"
 can_restart() {
   local reason="${1:-}"
   local cooldown="${RESTART_COOLDOWN_SEC}"
-  if [ "${reason}" = "chromium-missing" ] || [ "${reason}" = "restart-failed" ] || [ "${reason}" = "session-stale" ]; then
+  # True death only may use a shorter (still multi-minute) cooldown.
+  if [ "${reason}" = "chromium-missing" ] || [ "${reason}" = "chromium-no-renderer" ] || [ "${reason}" = "restart-failed" ]; then
     cooldown="${MISSING_COOLDOWN_SEC}"
   fi
   if [ ! -f "${RESTART_COOLDOWN_FILE}" ]; then
@@ -111,25 +113,23 @@ do_restart() {
     log "skip restart (no wayland): ${reason}"
     return 0
   fi
-  # Missing/chromium-no-renderer under balcony pressure: leave kiosk down.
-  # Noon/night refresh under pressure: skip too — balcony viewers first.
-  # load>=2.2: still too hot for a Chromium restart on this Pi.
+  # Soft reasons never full-reload Chromium (home flash storm). Cookie/data
+  # heals happen elsewhere; noon refresh is the only scheduled reload.
   case "${reason}" in
-    chromium-missing|chromium-no-renderer|refresh-*|internet-restored|page-error-healed)
-      if balcony_needs_headroom; then
-        log "skip restart (balcony headroom): ${reason}"
-        return 0
-      fi
+    plane-data-unhealthy|session-stale|internet-restored|page-error-healed|runaway-kiosk-cpu)
+      log "skip restart (soft — leave tab up): ${reason}"
+      return 0
       ;;
   esac
+  # Any restart under balcony pressure or load≥2.0 — leave kiosk alone.
+  if balcony_needs_headroom; then
+    log "skip restart (balcony headroom): ${reason}"
+    return 0
+  fi
   load1="$(awk '{print $1}' /proc/loadavg)"
-  if awk -v l="${load1}" 'BEGIN { exit !(l+0 >= 2.2) }'; then
-    case "${reason}" in
-      chromium-missing|chromium-no-renderer|refresh-*)
-        log "skip restart (load ${load1}): ${reason}"
-        return 0
-        ;;
-    esac
+  if awk -v l="${load1}" 'BEGIN { exit !(l+0 >= 2.0) }'; then
+    log "skip restart (load ${load1}): ${reason}"
+    return 0
   fi
   log "restarting kiosk: ${reason}"
   if /usr/local/sbin/planes-kiosk-restart.sh; then
@@ -291,7 +291,9 @@ maybe_scheduled_refresh() {
   local hour minute stamp label target_hour
   hour="$(date +%H | sed 's/^0//')"
   minute="$(date +%M | sed 's/^0//')"
-  for target_hour in "${NIGHTLY_HOUR}" "${NOON_HOUR}"; do
+  # Noon only — NIGHTLY_HOUR empty by default (no 4am white flash while sleeping).
+  for target_hour in "${NOON_HOUR}" ${NIGHTLY_HOUR:+"${NIGHTLY_HOUR}"}; do
+    [ -n "${target_hour}" ] || continue
     [ "${hour}" = "${target_hour}" ] || continue
     [ "${minute:-0}" -lt 8 ] || continue
     label="refresh-${target_hour}"
@@ -343,17 +345,11 @@ if check_internet; then
   internet_up=1
   if [ -f "${NET_DOWN_FILE}" ]; then
     rm -f "${NET_DOWN_FILE}"
-    do_restart "internet-restored"
-    exit 0
+    log "internet restored — leave kiosk tab (no full reload)"
   fi
-  # Tunnel blip that self-healed inside this single cycle (e.g. Cloudflare
-  # 1033) never wrote NET_DOWN_FILE, so "internet-restored" above never
-  # fires — but Chromium's tab is still showing the error page it loaded
-  # before the heal. Nothing else ever reloads that tab. Force it here.
+  # Tunnel blip that self-healed: do not flash-reload Chromium at home.
   if [ "${PAGE_ERROR_SEEN}" -eq 1 ]; then
-    log "page error healed mid-cycle — reloading kiosk tab (was showing error page)"
-    do_restart "page-error-healed"
-    exit 0
+    log "page error healed mid-cycle — leave tab (noon refresh will heal if needed)"
   fi
 else
   if [ ! -f "${NET_DOWN_FILE}" ]; then
@@ -383,9 +379,8 @@ if [ "${internet_up}" -eq 1 ] && [ -f /home/pi/.config/planes-kiosk/credentials.
     log "session verify failed (strike ${strikes}/${SESSION_STRIKES_NEEDED}) — refreshing cookie"
     python3 /home/pi/bin/planes-kiosk-session.py >/dev/null 2>&1 || true
     if [ "${strikes}" -ge "${SESSION_STRIKES_NEEDED}" ]; then
-      do_restart "session-stale"
+      log "session stale after ${strikes} strikes — cookie refreshed; no Chromium reload"
       echo 0 >"${SESSION_STRIKES_FILE}" 2>/dev/null || true
-      exit 0
     fi
   else
     echo 0 >"${SESSION_STRIKES_FILE}" 2>/dev/null || true
@@ -402,9 +397,8 @@ if ! plane_data_valid; then
   echo "${strikes}" >"${DATA_STRIKES_FILE}"
   log "aircraft API returned no JSON data (${strikes}/3)"
   if [ "${strikes}" -ge 3 ]; then
-    do_restart "plane-data-unhealthy"
+    log "aircraft API returned no JSON data (${strikes}/3) — leave kiosk up"
     echo 0 >"${DATA_STRIKES_FILE}" 2>/dev/null || true
-    exit 0
   fi
 else
   echo 0 >"${DATA_STRIKES_FILE}" 2>/dev/null || true
@@ -418,7 +412,12 @@ if [ "${cpu_max}" -ge "${CPU_HIGH}" ] || [ "${gpu_max}" -ge "${GPU_CPU_HIGH}" ];
   echo "${strikes}" >"${CPU_STRIKES_FILE}"
   log "high kiosk CPU renderer=${cpu_max}% gpu=${gpu_max}% (strike ${strikes}/${CPU_STRIKES_NEEDED})"
   if [ "${strikes}" -ge "${CPU_STRIKES_NEEDED}" ]; then
-    do_restart "runaway-kiosk-cpu"
+    log "high kiosk CPU renderer=${cpu_max}% gpu=${gpu_max}% — renice only (no reload)"
+    while read -r pid; do
+      [ -z "${pid}" ] && continue
+      renice -n 15 -p "${pid}" >/dev/null 2>&1 || true
+    done < <(pgrep -f "${KIOSK_MATCH}" 2>/dev/null || true)
+    echo 0 >"${CPU_STRIKES_FILE}" 2>/dev/null || true
   fi
 else
   echo 0 >"${CPU_STRIKES_FILE}" 2>/dev/null || true
