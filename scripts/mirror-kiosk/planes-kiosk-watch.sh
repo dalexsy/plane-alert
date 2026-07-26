@@ -9,8 +9,10 @@ PROFILE="${PLANES_KIOSK_PROFILE:-/home/pi/.config/planes-kiosk-chromium}"
 KIOSK_MATCH="user-data-dir=${PROFILE}"
 STATE_DIR="/run/planes-kiosk-watch"
 # Pi reports multi-core CPU as >100%; map/globe tabs sit ~150% while healthy.
-CPU_HIGH="${PLANES_KIOSK_CPU_HIGH:-220}"
-CPU_STRIKES_NEEDED="${PLANES_KIOSK_CPU_STRIKES:-6}"
+# GPU process alone at ~80% freezes balcony HLS — watch that too (was renderer-only).
+CPU_HIGH="${PLANES_KIOSK_CPU_HIGH:-180}"
+GPU_CPU_HIGH="${PLANES_KIOSK_GPU_CPU_HIGH:-60}"
+CPU_STRIKES_NEEDED="${PLANES_KIOSK_CPU_STRIKES:-4}"
 RESTART_COOLDOWN_SEC="${PLANES_KIOSK_RESTART_COOLDOWN:-300}"
 MISSING_COOLDOWN_SEC="${PLANES_KIOSK_MISSING_COOLDOWN:-90}"
 SESSION_STRIKES_NEEDED="${PLANES_KIOSK_SESSION_STRIKES:-3}"
@@ -63,6 +65,42 @@ clear_restart_cooldown() {
   rm -f "${RESTART_COOLDOWN_FILE}"
 }
 
+# balcony-log HLS remux shares this 2GB Pi. When load is high or remux chunks
+# go stale, never resurrect Chromium — that is the daily /watch freeze loop.
+balcony_needs_headroom() {
+  local load1 chunk_age
+  load1="$(awk '{print $1}' /proc/loadavg)"
+  chunk_age="$(
+    curl -sf -m 2 http://127.0.0.1:3838/api/live/status 2>/dev/null \
+      | python3 -c 'import sys,json
+try:
+ d=json.load(sys.stdin); v=d.get("video") or {}
+ print(int(v.get("lastChunkAgeMs") or 0))
+except Exception:
+ print(0)' 2>/dev/null || echo 0
+  )"
+  awk -v l="${load1}" -v a="${chunk_age}" 'BEGIN {
+    if (l+0 >= 3.0) exit 0
+    if (a+0 >= 4000) exit 0
+    exit 1
+  }'
+}
+
+yield_kiosk_to_balcony() {
+  local pid
+  if ! balcony_needs_headroom; then
+    return 0
+  fi
+  if ! kiosk_chromium_running; then
+    return 0
+  fi
+  log "balcony needs headroom — renicing planes-kiosk chromium to +15"
+  while read -r pid; do
+    [ -z "${pid}" ] && continue
+    renice -n 15 -p "${pid}" >/dev/null 2>&1 || true
+  done < <(pgrep -f "${KIOSK_MATCH}" 2>/dev/null || true)
+}
+
 do_restart() {
   local reason="$1"
   if ! can_restart "${reason}"; then
@@ -73,6 +111,16 @@ do_restart() {
     log "skip restart (no wayland): ${reason}"
     return 0
   fi
+  # Missing/chromium-no-renderer under balcony pressure: leave kiosk down.
+  # Noon/night refresh under pressure: skip too — balcony viewers first.
+  case "${reason}" in
+    chromium-missing|chromium-no-renderer|refresh-*|internet-restored|page-error-healed)
+      if balcony_needs_headroom; then
+        log "skip restart (balcony headroom): ${reason}"
+        return 0
+      fi
+      ;;
+  esac
   log "restarting kiosk: ${reason}"
   if /usr/local/sbin/planes-kiosk-restart.sh; then
     mark_restart
@@ -180,6 +228,17 @@ renderer_cpu_max() {
     [ -z "${cpu}" ] && continue
     [ "${cpu}" -gt "${max}" ] && max="${cpu}"
   done < <(pgrep -f "chromium --type=renderer.*planes-kiosk-chromium" 2>/dev/null || true)
+  echo "${max}"
+}
+
+gpu_cpu_max() {
+  local pid cpu max=0
+  while read -r pid; do
+    [ -z "${pid}" ] && continue
+    cpu="$(ps -p "${pid}" -o %cpu= 2>/dev/null | tr -d ' ' | cut -d. -f1 || true)"
+    [ -z "${cpu}" ] && continue
+    [ "${cpu}" -gt "${max}" ] && max="${cpu}"
+  done < <(pgrep -f "chromium --type=gpu-process.*planes-kiosk-chromium" 2>/dev/null || true)
   echo "${max}"
 }
 
@@ -342,14 +401,17 @@ else
 fi
 
 cpu_max="$(renderer_cpu_max)"
-if [ "${cpu_max}" -ge "${CPU_HIGH}" ]; then
+gpu_max="$(gpu_cpu_max)"
+if [ "${cpu_max}" -ge "${CPU_HIGH}" ] || [ "${gpu_max}" -ge "${GPU_CPU_HIGH}" ]; then
   strikes="$(cat "${CPU_STRIKES_FILE}" 2>/dev/null || echo 0)"
   strikes=$((strikes + 1))
   echo "${strikes}" >"${CPU_STRIKES_FILE}"
-  log "high renderer CPU ${cpu_max}% (strike ${strikes}/${CPU_STRIKES_NEEDED})"
+  log "high kiosk CPU renderer=${cpu_max}% gpu=${gpu_max}% (strike ${strikes}/${CPU_STRIKES_NEEDED})"
   if [ "${strikes}" -ge "${CPU_STRIKES_NEEDED}" ]; then
-    do_restart "runaway-renderer-cpu"
+    do_restart "runaway-kiosk-cpu"
   fi
 else
   echo 0 >"${CPU_STRIKES_FILE}" 2>/dev/null || true
 fi
+
+yield_kiosk_to_balcony

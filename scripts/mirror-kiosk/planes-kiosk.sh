@@ -94,7 +94,8 @@ if [[ -n "${IONICE_BIN}" ]]; then
   LAUNCH+=("${IONICE_BIN}" -c2 -n7)
 fi
 if [[ -n "${NICE_BIN}" ]]; then
-  LAUNCH+=("${NICE_BIN}" -n 10)
+  # Was -n 10; still starved balcony HLS. Yield harder under 2GB contention.
+  LAUNCH+=("${NICE_BIN}" -n 15)
 fi
 
 # no-user-gesture-required: kiosk never gets a click; without this, Alert/TTS stay silent
