@@ -100,9 +100,12 @@ fi
 
 # no-user-gesture-required: kiosk never gets a click; without this, Alert/TTS stay silent
 # while system sounds still work (matches "other audio works, plane-alert doesn't").
+# Software GL: hardware GPU process was pegging 70–80% on this 2GB Pi and
+# freezing balcony.dryl.io/watch every day. Planes map is slower; stream lives.
 exec "${LAUNCH[@]}" "${CHROMIUM}" \
   --ozone-platform=wayland \
-  --use-angle=gl \
+  --use-gl=swiftshader \
+  --disable-gpu \
   --disable-dev-shm-usage \
   --user-data-dir="${PROFILE}" \
   --password-store=basic \

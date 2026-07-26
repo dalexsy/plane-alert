@@ -113,6 +113,7 @@ do_restart() {
   fi
   # Missing/chromium-no-renderer under balcony pressure: leave kiosk down.
   # Noon/night refresh under pressure: skip too — balcony viewers first.
+  # load>=2.2: still too hot for a Chromium restart on this Pi.
   case "${reason}" in
     chromium-missing|chromium-no-renderer|refresh-*|internet-restored|page-error-healed)
       if balcony_needs_headroom; then
@@ -121,6 +122,15 @@ do_restart() {
       fi
       ;;
   esac
+  load1="$(awk '{print $1}' /proc/loadavg)"
+  if awk -v l="${load1}" 'BEGIN { exit !(l+0 >= 2.2) }'; then
+    case "${reason}" in
+      chromium-missing|chromium-no-renderer|refresh-*)
+        log "skip restart (load ${load1}): ${reason}"
+        return 0
+        ;;
+    esac
+  fi
   log "restarting kiosk: ${reason}"
   if /usr/local/sbin/planes-kiosk-restart.sh; then
     mark_restart
