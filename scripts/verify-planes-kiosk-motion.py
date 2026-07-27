@@ -69,21 +69,12 @@ PROBE_JS = r"""
 """
 
 
-def cdp_evaluate(ws: websocket.WebSocket, expression: str, timeout_s: float = 20) -> dict:
+def cdp_call(ws: websocket.WebSocket, method: str, params: dict | None = None, timeout_s: float = 20) -> dict:
     req_id = int(time.time() * 1000) % 1_000_000
-    ws.send(
-        json.dumps(
-            {
-                "id": req_id,
-                "method": "Runtime.evaluate",
-                "params": {
-                    "expression": expression,
-                    "awaitPromise": True,
-                    "returnByValue": True,
-                },
-            }
-        )
-    )
+    payload: dict = {"id": req_id, "method": method}
+    if params is not None:
+        payload["params"] = params
+    ws.send(json.dumps(payload))
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         msg = json.loads(ws.recv())
@@ -91,11 +82,36 @@ def cdp_evaluate(ws: websocket.WebSocket, expression: str, timeout_s: float = 20
             continue
         if "error" in msg:
             raise RuntimeError(msg["error"])
-        result = msg.get("result", {}).get("result", {})
-        if result.get("subtype") == "error":
-            raise RuntimeError(result.get("description") or result)
-        return result.get("value") or {}
-    raise TimeoutError("CDP evaluate timed out")
+        return msg.get("result") or {}
+    raise TimeoutError(f"CDP {method} timed out")
+
+
+def cdp_evaluate(ws: websocket.WebSocket, expression: str, timeout_s: float = 20) -> dict:
+    result = cdp_call(
+        ws,
+        "Runtime.evaluate",
+        {
+            "expression": expression,
+            "awaitPromise": True,
+            "returnByValue": True,
+        },
+        timeout_s=timeout_s,
+    ).get("result", {})
+    if result.get("subtype") == "error":
+        raise RuntimeError(result.get("description") or result)
+    return result.get("value") or {}
+
+
+def cdp_screenshot(ws: websocket.WebSocket, dest: Path) -> Path:
+    import base64
+
+    raw = cdp_call(ws, "Page.captureScreenshot", {"format": "png", "fromSurface": True})
+    data = raw.get("data")
+    if not data:
+        raise RuntimeError("Page.captureScreenshot returned no data")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(base64.b64decode(data))
+    return dest
 
 
 def main() -> int:
@@ -127,8 +143,17 @@ def main() -> int:
             origin="http://127.0.0.1:9222",
             timeout=20,
         )
+        shot = (
+            Path(__file__).resolve().parents[2]
+            / "directory"
+            / "logs"
+            / "deploy-screenshots"
+            / "planes-kiosk"
+            / f"kiosk-motion-{int(time.time() * 1000)}.png"
+        )
         try:
             probe = cdp_evaluate(ws, PROBE_JS)
+            shot_path = cdp_screenshot(ws, shot)
         finally:
             ws.close()
     finally:
@@ -162,6 +187,7 @@ def main() -> int:
         "kiosk motion off — 0 running animations, 0 timed marker transitions, "
         "0 decorative overlay children, markers stable over 2.5s"
     )
+    print(f"[agent-required] KIOSK_SCREENSHOT: {shot_path}")
     print(f"[agent-required] QUOTE_VISIBLE: {quote}")
     print("[ok] planes kiosk motion gate")
     return 0
