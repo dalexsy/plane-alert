@@ -9,6 +9,7 @@ import { BrightnessDisplayService } from '../brightness-display/brightness-displ
 import { WindService } from '../wind/wind.service';
 import { RainService } from '../rain/rain.service';
 import { MapRuntimeService } from './map-runtime.service';
+import { leafletPanShouldAnimate } from '../../utils/map-motion/map-motion.util';
 
 @Injectable({ providedIn: 'root' })
 export class MapUiControlsService {
@@ -71,7 +72,10 @@ export class MapUiControlsService {
 
   onToggleAnimations(enabled: boolean, cdr: ChangeDetectorRef): void {
     this.uiState.setAnimationsEnabled(enabled);
-    this.planeDisplayService.applyAnimationSetting(enabled, this.document);
+    this.planeDisplayService.applyAnimationSetting(
+      this.uiState.animationsEnabled,
+      this.document,
+    );
     if (!enabled) {
       this.rainService.stopRain();
       // Ghost only makes sense with fake-motion animations.
@@ -121,7 +125,7 @@ export class MapUiControlsService {
 
   onCenterAirport(coords: { lat: number; lon: number }): void {
     this.runtime.map.panTo([coords.lat, coords.lon], {
-      animate: true,
+      animate: leafletPanShouldAnimate(this.uiState.animationsEnabled),
       duration: 1.0,
     });
   }

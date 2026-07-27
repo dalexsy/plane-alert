@@ -9,6 +9,7 @@ import {
   inputOverlayBrightnessIcon,
   inputOverlaySunStatusTooltip,
 } from '../../../services/input-overlay/input-overlay-form.util';
+import { isKioskMode } from '../../../utils/kiosk-mode/kiosk-mode.util';
 
 @Component({
   selector: 'app-input-overlay-toggles',
@@ -18,6 +19,7 @@ import {
   styleUrls: ['./input-overlay-toggles.component.scss'],
 })
 export class InputOverlayTogglesComponent {
+  readonly hideMotionControls = isKioskMode();
   @Input() facade!: InputOverlayFacadeService;
   @Input() showDateTime = true;
   @Input() brightnessState: BrightnessState | null = null;

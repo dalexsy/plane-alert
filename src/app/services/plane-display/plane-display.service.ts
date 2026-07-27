@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { PlaneModel } from '../../models/plane-model';
 import { AltitudeColorService } from '../altitude-color/altitude-color.service';
+import { leafletPanShouldAnimate } from '../../utils/map-motion/map-motion.util';
 import {
   applyGroundedMarkerStyles,
   applyMilitaryMarkerStyles,
@@ -65,7 +66,10 @@ export class PlaneDisplayService {
 
   centerOnPlane(plane: PlaneModel): void {
     if (!plane.marker || plane.lat == null || plane.lon == null) return;
-    this.map.panTo([plane.lat, plane.lon], { animate: true, duration: 1.0 });
+    this.map.panTo([plane.lat, plane.lon], {
+      animate: leafletPanShouldAnimate(),
+      duration: 1.0,
+    });
     plane.marker.openTooltip();
   }
 

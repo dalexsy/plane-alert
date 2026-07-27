@@ -25,3 +25,20 @@ export function isKioskMode(): boolean {
 export function kioskDefaultAnimationsEnabled(): boolean {
   return !isKioskMode();
 }
+
+/** Pi kiosk must never run decorative or map motion — even if localStorage says otherwise. */
+export function kioskMotionLockedOff(): boolean {
+  return isKioskMode();
+}
+
+export function effectiveAnimationsEnabled(storedEnabled: boolean): boolean {
+  return kioskMotionLockedOff() ? false : storedEnabled;
+}
+
+/** Apply before Angular boot so first paint does not animate. */
+export function applyKioskDomPerformance(document: Document): void {
+  if (!kioskMotionLockedOff()) {
+    return;
+  }
+  document.body.classList.add('kiosk-mode', 'animations-disabled');
+}

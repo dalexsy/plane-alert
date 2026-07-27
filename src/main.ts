@@ -3,9 +3,20 @@ import { AppComponent } from './app/app.component';
 import { importProvidersFrom, enableProdMode } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
 import { Title } from '@angular/platform-browser';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import {
+  BrowserAnimationsModule,
+  NoopAnimationsModule,
+} from '@angular/platform-browser/animations';
+import {
+  applyKioskDomPerformance,
+  isKioskMode,
+} from './app/utils/kiosk-mode/kiosk-mode.util';
 
 enableProdMode();
+
+if (typeof document !== 'undefined') {
+  applyKioskDomPerformance(document);
+}
 
 function shellAsset(text: string, pattern: RegExp): string | undefined {
   return text.match(pattern)?.[0];
@@ -57,7 +68,10 @@ async function ensureFreshShell(): Promise<void> {
 void ensureFreshShell().then(() =>
 bootstrapApplication(AppComponent, {
   providers: [
-    importProvidersFrom(HttpClientModule, BrowserAnimationsModule),
+    importProvidersFrom(
+      HttpClientModule,
+      isKioskMode() ? NoopAnimationsModule : BrowserAnimationsModule,
+    ),
     Title,
   ],
 })

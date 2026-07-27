@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from '../settings/settings.service';
 import { WeatherOverlayService } from '../weather-overlay/weather-overlay.service';
+import { effectiveAnimationsEnabled } from '../../utils/kiosk-mode/kiosk-mode.util';
 
 @Injectable({
   providedIn: 'root',
@@ -35,7 +36,7 @@ export class UiStateService {
     this.showAltitudeBorders = this.settings.showAltitudeBorders;
     this.showWindDirection = this.settings.showWindDirection;
     this.showSunDirection = this.settings.showSunDirection;
-    this.animationsEnabled = this.settings.animationsEnabled;
+    this.animationsEnabled = effectiveAnimationsEnabled(this.settings.animationsEnabled);
     this.showGhostPosition = this.settings.showGhostPosition;
     this.showWindowView = this.settings.showWindowView;
     this.coneVisible = this.settings.showViewAxes;
@@ -148,8 +149,9 @@ export class UiStateService {
 
   // Set animations directly (for programmatic control)
   public setAnimationsEnabled(enabled: boolean): void {
-    this.animationsEnabled = enabled;
-    this.settings.setAnimationsEnabled(enabled);
+    const next = effectiveAnimationsEnabled(enabled);
+    this.animationsEnabled = next;
+    this.settings.setAnimationsEnabled(next);
   }
 
   // Set wind direction directly (for programmatic control)

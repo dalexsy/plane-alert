@@ -87,6 +87,7 @@
       (click)="coneConfigChange.emit()"
     ></app-button>
     <app-button
+      *ngIf="!hideMotionControls"
       class="toggle-animations"
       [icon]="animationsEnabled ? 'motion_photos_paused' : 'motion_play'"
       type="tertiary"
@@ -96,7 +97,7 @@
       (click)="onToggleAnimations()"
     ></app-button>
     <app-button
-      *ngIf="animationsEnabled"
+      *ngIf="!hideMotionControls && animationsEnabled"
       class="toggle-ghost-position"
       [icon]="showGhostPosition ? 'gps_fixed' : 'gps_not_fixed'"
       type="tertiary"

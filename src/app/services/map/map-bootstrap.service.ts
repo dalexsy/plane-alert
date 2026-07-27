@@ -23,7 +23,7 @@ import { AstronomicalDisplayService } from '../astronomical-display/astronomical
 import { MapUpdateService } from '../map-update/map-update.service';
 import { UiStateService } from '../ui-state/ui-state.service';
 import { ScanService } from '../scan/scan.service';
-import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
+import { isKioskMode, applyKioskDomPerformance } from '../../utils/kiosk-mode/kiosk-mode.util';
 import { unlockAlertAudio } from '../../utils/alert-sound/alert-sound';
 import { initializeMapForBootstrap } from './map-bootstrap-init.util';
 import {
@@ -73,9 +73,12 @@ export class MapBootstrapService {
 
     this.settings.load();
     if (isKioskMode()) {
+      applyKioskDomPerformance(this.document);
       this.document.body.classList.add('kiosk-mode');
       // Force off even if Chromium localStorage still has animationsEnabled=true.
       this.uiState.setAnimationsEnabled(false);
+      this.uiState.setShowGhostPosition(false);
+      this.planeDisplayService.applyAnimationSetting(false, this.document);
       unlockAlertAudio();
       // Silent unlock only — do NOT play the military alert MP3 on boot.
       // Daytime kiosk restart (08:00/13:00/18:00/21:30) clears a Chromium session and

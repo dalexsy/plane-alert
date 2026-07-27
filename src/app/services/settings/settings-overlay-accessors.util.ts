@@ -5,6 +5,7 @@ import {
   persistBool,
   setMilitaryMute,
 } from './settings-accessors.util';
+import { effectiveAnimationsEnabled } from '../../utils/kiosk-mode/kiosk-mode.util';
 
 export function bindSettingsOverlayAccessors(
   s: SettingsState,
@@ -133,7 +134,12 @@ export function bindSettingsOverlayAccessors(
       return s._animationsEnabled;
     },
     setAnimationsEnabled(v: boolean): void {
-      persistBool(s, s.animationsEnabledKey, '_animationsEnabled', v);
+      persistBool(
+        s,
+        s.animationsEnabledKey,
+        '_animationsEnabled',
+        effectiveAnimationsEnabled(v),
+      );
     },
     getShowGhostPosition(): boolean {
       return s._showGhostPosition;

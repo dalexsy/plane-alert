@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { PlaneModel } from '../../models/plane-model';
 import { haversineDistance } from '../../utils/geo-utils/geo-utils';
+import { leafletPanShouldAnimate } from '../../utils/map-motion/map-motion.util';
 import * as L from 'leaflet';
 
 @Injectable({
@@ -97,7 +98,7 @@ export class FollowService {
     if (distance > panThresholdKm) {
       // Pan map to followed plane with smooth animation
       map.panTo(followedPosition, {
-        animate: true,
+        animate: leafletPanShouldAnimate(),
         duration: 1.5, // Slightly longer duration for smoother tracking
         easeLinearity: 0.1, // Smooth easing
       });

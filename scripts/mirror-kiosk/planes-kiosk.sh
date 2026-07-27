@@ -120,4 +120,5 @@ exec "${LAUNCH[@]}" "${CHROMIUM}" \
   --disable-translate \
   --no-first-run \
   --check-for-update-interval=31536000 \
+  --force-prefers-reduced-motion \
   "${START_URL}"

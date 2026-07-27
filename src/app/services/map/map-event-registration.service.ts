@@ -5,6 +5,7 @@ import { MapPlaneOperationsService } from './map-plane-operations.service';
 import { FollowCoordinatorService } from '../follow-coordinator/follow-coordinator.service';
 import { SettingsService, ViewConeConfig } from '../settings/settings.service';
 import { BrightnessService } from '../brightness/brightness.service';
+import { leafletPanShouldAnimate } from '../../utils/map-motion/map-motion.util';
 
 @Injectable({ providedIn: 'root' })
 export class MapEventRegistrationService {
@@ -38,7 +39,7 @@ export class MapEventRegistrationService {
             this.followCoordinatorService.followPlaneManually(pm as never);
             if (pm.lat != null && pm.lon != null) {
               this.runtime.map?.panTo([pm.lat, pm.lon], {
-                animate: true,
+                animate: leafletPanShouldAnimate(),
                 duration: 1.0,
               });
               this.planeOps.reverseGeocode(pm.lat, pm.lon).then((address) => {

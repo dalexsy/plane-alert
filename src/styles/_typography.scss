@@ -88,11 +88,14 @@ app-input-overlay.collapsed ~ app-clock .clock-container {
   left: 3.5rem;
 }
 
-html body.animations-disabled *,
-html body.animations-disabled *::before,
-html body.animations-disabled *::after {
-  animation-duration: 0s;
-  animation-delay: 0s;
-  transition-duration: 0s;
-  transition-delay: 0s;
+html body.animations-disabled,
+html body.kiosk-mode {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s;
+    animation-delay: 0s;
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
 }
