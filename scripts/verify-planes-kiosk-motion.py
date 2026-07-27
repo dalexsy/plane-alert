@@ -47,9 +47,9 @@ PROBE_JS = r"""
     const d = getComputedStyle(el).transitionDuration;
     return d && d !== '0s' && !d.split(',').every((p) => p.trim() === '0s');
   }).length;
-  const rainKids = document.querySelectorAll('app-rain-overlay *').length;
-  const swallowKids = document.querySelectorAll('app-swallow-animation *').length;
-  const leafKids = document.querySelectorAll('app-fall-leaves-animation *').length;
+  const rainKids = document.querySelectorAll('app-rain-overlay .rain-drop, app-rain-overlay [class*="drop"]').length;
+  const swallowKids = document.querySelectorAll('app-swallow-animation app-swallow-bird, app-swallow-animation .swallow').length;
+  const leafKids = document.querySelectorAll('app-fall-leaves-animation app-fall-leaf, app-fall-leaves-animation .leaf').length;
   return {
     url: location.href,
     storedAnimations: localStorage.getItem('animationsEnabled'),
