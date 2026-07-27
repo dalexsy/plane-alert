@@ -29,6 +29,7 @@ export class ResultsSkyListComponent {
   @Input() activePlaneIcaos = new Set<string>();
   @Input() clickedAirports = new Set<number>();
   @Input() airportCircles = new Map<number, L.Circle>();
+  @Input() animationsEnabled = true;
   @Input() scrollable = false;
   @Input() atBottom = false;
   @Output() scrollChange = new EventEmitter<Event>();
@@ -39,4 +40,8 @@ export class ResultsSkyListComponent {
   @Output() hoverPlane = new EventEmitter<PlaneLogEntry>();
   @Output() unhoverPlane = new EventEmitter<PlaneLogEntry>();
   @ViewChild('listEl') listRef!: ElementRef<HTMLDivElement>;
+
+  trackByPlaneIcao(_index: number, plane: PlaneLogEntry): string {
+    return plane.icao;
+  }
 }

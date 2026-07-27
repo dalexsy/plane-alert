@@ -36,6 +36,29 @@ export function getCountryFromRegistrationDetailed(
   return { countryCode: 'Unknown', confidence: 'low', source: 'unknown' };
 }
 
+export function getCountryFromMilitaryRegistration(
+  registration: string
+): CountryDetectionResult {
+  const reg = registration.trim().toUpperCase();
+  if (/^\d{2}\+\d{2}$/.test(reg)) {
+    return {
+      countryCode: 'DE',
+      confidence: 'high',
+      source: 'military-pattern',
+      metadata: { militaryPattern: 'German military registration' },
+    };
+  }
+  if (/^MM\d+/.test(reg)) {
+    return {
+      countryCode: 'IT',
+      confidence: 'high',
+      source: 'military-pattern',
+      metadata: { militaryPattern: 'Italian military registration' },
+    };
+  }
+  return { countryCode: 'Unknown', confidence: 'low', source: 'unknown' };
+}
+
 export function getCountryFromIcaoHexDetailed(
   icaoHex: string,
   ranges: IcaoCountryRange[],

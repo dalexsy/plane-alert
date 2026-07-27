@@ -8,6 +8,8 @@ import { SettingsService } from '../settings/settings.service';
 import { HelicopterIdentificationService } from '../helicopter-identification/helicopter-identification.service';
 import { updateWindowViewPlanes } from './plane-log-window.util';
 
+const MAX_HISTORICAL_PLANES = 250;
+
 @Injectable({ providedIn: 'root' })
 export class PlaneLogService {
   private planeLog = new Map<string, PlaneModel>();
@@ -76,11 +78,18 @@ export class PlaneLogService {
     for (const plane of planes) mergedMap.set(plane.icao, plane);
     const updatedHistoricalLog = Array.from(mergedMap.values());
     updatedHistoricalLog.sort((a, b) => b.firstSeen - a.firstSeen);
-    const historyFiltered = updatedHistoricalLog.filter((p) => !p.filteredOut).sort((a, b) => b.firstSeen - a.firstSeen);
+    const activeIcaos = new Set(planes.map((plane) => plane.icao));
+    const cappedHistoricalLog = [
+      ...updatedHistoricalLog.filter((plane) => activeIcaos.has(plane.icao)),
+      ...updatedHistoricalLog.filter((plane) => !activeIcaos.has(plane.icao)),
+    ].slice(0, MAX_HISTORICAL_PLANES);
+    const historyFiltered = cappedHistoricalLog
+      .filter((p) => !p.filteredOut)
+      .sort((a, b) => b.firstSeen - a.firstSeen);
     const militaryPlanes = historyFiltered.filter((p) => p.isMilitary);
     const otherPlanes = historyFiltered.filter((p) => !p.isMilitary);
     this.overlay.seenPlaneLog = [...militaryPlanes, ...otherPlanes] as unknown as PlaneLogEntry[];
-    this.planeHistoricalLog = updatedHistoricalLog;
-    return updatedHistoricalLog;
+    this.planeHistoricalLog = cappedHistoricalLog;
+    return cappedHistoricalLog;
   }
 }

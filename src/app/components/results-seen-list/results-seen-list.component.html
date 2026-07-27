@@ -20,39 +20,42 @@
     </span>
   </h3>
   <div class="collapse-wrapper">
-    <div
-      class="plane-list-wrapper"
-      [class.fade-enabled]="scrollable"
-      [class.no-fade]="!scrollable || atBottom"
-      *ngIf="seenLog.length; else noSeen"
-    >
+    <ng-container *ngIf="!collapsed">
       <div
-        class="seen-list plane-list"
-        #listEl
-        (scroll)="scrollChange.emit($event)"
-        [@listAnimation]="highlightedPlaneIcao"
+        class="plane-list-wrapper"
+        [class.fade-enabled]="scrollable"
+        [class.no-fade]="!scrollable || atBottom"
+        *ngIf="seenLog.length; else noSeen"
       >
-        <app-plane-list-item
-          *ngFor="let plane of filteredLog"
-          [plane]="plane"
-          listType="seen"
-          [highlightedPlaneIcao]="highlightedPlaneIcao"
-          [hoveredPlaneIcao]="hoveredPlaneIcao"
-          [now]="now"
-          [activePlaneIcaos]="activePlaneIcaos"
-          [followedPlaneIcao]="highlightedPlaneIcao"
-          [clickedAirports]="clickedAirports"
-          [airportCircles]="airportCircles"
-          (centerPlane)="centerPlane.emit($event)"
-          (filterPrefix)="filterPrefix.emit($event)"
-          (toggleSpecial)="toggleSpecial.emit($event)"
-          (hoverPlane)="hoverPlane.emit($event)"
-          (unhoverPlane)="unhoverPlane.emit($event)"
-        ></app-plane-list-item>
+        <div
+          class="seen-list plane-list"
+          #listEl
+          (scroll)="scrollChange.emit($event)"
+          [@.disabled]="!animationsEnabled"
+          [@listAnimation]="highlightedPlaneIcao"
+        >
+          <app-plane-list-item
+            *ngFor="let plane of filteredLog; trackBy: trackByPlaneIcao"
+            [plane]="plane"
+            listType="seen"
+            [highlightedPlaneIcao]="highlightedPlaneIcao"
+            [hoveredPlaneIcao]="hoveredPlaneIcao"
+            [now]="now"
+            [activePlaneIcaos]="activePlaneIcaos"
+            [followedPlaneIcao]="highlightedPlaneIcao"
+            [clickedAirports]="clickedAirports"
+            [airportCircles]="airportCircles"
+            (centerPlane)="centerPlane.emit($event)"
+            (filterPrefix)="filterPrefix.emit($event)"
+            (toggleSpecial)="toggleSpecial.emit($event)"
+            (hoverPlane)="hoverPlane.emit($event)"
+            (unhoverPlane)="unhoverPlane.emit($event)"
+          ></app-plane-list-item>
+        </div>
       </div>
-    </div>
-    <ng-template #noSeen>
-      <p>No planes peeped.</p>
-    </ng-template>
+      <ng-template #noSeen>
+        <p>No planes peeped.</p>
+      </ng-template>
+    </ng-container>
   </div>
 </div>

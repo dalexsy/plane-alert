@@ -4,7 +4,6 @@ import { PlaneModel } from '../../models/plane-model';
 import { DistanceUnit } from '../../utils/units/units.util';
 import {
   createOrUpdatePlaneMarker,
-  removeLeftMarkerFromPlane,
 } from '../../utils/plane-marker/plane-marker';
 import { AltitudeColorService } from '../altitude-color/altitude-color.service';
 import { HelicopterIdentificationService } from '../helicopter-identification/helicopter-identification.service';
@@ -26,11 +25,7 @@ export class PlaneVisualizationService {
   ) {}
 
   removePlaneVisuals(plane: PlaneModel, map: L.Map): void {
-    if (plane.marker) removeLeftMarkerFromPlane(plane.marker, map);
-    plane.marker?.remove();
-    plane.path?.remove();
-    plane.predictedPathArrowhead?.remove();
-    plane.removeHistoryTrailSegments(map);
+    plane.removeVisuals(map);
   }
 
   createPlaneMarker(

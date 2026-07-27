@@ -8,6 +8,20 @@ import {
 } from './path-geo.util';
 import { calculateTurnRate } from './path-turn.util';
 
+const MAX_PATH_CACHE_ENTRIES = 128;
+
+function prunePathCache(
+  cache: Map<string, { timestamp: number; points: [number, number][] }>,
+  now: number,
+  maxAgeMs: number
+): void {
+  if (cache.size < MAX_PATH_CACHE_ENTRIES) return;
+  for (const [key, entry] of cache) {
+    if (now - entry.timestamp >= maxAgeMs) cache.delete(key);
+  }
+  if (cache.size >= MAX_PATH_CACHE_ENTRIES) cache.clear();
+}
+
 export function calculatePredictedPath(
   lat: number,
   lon: number,
@@ -18,6 +32,7 @@ export function calculatePredictedPath(
   cacheDuration: number
 ): [number, number][] {
   const now = Date.now();
+  prunePathCache(pathCache, now, cacheDuration);
   const key = `${lat.toFixed(4)},${lon.toFixed(4)},${track},${Math.round(velocity ?? 0)}`;
   const cacheEntry = pathCache.get(key);
   if (cacheEntry && now - cacheEntry.timestamp < cacheDuration) return cacheEntry.points;

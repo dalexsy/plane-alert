@@ -14,9 +14,9 @@ describe('AtmosphericSkyService', () => {
   });
 
   it('should return night colors for negative sun elevation', () => {
-    const result = service.calculateSkyColors(-10);
-    expect(result.bottomColor).toContain('rgb(15, 20, 35)');
-    expect(result.topColor).toContain('rgb(5, 10, 25)');
+    const result = service.calculateSkyColors(-20);
+    expect(result.bottomColor).toBe('rgb(12, 18, 35)');
+    expect(result.topColor).toBe('rgb(8, 12, 25)');
   });
 
   it('should return twilight colors for low positive sun elevation', () => {

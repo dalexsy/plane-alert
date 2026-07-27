@@ -59,6 +59,7 @@ describe('RainService', () => {
   });
 
   it('should activate rain for various rain conditions', () => {
+    const startRain = spyOn(service, 'startRain');
     const rainConditions = [
       { condition: 'Rain', description: 'light rain' },
       { condition: 'Drizzle', description: 'light intensity drizzle' },
@@ -66,10 +67,9 @@ describe('RainService', () => {
     ];
 
     rainConditions.forEach(({ condition, description }) => {
-      spyOn(service, 'startRain');
       service.updateWeatherConditions(condition, description, 0, 0);
-      expect(service.startRain).toHaveBeenCalled();
-      (service.startRain as jasmine.Spy).calls.reset();
+      expect(startRain).toHaveBeenCalled();
+      startRain.calls.reset();
     });
   });
 

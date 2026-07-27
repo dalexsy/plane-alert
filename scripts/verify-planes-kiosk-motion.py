@@ -13,6 +13,9 @@ import time
 from pathlib import Path
 
 import websocket
+from kiosk_cdp import call as cdp_call
+from kiosk_cdp import evaluate as cdp_evaluate
+from kiosk_cdp import screenshot as cdp_screenshot
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR.parent.parent / "directory" / "scripts"))
@@ -63,55 +66,13 @@ PROBE_JS = r"""
     timedTransitions,
     movedMarkers: moved,
     decorative: { rainKids, swallowKids, leafKids },
+    seenCollapsed: document.querySelector('#seenResults')?.classList.contains('collapsed') ?? false,
+    skyRows: document.querySelectorAll('app-results-sky-list app-plane-list-item').length,
+    seenRows: document.querySelectorAll('app-results-seen-list app-plane-list-item').length,
     markerSample: before.slice(0, 4),
   };
 })()
 """
-
-
-def cdp_call(ws: websocket.WebSocket, method: str, params: dict | None = None, timeout_s: float = 20) -> dict:
-    req_id = int(time.time() * 1000) % 1_000_000
-    payload: dict = {"id": req_id, "method": method}
-    if params is not None:
-        payload["params"] = params
-    ws.send(json.dumps(payload))
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        msg = json.loads(ws.recv())
-        if msg.get("id") != req_id:
-            continue
-        if "error" in msg:
-            raise RuntimeError(msg["error"])
-        return msg.get("result") or {}
-    raise TimeoutError(f"CDP {method} timed out")
-
-
-def cdp_evaluate(ws: websocket.WebSocket, expression: str, timeout_s: float = 20) -> dict:
-    result = cdp_call(
-        ws,
-        "Runtime.evaluate",
-        {
-            "expression": expression,
-            "awaitPromise": True,
-            "returnByValue": True,
-        },
-        timeout_s=timeout_s,
-    ).get("result", {})
-    if result.get("subtype") == "error":
-        raise RuntimeError(result.get("description") or result)
-    return result.get("value") or {}
-
-
-def cdp_screenshot(ws: websocket.WebSocket, dest: Path) -> Path:
-    import base64
-
-    raw = cdp_call(ws, "Page.captureScreenshot", {"format": "png", "fromSurface": True})
-    data = raw.get("data")
-    if not data:
-        raise RuntimeError("Page.captureScreenshot returned no data")
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(base64.b64decode(data))
-    return dest
 
 
 def main() -> int:
@@ -153,6 +114,17 @@ def main() -> int:
         )
         try:
             probe = cdp_evaluate(ws, PROBE_JS)
+            probe["domCounters"] = cdp_call(ws, "Memory.getDOMCounters")
+            detached = cdp_call(ws, "DOM.getDetachedDomNodes").get("detachedNodes", [])
+            probe["detachedRoots"] = len(detached)
+            probe["detachedPlaneRows"] = sum(
+                item.get("treeNode", {}).get("nodeName") == "APP-PLANE-LIST-ITEM"
+                for item in detached
+            )
+            probe["detachedPaths"] = sum(
+                item.get("treeNode", {}).get("nodeName") == "path"
+                for item in detached
+            )
             shot_path = cdp_screenshot(ws, shot)
         finally:
             ws.close()
@@ -177,6 +149,12 @@ def main() -> int:
     for key in ("rainKids", "swallowKids", "leafKids"):
         if int(decorative.get(key) or 0) > 0:
             fails.append(f"decorative {key}={decorative[key]} (RAF overlay still live)")
+    if probe.get("seenCollapsed") and int(probe.get("seenRows") or 0) > 0:
+        fails.append(f"collapsed history still renders {probe['seenRows']} plane rows")
+    if int(probe.get("detachedPlaneRows") or 0) > 10:
+        fails.append(f"retained detached plane rows={probe['detachedPlaneRows']}")
+    if int(probe.get("detachedPaths") or 0) > 20:
+        fails.append(f"retained detached flight paths={probe['detachedPaths']}")
 
     if fails:
         for fail in fails:
@@ -185,7 +163,7 @@ def main() -> int:
 
     quote = (
         "kiosk motion off — 0 running animations, 0 timed marker transitions, "
-        "0 decorative overlay children, markers stable over 2.5s"
+        "0 decorative overlay children, collapsed history not rendered, markers stable over 2.5s"
     )
     print(f"[agent-required] KIOSK_SCREENSHOT: {shot_path}")
     print(f"[agent-required] QUOTE_VISIBLE: {quote}")

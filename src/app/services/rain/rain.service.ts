@@ -52,8 +52,8 @@ export class RainService {
   }
 
   updateWeatherConditions(
-    condition: string,
-    description: string,
+    condition: string | null | undefined,
+    description: string | null | undefined,
     windSpeed = 0,
     windDirection = 0,
     humidity = 50,
@@ -61,13 +61,15 @@ export class RainService {
     temperature = 288.15,
     visibility = 10000
   ): void {
-    if (!shouldActivateRain(condition, description)) {
+    const safeCondition = condition ?? '';
+    const safeDescription = description ?? '';
+    if (!shouldActivateRain(safeCondition, safeDescription)) {
       this.stopRain();
       return;
     }
     const intensity = calculateRainIntensity(
-      condition,
-      description,
+      safeCondition,
+      safeDescription,
       humidity,
       pressure,
       temperature,
@@ -77,7 +79,12 @@ export class RainService {
     const fallSpeed = calculateFallSpeed(intensity, pressure, temperature, humidity, this.defaultConfig.fallSpeed);
     const dropCount = calculateDropCount(intensity, visibility, humidity, this.defaultConfig.dropCount);
     const sizeVariance = calculateSizeVariance(intensity, pressure, humidity, this.defaultConfig.sizeVariance);
-    const color = calculateRainColor(condition, description, temperature, visibility);
+    const color = calculateRainColor(
+      safeCondition,
+      safeDescription,
+      temperature,
+      visibility
+    );
     this.startRain({
       intensity,
       windAngle,

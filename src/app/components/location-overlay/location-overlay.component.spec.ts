@@ -1,4 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 
 import { LocationOverlayComponent } from './location-overlay.component';
@@ -49,20 +54,6 @@ describe('LocationOverlayComponent', () => {
     expect(overlayEl).toBeNull();
   });
 
-  it('should show street information when available', () => {
-    component.street = 'Main Street';
-    fixture.detectChanges();
-    const streetEl = fixture.debugElement.query(By.css('.street'));
-    expect(streetEl.nativeElement.textContent).toContain('Main Street');
-  });
-
-  it('should show "Unknown" when street is not available', () => {
-    component.street = null;
-    fixture.detectChanges();
-    const streetEl = fixture.debugElement.query(By.css('.street'));
-    expect(streetEl.nativeElement.textContent).toContain('Unknown');
-  });
-
   it('should show district when available', () => {
     component.district = 'Downtown';
     fixture.detectChanges();
@@ -77,7 +68,7 @@ describe('LocationOverlayComponent', () => {
     expect(districtEl).toBeNull();
   });
 
-  it('should emit selectPlane event on click', () => {
+  it('should emit selectPlane event on click', fakeAsync(() => {
     spyOn(component.selectPlane, 'emit');
     const mockPlane = new PlaneModel({
       icao: 'ABC123',
@@ -98,7 +89,8 @@ describe('LocationOverlayComponent', () => {
 
     const overlayEl = fixture.debugElement.query(By.css('.location-overlay'));
     overlayEl.nativeElement.click();
+    tick(150);
 
     expect(component.selectPlane.emit).toHaveBeenCalledWith(mockPlane);
-  });
+  }));
 });

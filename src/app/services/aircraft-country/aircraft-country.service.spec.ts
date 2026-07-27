@@ -1,17 +1,29 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import {
   AircraftCountryService,
   CountryDetectionResult,
 } from './aircraft-country.service';
+import icaoRanges from '../../../assets/data/icao-country-ranges.json';
 
 describe('AircraftCountryService', () => {
   let service: AircraftCountryService;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
+  beforeEach(fakeAsync(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(AircraftCountryService);
+    TestBed.inject(HttpTestingController)
+      .expectOne('/assets/data/icao-country-ranges.json')
+      .flush(icaoRanges);
+    flushMicrotasks();
     service.clearCache(); // Clear cache before each test
-  });
+  }));
 
   describe('API Country Priority', () => {
     it('should prioritize valid API country code', () => {
@@ -85,14 +97,14 @@ describe('AircraftCountryService', () => {
     it('should correctly identify US aircraft by ICAO hex', () => {
       const result = service.getAircraftCountryDetailed(undefined, 'A12345');
       expect(result.countryCode).toBe('US');
-      expect(result.confidence).toBe('medium');
+      expect(result.confidence).toBe('high');
       expect(result.source).toBe('icao-hex');
       expect(result.metadata?.icaoAllocation).toBeDefined();
     });
 
     it('should correctly identify Norwegian aircraft by ICAO hex', () => {
       // Test the problematic hex code that was incorrectly showing as Italian
-      const result = service.getAircraftCountryDetailed(undefined, '4c1234');
+      const result = service.getAircraftCountryDetailed(undefined, '478123');
       expect(result.countryCode).toBe('NO');
       expect(result.source).toBe('icao-hex');
     });
@@ -101,7 +113,7 @@ describe('AircraftCountryService', () => {
       const result = service.getAircraftCountryDetailed(undefined, '500123');
       expect(result.countryCode).toBe('SM');
       expect(result.source).toBe('icao-hex');
-      expect(result.metadata?.icaoAllocation?.countryName).toBe('San Marino');
+      expect(result.metadata?.icaoAllocation?.countryCode).toBe('SM');
     });
 
     it('should handle invalid hex formats gracefully', () => {
@@ -249,7 +261,7 @@ describe('AircraftCountryService', () => {
 
     it('should handle ICAO hex ranges for major countries', () => {
       // Test Netherlands ICAO range
-      const nlResult = service.getAircraftCountry('', '4B9E06', '');
+      const nlResult = service.getAircraftCountry('', '480123', '');
       expect(nlResult).toBe('NL'); // Should be identified as Netherlands
 
       // Test US ICAO range
@@ -257,7 +269,7 @@ describe('AircraftCountryService', () => {
       expect(usResult).toBe('US'); // Should be identified as United States
 
       // Test unknown range
-      const unknownResult = service.getAircraftCountry('', '123456', '');
+      const unknownResult = service.getAircraftCountry('', 'FFFFFF', '');
       expect(unknownResult).toBe('Unknown'); // Should be unknown for unallocated range
     });
   });

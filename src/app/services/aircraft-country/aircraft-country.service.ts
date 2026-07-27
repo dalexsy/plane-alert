@@ -10,6 +10,7 @@ import {
 import {
   debugIcaoAllocation as debugIcaoAllocationFn,
   getCountryFromIcaoHexDetailed,
+  getCountryFromMilitaryRegistration,
   getCountryFromRegistrationDetailed,
   loadIcaoCountryRanges,
 } from './aircraft-country-lookup.util';
@@ -41,6 +42,17 @@ export class AircraftCountryService {
     apiCountry?: string,
     isMilitary?: boolean
   ): CountryDetectionResult {
+    if (apiCountry && /^[A-Za-z]{2}$/.test(apiCountry)) {
+      return {
+        countryCode: apiCountry.toUpperCase(),
+        confidence: 'high',
+        source: 'api',
+      };
+    }
+    if (registration) {
+      const militaryResult = getCountryFromMilitaryRegistration(registration);
+      if (militaryResult.countryCode !== 'Unknown') return militaryResult;
+    }
     if (isMilitary && icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup) {
       const icaoResult = getCountryFromIcaoHexDetailed(icaoHex, this.icaoCountryRanges, this.lookupCache);
       if (icaoResult.countryCode !== 'Unknown') return icaoResult;
@@ -52,9 +64,6 @@ export class AircraftCountryService {
     if (icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup && !isMilitary) {
       const icaoResult = getCountryFromIcaoHexDetailed(icaoHex, this.icaoCountryRanges, this.lookupCache);
       if (icaoResult.countryCode !== 'Unknown') return icaoResult;
-    }
-    if (apiCountry && /^[A-Za-z]{2}$/.test(apiCountry)) {
-      return { countryCode: apiCountry.toUpperCase(), confidence: 'high', source: 'api' };
     }
     return { countryCode: 'Unknown', confidence: 'low', source: 'unknown' };
   }
@@ -92,6 +101,14 @@ export class AircraftCountryService {
 
   getAircraftInfo(registration?: string, icaoHex?: string, apiCountry?: string, isMilitary?: boolean) {
     const result = this.getAircraftCountryDetailed(registration, icaoHex, apiCountry, isMilitary);
+    const allocation =
+      icaoHex && ICAO_LOOKUP_CONFIG.enableIcaoLookup
+        ? getCountryFromIcaoHexDetailed(
+            icaoHex,
+            this.icaoCountryRanges,
+            this.lookupCache
+          ).metadata?.icaoAllocation
+        : undefined;
     return {
       ...result,
       diagnostics: {
@@ -100,7 +117,7 @@ export class AircraftCountryService {
         hasApiCountry: !!apiCountry,
         registrationPrefixes:
           result.countryCode !== 'Unknown' ? this.getRegistrationPrefixesForCountry(result.countryCode) : [],
-        icaoAllocations: [],
+        icaoAllocations: allocation ? [allocation] : [],
       },
     };
   }

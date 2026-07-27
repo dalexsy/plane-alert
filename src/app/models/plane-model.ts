@@ -144,9 +144,10 @@ export class PlaneModel implements Plane {
     this.path?.remove();
     this.predictedPathArrowhead?.remove();
     this.removeHistoryTrailSegments(map);
-    // Optionally clear references, though they'll be overwritten/removed elsewhere
-    // this.marker = undefined;
-    // this.path = undefined;
-    // this.predictedPathArrowhead = undefined;
+    // Historical planes stay in memory for the "All Planes Peeped" list.
+    // Never let that data history retain detached Leaflet DOM trees.
+    this.marker = undefined;
+    this.path = undefined;
+    this.predictedPathArrowhead = undefined;
   }
 }

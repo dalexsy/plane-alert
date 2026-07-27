@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from '../settings/settings.service';
 import { ScanService } from '../scan/scan.service';
-import { LocationContextService } from '../location-context/location-context.service';
+import {
+  LocationContextService,
+  type GeocodeResult,
+} from '../location-context/location-context.service';
 import { formatResolvedAddress } from './address-format.util';
 
 @Injectable({
@@ -13,6 +16,10 @@ export class AddressResolutionService {
     private scanService: ScanService,
     private locationContext: LocationContextService
   ) {}
+
+  formatAddress(input: string, result?: GeocodeResult): string {
+    return formatResolvedAddress(input, result);
+  }
 
   async resolveAndUpdateFromAddress(
     inputOverlayComponent: any,
@@ -34,7 +41,7 @@ export class AddressResolutionService {
     const geocodeResult = await this.locationContext.updateFromAddress(
       originalAddress
     );
-    const formattedAddress = formatResolvedAddress(originalAddress, geocodeResult);
+    const formattedAddress = this.formatAddress(originalAddress, geocodeResult);
 
     this.locationContext.setLocation(
       geocodeResult.lat,

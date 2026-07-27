@@ -19,10 +19,11 @@
       class="plane-list"
       #listEl
       (scroll)="scrollChange.emit($event)"
+      [@.disabled]="!animationsEnabled"
       [@listAnimation]="highlightedPlaneIcao"
     >
       <app-plane-list-item
-        *ngFor="let plane of planes"
+        *ngFor="let plane of planes; trackBy: trackByPlaneIcao"
         [plane]="plane"
         listType="sky"
         [highlightedPlaneIcao]="highlightedPlaneIcao"

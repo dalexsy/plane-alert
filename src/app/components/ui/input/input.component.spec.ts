@@ -1,7 +1,7 @@
 // src/app/components/ui/input.component.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { InputComponent } (from '../input/input.component';
+import { InputComponent } from './input.component';
 
 describe('InputComponent', () => {
   let component: InputComponent;
@@ -33,6 +33,7 @@ describe('InputComponent', () => {
 
   it('should emit enterPressed on Enter key', () => {
     spyOn(component.enterPressed, 'emit');
+    component.type = 'textarea';
     const keyEvent = new KeyboardEvent('keydown', { key: 'Enter' });
     
     component.onKeydown(keyEvent);

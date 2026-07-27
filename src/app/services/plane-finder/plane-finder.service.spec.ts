@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { EventEmitter } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { PlaneFinderService } from './plane-finder.service';
 import { NewPlaneService } from '../new-plane/new-plane.service';
@@ -15,7 +16,9 @@ describe('PlaneFinderService', () => {
     isNew = () => false;
     updatePlanes = () => {};
   }
-  class MockSettingsService {}
+  class MockSettingsService {
+    distanceUnitChanged = new EventEmitter<string>();
+  }
   class MockHelicopterListService {
     refreshHelicopterList = () => Promise.resolve(false);
   }

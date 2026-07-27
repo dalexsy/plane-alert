@@ -59,7 +59,7 @@ export function calculateWindEffect(windSpeed: number, windDirection: number): n
   const baseAngle = windEffect * maxWindAngle;
   const normalizedDirection = ((windDirection + 180) % 360) - 180;
   const directionFactor = Math.sin((normalizedDirection * Math.PI) / 180);
-  return baseAngle * directionFactor;
+  return -baseAngle * directionFactor;
 }
 
 export function calculateFallSpeed(

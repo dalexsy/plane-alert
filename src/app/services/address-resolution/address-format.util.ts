@@ -56,8 +56,16 @@ function basicFormatAddress(address: string): string {
   parts = dedupeParts(parts);
   formatted = parts.join(', ');
   return formatted
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .toLocaleLowerCase('de-DE')
+    .replace(
+      /(^|[\s-])\p{L}/gu,
+      (start) => start.toLocaleUpperCase('de-DE')
+    )
+    .replace(
+      /(\d)(\p{L})\b/gu,
+      (_match, number, suffix) =>
+        `${number}${suffix.toLocaleUpperCase('de-DE')}`
+    );
 }
 
 function cleanDisplayName(displayName: string): string {

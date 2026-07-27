@@ -1,6 +1,6 @@
 /**
  * HTTP queue helpers for dryl client error reporter.
- * Always try health.dryl.io when same-origin is 502 (deploy restart / app down).
+ * Fallthrough ingest from window.__DRYL_FLEET_RUNTIME__ (serviceBindings).
  */
 (function () {
   "use strict";
@@ -11,29 +11,43 @@
     var storage = window.__DRYL_ERROR_QUEUE_STORAGE__;
     if (!storage) {
       if (attempt < MAX_STORAGE_WAITS) {
-        setTimeout(function () {
-          start(attempt + 1);
-        }, attempt < 4 ? 0 : 25);
+        setTimeout(function () { start(attempt + 1); }, attempt < 4 ? 0 : 25);
       }
       return;
     }
     bindQueue(storage);
   }
 
+  function fleetRuntime() {
+    return window.__DRYL_FLEET_RUNTIME__ || {};
+  }
+
+  function ingestUrl() {
+    var cfg = fleetRuntime();
+    if (cfg.clientErrorIngestUrl) return cfg.clientErrorIngestUrl;
+    return cfg.fleetStatusOrigin ? cfg.fleetStatusOrigin + "/api/client-errors" : "";
+  }
+
+  function ingestHostname() {
+    var cfg = fleetRuntime();
+    if (cfg.fleetStatusHostname) return cfg.fleetStatusHostname;
+    try { return new URL(ingestUrl()).hostname; } catch (_e) { return ""; }
+  }
+
   function bindQueue(storage) {
   var BASE_FLUSH_MS = 400;
   var MAX_FLUSH_MS = 30_000;
-  var HEALTH_ERRORS = "https://health.dryl.io/api/client-errors";
   var flushing = false;
 
   function defaultHttpEndpoints() {
     var list = ["/api/client-errors"];
     var host = typeof location !== "undefined" ? location.hostname || "" : "";
+    var statusHost = ingestHostname();
     if (host === "localhost" || host === "127.0.0.1") {
       list.push("http://localhost:3905/api/client-errors");
-    } else if (host && host !== "health.dryl.io") {
-      // Origin 502 cannot reach Directory via same-host /api/client-errors.
-      list.push(HEALTH_ERRORS);
+    } else if (host && statusHost && host !== statusHost) {
+      var url = ingestUrl();
+      if (url) list.push(url);
     }
     return list;
   }
@@ -54,8 +68,7 @@
   }
 
   function backoffMs(attempts) {
-    var ms = BASE_FLUSH_MS * Math.pow(2, Math.min(attempts, 8));
-    return Math.min(ms, MAX_FLUSH_MS);
+    return Math.min(BASE_FLUSH_MS * Math.pow(2, Math.min(attempts, 8)), MAX_FLUSH_MS);
   }
 
   function isSameOrigin(endpoint) {
@@ -65,7 +78,20 @@
     );
   }
 
-  /** Fire-and-forget post: walk endpoints until one accepts (502 must fall through). */
+  function postOnce(endpoint, body) {
+    var cross = !isSameOrigin(endpoint);
+    return fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": cross ? "text/plain;charset=UTF-8" : "application/json",
+      },
+      body: body,
+      credentials: cross ? "omit" : "same-origin",
+      keepalive: true,
+    });
+  }
+
+  /** Walk endpoints until one accepts (502 must fall through). */
   function postHttp(entry, allowQueue, endpoints) {
     var body = JSON.stringify(entry);
     var ep = 0;
@@ -74,19 +100,7 @@
         if (allowQueue) storage.enqueueEntry(entry);
         return;
       }
-      var endpoint = endpoints[ep++];
-      var cross = !isSameOrigin(endpoint);
-      // text/plain avoids CORS preflight on health.dryl.io fallthrough; servers
-      // that only accept application/json still get a JSON body string.
-      fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": cross ? "text/plain;charset=UTF-8" : "application/json",
-        },
-        body: body,
-        credentials: cross ? "omit" : "same-origin",
-        keepalive: true,
-      })
+      postOnce(endpoints[ep++], body)
         .then(function (res) {
           if (res.ok || res.status === 204) {
             storage.bumpStat("delivered");
@@ -110,19 +124,14 @@
     var now = Date.now();
     var readyIdx = -1;
     for (var i = 0; i < queue.length; i += 1) {
-      if ((queue[i].nextAt || 0) <= now) {
-        readyIdx = i;
-        break;
-      }
+      if ((queue[i].nextAt || 0) <= now) { readyIdx = i; break; }
     }
     if (readyIdx < 0) {
-      var wait = Math.max(50, (queue[0].nextAt || now) - now);
-      setTimeout(function () { flushQueue(endpoints); }, wait);
+      setTimeout(function () { flushQueue(endpoints); }, Math.max(50, (queue[0].nextAt || now) - now));
       return;
     }
     var next = queue[readyIdx];
-    var rest = queue.slice(0, readyIdx).concat(queue.slice(readyIdx + 1));
-    storage.saveQueue(rest);
+    storage.saveQueue(queue.slice(0, readyIdx).concat(queue.slice(readyIdx + 1)));
     flushing = true;
     var body = JSON.stringify(next.payload);
     var ep = 0;
@@ -138,17 +147,7 @@
         setTimeout(function () { flushQueue(endpoints); }, backoffMs(next.attempts));
         return;
       }
-      var endpoint = endpoints[ep++];
-      var cross = !isSameOrigin(endpoint);
-      fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": cross ? "text/plain;charset=UTF-8" : "application/json",
-        },
-        body: body,
-        credentials: cross ? "omit" : "same-origin",
-        keepalive: true,
-      })
+      postOnce(endpoints[ep++], body)
         .then(function (res) {
           if (res.ok || res.status === 204) {
             storage.bumpStat("delivered");

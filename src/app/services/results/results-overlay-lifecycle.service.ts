@@ -5,21 +5,22 @@ import { ResultsOverlayFacadeCore } from './results-overlay-facade.core';
 @Injectable({ providedIn: 'root' })
 export class ResultsOverlayLifecycleService {
   wire(facade: ResultsOverlayFacadeCore, cdr: ChangeDetectorRef): Subscription[] {
+    const subs: Subscription[] = [];
     facade.otherControlsHidden = facade.settings.resultsOverlayControlsHidden;
-    facade.settings.resultsOverlayControlsChanged.subscribe((v) => {
-      facade.otherControlsHidden = v;
-      cdr.markForCheck();
-    });
+    subs.push(
+      facade.settings.resultsOverlayControlsChanged.subscribe((v) => {
+        facade.otherControlsHidden = v;
+        cdr.markForCheck();
+      })
+    );
     facade.collapsed = facade.settings.resultsOverlayCollapsed;
     facade.militaryPrefix.loadPrefixes().then(() => {
       facade.markResultsUpdated();
     });
 
-    const subs: Subscription[] = [];
     subs.push(
       interval(1000).subscribe(() => {
         facade.now = Date.now();
-        facade.refreshFiltered();
         if (facade.consumeResultsUpdated()) {
           facade.applyPageTitle();
         } else if (facade.data.titleInputsChanged(facade.getSnapshot())) {
