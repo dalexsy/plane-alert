@@ -42,6 +42,19 @@ $streetside-color: #2196f3;
     opacity: 0.5;
   }
 
+  &.motion-disabled {
+    transition: none;
+    will-change: auto;
+
+    .plane-icon {
+      transition: none;
+    }
+
+    .copter-plane-icon {
+      animation: none;
+    }
+  }
+
   &.grounded-plane {
     pointer-events: auto;
 

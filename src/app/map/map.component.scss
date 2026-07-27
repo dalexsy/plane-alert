@@ -3,6 +3,10 @@
 @use "../styles/overlay.scss" as *;
 @use "../styles/sky-overlay.scss" as *;
 
+.map-shell {
+  display: contents;
+}
+
 .home-marker {
   display: flex;
   justify-content: center;

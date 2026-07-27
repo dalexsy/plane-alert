@@ -75,6 +75,9 @@ export class PlaneDisplayService {
 
   applyAnimationSetting(enabled: boolean, document: Document): void {
     document.body.classList.toggle('animations-disabled', !enabled);
+    document.querySelectorAll('.plane-marker').forEach((el) => {
+      el.classList.toggle('motion-disabled', !enabled);
+    });
   }
 
   updatePlaneVisuals(plane: PlaneModel, isMilitary: boolean): void {

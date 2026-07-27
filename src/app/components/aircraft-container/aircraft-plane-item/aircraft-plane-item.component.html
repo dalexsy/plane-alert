@@ -7,6 +7,7 @@
   [class.streetside-marker]="plane.isMarker && plane.callsign.startsWith('Streetside')"
   [class.dimmed]="plane.distanceKm != null && plane.distanceKm > 70"
   [class.close-plane]="plane.distanceKm != null && plane.distanceKm <= 10"
+  [class.motion-disabled]="!animationsEnabled"
   [style.--left]="plane.x + '%'"
   [style.--bottom]="planeBottomStyle(plane)"
   [style.--transform]="planeScalePrefix(plane) + get3DDepthTransform(plane)"

@@ -59,7 +59,8 @@ export function createOrUpdatePlaneMarker(
     isNew,
     isGrounded,
     isMilitary,
-    followed
+    followed,
+    animationsEnabled,
   );
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation

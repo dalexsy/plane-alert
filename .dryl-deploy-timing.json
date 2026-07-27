@@ -3,8 +3,8 @@
   "medianMs": 114662,
   "p75Ms": 123983,
   "p90Ms": 125541,
-  "lastElapsedMs": 115989,
+  "lastElapsedMs": 107256,
   "agentWaitMs": 153095,
-  "sampleCount": 10,
-  "updatedAt": "2026-07-25T08:00:24.938Z"
+  "sampleCount": 11,
+  "updatedAt": "2026-07-27T07:11:47.868Z"
 }

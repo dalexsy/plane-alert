@@ -31,6 +31,7 @@ export class AircraftPlaneItemComponent {
   @Input({ required: true }) plane!: WindowViewPlane;
   @Input() highlightedPlaneIcao: string | null = null;
   @Input() showAltitudeBorders = false;
+  @Input() animationsEnabled = true;
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();
 
   constructor(

@@ -21,6 +21,11 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
   transition: transform 1.2s $animation-timing-function;
   will-change: transform;
 
+  &.motion-disabled {
+    transition: none;
+    will-change: auto;
+  }
+
   // For non-helicopter plane markers, hide default ::before and show inline SVG
   &.svg-plane::before {
     content: none;
@@ -80,6 +85,11 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     animation-name: spin-map-copter;
   }
 
+  &.copter-plane.motion-disabled::before,
+  &.copter-plane.grounded-plane::before {
+    animation: none;
+  }
+
   &.grounded-plane {
     color: #ededed;
     margin-right: 1rem;
@@ -87,11 +97,6 @@ $animation-timing-function: cubic-bezier(0.25, 0, 0.25, 1);
     &::before {
       font-size: 1rem; /* typography-ok marker glyph */
     }
-  }
-
-  /* When both copter-plane and grounded-plane classes are present, set copter to grey */
-  &.copter-plane.grounded-plane::before {
-    animation: none;
   }
 
   // Unknown glyph — must not override rotorcraft (toys_fan)

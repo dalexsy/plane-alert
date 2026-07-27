@@ -70,6 +70,10 @@ $nearest-follow-color: #00ff00;
   &.followed-nearest {
     @include follow-indicator($nearest-follow-color);
   }
+
+  &.motion-disabled.pulsing {
+    animation: none;
+  }
 }
 
 // Plane list item follow states

@@ -22,6 +22,11 @@
   transition: transform var(--trail-animation-duration, var(--plane-animation-duration, 1.2s)) linear;
 }
 
+:host-context(.motion-disabled) .chemtrail,
+:host-context(.plane-dot.motion-disabled) .chemtrail {
+  transition: none;
+}
+
 :host-context(.close-plane) .chemtrail {
   width: 30rem;
   height: 0.3rem;

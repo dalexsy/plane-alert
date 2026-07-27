@@ -14,6 +14,7 @@
     "kiosk:planes": "python scripts/pi-install-planes-kiosk.py --launch",
     "kiosk:restart": "python scripts/pi-restart-planes-kiosk.py",
     "install:kiosk-watch": "python scripts/pi-install-planes-kiosk.py",
+    "verify:kiosk-motion": "python scripts/verify-planes-kiosk-motion.py",
     "sync:favicons": "node ..\\directory\\scripts\\sync-favicons.mjs plane-alert",
     "prebuild": "npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui",
     "build:shared": "npm run build --prefix shared",

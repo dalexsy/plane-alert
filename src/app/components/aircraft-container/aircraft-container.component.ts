@@ -24,6 +24,7 @@ export class AircraftContainerComponent implements OnChanges {
   @Input() aircraftPlanes: WindowViewPlane[] = [];
   @Input() highlightedPlaneIcao: string | null = null;
   @Input() showAltitudeBorders = false;
+  @Input() animationsEnabled = true;
   @Input() skyBottomColor = 'rgb(135, 206, 235)';
   @Input() skyTopColor = 'rgb(25, 25, 112)';
   @Output() selectPlane = new EventEmitter<WindowViewPlane>();

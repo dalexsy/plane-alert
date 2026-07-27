@@ -1,11 +1,13 @@
-<app-map-overlays></app-map-overlays>
+<div class="map-shell" [@.disabled]="!uiState.animationsEnabled">
+  <app-map-overlays></app-map-overlays>
 
-<app-map-info-stack
-  [resultsCollapsed]="resultsCollapsed"
-  [inputControlsHidden]="inputControlsHidden"
-></app-map-info-stack>
+  <app-map-info-stack
+    [resultsCollapsed]="resultsCollapsed"
+    [inputControlsHidden]="inputControlsHidden"
+  ></app-map-info-stack>
 
-<app-map-container
-  [viewConesConfig]="viewConesConfig"
-  [showConeConfigEditor]="showConeConfigEditor"
-></app-map-container>
+  <app-map-container
+    [viewConesConfig]="viewConesConfig"
+    [showConeConfigEditor]="showConeConfigEditor"
+  ></app-map-container>
+</div>

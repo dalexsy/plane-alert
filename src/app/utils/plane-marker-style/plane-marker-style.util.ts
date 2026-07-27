@@ -30,13 +30,19 @@ export function buildPlaneMarkerClassString(
   isNew: boolean,
   isGrounded: boolean,
   isMilitary: boolean,
-  followed: boolean
+  followed: boolean,
+  animationsEnabled = true,
 ): string {
-  return `plane-marker ${
-    !isCopter && !isUnknown ? 'svg-plane ' : ''
-  }${!isCopter && !isUnknown ? iconType + ' ' : ''}${
-    isNew && isGrounded ? 'new-and-grounded' : isGrounded ? 'grounded-plane' : ''
-  } ${isMilitary ? 'military-plane' : ''} ${isCopter ? 'copter-plane' : ''}${
-    isUnknown ? ' unknown-plane' : ''
-  }${followed ? ' followed-plane' : ''}`;
+  const tokens = [
+    'plane-marker',
+    !isCopter && !isUnknown ? 'svg-plane' : '',
+    !isCopter && !isUnknown ? iconType : '',
+    isNew && isGrounded ? 'new-and-grounded' : isGrounded ? 'grounded-plane' : '',
+    isMilitary ? 'military-plane' : '',
+    isCopter ? 'copter-plane' : '',
+    isUnknown ? 'unknown-plane' : '',
+    followed ? 'followed-plane' : '',
+    animationsEnabled ? '' : 'motion-disabled',
+  ];
+  return tokens.filter(Boolean).join(' ');
 }
