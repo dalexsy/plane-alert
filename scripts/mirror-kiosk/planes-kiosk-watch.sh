@@ -67,23 +67,28 @@ clear_restart_cooldown() {
   rm -f "${RESTART_COOLDOWN_FILE}"
 }
 
-# balcony-log HLS remux shares this 2GB Pi. When load is high or remux chunks
-# go stale, never resurrect Chromium — that is the daily /watch freeze loop.
+# balcony-log HLS remux shares this 2GB Pi. When load is high, RAM is tight,
+# or remux chunks go stale, never resurrect Chromium — that is the daily
+# /watch freeze loop. Chromium's renderer/gpu/utility processes alone run
+# ~700MB RSS on this box; once free RAM drops low the kernel leans on zram
+# swap, and swap churn is what shows up as multi-second /watch stalls.
 balcony_needs_headroom() {
-  local load1 chunk_age
+  local load1 chunk_age mem_avail_kb
   load1="$(awk '{print $1}' /proc/loadavg)"
+  mem_avail_kb="$(awk '/MemAvailable/ {print $2}' /proc/meminfo)"
   chunk_age="$(
     curl -sf -m 2 http://127.0.0.1:3838/api/live/status 2>/dev/null \
       | python3 -c 'import sys,json
 try:
  d=json.load(sys.stdin); v=d.get("video") or {}
- print(int(v.get("lastChunkAgeMs") or 0))
+    print(int(v.get("lastChunkAgeMs") or 0))
 except Exception:
  print(0)' 2>/dev/null || echo 0
   )"
-  awk -v l="${load1}" -v a="${chunk_age}" 'BEGIN {
+  awk -v l="${load1}" -v a="${chunk_age}" -v m="${mem_avail_kb}" 'BEGIN {
     if (l+0 >= 3.0) exit 0
     if (a+0 >= 4000) exit 0
+    if (m+0 > 0 && m+0 < 300000) exit 0
     exit 1
   }'
 }
