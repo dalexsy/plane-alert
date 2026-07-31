@@ -1,4 +1,5 @@
 import * as L from 'leaflet';
+import { isKioskMode } from '../kiosk-mode/kiosk-mode.util';
 
 export function manageMarkerZIndex(markerInstance: L.Marker, bringForward: boolean): void {
   const offset = bringForward ? 10000 : 0;
@@ -33,6 +34,10 @@ export function createLeftMarker(
   leftTooltipContent: string,
   leftTooltipOptions: L.TooltipOptions
 ): L.Marker | null {
+  // Second permanent tooltip + move-sync is pure paint/DOM tax on the wall display.
+  if (isKioskMode()) {
+    return null;
+  }
   if (!map.hasLayer(markerInstance)) return null;
   removeLeftMarker(markerInstance, map);
   const invisibleIcon = L.divIcon({ className: 'invisible-marker', html: '', iconSize: [1, 1] });
@@ -47,12 +52,12 @@ export function createLeftMarker(
 }
 
 export function wireMarkerHoverEvents(marker: L.Marker): void {
+  if ((marker as any).__paHoverWired) {
+    return;
+  }
+  (marker as any).__paHoverWired = true;
   const bringForwardHandler = () => manageMarkerZIndex(marker, true);
   const sendBackwardHandler = () => manageMarkerZIndex(marker, false);
-  marker.off('mouseover');
-  marker.off('mouseout');
-  marker.off('tooltipopen');
-  marker.off('tooltipclose');
   marker.on('mouseover', bringForwardHandler);
   marker.on('mouseout', sendBackwardHandler);
   marker.on('tooltipopen', () => {
@@ -108,4 +113,12 @@ export function buildTooltipOptions(
     } ${operatorClasses}`,
     pane: 'tooltipPane',
   };
+}
+
+/** Stable key so callers can skip unbind/rebind when nothing changed. */
+export function tooltipBindKey(
+  content: string,
+  options: L.TooltipOptions
+): string {
+  return `${content}\0${options.className ?? ''}\0${options.permanent ? 1 : 0}\0${options.direction ?? ''}`;
 }

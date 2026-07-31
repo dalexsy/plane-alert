@@ -21,6 +21,7 @@ import {
   tickSwallows,
 } from '../../services/swallow/swallow-animation.util';
 import { SwallowBirdComponent } from './swallow-bird/swallow-bird.component';
+import { kioskDecorativeFxLockedOff } from '../../utils/kiosk-mode/kiosk-mode.util';
 
 export type { SwallowBird, SwallowConfig };
 
@@ -53,13 +54,13 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (this.animationsEnabled) this.startAnimation();
+    if (this.canRunDecorative()) this.startAnimation();
   }
 
   ngOnChanges(): void {
-    if (this.isStormApproaching && this.animationsEnabled && !this.isActive) {
+    if (this.isStormApproaching && this.canRunDecorative() && !this.isActive) {
       this.startAnimation();
-    } else if ((!this.isStormApproaching || !this.animationsEnabled) && this.isActive) {
+    } else if ((!this.isStormApproaching || !this.canRunDecorative()) && this.isActive) {
       this.stopAnimation();
     }
   }
@@ -68,8 +69,12 @@ export class SwallowAnimationComponent implements OnInit, OnChanges, OnDestroy {
     this.stopAnimation();
   }
 
+  private canRunDecorative(): boolean {
+    return this.animationsEnabled && !kioskDecorativeFxLockedOff();
+  }
+
   startAnimation(): void {
-    if (this.isActive) return;
+    if (this.isActive || kioskDecorativeFxLockedOff()) return;
     this.isActive = true;
     this.swallows$.next([]);
     this.scheduleSpawning(calculateConfigFromPressure());

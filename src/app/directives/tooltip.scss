@@ -4,7 +4,7 @@
 $tooltip-offset: 12px; // Increased from 6px to ensure no overlap
 $tooltip-background: rgba(0, 0, 0, 0.7);
 $tooltip-border-color: rgba(255, 255, 255, 0.3);
-$tooltip-padding: 0.6rem 0.75rem;
+$tooltip-padding: 0.25rem 0.5rem;
 $tooltip-border-radius: 6px;
 $tooltip-font-size: 0.75rem;
 $tooltip-z-index: 10000;
@@ -19,6 +19,7 @@ $tooltip-z-index: 10000;
   padding: $tooltip-padding;
   border-radius: $tooltip-border-radius;
   font-size: $tooltip-font-size;
+  line-height: 1.2;
   white-space: nowrap;
   z-index: $tooltip-z-index;
   pointer-events: none;

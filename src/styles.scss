@@ -36,6 +36,32 @@ body {
     auto;
 }
 
+// Magicmirror / Pi kiosk: always-on paint budget under software GL.
+// Product plane motion may be on; continuous blur/filters/rotor spin must not.
+body.kiosk-mode {
+  .leaflet-tooltip.plane-tooltip,
+  .leaflet-tooltip.airport-tooltip,
+  .plane-label.has-details,
+  .operator-logo-tooltip,
+  .app-tooltip,
+  .closest-plane-overlay,
+  .angle-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  // Continuous rotor spin is decorative always-on cost — keep position transitions.
+  .plane-marker.copter-plane::before,
+  .copter-plane-icon {
+    animation: none !important;
+  }
+
+  .plane-marker {
+    // Prefer cheap transforms; never leave will-change promoted idle layers.
+    will-change: auto;
+  }
+}
+
 // Bug-hunter FAB sits in bottom-right; when the window view strip is open it must
 // sit above that band (mobile 4rem + 0.5rem gap; desktop 10rem + 0.5rem).
 body:has(.window-view-overlay) #dryl-corner-stack,

@@ -30,6 +30,7 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 
 ## Failed experiments (do not repeat)
 
+- **2026-07-31** — Kiosk CPU / infrastructure stall: do **not** blame plane-motion animations (probe had `runningAnims:0` while Chromium still #1). Root was always-on paint: permanent tooltips with `backdrop-filter: blur`, per-marker `filter: drop-shadow`, dual left tooltips, full setIcon+rebind every scan under `--use-gl=swiftshader --disable-gpu`. Do not re-enable continuous rain/swallow/leaf RAF on kiosk; product plane motion can stay on after blur/filters are killed.
 - **2026-07-27** — `npm test -- --watch=false` could not start because button/input specs had malformed `from (from)` imports and rain passed null to a string API; fix the test sources, never treat a green production build as unit-test proof
 - **2026-07-18** — Kiosk silent after “newly-in-range” edge state (`6882043`): persisting ICAOs to `kiosk-chime-in-range-state.json` **before** pw-play exit 0 meant a failed/silent spawn never retried while the plane stayed in radius (same bug class as cooldown-before-success). A
 - **2026-07-18** — Empty-list / “nothing mil” SPA sounds: do **not** call reboot chirp the fix. Real gaps: (1) A380 model alert without mil; (2) Hercules/A400 model alerts without mil/special; (3) seen-ICAO seed in **sessionStorage** wiped by daytime kiosk restart Session Storage
@@ -71,7 +72,7 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-07-27T13:21:52Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-07-31T10:37:18Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 

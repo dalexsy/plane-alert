@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { SettingsService } from '../settings/settings.service';
+import { kioskDecorativeFxLockedOff } from '../../utils/kiosk-mode/kiosk-mode.util';
 import {
   RainConfiguration,
   RainDrop,
@@ -97,7 +98,8 @@ export class RainService {
   }
 
   startRain(config?: Partial<RainConfiguration>): void {
-    if (!this.settings.animationsEnabled) {
+    // Kiosk: no continuous particle RAF (product plane motion may still be on).
+    if (kioskDecorativeFxLockedOff() || !this.settings.animationsEnabled) {
       this.stopRain();
       return;
     }

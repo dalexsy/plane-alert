@@ -1,4 +1,5 @@
 import SunCalc from 'suncalc';
+import { isKioskMode } from '../kiosk-mode/kiosk-mode.util';
 
 export function computePlaneShadowStyle(
   lat: number,
@@ -8,6 +9,10 @@ export function computePlaneShadowStyle(
   isGrounded: boolean,
   altitude: number | null
 ): string {
+  // Software-GL kiosk: drop-shadow filters on every marker are continuous paint cost.
+  if (isKioskMode()) {
+    return '';
+  }
   const sunPos = SunCalc.getPosition(new Date(), lat, lon);
   const sunAzimuthMap = (sunPos.azimuth + Math.PI / 2) % (2 * Math.PI);
   const planeRotRad = ((isCopter ? 0 : rotation) * Math.PI) / 180;

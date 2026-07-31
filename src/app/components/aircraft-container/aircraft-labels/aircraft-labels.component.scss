@@ -26,12 +26,13 @@ $followed-plane-color: #00ffff;
   &.has-details {
     background: rgba(0, 0, 0, 0.9);
     border-radius: 3px;
-    padding: 3px 5px;
-    border: 3px solid #333;
+    padding: 0.125rem 0.35rem;
+    border: 2px solid #333;
     margin-bottom: var(--space-xs); // gap-ok: offset tooltip body above callout arrow
     box-shadow: 0 1px 3px rgb(0 0 0);
     outline: 1px solid rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(0.5rem);
+    line-height: 1.15;
     z-index: 12;
 
     &::after {
@@ -64,5 +65,5 @@ $followed-plane-color: #00ffff;
   font-size: 0.65rem;
   opacity: 0.85;
   text-align: center;
-  line-height: 1.1;
+  line-height: 1;
 }

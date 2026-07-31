@@ -75,10 +75,12 @@ export class MapBootstrapService {
     if (isKioskMode()) {
       applyKioskDomPerformance(this.document);
       this.document.body.classList.add('kiosk-mode');
-      // Force off even if Chromium localStorage still has animationsEnabled=true.
-      this.uiState.setAnimationsEnabled(false);
+      // Product plane motion on (map lerp + window view). Decorative RAF stays
+      // gated via kioskDecorativeFxLockedOff(). Ghost onion-skin stays off —
+      // extra markers are pure paint tax on software-GL Chromium.
+      this.uiState.setAnimationsEnabled(true);
       this.uiState.setShowGhostPosition(false);
-      this.planeDisplayService.applyAnimationSetting(false, this.document);
+      this.planeDisplayService.applyAnimationSetting(true, this.document);
       unlockAlertAudio();
       // Silent unlock only — do NOT play the military alert MP3 on boot.
       // Daytime kiosk restart (08:00/13:00/18:00/21:30) clears a Chromium session and

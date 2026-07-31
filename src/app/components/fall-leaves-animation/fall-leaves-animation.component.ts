@@ -19,6 +19,7 @@ import {
   getLeafSizeClass,
 } from '../../services/fall-leaves/fall-leaves-animation.util';
 import { FallLeafComponent } from './fall-leaf/fall-leaf.component';
+import { kioskDecorativeFxLockedOff } from '../../utils/kiosk-mode/kiosk-mode.util';
 
 export type { FallLeaf };
 
@@ -46,16 +47,21 @@ export class FallLeavesAnimationComponent implements OnInit, OnChanges, OnDestro
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    if (this.animationsEnabled && this.isAutumn && isHighWind(this.windStat)) {
+    if (this.canRunDecorative() && this.isAutumn && isHighWind(this.windStat)) {
       this.startAnimation();
     }
   }
 
   ngOnChanges(): void {
-    if (this.isAutumn && this.animationsEnabled && isHighWind(this.windStat) && !this.isActive) {
+    if (
+      this.isAutumn &&
+      this.canRunDecorative() &&
+      isHighWind(this.windStat) &&
+      !this.isActive
+    ) {
       this.startAnimation();
     } else if (
-      (!this.isAutumn || !this.animationsEnabled || !isHighWind(this.windStat)) &&
+      (!this.isAutumn || !this.canRunDecorative() || !isHighWind(this.windStat)) &&
       this.isActive
     ) {
       this.stopAnimation();
@@ -67,6 +73,10 @@ export class FallLeavesAnimationComponent implements OnInit, OnChanges, OnDestro
     this.stopAnimation();
   }
 
+  private canRunDecorative(): boolean {
+    return this.animationsEnabled && !kioskDecorativeFxLockedOff();
+  }
+
   getLeafPosition(leaf: FallLeaf): Record<string, string> {
     return getLeafPositionStyles(leaf);
   }
@@ -76,7 +86,7 @@ export class FallLeavesAnimationComponent implements OnInit, OnChanges, OnDestro
   }
 
   private startAnimation(): void {
-    if (this.isActive) return;
+    if (this.isActive || kioskDecorativeFxLockedOff()) return;
     this.isActive = true;
     this.leaves = [];
     this.scheduleSpawning();

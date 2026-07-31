@@ -8,12 +8,14 @@ import {
   buildTooltipOptions,
   createLeftMarker,
   removeLeftMarker,
+  tooltipBindKey,
   wireMarkerHoverEvents,
 } from '../plane-marker-tooltip/plane-marker-tooltip.util';
 import {
   removeGhostMarkerFromPlane,
   updateGhostMarker,
 } from './plane-marker-ghost.util';
+import { isKioskMode } from '../kiosk-mode/kiosk-mode.util';
 
 export { removeGhostMarkerFromPlane } from './plane-marker-ghost.util';
 
@@ -76,7 +78,9 @@ export function createOrUpdatePlaneMarker(
   });
 
   const leftTooltipContent =
-    operatorTooltipService && planeData ? operatorTooltipService.getLeftTooltipContent(planeData) : '&nbsp;';
+    !isKioskMode() && operatorTooltipService && planeData
+      ? operatorTooltipService.getLeftTooltipContent(planeData)
+      : '&nbsp;';
   const operatorClasses =
     operatorTooltipService && planeData ? operatorTooltipService.getTooltipClasses(planeData) : '';
   const rightTooltipOptions = buildTooltipOptions(
@@ -97,13 +101,33 @@ export function createOrUpdatePlaneMarker(
     followed,
     operatorClasses
   );
+  const rightTipKey = tooltipBindKey(tooltipContent, rightTooltipOptions);
 
   const syncLeftTooltip = (markerInstance: L.Marker) => {
     if (leftTooltipContent && leftTooltipContent !== '&nbsp;') {
+      const prevLeft = (markerInstance as any).__paLeftTipKey as string | undefined;
+      const leftKey = tooltipBindKey(leftTooltipContent, leftTooltipOptions);
+      if (prevLeft === leftKey && (markerInstance as any).__leftMarker) {
+        return;
+      }
       createLeftMarker(markerInstance, map, leftTooltipContent, leftTooltipOptions);
+      (markerInstance as any).__paLeftTipKey = leftKey;
     } else {
       removeLeftMarker(markerInstance, map);
+      delete (markerInstance as any).__paLeftTipKey;
     }
+  };
+
+  const applyRightTooltip = (markerInstance: L.Marker) => {
+    const prevKey = (markerInstance as any).__paTipKey as string | undefined;
+    if (prevKey === rightTipKey && markerInstance.getTooltip()) {
+      return;
+    }
+    if (markerInstance.getTooltip()) {
+      markerInstance.unbindTooltip();
+    }
+    markerInstance.bindTooltip(tooltipContent, rightTooltipOptions);
+    (markerInstance as any).__paTipKey = rightTipKey;
   };
 
   if (oldMarker) {
@@ -140,13 +164,17 @@ export function createOrUpdatePlaneMarker(
     if (hasPositionChanged && animationsEnabled) {
       const animationDuration = Math.max(2, scanInterval * 0.95) * 1000;
       smoothLerpMarkerToPosition(oldMarker, currentLatLng, newLatLng, animationDuration);
-    } else {
+    } else if (hasPositionChanged) {
       oldMarker.setLatLng([lat, lon]);
     }
-    oldMarker.setIcon(icon);
+
+    const prevHtml = (oldMarker as any).__paMarkerHtml as string | undefined;
+    if (prevHtml !== markerHtml) {
+      oldMarker.setIcon(icon);
+      (oldMarker as any).__paMarkerHtml = markerHtml;
+    }
     oldMarker.setZIndexOffset(followed ? 10000 : 0);
-    if (oldMarker.getTooltip()) oldMarker.unbindTooltip();
-    oldMarker.bindTooltip(tooltipContent, rightTooltipOptions);
+    applyRightTooltip(oldMarker);
     syncLeftTooltip(oldMarker);
     wireMarkerHoverEvents(oldMarker);
     return { marker: oldMarker, isNewMarker: false };
@@ -154,7 +182,9 @@ export function createOrUpdatePlaneMarker(
 
   const marker = L.marker([lat, lon], { icon });
   (marker as any).__paLastAdsB = { lat, lon };
+  (marker as any).__paMarkerHtml = markerHtml;
   marker.bindTooltip(tooltipContent, rightTooltipOptions);
+  (marker as any).__paTipKey = rightTipKey;
   marker.addTo(map);
   if (altitude != null) {
     const tooltipEl = marker.getTooltip()?.getElement();
