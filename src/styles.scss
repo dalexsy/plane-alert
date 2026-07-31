@@ -38,7 +38,7 @@ body {
 
 // Magicmirror / Pi kiosk: always-on paint budget under software GL.
 // Product plane motion may be on; continuous blur/filters/rotor spin must not.
-// No !important — match/exceed component selector specificity (fleet lint).
+// Override via higher-specificity selectors (fleet lint forbids the important flag).
 body.kiosk-mode {
   .leaflet-tooltip.plane-tooltip,
   .leaflet-tooltip.airport-tooltip,
