@@ -122,3 +122,42 @@ export function tooltipBindKey(
 ): string {
   return `${content}\0${options.className ?? ''}\0${options.permanent ? 1 : 0}\0${options.direction ?? ''}`;
 }
+
+/** Rebind right tooltip only when content/options actually changed. */
+export function applyRightTooltipIfChanged(
+  markerInstance: L.Marker,
+  content: string,
+  options: L.TooltipOptions
+): void {
+  const key = tooltipBindKey(content, options);
+  const prevKey = (markerInstance as any).__paTipKey as string | undefined;
+  if (prevKey === key && markerInstance.getTooltip()) {
+    return;
+  }
+  if (markerInstance.getTooltip()) {
+    markerInstance.unbindTooltip();
+  }
+  markerInstance.bindTooltip(content, options);
+  (markerInstance as any).__paTipKey = key;
+}
+
+/** Create/update/remove left operator tooltip only when content/options changed. */
+export function syncLeftTooltipIfChanged(
+  markerInstance: L.Marker,
+  map: L.Map,
+  leftTooltipContent: string,
+  leftTooltipOptions: L.TooltipOptions
+): void {
+  if (!leftTooltipContent || leftTooltipContent === '&nbsp;') {
+    removeLeftMarker(markerInstance, map);
+    delete (markerInstance as any).__paLeftTipKey;
+    return;
+  }
+  const leftKey = tooltipBindKey(leftTooltipContent, leftTooltipOptions);
+  const prevLeft = (markerInstance as any).__paLeftTipKey as string | undefined;
+  if (prevLeft === leftKey && (markerInstance as any).__leftMarker) {
+    return;
+  }
+  createLeftMarker(markerInstance, map, leftTooltipContent, leftTooltipOptions);
+  (markerInstance as any).__paLeftTipKey = leftKey;
+}
