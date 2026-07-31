@@ -1,4 +1,21 @@
 {
+  "/api/dryl": {
+    "target": "https://admin.dryl.io",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/dryl": "/api"
+    },
+    "cookieDomainRewrite": "",
+    "headers": {
+      "Accept": "application/json"
+    }
+  },
+  "/api/client-errors": {
+    "target": "http://127.0.0.1:3905",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/nominatim": {
     "target": "https://nominatim.openstreetmap.org",
     "secure": true,
