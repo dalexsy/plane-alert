@@ -26,7 +26,7 @@ $followed-plane-color: #00ffff;
   &.has-details {
     background: rgba(0, 0, 0, 0.9);
     border-radius: 3px;
-    padding: 0.125rem 0.35rem;
+    padding: 0.125rem 0.375rem;
     border: 2px solid #333;
     margin-bottom: var(--space-xs); // gap-ok: offset tooltip body above callout arrow
     box-shadow: 0 1px 3px rgb(0 0 0);
