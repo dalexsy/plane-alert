@@ -108,6 +108,14 @@ yield_kiosk_to_balcony() {
   done < <(pgrep -f "${KIOSK_MATCH}" 2>/dev/null || true)
 }
 
+# Berlin civil hour 22–07: never full-restart Chromium (bright bedroom flash).
+# Matches planes quiet-hours + daytime-only restart timer policy.
+is_quiet_hours() {
+  local hour
+  hour="$(TZ=Europe/Berlin date +%H | sed 's/^0//')"
+  [ "${hour:-0}" -ge 22 ] || [ "${hour:-0}" -lt 7 ]
+}
+
 do_restart() {
   local reason="$1"
   if ! can_restart "${reason}"; then
@@ -116,6 +124,12 @@ do_restart() {
   fi
   if [ ! -S "${WAYLAND_SOCK}" ]; then
     log "skip restart (no wayland): ${reason}"
+    return 0
+  fi
+  # Overnight: never flash the Kallax (auth recover, missing process, noon, etc.).
+  # Cookie heal / tunnel heal still run elsewhere without killing Chromium.
+  if is_quiet_hours; then
+    log "skip restart (quiet hours 22:00-07:00 Berlin): ${reason}"
     return 0
   fi
   # Soft reasons never full-reload Chromium (home flash storm). Cookie/data

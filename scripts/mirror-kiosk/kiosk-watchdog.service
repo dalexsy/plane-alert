@@ -1,0 +1,14 @@
+[Unit]
+Description=planes kiosk auth-recovery watchdog (daytime Chromium restart only)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/pi/kiosk-watchdog.sh
+Restart=always
+RestartSec=10
+Environment=KIOSK_WATCHDOG_URL=https://admin.dryl.io/
+Environment=KIOSK_WATCHDOG_AUTH=http://127.0.0.1:8790/health
+
+[Install]
+WantedBy=default.target

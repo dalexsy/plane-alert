@@ -17,6 +17,8 @@ FILES = {
     "planes-kiosk-session.py": Path("/home/pi/bin/planes-kiosk-session.py"),
     "planes-kiosk-restart.sh": Path("/usr/local/sbin/planes-kiosk-restart.sh"),
     "planes-kiosk-watch.sh": Path("/usr/local/sbin/planes-kiosk-watch.sh"),
+    "kiosk-watchdog.sh": Path("/home/pi/kiosk-watchdog.sh"),
+    "kiosk-watchdog.service": Path("/home/pi/.config/systemd/user/kiosk-watchdog.service"),
     "planes-kiosk.desktop": Path("/home/pi/.config/autostart/planes-kiosk.desktop"),
     "planes-kiosk.service": Path("/home/pi/.config/systemd/user/planes-kiosk.service"),
     "planes-kiosk-watch.service": Path("/etc/systemd/system/planes-kiosk-watch.service"),
@@ -53,13 +55,16 @@ def main() -> None:
         install_cmds = """
 set -euo pipefail
 mkdir -p /home/pi/bin /home/pi/.config/autostart /home/pi/.config/systemd/user /home/pi/.config/planes-kiosk
-for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-restart.sh planes-kiosk-watch.sh; do
+for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-restart.sh planes-kiosk-watch.sh kiosk-watchdog.sh; do
   sed -i 's/\\r$//' /tmp/$f
 done
 install -m 755 /tmp/planes-kiosk.sh /home/pi/bin/planes-kiosk.sh
 install -m 755 /tmp/planes-kiosk-session.py /home/pi/bin/planes-kiosk-session.py
 sudo install -m 755 /tmp/planes-kiosk-restart.sh /usr/local/sbin/planes-kiosk-restart.sh
 sudo install -m 755 /tmp/planes-kiosk-watch.sh /usr/local/sbin/planes-kiosk-watch.sh
+# Live path is /home/pi/kiosk-watchdog.sh (user service); keep that path.
+install -m 755 /tmp/kiosk-watchdog.sh /home/pi/kiosk-watchdog.sh
+install -m 644 /tmp/kiosk-watchdog.service /home/pi/.config/systemd/user/kiosk-watchdog.service
 install -m 644 /tmp/planes-kiosk.desktop /home/pi/.config/autostart/planes-kiosk.desktop
 install -m 644 /tmp/planes-kiosk.service /home/pi/.config/systemd/user/planes-kiosk.service
 install -m 644 /tmp/credentials.env.example /home/pi/.config/planes-kiosk/credentials.env.example
@@ -85,7 +90,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now planes-kiosk-watch.timer
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user daemon-reload
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user enable planes-kiosk.service
+sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user enable --now kiosk-watchdog.service
 systemctl is-active planes-kiosk-watch.timer
+sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user is-active kiosk-watchdog.service || true
 """
         if args.launch:
             finish_cmds += "\n/usr/local/sbin/planes-kiosk-restart.sh || true\n"
