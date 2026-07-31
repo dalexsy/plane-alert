@@ -38,25 +38,26 @@ body {
 
 // Magicmirror / Pi kiosk: always-on paint budget under software GL.
 // Product plane motion may be on; continuous blur/filters/rotor spin must not.
+// No !important — match/exceed component selector specificity (fleet lint).
 body.kiosk-mode {
   .leaflet-tooltip.plane-tooltip,
   .leaflet-tooltip.airport-tooltip,
+  .leaflet-tooltip.plane-tooltip.leaflet-tooltip-left,
   .plane-label.has-details,
   .operator-logo-tooltip,
   .app-tooltip,
-  .closest-plane-overlay,
-  .angle-overlay {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+  .closest-plane-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   // Continuous rotor spin is decorative always-on cost — keep position transitions.
-  .plane-marker.copter-plane::before,
-  .copter-plane-icon {
-    animation: none !important;
+  .plane-marker-container .plane-marker.copter-plane::before,
+  .plane-dot .copter-plane-icon {
+    animation: none;
   }
 
-  .plane-marker {
+  .plane-marker-container .plane-marker {
     // Prefer cheap transforms; never leave will-change promoted idle layers.
     will-change: auto;
   }
