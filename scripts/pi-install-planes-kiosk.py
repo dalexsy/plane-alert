@@ -15,6 +15,7 @@ from pi_dryl_common import connect_pi, magicmirror_settings, run_remote  # noqa:
 FILES = {
     "planes-kiosk.sh": Path("/home/pi/bin/planes-kiosk.sh"),
     "planes-kiosk-session.py": Path("/home/pi/bin/planes-kiosk-session.py"),
+    "planes-kiosk-page-heal.py": Path("/usr/local/sbin/planes-kiosk-page-heal.py"),
     "planes-kiosk-restart.sh": Path("/usr/local/sbin/planes-kiosk-restart.sh"),
     "planes-kiosk-watch.sh": Path("/usr/local/sbin/planes-kiosk-watch.sh"),
     "kiosk-watchdog.sh": Path("/home/pi/kiosk-watchdog.sh"),
@@ -55,11 +56,12 @@ def main() -> None:
         install_cmds = """
 set -euo pipefail
 mkdir -p /home/pi/bin /home/pi/.config/autostart /home/pi/.config/systemd/user /home/pi/.config/planes-kiosk
-for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-restart.sh planes-kiosk-watch.sh kiosk-watchdog.sh; do
+for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-page-heal.py planes-kiosk-restart.sh planes-kiosk-watch.sh kiosk-watchdog.sh; do
   sed -i 's/\\r$//' /tmp/$f
 done
 install -m 755 /tmp/planes-kiosk.sh /home/pi/bin/planes-kiosk.sh
 install -m 755 /tmp/planes-kiosk-session.py /home/pi/bin/planes-kiosk-session.py
+sudo install -m 755 /tmp/planes-kiosk-page-heal.py /usr/local/sbin/planes-kiosk-page-heal.py
 sudo install -m 755 /tmp/planes-kiosk-restart.sh /usr/local/sbin/planes-kiosk-restart.sh
 sudo install -m 755 /tmp/planes-kiosk-watch.sh /usr/local/sbin/planes-kiosk-watch.sh
 # Live path is /home/pi/kiosk-watchdog.sh (user service); keep that path.

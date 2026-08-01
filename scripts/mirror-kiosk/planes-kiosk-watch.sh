@@ -442,4 +442,11 @@ else
   echo 0 >"${CPU_STRIKES_FILE}" 2>/dev/null || true
 fi
 
+# Soft-heal about:blank / empty app-root without killing Chromium (no bedroom flash).
+if [ "${internet_up}" -eq 1 ] && [ -x /usr/local/sbin/planes-kiosk-page-heal.py ]; then
+  python3 /usr/local/sbin/planes-kiosk-page-heal.py 2>&1 | logger -t planes-kiosk-watch || true
+elif [ "${internet_up}" -eq 1 ] && [ -x /home/pi/bin/planes-kiosk-page-heal.py ]; then
+  python3 /home/pi/bin/planes-kiosk-page-heal.py 2>&1 | logger -t planes-kiosk-watch || true
+fi
+
 yield_kiosk_to_balcony
