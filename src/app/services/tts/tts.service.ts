@@ -11,8 +11,8 @@ import {
  * Browser speechSynthesis requires a user gesture before autoplay.
  * Auto-announce without gesture throws TTS Error: not-allowed (console spam).
  * Kiosk (?kiosk=1) never gets a gesture — unlock immediately there.
- * Background tabs / unfocused PWA must still announce — that is the product.
- * A fully closed window has no document, so it cannot speak (browser rule).
+ * Never speak for a background/hidden tab — cancel mid-utterance on hide/unload
+ * (users were still hearing A400/RAF lines after “closing” the app).
  */
 @Injectable({ providedIn: 'root' })
 export class TtsService {
@@ -30,6 +30,7 @@ export class TtsService {
     } else {
       this.armUserGestureUnlock();
     }
+    this.armSilenceOnHide();
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -42,6 +43,29 @@ export class TtsService {
       (window as any).testGermanTTS = () => this.testGerman();
       (window as any).listTTSVoices = () => this.listAvailableVoices();
     }
+  }
+
+  /** Drop queue + cancel engine when tab is not foreground. */
+  private armSilenceOnHide(): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const silence = () => {
+      if (document.visibilityState === 'hidden' || document.hidden) {
+        this.cancelAll();
+      }
+    };
+    const unload = () => this.cancelAll();
+    document.addEventListener('visibilitychange', silence);
+    window.addEventListener('pagehide', unload);
+    window.addEventListener('beforeunload', unload);
+  }
+
+  private pageIsForeground(): boolean {
+    if (typeof document === 'undefined') return false;
+    if (isKioskMode()) return true;
+    if (typeof document.visibilityState === 'string') {
+      return document.visibilityState === 'visible';
+    }
+    return !document.hidden;
   }
 
   private armUserGestureUnlock(): void {
@@ -79,11 +103,22 @@ export class TtsService {
     if (!this.userUnlocked) {
       return;
     }
+    // Background / closed tab: never start (and cancelAll on hide already ran)
+    if (!this.pageIsForeground()) {
+      this.speechQueue.length = 0;
+      this.isCurrentlySpeaking = false;
+      return;
+    }
 
     window.speechSynthesis.cancel();
     this.isCurrentlySpeaking = true;
 
     setTimeout(() => {
+      if (!this.pageIsForeground()) {
+        this.isCurrentlySpeaking = false;
+        this.speechQueue.length = 0;
+        return;
+      }
       const processedText = preprocessTextForSpeech(text);
       const utterance = new SpeechSynthesisUtterance(processedText);
       utterance.rate = 1.0;
@@ -127,6 +162,7 @@ export class TtsService {
     if (this.spokenKeys.has(key)) return;
     this.spokenKeys.add(key);
     if (!this.userUnlocked) return;
+    if (!this.pageIsForeground()) return;
     if (this.isCurrentlySpeaking) {
       this.speechQueue.push({ key, text, lang });
     } else {
@@ -135,6 +171,10 @@ export class TtsService {
   }
 
   private processQueue(): void {
+    if (!this.pageIsForeground()) {
+      this.speechQueue.length = 0;
+      return;
+    }
     if (this.speechQueue.length > 0 && !this.isCurrentlySpeaking) {
       const next = this.speechQueue.shift();
       if (next) this.speakImmediately(next.text, next.lang);
