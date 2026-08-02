@@ -1,8 +1,8 @@
 {
   "service": "planes-api",
   "version": "2026.7.17",
-  "gitSha": "e09234fd9d4df84573b3efd04edb49976ee960ca",
-  "gitShaShort": "e09234fd9d4d",
-  "builtAt": "2026-07-22T09:28:33.666Z",
+  "gitSha": "403323817fbb5d5d0e7730718baa2149fc593278",
+  "gitShaShort": "403323817fbb",
+  "builtAt": "2026-08-02T14:42:16.708Z",
   "branch": "main"
 }

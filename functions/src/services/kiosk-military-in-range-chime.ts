@@ -7,6 +7,7 @@
  * ring fills so magicmirror hears visits phones would push from another center.
  *
  * Chime once per visit; ack only after pw-play exit 0 (or quiet-hours absorb).
+ * Prune uses the union of all homes + grace — never per-home hard drop.
  */
 import { logger } from 'firebase-functions/v2';
 import type { AdsBPlane } from '@plane-alert/shared';
@@ -26,6 +27,7 @@ import {
   isKioskInRangeAcked,
   pruneKioskInRangeAcked,
   takeKioskBootAbsorb,
+  touchKioskInRange,
 } from './kiosk-in-range-edge-state';
 import { getSpaAircraftModel } from './kiosk-spa-military-lookup';
 import {
@@ -51,12 +53,27 @@ function mergeAircraftByHex(
   return [...byHex.values()];
 }
 
+type PendingChime = {
+  icao: string;
+  model: string;
+};
+
 export async function chimeKioskForMilitaryInRange(
   docs: Array<{ id: string; data: DeviceRegistration }>,
   aircraftCache: Map<string, CachedAircraftSnapshot>,
 ): Promise<void> {
   const scannedKeys = new Set<string>();
   const bootAbsorb = takeKioskBootAbsorb();
+  /** Union of alertable ICAOs across every home — single prune at end. */
+  const allAlertIcaos = new Set<string>();
+  const pendingByIcao = new Map<string, PendingChime>();
+  const locationSummaries: Array<{
+    locationKey: string;
+    count: number;
+    icaos: string[];
+    milFeedAdded: number;
+    ringAdded: number;
+  }> = [];
 
   for (const entry of docs) {
     const loc = getDeviceLocation(entry.data);
@@ -89,7 +106,6 @@ export async function chimeKioskForMilitaryInRange(
     );
 
     const alertIcaos: string[] = [];
-    const newVisitIcaos: string[] = [];
     for (const plane of aircraft) {
       const icao = plane.hex?.toUpperCase();
       if (!icao) continue;
@@ -106,37 +122,61 @@ export async function chimeKioskForMilitaryInRange(
         plane.lon,
       );
       if (distanceKm > radiusKm) continue;
+
       alertIcaos.push(icao);
+      allAlertIcaos.add(icao);
+      touchKioskInRange(icao);
+
       if (bootAbsorb) {
         ackKioskInRange(icao);
         continue;
       }
       if (isKioskInRangeAcked(icao)) continue;
-      newVisitIcaos.push(icao);
+      if (pendingByIcao.has(icao)) continue;
+
       const model =
         plane.desc?.trim() ||
         getSpaAircraftModel(icao) ||
         plane.t?.trim() ||
         '';
-      playKioskAlertSound(icao, 'military-in-range', {
-        model,
-        onPlayed: () => ackKioskInRange(icao),
-      });
+      pendingByIcao.set(icao, { icao, model });
     }
 
-    pruneKioskInRangeAcked(alertIcaos);
-
     if (alertIcaos.length) {
-      logger.info('Kiosk chime candidates in range', {
+      locationSummaries.push({
         locationKey: key,
         count: alertIcaos.length,
-        newVisits: newVisitIcaos.length,
-        bootAbsorb,
         icaos: alertIcaos.slice(0, 8),
-        newIcaos: newVisitIcaos.slice(0, 8),
         milFeedAdded: milInRadius.length,
         ringAdded: ringAircraft.length,
       });
     }
+  }
+
+  // One prune for the union of all homes. Empty union still only expires after
+  // grace — a total feed miss for one cycle must not re-arm every visit.
+  pruneKioskInRangeAcked(allAlertIcaos);
+
+  const newVisitIcaos: string[] = [];
+  for (const pending of pendingByIcao.values()) {
+    // Re-check after prune/touch — should still be unacked for new visits.
+    if (isKioskInRangeAcked(pending.icao)) continue;
+    newVisitIcaos.push(pending.icao);
+    playKioskAlertSound(pending.icao, 'military-in-range', {
+      model: pending.model,
+      onPlayed: () => ackKioskInRange(pending.icao),
+    });
+  }
+
+  if (allAlertIcaos.size || newVisitIcaos.length) {
+    logger.info('Kiosk chime candidates in range', {
+      homes: locationSummaries.length,
+      count: allAlertIcaos.size,
+      newVisits: newVisitIcaos.length,
+      bootAbsorb,
+      icaos: [...allAlertIcaos].slice(0, 8),
+      newIcaos: newVisitIcaos.slice(0, 8),
+      locations: locationSummaries.slice(0, 4),
+    });
   }
 }
