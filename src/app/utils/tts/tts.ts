@@ -19,6 +19,10 @@ armUnlock();
 export function playTTS(text: string): void {
   if (!('speechSynthesis' in window)) return;
   if (!userUnlocked) return;
+  if (typeof document !== 'undefined') {
+    if (document.hidden) return;
+    if (typeof document.hasFocus === 'function' && !document.hasFocus()) return;
+  }
   const synth = window.speechSynthesis;
   let voices = synth.getVoices();
   const speak = () => {

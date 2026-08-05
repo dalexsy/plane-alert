@@ -6,25 +6,32 @@ import {
 
 export type TtsQueueItem = { key: string; text: string; lang?: string };
 
+/**
+ * Speak only when this document is the focused window.
+ * Installed PWAs stay "visible" on another virtual desktop / behind apps —
+ * visibility alone caused ghost military TTS with no tab in Chrome's strip.
+ */
 export function pageIsForeground(): boolean {
   if (typeof document === 'undefined') return false;
   if (isKioskMode()) return true;
-  if (typeof document.visibilityState === 'string') {
-    return document.visibilityState === 'visible';
+  if (typeof document.visibilityState === 'string' && document.visibilityState !== 'visible') {
+    return false;
   }
-  return !document.hidden;
+  if (document.hidden) return false;
+  if (typeof document.hasFocus === 'function' && !document.hasFocus()) return false;
+  return true;
 }
 
 export function armSilenceOnHide(cancelAll: () => void): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   const silence = () => {
-    if (document.visibilityState === 'hidden' || document.hidden) {
-      cancelAll();
-    }
+    if (!pageIsForeground()) cancelAll();
   };
   document.addEventListener('visibilitychange', silence);
+  window.addEventListener('blur', silence);
   window.addEventListener('pagehide', cancelAll);
   window.addEventListener('beforeunload', cancelAll);
+  window.addEventListener('freeze', cancelAll);
 }
 
 export function armUserGestureUnlock(onUnlock: () => void): void {
