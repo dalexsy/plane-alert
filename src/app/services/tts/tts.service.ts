@@ -14,7 +14,9 @@ import {
 
 /**
  * Browser speechSynthesis requires a user gesture before autoplay.
- * Kiosk (?kiosk=1) unlocks immediately. Never speak for a background tab.
+ * Kiosk (?kiosk=1) unlocks immediately.
+ * Non-kiosk: unlock is cleared whenever the page backgrounds — Chrome can keep
+ * an installed PWA running after the window is closed ("background apps").
  */
 @Injectable({ providedIn: 'root' })
 export class TtsService {
@@ -24,17 +26,16 @@ export class TtsService {
   private isCurrentlySpeaking = false;
   private voicesInitialized = false;
   private userUnlocked = false;
+  private disarmGesture: (() => void) | null = null;
 
   constructor() {
     this.initializeVoices();
     if (isKioskMode()) {
       this.userUnlocked = true;
     } else {
-      armUserGestureUnlock(() => {
-        this.userUnlocked = true;
-      });
+      this.armGesture();
     }
-    armSilenceOnHide(() => this.cancelAll());
+    armSilenceOnHide(() => this.lockAfterBackground());
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -45,6 +46,21 @@ export class TtsService {
       (window as any).testGermanTTS = () => this.testGerman();
       (window as any).listTTSVoices = () => this.listAvailableVoices();
     }
+  }
+
+  private armGesture(): void {
+    this.disarmGesture?.();
+    this.disarmGesture = armUserGestureUnlock(() => {
+      this.userUnlocked = true;
+    });
+  }
+
+  /** Closed/background PWA must not keep a prior click's unlock forever. */
+  private lockAfterBackground(): void {
+    this.cancelAll();
+    if (isKioskMode()) return;
+    this.userUnlocked = false;
+    this.armGesture();
   }
 
   private initializeVoices(): void {

@@ -7,9 +7,9 @@ import {
 export type TtsQueueItem = { key: string; text: string; lang?: string };
 
 /**
- * Speak only when this document is the focused window.
- * Installed PWAs stay "visible" on another virtual desktop / behind apps —
- * visibility alone caused ghost military TTS with no tab in Chrome's strip.
+ * Speak only when this document is the focused, visible window.
+ * Closed-looking PWAs can still run under Chrome "background apps" —
+ * visibility alone is not enough; require focus and re-lock after hide.
  */
 export function pageIsForeground(): boolean {
   if (typeof document === 'undefined') return false;
@@ -27,15 +27,18 @@ export function armSilenceOnHide(cancelAll: () => void): void {
   const silence = () => {
     if (!pageIsForeground()) cancelAll();
   };
+  // Closed PWA / background-apps: always hard-stop (do not wait for visibility quirks)
+  const hardStop = () => cancelAll();
   document.addEventListener('visibilitychange', silence);
   window.addEventListener('blur', silence);
-  window.addEventListener('pagehide', cancelAll);
-  window.addEventListener('beforeunload', cancelAll);
-  window.addEventListener('freeze', cancelAll);
+  window.addEventListener('pagehide', hardStop);
+  window.addEventListener('beforeunload', hardStop);
+  window.addEventListener('freeze', hardStop);
 }
 
-export function armUserGestureUnlock(onUnlock: () => void): void {
-  if (typeof window === 'undefined') return;
+/** Re-arm gesture unlock after background re-lock (once-per listeners). */
+export function armUserGestureUnlock(onUnlock: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
   const unlock = () => {
     onUnlock();
     window.removeEventListener('pointerdown', unlock);
@@ -45,6 +48,11 @@ export function armUserGestureUnlock(onUnlock: () => void): void {
   window.addEventListener('pointerdown', unlock, { once: true, passive: true });
   window.addEventListener('keydown', unlock, { once: true });
   window.addEventListener('touchend', unlock, { once: true, passive: true });
+  return () => {
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchend', unlock);
+  };
 }
 
 /** Speak one utterance; returns whether speech was started. */
