@@ -330,6 +330,18 @@ if ! check_lan; then
 fi
 echo 0 >"${LAN_FAIL_FILE}" 2>/dev/null || true
 
+# When planes-kiosk.service is disabled/inactive, never resurrect Chromium.
+# Orphan kiosk processes starve balcony /watch on this 2GB Pi (2026-08-05).
+if ! systemctl is-enabled --quiet planes-kiosk.service 2>/dev/null \
+  && ! systemctl is-active --quiet planes-kiosk.service 2>/dev/null; then
+  if kiosk_chromium_running; then
+    log "planes-kiosk disabled — stopping orphan chromium for balcony headroom"
+    pkill -f "${KIOSK_MATCH}" 2>/dev/null || true
+  fi
+  yield_kiosk_to_balcony
+  exit 0
+fi
+
 if [ ! -S "${WAYLAND_SOCK}" ]; then
   log "no wayland session yet"
   exit 0
