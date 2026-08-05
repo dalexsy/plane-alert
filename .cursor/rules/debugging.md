@@ -48,7 +48,7 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 - **2026-07-18** — Do not ship kiosk quiet as **7am–10pm** (daytime mute). That silences magicmirror while phones still alert (`isKioskQuietHours` is kiosk-only) — matches “speaker OK, only kiosk silent”. Correct window is **22:00–07:00** Berlin (sleep). After flipping, `npm run
 - **2026-07-18** — Kiosk MP3 alerts must use `plane.isMilitary` (DB **or** callsign prefix), not DB-mil alone. Phones still “make sound” via TTS for prefix-military; kiosk skips TTS, so DB-only MP3 checks look like “only the kiosk is silent”.
 - **2026-07-18** — Do not early-return `playAudio` while another HTMLAudioElement is still playing. Session chirp (or any prior MP3) + one-shot `isNew` means the military plane alert is dropped forever on kiosk; phones still TTS. Interrupt the in-flight MP3 instead.
-- **2026-08-05** — Ghost military TTS with “no tab / PWA not open”: Chrome can keep **installed PlaneAlert** (`PlaneAlert.lnk`, app-id `oiojfjanafclfaakpadhhjebhfiodfma`) JS alive after the window closes (“Continue running background apps”). Not a visible tab. Fix: require **hasFocus**, cancel+**re-lock gesture** on hide/blur/pagehide — do **not** strip TTS; uninstall PWA or disable Chrome background apps if still unwanted. Do not insist a Chrome tab is open.
+- **2026-08-05** — Ghost/wrong TTS (helicopters, mlat, closed PWA): **remove speechSynthesis** — keep MP3 alert sounds only. Do not try more focus/visibility gates; product decision is TTS off.
 - **2026-07-17** — Superseded 2026-08-05: “only mute when fully closed / visibility OK for background alerts” caused ghost PWA speech. Kiosk still bypasses focus; phones/desktop need focus.
 - **2026-07-15** — Mobile options/results “fixed” by only editing `input-overlay.component.scss` / `results-overlay.component.scss` max-height, then declaring done from smoke screenshots that **still showed the expanded sheet covering half the map**. **Root causes left live:** (1
 - **2026-07-11** — Do not deploy `feature/notifications` (or any non-`main` worktree build) to production. Bundle `main-YKWORA5P.js` called `cloudfunctions.net` → CORS/`ERR_FAILED` flood; Pi only serves `/api/planes/*`. Do not bypass deploy QA (`--no-verify-client-errors`, direct
@@ -66,15 +66,15 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 |--------|-------|
 | Typical (median) | 115s |
 | p75 | 136s |
-| p90 | 149s |
-| Last deploy | 136s |
-| Samples | 15 |
+| p90 | 180s |
+| Last deploy | 194s |
+| Samples | 16 |
 
-- **Agent shell wait:** use `block_until_ms` **179178** (~179s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **182816** (~183s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-08-05T09:56:34Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-05T10:10:30Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
