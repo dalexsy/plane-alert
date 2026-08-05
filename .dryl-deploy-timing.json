@@ -2,9 +2,9 @@
   "project": "plane-alert",
   "medianMs": 115049,
   "p75Ms": 135680,
-  "p90Ms": 149253,
-  "lastElapsedMs": 135680,
-  "agentWaitMs": 179178,
-  "sampleCount": 15,
-  "updatedAt": "2026-08-05T09:56:34.584Z"
+  "p90Ms": 180385,
+  "lastElapsedMs": 194072,
+  "agentWaitMs": 182816,
+  "sampleCount": 16,
+  "updatedAt": "2026-08-05T10:10:30.953Z"
 }

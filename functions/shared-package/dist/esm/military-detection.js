@@ -2,7 +2,7 @@
  * Military aircraft detection and classification logic
  */
 import { getAircraftTypeName } from './aircraft-type-names';
-import { hasMeaningfulAircraftModel, isLikelyHelicopter, } from './military-helicopter';
+import { hasMeaningfulAircraftModel, isJunkAircraftIdentityToken, isLikelyHelicopter, } from './military-helicopter';
 /**
  * Boring aircraft types to skip (trainers, transports, business jets used by military)
  * These are not interesting for notifications even though they might be military-operated
@@ -258,7 +258,10 @@ export function shouldSkipBoringMilitaryFilter(plane) {
     return INTERESTING_BORING_OVERRIDE_DESC.test(desc);
 }
 function getNormalizedTypeCode(plane) {
-    return (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+    const raw = (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+    if (!raw || isJunkAircraftIdentityToken(raw))
+        return '';
+    return raw;
 }
 function matchesBoringAircraftTypeOrDesc(normalizedType, desc) {
     if (normalizedType &&
@@ -299,7 +302,19 @@ export function isBoringMilitaryAircraft(plane) {
         return true;
     }
     const normalizedType = getNormalizedTypeCode(plane);
-    const desc = (plane.desc || '').trim();
+    // Junk identity only (mlat / unknown) — treat like untyped mil transports.
+    const rawDesc = (plane.desc || '').trim();
+    const desc = isJunkAircraftIdentityToken(rawDesc) ? '' : rawDesc;
+    if (!normalizedType && !desc && !hasMeaningfulAircraftModel(plane)) {
+        if (normalizeCallsign(callsign).startsWith('USAF'))
+            return true;
+        if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+            return false;
+        }
+        if (plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign)) {
+            return true;
+        }
+    }
     // Boring airliner types (A332, B738, …) win over MRTT/MMF overrides — an A330
     // MRTT is still a normal transport, not an interesting military sighting.
     if (matchesBoringAircraftTypeOrDesc(normalizedType, desc)) {

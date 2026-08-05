@@ -7,13 +7,23 @@ function normalizeCallsignLocal(value) {
         return '';
     return value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 }
+/** ADS-B filler tokens that look like a type/model but are not a real aircraft. */
+export function isJunkAircraftIdentityToken(value) {
+    const raw = (value || '').trim();
+    if (!raw)
+        return true;
+    const v = raw.toUpperCase().replace(/[-\s_/]/g, '');
+    if (!v)
+        return true;
+    return /^(MLAT|ADSB|ADSBICAO|ADSBICAONT|UNKNOWN|NONE|NA|N\/A|HELICOPTER|OTHER|NULL|UNDEFINED)$/.test(v);
+}
 /** ADS-B emitter category A7 = rotorcraft. */
 export function isHelicopterCategory(category) {
     return (category || '').trim().toUpperCase() === 'A7';
 }
 /** ICAO type designators that are rotorcraft. */
 export function isHelicopterTypeCode(icaoType) {
-    if (!icaoType)
+    if (!icaoType || isJunkAircraftIdentityToken(icaoType))
         return false;
     const t = icaoType.trim().toUpperCase().replace(/[-\s]/g, '');
     if (!t)
@@ -47,15 +57,17 @@ export function isHelicopterCallsign(callsign) {
 }
 /**
  * True when we have a real type code or a descriptive model name.
- * SPA placeholder "Helicopter" (set when rotorcraft is detected without a model)
- * does not count.
+ * SPA placeholder "Helicopter" and ADS-B junk (mlat, unknown, …) do not count.
  */
 export function hasMeaningfulAircraftModel(plane) {
     const type = (plane.t || plane.type || '').trim();
-    if (type)
+    if (type && !isJunkAircraftIdentityToken(type) && !/^helicopter$/i.test(type)) {
         return true;
+    }
     const desc = (plane.desc || '').trim();
     if (!desc)
+        return false;
+    if (isJunkAircraftIdentityToken(desc))
         return false;
     if (/^helicopter$/i.test(desc))
         return false;
