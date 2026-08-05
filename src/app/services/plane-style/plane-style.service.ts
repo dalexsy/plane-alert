@@ -27,7 +27,7 @@ export class PlaneStyleService {
     }
     const milGreen =
       plane.isMilitaryAlertWorthy === false
-        ? 'rgba(137, 209, 56, 0.5)'
+        ? 'rgba(137, 209, 56, 0.7)'
         : '#89d138';
     // Followed plane overrides most other states except military
     if (isFollowed) {

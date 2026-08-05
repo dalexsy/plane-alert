@@ -30,7 +30,8 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 
 ## Failed experiments (do not repeat)
 
-- **2026-07-31** — Kiosk CPU / infrastructure stall: do **not** blame plane-motion animations (probe had `runningAnims:0` while Chromium still #1). Root was always-on paint: permanent tooltips with `backdrop-filter: blur`, per-marker `filter: drop-shadow`, dual left tooltips, full setIcon+rebind every scan under `--use-gl=swiftshader --disable-gpu`. Do not re-enable continuous rain/swallow/leaf RAF on kiosk; product plane motion can stay on after blur/filters are killed.
+- **2026-08-05** — Kiosk “animations on” + window labels without chrome: force **effectiveAnimationsEnabled=false** on kiosk (do not leave product motion on). Window `.plane-label` must always have solid `rgba(0,0,0,0.9)` bg — `has-details` only at ≤10km left close-by planes (e.g. Voodoo ~11km) as bare text. Treat **mlat/unknown** as junk identity (not alert-worthy). Muted mil green use **0.7** not 0.5.
+- **2026-07-31** — Kiosk CPU / infrastructure stall: do **not** blame plane-motion alone. Root was always-on paint: permanent tooltips with `backdrop-filter: blur`, per-marker `filter: drop-shadow`, dual left tooltips under swiftshader. Decorative RAF stays off; **2026-08-05** also forces product motion off on kiosk.
 - **2026-07-27** — `npm test -- --watch=false` could not start because button/input specs had malformed `from (from)` imports and rain passed null to a string API; fix the test sources, never treat a green production build as unit-test proof
 - **2026-07-18** — Kiosk silent after “newly-in-range” edge state (`6882043`): persisting ICAOs to `kiosk-chime-in-range-state.json` **before** pw-play exit 0 meant a failed/silent spawn never retried while the plane stayed in radius (same bug class as cooldown-before-success). A
 - **2026-07-18** — Empty-list / “nothing mil” SPA sounds: do **not** call reboot chirp the fix. Real gaps: (1) A380 model alert without mil; (2) Hercules/A400 model alerts without mil/special; (3) seen-ICAO seed in **sessionStorage** wiped by daytime kiosk restart Session Storage
@@ -64,16 +65,16 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 | Metric | Value |
 |--------|-------|
 | Typical (median) | 115s |
-| p75 | 126s |
+| p75 | 136s |
 | p90 | 149s |
-| Last deploy | 146s |
-| Samples | 14 |
+| Last deploy | 136s |
+| Samples | 15 |
 
-- **Agent shell wait:** use `block_until_ms` **170649** (~171s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **179178** (~179s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-08-05T09:22:27Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-05T09:56:34Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 

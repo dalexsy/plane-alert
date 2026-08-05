@@ -6,6 +6,7 @@ import type { AdsBPlane } from './types';
 import { getAircraftTypeName } from './aircraft-type-names';
 import {
   hasMeaningfulAircraftModel,
+  isJunkAircraftIdentityToken,
   isLikelyHelicopter,
 } from './military-helicopter';
 
@@ -276,7 +277,9 @@ export function shouldSkipBoringMilitaryFilter(plane: AdsBPlane): boolean {
 }
 
 function getNormalizedTypeCode(plane: AdsBPlane): string {
-  return (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+  const raw = (plane.t || plane.type || '').toUpperCase().replace(/[-\s]/g, '');
+  if (!raw || isJunkAircraftIdentityToken(raw)) return '';
+  return raw;
 }
 
 function matchesBoringAircraftTypeOrDesc(
@@ -330,7 +333,18 @@ export function isBoringMilitaryAircraft(plane: AdsBPlane): boolean {
   }
 
   const normalizedType = getNormalizedTypeCode(plane);
-  const desc = (plane.desc || '').trim();
+  // Junk identity only (mlat / unknown) — treat like untyped mil transports.
+  const rawDesc = (plane.desc || '').trim();
+  const desc = isJunkAircraftIdentityToken(rawDesc) ? '' : rawDesc;
+  if (!normalizedType && !desc && !hasMeaningfulAircraftModel(plane)) {
+    if (normalizeCallsign(callsign).startsWith('USAF')) return true;
+    if (isMilitaryCallsign(callsign) && !isBoringMilitaryCallsign(callsign)) {
+      return false;
+    }
+    if (plane.mil === true || plane.dbFlags === 1 || isMilitaryCallsign(callsign)) {
+      return true;
+    }
+  }
 
   // Boring airliner types (A332, B738, …) win over MRTT/MMF overrides — an A330
   // MRTT is still a normal transport, not an interesting military sighting.

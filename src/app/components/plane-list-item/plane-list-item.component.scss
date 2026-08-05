@@ -39,11 +39,11 @@
 
   // Non-alertworthy mil (boring trainers, model-less rescue helis) — muted green.
   &.military-muted {
-    color: color-mix(in srgb, t.$color-military 50%, transparent);
+    color: color-mix(in srgb, t.$color-military 70%, transparent);
     @include t.border-with-compensation(
       left,
       t.$border-width-thick,
-      color-mix(in srgb, t.$color-military 50%, transparent)
+      color-mix(in srgb, t.$color-military 70%, transparent)
     );
     @include t.color-mix-background(t.$color-military, 8%);
 
@@ -74,11 +74,11 @@
     @include t.gradient-background(t.$color-military);
 
     &.military-muted {
-      color: color-mix(in srgb, t.$color-military 50%, transparent);
+      color: color-mix(in srgb, t.$color-military 70%, transparent);
       @include t.border-with-compensation(
         left,
         t.$border-width-medium,
-        color-mix(in srgb, t.$color-military 50%, transparent)
+        color-mix(in srgb, t.$color-military 70%, transparent)
       );
       background: linear-gradient(
         90deg,

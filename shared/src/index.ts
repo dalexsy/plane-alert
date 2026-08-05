@@ -40,6 +40,7 @@ export {
 export {
   isLikelyHelicopter,
   hasMeaningfulAircraftModel,
+  isJunkAircraftIdentityToken,
   isHelicopterCallsign,
   isHelicopterCategory,
   isHelicopterTypeCode,

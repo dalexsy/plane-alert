@@ -23,42 +23,42 @@ export function isKioskMode(): boolean {
 }
 
 /**
- * Product plane motion (map lerp + window-view CSS transitions) defaults on,
- * including kiosk. Continuous decorative FX stay gated separately.
+ * Product plane motion (map lerp + window-view CSS transitions) defaults on
+ * for phones/desktop. Kiosk forces motion off — wall display paint budget.
  */
 export function kioskDefaultAnimationsEnabled(): boolean {
-  return true;
+  return !isKioskMode();
 }
 
 /**
  * Continuous decorative systems must never run on the wall display:
  * rain particles, swallows, fall leaves, continuous rotor spin (CSS).
- * Plane position motion is allowed — see effectiveAnimationsEnabled.
  */
 export function kioskDecorativeFxLockedOff(): boolean {
   return isKioskMode();
 }
 
 /**
- * @deprecated Prefer kioskDecorativeFxLockedOff(). Plane motion is no longer
- * hard-locked on kiosk; only decorative RAF/particle systems are.
+ * @deprecated Prefer kioskDecorativeFxLockedOff().
  */
 export function kioskMotionLockedOff(): boolean {
-  return false;
+  return isKioskMode();
 }
 
-/** Stored animation preference — not hard-locked on kiosk. */
+/** Stored animation preference — hard-off on kiosk regardless of localStorage. */
 export function effectiveAnimationsEnabled(storedEnabled: boolean): boolean {
+  if (isKioskMode()) return false;
   return storedEnabled;
 }
 
 /**
  * Apply before Angular boot: kiosk paint budget (no always-on blur tax classes).
- * Does not force animations-disabled — product motion may be on.
+ * Also force animations-disabled class for CSS motion kill.
  */
 export function applyKioskDomPerformance(document: Document): void {
   if (!isKioskMode()) {
     return;
   }
   document.body.classList.add('kiosk-mode');
+  document.body.classList.add('animations-disabled');
 }
