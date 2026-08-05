@@ -35,6 +35,8 @@ export class PlaneModel implements Plane {
   isSpecial?: boolean;
   isA380?: boolean;
   isMilitary?: boolean;
+  /** False when mil but boring (trainers, model-less rescue helis, …). */
+  isMilitaryAlertWorthy?: boolean;
   isUnknown?: boolean;
   /** Distance from home in km, for closest-plane overlay */
   distanceKm?: number;

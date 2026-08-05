@@ -49,6 +49,12 @@ export class PlaneListItemComponent implements OnChanges, OnDestroy {
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.plane?.isMilitary === true;
   }
+  @HostBinding('class.military-muted') get hostMilitaryMuted() {
+    return (
+      this.plane?.isMilitary === true &&
+      this.plane?.isMilitaryAlertWorthy === false
+    );
+  }
   @HostBinding('class.special-plane') get hostSpecial() {
     return this.plane?.isSpecial === true;
   }

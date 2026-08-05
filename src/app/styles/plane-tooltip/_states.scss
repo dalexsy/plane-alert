@@ -13,6 +13,10 @@
 
   &.military-plane-tooltip {
     border-color: #89d138;
+
+    &.military-muted-tooltip {
+      border-color: color-mix(in srgb, #89d138 50%, transparent);
+    }
   }
 
   &:hover:not(.special-plane-tooltip):not(.followed-plane-tooltip),
@@ -49,6 +53,10 @@
 
     &.military-star-tooltip {
       color: #89d138;
+
+      &.military-muted-star {
+        color: color-mix(in srgb, #89d138 50%, transparent);
+      }
     }
 
     &.special-star-tooltip {

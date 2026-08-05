@@ -15,6 +15,7 @@ import { CountryService } from '../../services/country/country.service';
       <span
         *ngIf="isMilitary"
         class="material-symbols-sharp icon small military-star-tooltip"
+        [class.military-muted-star]="militaryMuted"
         aria-label="Military aircraft"
         >star</span
       >
@@ -26,6 +27,7 @@ export class FlagCallsignComponent {
   @Input() callsign: string = '';
   @Input() origin: string = '';
   @Input() isMilitary: boolean = false;
+  @Input() militaryMuted: boolean = false;
 
   constructor(public countryService: CountryService) {}
 

@@ -36,6 +36,25 @@
   &.followed-plane {
     @include t.gradient-background(t.$color-military);
   }
+
+  // Non-alertworthy mil (boring trainers, model-less rescue helis) — muted green.
+  &.military-muted {
+    color: color-mix(in srgb, t.$color-military 50%, transparent);
+    @include t.border-with-compensation(
+      left,
+      t.$border-width-thick,
+      color-mix(in srgb, t.$color-military 50%, transparent)
+    );
+    @include t.color-mix-background(t.$color-military, 8%);
+
+    &.followed-plane {
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, t.$color-military 20%, transparent) 0%,
+        color-mix(in srgb, t.$color-military 5%, transparent) 100%
+      );
+    }
+  }
 }
 
 :host.special-plane {
@@ -53,6 +72,20 @@
     color: t.$color-military;
     @include t.border-with-compensation(left, t.$border-width-medium, t.$color-military);
     @include t.gradient-background(t.$color-military);
+
+    &.military-muted {
+      color: color-mix(in srgb, t.$color-military 50%, transparent);
+      @include t.border-with-compensation(
+        left,
+        t.$border-width-medium,
+        color-mix(in srgb, t.$color-military 50%, transparent)
+      );
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, t.$color-military 20%, transparent) 0%,
+        color-mix(in srgb, t.$color-military 5%, transparent) 100%
+      );
+    }
   }
 }
 

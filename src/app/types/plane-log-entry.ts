@@ -13,6 +13,8 @@ export interface PlaneLogEntry {
   filteredOut?: boolean;
   icao: string;
   isMilitary?: boolean;
+  /** False when military but not alert-worthy (muted green on kiosk). */
+  isMilitaryAlertWorthy?: boolean;
   isSpecial?: boolean;
   isA380?: boolean;
   isUnknown?: boolean;

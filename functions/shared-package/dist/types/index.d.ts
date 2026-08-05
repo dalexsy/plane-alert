@@ -7,6 +7,7 @@
 export type { CountryDetectionResult, IcaoCountryRange, AdsBPlane, } from './types';
 export { getCountryFromIcaoHex, getCountryFromRegistration, getAircraftCountry, getRegistrationPrefixesForCountry, isKnownCountry, ICAO_LOOKUP_CONFIG, } from './country-detection';
 export { looksMilitary, isBoringMilitaryAircraft, normalizeCallsign, isMilitaryCallsign, isBoringMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, BORING_MIL_CALLSIGN_PREFIXES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
+export { isLikelyHelicopter, hasMeaningfulAircraftModel, isHelicopterCallsign, isHelicopterCategory, isHelicopterTypeCode, } from './military-helicopter';
 export { shouldAlertForAircraft, planeFieldsToAdsB, } from './military-alert-gate';
 export type { AlertAircraftOptions } from './military-alert-gate';
 export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';

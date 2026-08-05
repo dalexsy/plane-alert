@@ -48,6 +48,18 @@
       ),
       rgba(0, 0, 0, 0.7);
     box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.2);
+
+    &.military-muted {
+      border-color: rgba(137, 209, 56, 0.5);
+      color: rgba(137, 209, 56, 0.5);
+      background: linear-gradient(
+          to right,
+          rgba(137, 209, 56, 0.05),
+          rgba(137, 209, 56, 0.05)
+        ),
+        rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 0 3px rgba(137, 209, 56, 0.1);
+    }
   }
 
   &.selected.special-plane {

@@ -77,6 +77,10 @@
   color: t.$color-military;
 }
 
+:host-context(.military-muted) .military-star {
+  color: color-mix(in srgb, t.$color-military 50%, transparent);
+}
+
 .airport-code,
 .airport-name {
   display: block;

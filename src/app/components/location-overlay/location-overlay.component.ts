@@ -36,6 +36,13 @@ export class LocationOverlayComponent {
   @HostBinding('class.military-plane') get hostMilitary() {
     return this.isSelected && this.plane?.isMilitary === true;
   }
+  @HostBinding('class.military-muted') get hostMilitaryMuted() {
+    return (
+      this.isSelected &&
+      this.plane?.isMilitary === true &&
+      this.plane?.isMilitaryAlertWorthy === false
+    );
+  }
   @HostBinding('class.special-plane') get hostSpecial() {
     return this.isSelected && this.plane?.isSpecial === true;
   }

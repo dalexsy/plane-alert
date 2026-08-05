@@ -32,6 +32,7 @@ export interface WindowViewPlane {
   distanceKm?: number;
   isNew?: boolean;
   isMilitary?: boolean;
+  isMilitaryAlertWorthy?: boolean;
   isSpecial?: boolean;
   isGrounded?: boolean;
   groundStackOrder?: number;

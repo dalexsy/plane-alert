@@ -4,6 +4,7 @@ import {
   planeFieldsToAdsB,
   shouldAlertForAircraft,
 } from '@plane-alert/shared';
+import { isMilitaryAlertWorthy } from '../../utils/military-alert-worthy/military-alert-worthy.util';
 import {
   playAlertSound,
   playHerculesAlert,
@@ -128,6 +129,13 @@ export function processPlaneModels(
     // Keep ADS-B mil/dbFlags already set in plane-data (do not wipe feed flags).
     const isMilitary = dbMil || prefixMil || planeModel.isMilitary === true;
     planeModel.isMilitary = isMilitary;
+    planeModel.isMilitaryAlertWorthy = isMilitaryAlertWorthy({
+      icao: planeModel.icao,
+      callsign: planeModel.callsign,
+      model: planeModel.model,
+      isMilitary,
+      isSpecial: svc['specialListService'].isSpecial(planeModel.icao),
+    });
 
     planeModel.filteredOut = !svc['planeFilter'].shouldIncludeCallsign(
       planeModel.callsign,

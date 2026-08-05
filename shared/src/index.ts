@@ -37,6 +37,14 @@ export {
   MIL_OPERATOR_KEYWORDS,
 } from './military-detection';
 
+export {
+  isLikelyHelicopter,
+  hasMeaningfulAircraftModel,
+  isHelicopterCallsign,
+  isHelicopterCategory,
+  isHelicopterTypeCode,
+} from './military-helicopter';
+
 // Single Pushover + audio alert gate
 export {
   shouldAlertForAircraft,

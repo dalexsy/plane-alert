@@ -25,7 +25,7 @@ export function isHelicopterByCallsign(callsign: string): boolean {
   if (!normalized) return false;
   const patterns = [
     /^(JOKER|TIGER|VIPER|COBRA|APACHE)\d+$/,
-    /^(RESCUE|MEDIC|LIFEGUARD|HEMS|HELIMED)\d*$/,
+    /^(RESCUE|RESQ|MEDIC|LIFEGUARD|HEMS|HELIMED)\d*$/,
     /^(POLICE|POLIZEI|POLAIR|POLIS)\d*$/,
     /^(CHX|ADAC|DRF|HTM)\d+$/,
   ];

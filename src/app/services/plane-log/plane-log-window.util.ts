@@ -64,6 +64,7 @@ export function updateWindowViewPlanes(
         velocity: plane.velocity ?? 0,
         verticalRate: plane.verticalRate ?? calculateVerticalRateFromHistory(plane.positionHistory) ?? undefined,
         historyTrail, scale, distanceKm: distKm, isNew: plane.isNew, isMilitary: plane.isMilitary,
+        isMilitaryAlertWorthy: plane.isMilitaryAlertWorthy,
         isSpecial: plane.isSpecial, icao: plane.icao, origin: plane.origin, isGrounded,
         operator: plane.operator, model: plane.model,
       };

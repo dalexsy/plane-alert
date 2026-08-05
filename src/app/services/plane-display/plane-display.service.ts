@@ -91,6 +91,12 @@ export class PlaneDisplayService {
     resetPlaneMarkerStyles(plane.marker, markerEl, tooltipEl);
     if (plane.onGround) applyGroundedMarkerStyles(markerEl, tooltipEl);
     if (plane.isNew) applyNewMarkerStyles(markerEl, tooltipEl);
-    if (isMilitary) applyMilitaryMarkerStyles(markerEl, tooltipEl);
+    if (isMilitary) {
+      applyMilitaryMarkerStyles(
+        markerEl,
+        tooltipEl,
+        plane.isMilitaryAlertWorthy !== false
+      );
+    }
   }
 }

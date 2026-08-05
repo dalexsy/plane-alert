@@ -14,6 +14,7 @@ export class PlaneStyleService {
       isCelestial?: boolean;
       isNew?: boolean;
       isMilitary?: boolean;
+      isMilitaryAlertWorthy?: boolean;
       isSpecial?: boolean;
     },
     isFollowed: boolean = false
@@ -24,10 +25,14 @@ export class PlaneStyleService {
     if (plane.isCelestial) {
       return ''; // celestial use default or own styling
     }
+    const milGreen =
+      plane.isMilitaryAlertWorthy === false
+        ? 'rgba(137, 209, 56, 0.5)'
+        : '#89d138';
     // Followed plane overrides most other states except military
     if (isFollowed) {
       if (plane.isMilitary) {
-        return '#89d138';
+        return milGreen;
       }
       return '#00ffff'; // followed-plane-color
     }
@@ -37,7 +42,7 @@ export class PlaneStyleService {
     }
     // Military
     if (plane.isMilitary) {
-      return '#89d138';
+      return milGreen;
     }
     // Special
     if (plane.isSpecial) {

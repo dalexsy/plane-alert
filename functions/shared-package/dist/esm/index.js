@@ -8,6 +8,7 @@
 export { getCountryFromIcaoHex, getCountryFromRegistration, getAircraftCountry, getRegistrationPrefixesForCountry, isKnownCountry, ICAO_LOOKUP_CONFIG, } from './country-detection';
 // Export military detection functions
 export { looksMilitary, isBoringMilitaryAircraft, normalizeCallsign, isMilitaryCallsign, isBoringMilitaryCallsign, isMilitaryOperator, shouldSkipBoringMilitaryFilter, BORING_AIRCRAFT_TYPES, BORING_MIL_CALLSIGN_PREFIXES, MIL_CALLSIGN_PREFIXES, MIL_OPERATOR_KEYWORDS, } from './military-detection';
+export { isLikelyHelicopter, hasMeaningfulAircraftModel, isHelicopterCallsign, isHelicopterCategory, isHelicopterTypeCode, } from './military-helicopter';
 // Single Pushover + audio alert gate
 export { shouldAlertForAircraft, planeFieldsToAdsB, } from './military-alert-gate';
 // Export geo utilities

@@ -141,7 +141,13 @@ export class TooltipUpdateService {
       interactive: true,
       className: `plane-tooltip ${onGround ? 'grounded-plane-tooltip' : ''} ${
         isNew ? 'new-plane-tooltip' : ''
-      } ${isMilitary ? 'military-plane-tooltip' : ''} ${
+      } ${
+        isMilitary
+          ? planeModel.isMilitaryAlertWorthy === false
+            ? 'military-plane-tooltip military-muted-tooltip'
+            : 'military-plane-tooltip'
+          : ''
+      } ${
         isSpecial ? 'special-plane-tooltip' : ''
       }`,
       pane: 'tooltipPane',

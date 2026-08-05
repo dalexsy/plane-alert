@@ -37,6 +37,7 @@ export function buildPlaneMarkerClassString(
   isMilitary: boolean,
   followed: boolean,
   animationsEnabled = true,
+  militaryAlertWorthy = true,
 ): string {
   const tokens = [
     'plane-marker',
@@ -44,6 +45,7 @@ export function buildPlaneMarkerClassString(
     !isCopter && !isUnknown ? iconType : '',
     isNew && isGrounded ? 'new-and-grounded' : isGrounded ? 'grounded-plane' : '',
     isMilitary ? 'military-plane' : '',
+    isMilitary && !militaryAlertWorthy ? 'military-muted' : '',
     isCopter ? 'copter-plane' : '',
     isUnknown ? 'unknown-plane' : '',
     followed ? 'followed-plane' : '',

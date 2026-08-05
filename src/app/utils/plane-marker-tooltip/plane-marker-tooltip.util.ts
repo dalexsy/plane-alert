@@ -91,7 +91,8 @@ export function buildTooltipOptions(
   isMilitary: boolean,
   isSpecial: boolean,
   followed: boolean,
-  operatorClasses: string
+  operatorClasses: string,
+  militaryAlertWorthy = true,
 ): L.TooltipOptions {
   const offset =
     side === 'right'
@@ -101,6 +102,11 @@ export function buildTooltipOptions(
       : isGrounded
         ? L.point(10, 0)
         : L.point(-10, 0);
+  const milClass = isMilitary
+    ? militaryAlertWorthy
+      ? 'military-plane-tooltip'
+      : 'military-plane-tooltip military-muted-tooltip'
+    : '';
   return {
     permanent: true,
     direction: side,
@@ -108,7 +114,7 @@ export function buildTooltipOptions(
     interactive: side === 'right',
     className: `plane-tooltip ${isGrounded ? 'grounded-plane-tooltip' : ''} ${
       isNew ? 'new-plane-tooltip' : ''
-    } ${isMilitary ? 'military-plane-tooltip' : ''} ${isSpecial ? 'special-plane-tooltip' : ''}${
+    } ${milClass} ${isSpecial ? 'special-plane-tooltip' : ''}${
       followed ? ' followed-plane-tooltip' : ''
     } ${operatorClasses}`,
     pane: 'tooltipPane',

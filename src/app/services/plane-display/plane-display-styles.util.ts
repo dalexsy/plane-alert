@@ -13,6 +13,7 @@ export function resetPlaneMarkerStyles(
       'grounded-plane',
       'new-plane',
       'military-plane',
+      'military-muted',
       'special-plane'
     );
   }
@@ -22,7 +23,8 @@ export function resetPlaneMarkerStyles(
       'followed-plane-tooltip',
       'grounded-plane-tooltip',
       'new-plane-tooltip',
-      'military-plane-tooltip'
+      'military-plane-tooltip',
+      'military-muted-tooltip'
     );
   }
   marker.setZIndexOffset(0);
@@ -63,10 +65,17 @@ export function applyNewMarkerStyles(
 
 export function applyMilitaryMarkerStyles(
   markerEl: HTMLElement | undefined,
-  tooltipEl: HTMLElement | undefined
+  tooltipEl: HTMLElement | undefined,
+  alertWorthy = true
 ): void {
-  if (markerEl) markerEl.classList.add('military-plane');
-  if (tooltipEl) tooltipEl.classList.add('military-plane-tooltip');
+  if (markerEl) {
+    markerEl.classList.add('military-plane');
+    markerEl.classList.toggle('military-muted', !alertWorthy);
+  }
+  if (tooltipEl) {
+    tooltipEl.classList.add('military-plane-tooltip');
+    tooltipEl.classList.toggle('military-muted-tooltip', !alertWorthy);
+  }
 }
 
 export function applySpecialMarkerStyles(markerEl: HTMLElement | undefined): void {
@@ -98,7 +107,13 @@ export function updateSinglePlaneVisuals(
   if (plane.icao === highlightedIcao) applyFollowedMarkerStyles(marker, markerEl, tooltipEl);
   if (plane.onGround) applyGroundedMarkerStyles(markerEl, tooltipEl);
   if (plane.isNew) applyNewMarkerStyles(markerEl, tooltipEl);
-  if (plane.isMilitary) applyMilitaryMarkerStyles(markerEl, tooltipEl);
+  if (plane.isMilitary) {
+    applyMilitaryMarkerStyles(
+      markerEl,
+      tooltipEl,
+      plane.isMilitaryAlertWorthy !== false
+    );
+  }
   if (plane.isSpecial) applySpecialMarkerStyles(markerEl);
   applyAltitudeBorderToTooltip(tooltipEl, plane.altitude, showAltitudeBorders, getAltitudeColor(plane.altitude!));
 }

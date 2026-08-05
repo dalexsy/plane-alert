@@ -12,6 +12,7 @@ exports.isMilitaryCallsign = isMilitaryCallsign;
 exports.isBoringMilitaryCallsign = isBoringMilitaryCallsign;
 exports.isMilitaryOperator = isMilitaryOperator;
 const aircraft_type_names_1 = require("./aircraft-type-names");
+const military_helicopter_1 = require("./military-helicopter");
 /**
  * Boring aircraft types to skip (trainers, transports, business jets used by military)
  * These are not interesting for notifications even though they might be military-operated
@@ -300,6 +301,11 @@ function matchesBoringAircraftTypeOrDesc(normalizedType, desc) {
 function isBoringMilitaryAircraft(plane) {
     const callsign = plane.flight || plane.callsign;
     if (isBoringMilitaryCallsign(callsign)) {
+        return true;
+    }
+    // Rescue / utility mil helis without a real model (RESQ, category A7, …).
+    // With a type/desc we keep existing boring-type filters so Apaches etc. can alert.
+    if ((0, military_helicopter_1.isLikelyHelicopter)(plane) && !(0, military_helicopter_1.hasMeaningfulAircraftModel)(plane)) {
         return true;
     }
     const normalizedType = getNormalizedTypeCode(plane);

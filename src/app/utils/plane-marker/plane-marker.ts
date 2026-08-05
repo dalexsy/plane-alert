@@ -44,7 +44,8 @@ export function createOrUpdatePlaneMarker(
   operatorTooltipService?: OperatorTooltipService,
   planeData?: any,
   animationsEnabled: boolean = true,
-  showGhostPosition: boolean = false
+  showGhostPosition: boolean = false,
+  militaryAlertWorthy: boolean = true,
 ): { marker: L.Marker; isNewMarker: boolean } {
   const isCopter = isCustomHelicopter;
   const iconData = isCopter
@@ -64,6 +65,7 @@ export function createOrUpdatePlaneMarker(
     isMilitary,
     followed,
     animationsEnabled,
+    militaryAlertWorthy,
   );
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
     isCopter ? 0 : rotation
@@ -85,10 +87,10 @@ export function createOrUpdatePlaneMarker(
   const operatorClasses =
     operatorTooltipService && planeData ? operatorTooltipService.getTooltipClasses(planeData) : '';
   const rightTooltipOptions = buildTooltipOptions(
-    'right', isGrounded, isNew, isMilitary, isSpecial, followed, operatorClasses
+    'right', isGrounded, isNew, isMilitary, isSpecial, followed, operatorClasses, militaryAlertWorthy
   );
   const leftTooltipOptions = buildTooltipOptions(
-    'left', isGrounded, isNew, isMilitary, isSpecial, followed, operatorClasses
+    'left', isGrounded, isNew, isMilitary, isSpecial, followed, operatorClasses, militaryAlertWorthy
   );
   const rightTipKey = tooltipBindKey(tooltipContent, rightTooltipOptions);
 
