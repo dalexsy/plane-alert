@@ -1,0 +1,93 @@
+import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
+import {
+  preprocessTextForSpeech,
+  resolveVoiceForLanguage,
+} from './tts-speech.util';
+
+export type TtsQueueItem = { key: string; text: string; lang?: string };
+
+export function pageIsForeground(): boolean {
+  if (typeof document === 'undefined') return false;
+  if (isKioskMode()) return true;
+  if (typeof document.visibilityState === 'string') {
+    return document.visibilityState === 'visible';
+  }
+  return !document.hidden;
+}
+
+export function armSilenceOnHide(cancelAll: () => void): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const silence = () => {
+    if (document.visibilityState === 'hidden' || document.hidden) {
+      cancelAll();
+    }
+  };
+  document.addEventListener('visibilitychange', silence);
+  window.addEventListener('pagehide', cancelAll);
+  window.addEventListener('beforeunload', cancelAll);
+}
+
+export function armUserGestureUnlock(onUnlock: () => void): void {
+  if (typeof window === 'undefined') return;
+  const unlock = () => {
+    onUnlock();
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+    window.removeEventListener('touchend', unlock);
+  };
+  window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+  window.addEventListener('keydown', unlock, { once: true });
+  window.addEventListener('touchend', unlock, { once: true, passive: true });
+}
+
+/** Speak one utterance; returns whether speech was started. */
+export function speakUtteranceNow(
+  text: string,
+  lang: string | undefined,
+  usedVoices: Map<string, SpeechSynthesisVoice>,
+  onDone: () => void,
+): boolean {
+  if (!window.speechSynthesis) return false;
+  if (isKioskMode()) return false;
+  if (!pageIsForeground()) return false;
+
+  window.speechSynthesis.cancel();
+
+  setTimeout(() => {
+    if (!pageIsForeground()) {
+      onDone();
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(preprocessTextForSpeech(text));
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    if (lang) {
+      utterance.lang = lang;
+      const voice = resolveVoiceForLanguage(lang, usedVoices);
+      if (voice) utterance.voice = voice;
+    }
+
+    utterance.onerror = (event) => {
+      if (event.error !== 'not-allowed' && event.error !== 'interrupted') {
+        console.error('TTS Error:', event.error, 'for text:', text);
+      }
+      onDone();
+    };
+    utterance.onend = () => onDone();
+
+    try {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch {
+      onDone();
+    }
+  }, 100);
+
+  return true;
+}

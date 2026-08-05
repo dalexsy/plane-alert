@@ -2,23 +2,25 @@ import { Injectable } from '@angular/core';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
 import {
   SUPPORTED_TTS_LANGUAGES,
-  preprocessTextForSpeech,
-  resolveVoiceForLanguage,
   selectVoicesForLanguages,
 } from './tts-speech.util';
+import {
+  armSilenceOnHide,
+  armUserGestureUnlock,
+  pageIsForeground,
+  speakUtteranceNow,
+  type TtsQueueItem,
+} from './tts-lifecycle.util';
 
 /**
  * Browser speechSynthesis requires a user gesture before autoplay.
- * Auto-announce without gesture throws TTS Error: not-allowed (console spam).
- * Kiosk (?kiosk=1) never gets a gesture — unlock immediately there.
- * Never speak for a background/hidden tab — cancel mid-utterance on hide/unload
- * (users were still hearing A400/RAF lines after “closing” the app).
+ * Kiosk (?kiosk=1) unlocks immediately. Never speak for a background tab.
  */
 @Injectable({ providedIn: 'root' })
 export class TtsService {
   private spokenKeys = new Set<string>();
   private usedVoices = new Map<string, SpeechSynthesisVoice>();
-  private speechQueue: Array<{ key: string; text: string; lang?: string }> = [];
+  private speechQueue: TtsQueueItem[] = [];
   private isCurrentlySpeaking = false;
   private voicesInitialized = false;
   private userUnlocked = false;
@@ -28,15 +30,15 @@ export class TtsService {
     if (isKioskMode()) {
       this.userUnlocked = true;
     } else {
-      this.armUserGestureUnlock();
+      armUserGestureUnlock(() => {
+        this.userUnlocked = true;
+      });
     }
-    this.armSilenceOnHide();
+    armSilenceOnHide(() => this.cancelAll());
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => {
-        if (!this.voicesInitialized) {
-          this.initializeVoices();
-        }
+        if (!this.voicesInitialized) this.initializeVoices();
       };
       (window as any).testTTS = () => this.test();
       (window as any).clearTTSCache = () => this.clearSpokenKeys();
@@ -45,47 +47,10 @@ export class TtsService {
     }
   }
 
-  /** Drop queue + cancel engine when tab is not foreground. */
-  private armSilenceOnHide(): void {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    const silence = () => {
-      if (document.visibilityState === 'hidden' || document.hidden) {
-        this.cancelAll();
-      }
-    };
-    const unload = () => this.cancelAll();
-    document.addEventListener('visibilitychange', silence);
-    window.addEventListener('pagehide', unload);
-    window.addEventListener('beforeunload', unload);
-  }
-
-  private pageIsForeground(): boolean {
-    if (typeof document === 'undefined') return false;
-    if (isKioskMode()) return true;
-    if (typeof document.visibilityState === 'string') {
-      return document.visibilityState === 'visible';
-    }
-    return !document.hidden;
-  }
-
-  private armUserGestureUnlock(): void {
-    if (typeof window === 'undefined') return;
-    const unlock = () => {
-      this.userUnlocked = true;
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('touchend', unlock);
-    };
-    window.addEventListener('pointerdown', unlock, { once: true, passive: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    window.addEventListener('touchend', unlock, { once: true, passive: true });
-  }
-
   private initializeVoices(): void {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     const allVoices = window.speechSynthesis.getVoices();
     if (allVoices.length === 0) return;
-
     this.usedVoices = selectVoicesForLanguages(allVoices, SUPPORTED_TTS_LANGUAGES);
     this.voicesInitialized = true;
   }
@@ -97,72 +62,30 @@ export class TtsService {
 
   private speakImmediately(text: string, lang?: string): void {
     if (!window.speechSynthesis) return;
-    // Kiosk uses MP3 alerts only — no TTS voices installed on the Pi display.
     if (isKioskMode()) return;
-    // Gate autoplay until a user gesture — prevents not-allowed console errors
-    if (!this.userUnlocked) {
-      return;
-    }
-    // Background / closed tab: never start (and cancelAll on hide already ran)
-    if (!this.pageIsForeground()) {
+    if (!this.userUnlocked) return;
+    if (!pageIsForeground()) {
       this.speechQueue.length = 0;
       this.isCurrentlySpeaking = false;
       return;
     }
 
-    window.speechSynthesis.cancel();
     this.isCurrentlySpeaking = true;
-
-    setTimeout(() => {
-      if (!this.pageIsForeground()) {
-        this.isCurrentlySpeaking = false;
-        this.speechQueue.length = 0;
-        return;
-      }
-      const processedText = preprocessTextForSpeech(text);
-      const utterance = new SpeechSynthesisUtterance(processedText);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-
-      if (lang) {
-        utterance.lang = lang;
-        const voice = resolveVoiceForLanguage(lang, this.usedVoices);
-        if (voice) utterance.voice = voice;
-      }
-
-      utterance.onerror = (event) => {
-        // not-allowed = no user gesture; interrupted = cancel — not app bugs
-        if (event.error !== 'not-allowed' && event.error !== 'interrupted') {
-          console.error('TTS Error:', event.error, 'for text:', text);
-        }
-        this.isCurrentlySpeaking = false;
-        this.processQueue();
-      };
-      utterance.onend = () => {
-        this.isCurrentlySpeaking = false;
-        this.processQueue();
-      };
-
-      try {
-        if (window.speechSynthesis.speaking) {
-          window.speechSynthesis.cancel();
-          setTimeout(() => window.speechSynthesis.speak(utterance), 100);
-        } else {
-          window.speechSynthesis.speak(utterance);
-        }
-      } catch {
-        this.isCurrentlySpeaking = false;
-        this.processQueue();
-      }
-    }, 100);
+    const started = speakUtteranceNow(text, lang, this.usedVoices, () => {
+      this.isCurrentlySpeaking = false;
+      this.processQueue();
+    });
+    if (!started) {
+      this.isCurrentlySpeaking = false;
+      this.speechQueue.length = 0;
+    }
   }
 
   speakOnce(key: string, text: string, lang?: string): void {
     if (this.spokenKeys.has(key)) return;
     this.spokenKeys.add(key);
     if (!this.userUnlocked) return;
-    if (!this.pageIsForeground()) return;
+    if (!pageIsForeground()) return;
     if (this.isCurrentlySpeaking) {
       this.speechQueue.push({ key, text, lang });
     } else {
@@ -171,7 +94,7 @@ export class TtsService {
   }
 
   private processQueue(): void {
-    if (!this.pageIsForeground()) {
+    if (!pageIsForeground()) {
       this.speechQueue.length = 0;
       return;
     }
