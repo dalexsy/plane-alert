@@ -31,7 +31,7 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 
 ## Failed experiments (do not repeat)
 
-- **2026-08-06** — Mobile results “verified” by rails-only gate while list rows crushed: `.results-overlay` `overflow:visible` + seen `max-height:60vh`/`flex-shrink:0` spilled over map; `mix-blend-mode:plus-lighter` also punched map tooltips through the sheet. Must clip in `.results-body` + isolate/opaque; assert row height/no-overlap on mobile expanded sheet.
+- **2026-08-06** — Mobile results: rails-only gates + `min(48dvh,22rem)` “map-first” sheet showed ~4 of 24 planes. Do not half-height the expanded list; use `calc(100dvh - 5.5rem)`, clip in `.results-body`, no `plus-lighter`; assert body ≥62vh + sky scroll viewport ≥18rem when many planes.
 - **2026-08-06** — Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` active/enabled: that unit is **user** systemd; system check always false → kill Chromium + block resurrection overnight. Yield/renice only under balcony pressure.
 - **2026-08-05** — Kiosk “animations on” + window labels without chrome: force **effectiveAnimationsEnabled=false** on kiosk (do not leave product motion on). Window `.plane-label` must always have solid `rgba(0,0,0,0.9)` bg — `has-details` only at ≤10km left close-by planes (e.g. Voodoo ~11km) as bare text. Treat **mlat/unknown** as junk identity (not alert-worthy). Muted mil green use **0.7** not 0.5.
 - **2026-07-31** — Kiosk CPU / infrastructure stall: do **not** blame plane-motion alone. Root was always-on paint: permanent tooltips with `backdrop-filter: blur`, per-marker `filter: drop-shadow`, dual left tooltips under swiftshader. Decorative RAF stays off; **2026-08-05** also forces product motion off on kiosk.
@@ -67,17 +67,17 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 
 | Metric | Value |
 |--------|-------|
-| Typical (median) | 116s |
-| p75 | 146s |
-| p90 | 180s |
-| Last deploy | 136s |
-| Samples | 18 |
+| Typical (median) | 124s |
+| p75 | 149s |
+| p90 | 194s |
+| Last deploy | 211s |
+| Samples | 19 |
 
-- **Agent shell wait:** use `block_until_ms` **195300** (~195s) — poll every 15s; do not pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **199104** (~199s) — poll every 15s; do not pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-08-06T11:38:43Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-06T11:42:52Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 

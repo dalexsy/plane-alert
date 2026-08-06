@@ -67,6 +67,8 @@ export function applyMobileOverlayCaps(s: SettingsState): void {
   if (!s._inputOverlayCollapsed && !s._resultsOverlayCollapsed) {
     s._resultsOverlayCollapsed = true;
   }
+  // Sky list needs the sheet height — peeped history starts collapsed on phones.
+  s._seenCollapsed = true;
   // Always show left/right icon rails on mobile — "hide controls" was leaving
   // only a chevron and looking like the sidebars were destroyed.
   s._inputOverlayOtherControlsHidden = false;
