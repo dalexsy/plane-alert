@@ -1,17 +1,24 @@
 :host {
   display: flex;
   flex-direction: column;
-  flex: 1 0 auto;
+  // Share the sheet with sky list — never 60vh (taller than the mobile sheet).
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 45%;
+
+  &:has(#seenResults.collapsed) {
+    flex: 0 0 3rem;
+    max-height: 3rem;
+  }
 }
 
 #seenResults {
   display: flex;
   flex-direction: column;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  max-height: 60vh;
+  max-height: none;
 
   h3 {
     flex: 0 0 auto;
@@ -47,6 +54,7 @@
   &.collapsed {
     flex: 0 0 3rem;
     max-height: 3rem;
+    min-height: 3rem;
 
     h3 {
       border-color: transparent;

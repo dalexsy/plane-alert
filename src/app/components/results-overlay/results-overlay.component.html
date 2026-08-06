@@ -25,7 +25,7 @@
     ></app-results-toolbar>
   </div>
 
-  <ng-container *ngIf="!facade.collapsed">
+  <div class="results-body" *ngIf="!facade.collapsed">
     <div class="middle-section">
       <app-results-sky-list
         [planes]="facade.filteredSkyPlaneLog"
@@ -71,7 +71,7 @@
       (hoverPlane)="onHoverPlane($event, 'seen')"
       (unhoverPlane)="onUnhoverPlane($event, 'seen')"
     ></app-results-seen-list>
-  </ng-container>
+  </div>
 </div>
 
 <div

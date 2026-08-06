@@ -31,6 +31,7 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 
 ## Failed experiments (do not repeat)
 
+- **2026-08-06** — Mobile results “verified” by rails-only gate while list rows crushed: `.results-overlay` `overflow:visible` + seen `max-height:60vh`/`flex-shrink:0` spilled over map. Must clip in `.results-body`; assert row height/no-overlap on mobile expanded sheet.
 - **2026-08-06** — Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` active/enabled: that unit is **user** systemd; system check always false → kill Chromium + block resurrection overnight. Yield/renice only under balcony pressure.
 - **2026-08-05** — Kiosk “animations on” + window labels without chrome: force **effectiveAnimationsEnabled=false** on kiosk (do not leave product motion on). Window `.plane-label` must always have solid `rgba(0,0,0,0.9)` bg — `has-details` only at ≤10km left close-by planes (e.g. Voodoo ~11km) as bare text. Treat **mlat/unknown** as junk identity (not alert-worthy). Muted mil green use **0.7** not 0.5.
 - **2026-07-31** — Kiosk CPU / infrastructure stall: do **not** blame plane-motion alone. Root was always-on paint: permanent tooltips with `backdrop-filter: blur`, per-marker `filter: drop-shadow`, dual left tooltips under swiftshader. Decorative RAF stays off; **2026-08-05** also forces product motion off on kiosk.

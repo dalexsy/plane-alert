@@ -51,8 +51,19 @@
     border-radius: 0;
   }
 
-  &:not(.collapsed) > *:first-child:not(.top-buttons) {
-    margin-top: 0;
+  // Clip + scroll lists here — outer shell stays overflow:visible for the rail.
+  > .results-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(48dvh, 22rem);
+    overflow: hidden;
+    width: 100%;
+
+    @media (min-width: 601px) {
+      max-height: calc(100vh - 11rem);
+    }
   }
 
   &.collapsed {
@@ -75,25 +86,28 @@
   .middle-section {
     display: flex;
     flex-direction: column;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
-    max-height: min(48dvh, 22rem);
-
-    @media (min-width: 601px) {
-      max-height: none;
-    }
   }
 
-  &:has(app-results-seen-list.collapsed) .middle-section {
-    flex: 1 1 calc(100% - 3rem);
+  &:has(#seenResults.collapsed) .middle-section {
+    flex: 1 1 auto;
   }
 
   &.window-view-closed {
     max-height: min(52dvh, 24rem);
 
+    > .results-body {
+      max-height: min(52dvh, 24rem);
+    }
+
     @media (min-width: 601px) {
       max-height: calc(100vh - 0.5rem);
+
+      > .results-body {
+        max-height: calc(100vh - 0.5rem);
+      }
     }
   }
 }
