@@ -48,10 +48,16 @@
     if (/dryl-report-error\.js/i.test(st)) return true;
     if (/^NaN:\s*NaN$/i.test(msg)) return true;
     if (/FIREBASE_APPS|firebase.*initialize/i.test(msg + " " + st)) return true;
+    // CF tunnel blips — browser already shows net::ERR; inbox storm is useless.
+    if (/^HTTP (502|503|520|521|522|523|524|525|530)\b/i.test(msg)) return true;
     return false;
   }
 
   function shouldReport(level, message, context) {
+    // Defense if an older watch-network-report.js still files HLS segment blips.
+    if (/^watch resource failed:.*\/api\/live\/hls\//i.test(String(message || ""))) {
+      return false;
+    }
     if (isExplicitReport(context || {})) return true;
     var now = Date.now();
     var key = fingerprint(level, message);

@@ -52,6 +52,21 @@
       if (/\/api\/client-errors\b/i.test(path) && /POST/i.test(method || "")) {
         return;
       }
+      // CF tunnel/origin blips (502/530) — fallthrough to status shares the same
+      // tunnel and only floods the console with CORS; queue on next paint instead.
+      if (
+        status === 502 ||
+        status === 503 ||
+        status === 520 ||
+        status === 521 ||
+        status === 522 ||
+        status === 523 ||
+        status === 524 ||
+        status === 525 ||
+        status === 530
+      ) {
+        return;
+      }
       var ctx = context || {};
       ctx.source = ctx.source || "http-failure";
       ctx.status = status;

@@ -87,8 +87,19 @@
       },
       body: body,
       credentials: cross ? "omit" : "same-origin",
+      // no-cors: when status.* shares a flapping CF tunnel, cors mode logs
+      // "No Access-Control-Allow-Origin" on every CF error page (console flood).
+      mode: cross ? "no-cors" : "cors",
       keepalive: true,
     });
+  }
+
+  function responseAccepted(res) {
+    if (!res) return false;
+    // Opaque (no-cors) — no CORS console spam, but status is unknowable.
+    // Do not count as delivered; walk to queue so a later same-origin flush can retry.
+    if (res.type === "opaque") return false;
+    return res.ok || res.status === 204;
   }
 
   /** Walk endpoints until one accepts (502 must fall through). */
@@ -102,7 +113,7 @@
       }
       postOnce(endpoints[ep++], body)
         .then(function (res) {
-          if (res.ok || res.status === 204) {
+          if (responseAccepted(res)) {
             storage.bumpStat("delivered");
             flushQueue(endpoints);
             return;
@@ -149,7 +160,7 @@
       }
       postOnce(endpoints[ep++], body)
         .then(function (res) {
-          if (res.ok || res.status === 204) {
+          if (responseAccepted(res)) {
             storage.bumpStat("delivered");
             flushing = false;
             setTimeout(function () { flushQueue(endpoints); }, BASE_FLUSH_MS);
