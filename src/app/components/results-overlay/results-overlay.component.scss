@@ -10,15 +10,16 @@
   border: 1px solid rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
-  height: fit-content;
+  // Expanded mobile: definite height so flex children fill the sheet.
+  // fit-content + max-height collapsed the body to ~header height (~18vh)
+  // while 30+ planes existed — only a few rows looked "available".
+  height: calc(100dvh - 5.5rem);
   min-height: 10rem;
   // Never clip — right rail hangs at right: -40px outside this box
   overflow: visible;
   border-radius: 0.5rem 0 0.5rem 0.5rem;
   padding: 0.25rem 0;
   backdrop-filter: blur(0.5rem);
-  // Expanded = list job. Leave window strip only — not half-viewport (22rem
-  // showed ~4 of 24 planes). Map-first is when the sheet is collapsed.
   max-height: calc(100dvh - 5.5rem);
   width: calc(100vw - 3.5rem);
 
@@ -33,6 +34,7 @@
 
   @media (min-width: 601px) {
     width: 25rem;
+    height: auto;
     min-height: 18rem;
     max-height: calc(100vh - 11rem);
   }
@@ -54,26 +56,29 @@
   }
 
   // Clip + scroll lists here — outer shell stays overflow:visible for the rail.
-  // isolation keeps list mix-blend from compositing with map tooltips underneath.
   > .results-body {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    max-height: calc(100dvh - 5.5rem);
+    height: 100%;
+    max-height: none;
     overflow: hidden;
     width: 100%;
     isolation: isolate;
     background: rgba(0, 0, 0, 0.92);
 
     @media (min-width: 601px) {
+      height: auto;
       max-height: calc(100vh - 11rem);
     }
   }
 
   &.collapsed {
     width: 0;
+    height: auto;
     min-height: 0;
+    max-height: none;
     z-index: 1000;
     background: transparent;
     border-color: transparent;
@@ -101,13 +106,11 @@
   }
 
   &.window-view-closed {
+    height: calc(100dvh - 0.5rem);
     max-height: calc(100dvh - 0.5rem);
 
-    > .results-body {
-      max-height: calc(100dvh - 0.5rem);
-    }
-
     @media (min-width: 601px) {
+      height: auto;
       max-height: calc(100vh - 0.5rem);
 
       > .results-body {
