@@ -22,6 +22,7 @@ Agents: **read Symptom tables before retrying.** After a failed attempt, add **o
 
 | Symptom | Fix path | Do not |
 |---------|----------|--------|
+| Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit (`systemctl --user`); watch must resurrect via `chromium-missing`. Run `python scripts/pi-install-planes-kiosk.py --launch` | Treat `systemctl is-active planes-kiosk` (system bus) as truth — it is always inactive |
 | _(add rows as real production fails appear)_ | | |
 
 Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep narrative → archive.
@@ -30,6 +31,7 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 
 ## Failed experiments (do not repeat)
 
+- **2026-08-06** — Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` active/enabled: that unit is **user** systemd; system check always false → kill Chromium + block resurrection overnight. Yield/renice only under balcony pressure.
 - **2026-08-05** — Kiosk “animations on” + window labels without chrome: force **effectiveAnimationsEnabled=false** on kiosk (do not leave product motion on). Window `.plane-label` must always have solid `rgba(0,0,0,0.9)` bg — `has-details` only at ≤10km left close-by planes (e.g. Voodoo ~11km) as bare text. Treat **mlat/unknown** as junk identity (not alert-worthy). Muted mil green use **0.7** not 0.5.
 - **2026-07-31** — Kiosk CPU / infrastructure stall: do **not** blame plane-motion alone. Root was always-on paint: permanent tooltips with `backdrop-filter: blur`, per-marker `filter: drop-shadow`, dual left tooltips under swiftshader. Decorative RAF stays off; **2026-08-05** also forces product motion off on kiosk.
 - **2026-07-27** — `npm test -- --watch=false` could not start because button/input specs had malformed `from (from)` imports and rain passed null to a string API; fix the test sources, never treat a green production build as unit-test proof
