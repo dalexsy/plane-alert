@@ -7,7 +7,7 @@
   flex-shrink: 0;
   padding: t.$space-xs t.$space-sm;
   border-bottom: t.$border-width-thin solid t.$color-border;
-  mix-blend-mode: plus-lighter;
+  // plus-lighter punched map tooltips through the sheet on mobile — keep rows opaque.
   font-family: t.$font-family-mono;
   cursor: pointer;
   transition: background-color t.$transition-standard, opacity t.$transition-standard;
