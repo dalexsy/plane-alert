@@ -121,6 +121,6 @@ export function buildMilitaryHistoryFromCooldowns(
       ...(matchingHistory?.cardinal && {
         cardinal: matchingHistory.cardinal,
       }),
-    } as MilitaryHistorySighting;
+    } as unknown as MilitaryHistorySighting;
   });
 }

@@ -1,4 +1,4 @@
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import fetch from 'node-fetch';
 import { fetchAircraftImage, downloadAndEncodeImage } from './image-fetcher';
 import { getPushoverApiToken } from '../utils';

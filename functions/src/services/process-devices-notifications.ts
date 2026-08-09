@@ -1,5 +1,7 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalDocumentReference } from './local-firestore-refs';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import { notifyForDevice } from './notify-for-device';
 import { chimeKioskForMilitaryInRange } from './kiosk-military-in-range-chime';
@@ -12,13 +14,13 @@ import {
 } from './notification-snapshot-cache';
 
 type DeviceDoc = {
-  ref: admin.firestore.DocumentReference;
+  ref: LocalDocumentReference;
   id: string;
   data: DeviceRegistration;
 };
 
 export async function processDevicesWithSnapshotCache(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   docs: DeviceDoc[],
   getRegisteredPushoverDevices?: (
     userKey: string,

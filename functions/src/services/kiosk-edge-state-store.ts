@@ -3,7 +3,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 
 const STATE_FILE = 'kiosk-chime-in-range-state.json';
 

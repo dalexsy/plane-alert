@@ -1,4 +1,4 @@
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import fetch from 'node-fetch';
 import type { AdsBPlane } from '@plane-alert/shared';
 import type { Location } from '../types';

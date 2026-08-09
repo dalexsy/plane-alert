@@ -12,15 +12,6 @@
   var recentByKey = Object.create(null);
   var burst = { count: 0, windowStart: 0 };
 
-  function isFirestoreQuotaMessage(message) {
-    var msg = String(message || "");
-    return (
-      /resource-exhausted/i.test(msg) ||
-      /quota exceeded/i.test(msg) ||
-      /firestore quota exceeded/i.test(msg)
-    );
-  }
-
   function fingerprint(level, message) {
     return (
       APP +
@@ -39,7 +30,6 @@
   function isNoiseError(message, stack) {
     var msg = String(message || "").trim();
     var st = String(stack || "");
-    if (isFirestoreQuotaMessage(msg)) return false;
     if (/^failed to fetch\.?$/i.test(msg)) return true;
     if (/networkerror|load failed|network request failed/i.test(msg)) return true;
     if (/failed to fetch/i.test(msg) && /chrome-extension:\/\//i.test(st)) {
@@ -47,7 +37,6 @@
     }
     if (/dryl-report-error\.js/i.test(st)) return true;
     if (/^NaN:\s*NaN$/i.test(msg)) return true;
-    if (/FIREBASE_APPS|firebase.*initialize/i.test(msg + " " + st)) return true;
     // CF tunnel blips — browser already shows net::ERR; inbox storm is useless.
     if (/^HTTP (502|503|520|521|522|523|524|525|530)\b/i.test(msg)) return true;
     return false;
@@ -76,7 +65,6 @@
   }
 
   window.__DRYL_ERROR_FILTER__ = {
-    isFirestoreQuotaMessage: isFirestoreQuotaMessage,
     isExplicitReport: isExplicitReport,
     isNoiseError: isNoiseError,
     shouldReport: shouldReport,

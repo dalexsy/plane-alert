@@ -1,5 +1,7 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalDocumentReference } from './local-firestore-refs';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import {
   clampRadius,
@@ -20,8 +22,8 @@ export interface NotifyDeviceContext {
 }
 
 export async function buildNotifyDeviceContext(
-  db: admin.firestore.Firestore,
-  device: admin.firestore.DocumentReference,
+  db: LocalFirestore,
+  device: LocalDocumentReference,
   data: DeviceRegistration,
   docId: string,
   registeredPushoverDevices?: Set<string> | null,

@@ -1,9 +1,10 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onRequest } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import { applyCors, handleOptionsPreflight } from './http';
 
-export function createClearCooldownsFunction(db: admin.firestore.Firestore) {
+export function createClearCooldownsFunction(db: LocalFirestore) {
   return onRequest({ region: 'europe-west3' }, async (req, res) => {
     applyCors(res, 'GET, OPTIONS');
     if (handleOptionsPreflight(req, res)) {

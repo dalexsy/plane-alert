@@ -6,7 +6,7 @@ import {
   NotificationService,
   NotificationStatusInfo,
 } from './services/notification/notification.service';
-import { FirebaseMessagingService } from './services/firebase-messaging/firebase-messaging.service';
+import { PushRegistrationService } from './services/push-registration/push-registration.service';
 
 @Component({
   selector: 'app-root',
@@ -21,7 +21,7 @@ export class AppComponent implements OnInit {
   constructor(
     private noonRefreshService: NoonRefreshService,
     private notificationService: NotificationService,
-    private firebaseMessaging: FirebaseMessagingService
+    private pushRegistration: PushRegistrationService
   ) {}
 
   ngOnInit() {
@@ -33,8 +33,8 @@ export class AppComponent implements OnInit {
 
   private async syncPushoverRegistration(): Promise<void> {
     try {
-      await this.firebaseMessaging.registerDevice(
-        this.firebaseMessaging.getStoredUserKey()!
+      await this.pushRegistration.registerDevice(
+        this.pushRegistration.getStoredUserKey()!
       );
     } catch (error) {
       console.warn('Pushover registration sync failed:', error);
@@ -50,8 +50,8 @@ export class AppComponent implements OnInit {
   }
 
   private async ensurePushoverRegistration() {
-    await this.firebaseMessaging.registerDevice(
-      this.firebaseMessaging.getStoredUserKey()!
+    await this.pushRegistration.registerDevice(
+      this.pushRegistration.getStoredUserKey()!
     );
   }
 

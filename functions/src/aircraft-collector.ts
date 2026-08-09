@@ -1,10 +1,11 @@
+import { LocalFirestore } from './local-firestore';
 /**
  * Aircraft Data Collection Module
  * Handles fetching and storing aircraft data in Firestore
  */
 
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import { AdsBPlane } from '@plane-alert/shared';
 import { ORIGIN_HEADER } from './constants';
 import {
@@ -101,7 +102,7 @@ export function groupDevicesByLocation(
  * Store aircraft data in Firestore for a specific location
  */
 export async function storeAircraftSnapshot(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   locationKey: string,
   location: LocationGroup,
   aircraft: AdsBPlane[],
@@ -134,7 +135,7 @@ export async function storeAircraftSnapshot(
  * Collect and store aircraft data for all registered device locations
  */
 export async function collectAircraftForAllLocations(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   try {
     const snapshot = await db.collection('deviceTokens').get();
@@ -146,7 +147,7 @@ export async function collectAircraftForAllLocations(
 
     const devices = snapshot.docs.map((doc) => ({
       id: doc.id,
-      data: doc.data() as DeviceRegistration,
+      data: doc.data() as unknown as DeviceRegistration,
     }));
 
     const locationGroups = groupDevicesByLocation(devices);

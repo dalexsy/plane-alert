@@ -3,7 +3,7 @@
  * Ack only after successful play (or quiet/boot absorb).
  * Clear only after GRACE_MS without a sighting — not on one feed miss.
  */
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import {
   emptyVisit,
   loadVisitMap,

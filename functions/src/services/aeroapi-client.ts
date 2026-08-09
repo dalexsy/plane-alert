@@ -3,7 +3,7 @@
  * Fetches flight origin/destination/ETA data for aircraft callsigns
  */
 
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import fetch from 'node-fetch';
 import type { AeroApiResponse, FlightData } from './aeroapi.types';
 import {

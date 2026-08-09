@@ -1,5 +1,7 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalDocumentReference } from './local-firestore-refs';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import { pruneOldNotifications } from '../utils';
 import { batchGetFlightData } from './flight-data-cache';
@@ -10,8 +12,8 @@ import type { CachedAircraftSnapshot } from './notification-snapshot-cache';
 import { buildNotifyDeviceContext } from './notify-device-context';
 
 export async function notifyForDevice(
-  db: admin.firestore.Firestore,
-  device: admin.firestore.DocumentReference,
+  db: LocalFirestore,
+  device: LocalDocumentReference,
   data: DeviceRegistration,
   docId: string,
   registeredPushoverDevices?: Set<string> | null,

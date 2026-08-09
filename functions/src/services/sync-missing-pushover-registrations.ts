@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import {
   matchPushoverDeviceName,
   PUSHOVER_UNRELIABLE_DEVICE_NAMES,
@@ -44,7 +45,7 @@ function pickTemplateRegistration(
  * is independent and receives its own notifications.
  */
 export async function syncMissingPushoverDeviceRegistrations(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   pushoverUserKey: string,
   pushoverDevices: string[],
 ): Promise<number> {
@@ -53,7 +54,7 @@ export async function syncMissingPushoverDeviceRegistrations(
     .filter((doc) => doc.exists)
     .map((doc) => ({
       id: doc.id,
-      data: doc.data() as DeviceRegistration,
+      data: doc.data() as unknown as DeviceRegistration,
     }));
 
   if (!registrations.length) {

@@ -1,11 +1,12 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { onRequest } from '../on-request';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import { MILITARY_HISTORY_COLLECTION } from '../constants';
 import { applyCors, handleOptionsPreflight } from '../http';
 import type { MilitaryHistorySighting } from '../military-history.types';
 
-export function createSaveMilitarySightingHandler(db: admin.firestore.Firestore) {
+export function createSaveMilitarySightingHandler(db: LocalFirestore) {
   return onRequest(
     {
       cors: true,
@@ -76,7 +77,7 @@ export function createSaveMilitarySightingHandler(db: admin.firestore.Firestore)
         const now = Date.now();
 
         if (existing.exists) {
-          const data = existing.data() as MilitaryHistorySighting;
+          const data = existing.data() as unknown as MilitaryHistorySighting;
           await docRef.update({
             lastSeen: now,
             sightingCount: (data.sightingCount || 1) + 1,

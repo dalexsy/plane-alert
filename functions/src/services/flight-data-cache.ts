@@ -1,9 +1,10 @@
+import { LocalFirestore } from '../local-firestore';
 /**
  * Flight Data Cache Manager
  */
 
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import { FlightData, fetchFlightData } from './aeroapi-client';
 import {
   canMakeAeroApiCall,
@@ -25,7 +26,7 @@ function getCacheKey(callsign: string): string {
 }
 
 export async function getFlightData(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   callsign: string,
 ): Promise<FlightData | null> {
   if (!callsign || !callsign.trim()) {
@@ -42,7 +43,7 @@ export async function getFlightData(
       .get();
 
     if (cacheDoc.exists) {
-      const cached = cacheDoc.data() as CachedFlightData;
+      const cached = cacheDoc.data() as unknown as CachedFlightData;
       const age = now - cached.cachedAt;
 
       if (age < CACHE_TTL_MS) {
@@ -112,7 +113,7 @@ export async function getFlightData(
 }
 
 export async function batchGetFlightData(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   callsigns: string[],
 ): Promise<Map<string, FlightData>> {
   const results = new Map<string, FlightData>();
@@ -138,7 +139,7 @@ export async function batchGetFlightData(
 }
 
 export async function cleanupExpiredCache(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<number> {
   const expiredBefore = Date.now() - CACHE_TTL_MS;
   return cleanupExpiredFlightCache(db, FLIGHT_DATA_COLLECTION, expiredBefore);

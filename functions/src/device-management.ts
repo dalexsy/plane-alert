@@ -1,6 +1,7 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onRequest } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
@@ -16,7 +17,7 @@ import {
 } from './services/device-list-formatting';
 import { createRegisterDeviceHandler } from './device-management-register';
 
-export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
+export function createDeviceManagementFunctions(db: LocalFirestore) {
   const registerDevice = createRegisterDeviceHandler(db);
 
   const checkDevice = onRequest(
@@ -99,7 +100,7 @@ export function createDeviceManagementFunctions(db: admin.firestore.Firestore) {
 
         const devices = await Promise.all(
           snapshot.docs.map((doc) =>
-            formatListAllDeviceEntry(doc, doc.data() as DeviceRegistration),
+            formatListAllDeviceEntry(doc, doc.data() as unknown as DeviceRegistration),
           ),
         );
 

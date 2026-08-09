@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   haversineDistanceKm,
@@ -21,7 +22,7 @@ import type {
 } from './notification-types';
 
 export interface CollectMilitaryNotificationsParams {
-  db: admin.firestore.Firestore;
+  db: LocalFirestore;
   docId: string;
   data: DeviceRegistration;
   deviceLocation: Location;

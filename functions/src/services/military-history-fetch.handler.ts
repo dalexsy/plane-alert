@@ -1,6 +1,7 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { onRequest } from '../on-request';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import {
   COOLDOWN_COLLECTION,
   DEVICE_COLLECTION,
@@ -16,7 +17,7 @@ import type {
   NotificationCooldownRecord,
 } from '../military-history.types';
 
-export function createGetMilitaryHistoryHandler(db: admin.firestore.Firestore) {
+export function createGetMilitaryHistoryHandler(db: LocalFirestore) {
   return onRequest(
     {
       cors: true,
@@ -71,7 +72,7 @@ export function createGetMilitaryHistoryHandler(db: admin.firestore.Firestore) {
 
         const historyByIcao = new Map<string, MilitaryHistorySighting>();
         for (const doc of historySnapshot.docs) {
-          const entry = doc.data() as MilitaryHistorySighting;
+          const entry = doc.data() as unknown as MilitaryHistorySighting;
           if (entry?.icao) {
             historyByIcao.set(entry.icao.toLowerCase(), entry);
           }
@@ -79,7 +80,7 @@ export function createGetMilitaryHistoryHandler(db: admin.firestore.Firestore) {
 
         const deviceBySlug = new Map<string, DeviceRegistration>();
         for (const doc of deviceSnapshot.docs) {
-          const entry = doc.data() as DeviceRegistration;
+          const entry = doc.data() as unknown as DeviceRegistration;
           const deviceName = entry.deviceName || entry.deviceSlug;
           if (deviceName) {
             deviceBySlug.set(sanitizeDeviceName(deviceName), entry);

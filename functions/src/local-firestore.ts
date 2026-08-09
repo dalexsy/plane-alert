@@ -73,6 +73,32 @@ export class LocalFirestore {
     return new LocalCollectionReference(this, name);
   }
 
+  /** Sequential write batch (not multi-doc atomic across process crashes). */
+  batch(): {
+    delete(ref: LocalDocumentReference): void;
+    set(ref: LocalDocumentReference, data: DocData): void;
+    commit(): Promise<void>;
+  } {
+    const deletes: LocalDocumentReference[] = [];
+    const sets: { ref: LocalDocumentReference; data: DocData }[] = [];
+    return {
+      delete(ref: LocalDocumentReference) {
+        deletes.push(ref);
+      },
+      set(ref: LocalDocumentReference, data: DocData) {
+        sets.push({ ref, data });
+      },
+      commit: async () => {
+        for (const ref of deletes) {
+          await ref.delete();
+        }
+        for (const row of sets) {
+          await row.ref.set(row.data);
+        }
+      },
+    };
+  }
+
   async runTransaction<T>(
     fn: (transaction: LocalTransaction) => Promise<T>,
   ): Promise<T> {
@@ -131,28 +157,4 @@ export class LocalFirestore {
 
 export function createLocalFirestore(filePath: string): LocalFirestore {
   return new LocalFirestore(filePath);
-}
-
-export function patchAdminFirestoreNamespace(
-  adminModule: typeof import('firebase-admin'),
-): void {
-  const firestoreNs = adminModule.firestore as unknown as Record<string, unknown>;
-  // Plain assignment is a no-op — firebase-admin FieldValue/Timestamp are
-  // non-writable. Without defineProperty, serverTimestamp() stays a Sentinel
-  // that JSON.stringifies to `{}` and every snapshot looks perpetually stale.
-  Object.defineProperty(firestoreNs, 'FieldValue', {
-    value: LocalFieldValue,
-    writable: true,
-    configurable: true,
-  });
-  Object.defineProperty(firestoreNs, 'Timestamp', {
-    value: LocalTimestamp,
-    writable: true,
-    configurable: true,
-  });
-  Object.defineProperty(firestoreNs, 'FieldPath', {
-    value: { documentId: () => '__name__' },
-    writable: true,
-    configurable: true,
-  });
 }

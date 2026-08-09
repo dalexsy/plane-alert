@@ -1,4 +1,4 @@
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import type { AdsBPlane } from '@plane-alert/shared';
 import { fetchAircraftForCollection } from './aircraft-collection-fetch';
 import {

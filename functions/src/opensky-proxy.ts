@@ -1,5 +1,5 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
+import { onRequest } from './on-request';
+import { logger } from './pi-logger';
 import fetch from 'node-fetch';
 
 // OpenSky uses OAuth2 client credentials that must be exchanged for an access token

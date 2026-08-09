@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   getMilitaryHistoryEndpoint,
   saveMilitarySightingEndpoint,
-} from '../../config/firebase.config';
+} from '../../config/planes-api.config';
 
 export interface MilitaryHistorySighting {
   icao: string;

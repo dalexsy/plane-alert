@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import { looksMilitary, type AdsBPlane } from '@plane-alert/shared';
 import { AIRCRAFT_SNAPSHOTS_COLLECTION } from '../constants';
 import { clampRadius, isSpecialAircraft } from '../utils';
@@ -15,7 +16,7 @@ export type LocationGroup = {
 };
 
 export async function storeAircraftForLocationGroup(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   locationKey: string,
   location: LocationGroup,
 ): Promise<void> {
@@ -115,7 +116,7 @@ export async function storeAircraftForLocationGroup(
  * Used by both scheduled collection and on-demand requests
  */
 export async function collectAircraftForLocation(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   lat: number,
   lon: number,
   radiusKm: number,

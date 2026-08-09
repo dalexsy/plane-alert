@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from '../settings/settings.service';
-import { FirebaseMessagingService } from '../firebase-messaging/firebase-messaging.service';
+import { PushRegistrationService } from '../push-registration/push-registration.service';
 
 @Injectable({
   providedIn: 'root',
@@ -12,7 +12,7 @@ export class LocationUpdateService {
 
   constructor(
     private settings: SettingsService,
-    private firebaseMessaging: FirebaseMessagingService
+    private pushRegistration: PushRegistrationService
   ) {}
 
   /**
@@ -45,7 +45,7 @@ export class LocationUpdateService {
         updateMapCallback(newLat, newLon, currentMainRadius);
 
         // Update backend (Firebase)
-        await this.firebaseMessaging.updateHomeLocation(newLat, newLon);
+        await this.pushRegistration.updateHomeLocation(newLat, newLon);
 
         this.lastUpdateTime = new Date();
       }

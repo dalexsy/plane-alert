@@ -13,7 +13,7 @@ import {
   MilitaryHistoryService,
   type MilitaryHistorySighting,
 } from '../../services/military-history/military-history.service';
-import { FirebaseMessagingService } from '../../services/firebase-messaging/firebase-messaging.service';
+import { PushRegistrationService } from '../../services/push-registration/push-registration.service';
 import {
   filterMilitaryHistory,
   HistorySortDirection,
@@ -46,12 +46,12 @@ export class MilitaryHistoryPanelComponent implements OnInit {
 
   constructor(
     private militaryHistory: MilitaryHistoryService,
-    private firebaseMessaging: FirebaseMessagingService,
+    private pushRegistration: PushRegistrationService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   async ngOnInit() {
-    const userKey = this.firebaseMessaging.getStoredUserKey();
+    const userKey = this.pushRegistration.getStoredUserKey();
     if (!userKey) {
       this.error =
         'No Pushover key found. Enable notifications to track history.';

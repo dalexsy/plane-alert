@@ -9,7 +9,7 @@
  * Chime once per visit; ack only after pw-play exit 0 (or quiet-hours absorb).
  * Prune uses the union of all homes + grace — never per-home hard drop.
  */
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   haversineDistanceKm,

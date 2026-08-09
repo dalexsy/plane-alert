@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import {
   PROCESS_PLANES_LOCK_TTL_MS,
   SYSTEM_HEALTH_COLLECTION,
@@ -21,28 +22,28 @@ export interface NotificationHealthState {
   watchdogLastRecoveryError?: string;
 }
 
-function healthRef(db: admin.firestore.Firestore) {
+function healthRef(db: LocalFirestore) {
   return db
     .collection(SYSTEM_HEALTH_COLLECTION)
     .doc(NOTIFICATION_HEALTH_DOC_ID);
 }
 
 export async function readNotificationHealth(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<NotificationHealthState> {
   const snap = await healthRef(db).get();
   return (snap.data() as NotificationHealthState) ?? {};
 }
 
 async function mergeHealth(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   patch: Partial<NotificationHealthState>,
 ): Promise<void> {
   await healthRef(db).set(patch, { merge: true });
 }
 
 export async function tryAcquireProcessPlanesLock(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<boolean> {
   const ref = healthRef(db);
 
@@ -68,7 +69,7 @@ export async function tryAcquireProcessPlanesLock(
 }
 
 export async function releaseProcessPlanesLock(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   await mergeHealth(db, {
     processPlanesLockedAt: admin.firestore.FieldValue.delete() as any,
@@ -86,7 +87,7 @@ export function isProcessPlanesLockHeld(
 }
 
 export async function recordProcessPlanesStart(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   deviceCount: number,
 ): Promise<void> {
   await mergeHealth(db, {
@@ -97,7 +98,7 @@ export async function recordProcessPlanesStart(
 }
 
 export async function recordProcessPlanesSuccess(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   await mergeHealth(db, {
     processPlanesLastSuccessAt: Date.now(),
@@ -106,7 +107,7 @@ export async function recordProcessPlanesSuccess(
 }
 
 export async function recordProcessPlanesFailure(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   error: string,
 ): Promise<void> {
   await mergeHealth(db, {
@@ -116,7 +117,7 @@ export async function recordProcessPlanesFailure(
 }
 
 export async function recordCollectAircraftStart(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   await mergeHealth(db, {
     collectAircraftLastRunAt: Date.now(),
@@ -125,7 +126,7 @@ export async function recordCollectAircraftStart(
 }
 
 export async function recordCollectAircraftSuccess(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   await mergeHealth(db, {
     collectAircraftLastSuccessAt: Date.now(),
@@ -134,7 +135,7 @@ export async function recordCollectAircraftSuccess(
 }
 
 export async function recordCollectAircraftFailure(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   error: string,
 ): Promise<void> {
   await mergeHealth(db, {
@@ -144,7 +145,7 @@ export async function recordCollectAircraftFailure(
 }
 
 export async function recordNotificationSent(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   const now = Date.now();
   await healthRef(db).set(
@@ -157,7 +158,7 @@ export async function recordNotificationSent(
 }
 
 export async function recordWatchdogRecovery(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   await mergeHealth(db, {
     watchdogLastRecoveryAt: Date.now(),
@@ -166,7 +167,7 @@ export async function recordWatchdogRecovery(
 }
 
 export async function recordWatchdogRecoveryFailure(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   error: string,
 ): Promise<void> {
   await mergeHealth(db, {

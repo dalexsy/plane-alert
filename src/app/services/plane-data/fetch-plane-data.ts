@@ -1,4 +1,4 @@
-import { adsbPointProxyUrl } from '../../config/firebase.config';
+import { adsbPointProxyUrl } from '../../config/planes-api.config';
 
 export async function fetchPlaneDataFromApi(
   centerLat: number,

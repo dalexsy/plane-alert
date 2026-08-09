@@ -1,4 +1,5 @@
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import * as admin from '../admin-compat';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   AIRCRAFT_SNAPSHOTS_COLLECTION,
@@ -97,7 +98,7 @@ export function uniqueLocationKeysFromDevices(
 }
 
 export async function loadAircraftSnapshotCache(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   locationKeys: string[],
 ): Promise<Map<string, CachedAircraftSnapshot>> {
   const cache = new Map<string, CachedAircraftSnapshot>();

@@ -1,7 +1,8 @@
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onSchedule } from './on-request';
+import { onRequest } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import {
   DEVICE_COLLECTION,
@@ -23,7 +24,7 @@ import {
 export { collectAircraftForLocation };
 
 export async function runAircraftCollection(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   await recordCollectAircraftStart(db);
 
@@ -77,7 +78,7 @@ export async function runAircraftCollection(
   const locationGroups = new Map<string, LocationGroup>();
 
   snapshot.docs.forEach((doc) => {
-    const data = doc.data() as DeviceRegistration;
+    const data = doc.data() as unknown as DeviceRegistration;
     const deviceLocation = data.location || (data as any).home;
     if (!deviceLocation) return;
 
@@ -124,7 +125,7 @@ export async function runAircraftCollection(
 }
 
 export function createAircraftCollectionFunction(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ) {
   return onSchedule(
     {
@@ -147,7 +148,7 @@ export function createAircraftCollectionFunction(
   );
 }
 
-export function createAircraftOnDemandFunction(db: admin.firestore.Firestore) {
+export function createAircraftOnDemandFunction(db: LocalFirestore) {
   return onRequest({ region: 'europe-west3' }, async (req, res) => {
     applyCors(res, 'GET, POST, OPTIONS');
     if (handleOptionsPreflight(req, res)) {

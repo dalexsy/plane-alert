@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { NoonRefreshService } from './services/noon-refresh/noon-refresh.service';
 import { NotificationService } from './services/notification/notification.service';
-import { FirebaseMessagingService } from './services/firebase-messaging/firebase-messaging.service';
+import { PushRegistrationService } from './services/push-registration/push-registration.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -15,7 +15,7 @@ describe('AppComponent', () => {
           useValue: { evaluateStatus: () => Promise.resolve() },
         },
         {
-          provide: FirebaseMessagingService,
+          provide: PushRegistrationService,
           useValue: {
             getStoredUserKey: () => null,
             registerDevice: () => Promise.resolve(),

@@ -5,12 +5,8 @@ dotenv.config();
 
 import express from 'express';
 import cron from 'node-cron';
-import * as admin from 'firebase-admin';
-import { logger } from 'firebase-functions/v2';
-import {
-  createLocalFirestore,
-  patchAdminFirestoreNamespace,
-} from './local-firestore';
+import { logger } from './pi-logger';
+import { createLocalFirestore } from './local-firestore';
 import { createDeviceManagementFunctions } from './device-management';
 import { runNotificationProcessing } from './notification-processor';
 import { runAircraftCollection } from './aircraft-collection';
@@ -23,14 +19,13 @@ import { buildPlanesApiHealthResponse } from './services/planes-api-health';
 import { readNotificationHealth } from './services/notification-health';
 import { DEVICE_COLLECTION } from './constants';
 
-patchAdminFirestoreNamespace(admin);
 const buildInfo = readPlanesApiBuildInfo();
 
 const storePath =
   process.env.PLANES_API_STORE_PATH?.trim() ||
   path.join(process.cwd(), 'data', 'planes-api-store.json');
 
-const db = createLocalFirestore(storePath) as unknown as admin.firestore.Firestore;
+const db = createLocalFirestore(storePath);
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));

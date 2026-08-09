@@ -1,4 +1,4 @@
-import { onRequest } from 'firebase-functions/v2/https';
+import { onRequest } from './on-request';
 import fetch from 'node-fetch';
 import { applyCors, handleOptionsPreflight } from './http';
 import {

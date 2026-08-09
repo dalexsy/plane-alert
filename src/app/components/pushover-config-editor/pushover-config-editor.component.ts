@@ -1,6 +1,6 @@
 import { Component, Output, EventEmitter, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FirebaseMessagingService } from '../../services/firebase-messaging/firebase-messaging.service';
+import { PushRegistrationService } from '../../services/push-registration/push-registration.service';
 import { SettingsService } from '../../services/settings/settings.service';
 import {
   PushoverConfigState,
@@ -27,7 +27,7 @@ export class PushoverConfigEditorComponent implements OnInit {
   statusMessage = '';
 
   constructor(
-    private firebaseMessaging: FirebaseMessagingService,
+    private pushRegistration: PushRegistrationService,
     private settings: SettingsService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -35,7 +35,7 @@ export class PushoverConfigEditorComponent implements OnInit {
   ngOnInit(): void {
     this.state = loadPushoverConfig(
       COMMON_MILITARY_TYPES,
-      this.firebaseMessaging.getStoredUserKey() || ''
+      this.pushRegistration.getStoredUserKey() || ''
     );
   }
 
@@ -76,7 +76,7 @@ export class PushoverConfigEditorComponent implements OnInit {
         ignoredTypes: config.ignoredTypes,
       })
     );
-    const registered = await this.firebaseMessaging.registerDevice(
+    const registered = await this.pushRegistration.registerDevice(
       this.state.pushoverUserKey.trim(),
       {
         radiusKm: this.state.radiusKm,

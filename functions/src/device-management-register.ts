@@ -1,6 +1,7 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onRequest } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import type { DeviceRegistration, Location } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
@@ -13,7 +14,7 @@ import {
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import { resolveRegistrationDeviceName } from './services/resolve-registration-device-name';
 
-export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
+export function createRegisterDeviceHandler(db: LocalFirestore) {
   return onRequest(
     { region: 'europe-west3' },
     async (req, res) => {
@@ -101,7 +102,7 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
         const timestamp = admin.firestore.FieldValue.serverTimestamp();
 
         const existingData = existing.exists
-          ? (existing.data() as DeviceRegistration)
+          ? (existing.data() as unknown as DeviceRegistration)
           : undefined;
         const existingLocation =
           existingData?.location || (existingData as any)?.home;
@@ -142,7 +143,7 @@ export function createRegisterDeviceHandler(db: admin.firestore.Firestore) {
 
         if (
           !existing.exists ||
-          !(existing.data() as DeviceRegistration)?.createdAt
+          !(existing.data() as unknown as DeviceRegistration)?.createdAt
         ) {
           payload.createdAt = timestamp;
         }

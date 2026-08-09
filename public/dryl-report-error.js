@@ -25,10 +25,6 @@
       var norm = payload.normalizeMessage(value);
       var resolvedLevel = level || "error";
       var ctx = context || {};
-      if (filter.isFirestoreQuotaMessage(norm.message)) {
-        ctx.source = ctx.source || "app-report-firestore-quota";
-        resolvedLevel = resolvedLevel === "info" ? "warn" : resolvedLevel;
-      }
       if (
         !filter.isExplicitReport(ctx) &&
         filter.isNoiseError(norm.message, norm.stack)

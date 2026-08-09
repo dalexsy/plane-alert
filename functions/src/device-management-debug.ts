@@ -1,12 +1,13 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onRequest } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION, FRONTEND_BASE_URL } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
 import { getPushoverApiToken } from './utils';
 
-export function createDeviceDebugHandlers(db: admin.firestore.Firestore) {
+export function createDeviceDebugHandlers(db: LocalFirestore) {
   const debugListTokens = onRequest(
     { region: 'europe-west3' },
     async (req: any, res: any) => {
@@ -50,7 +51,7 @@ export function createDeviceDebugHandlers(db: admin.firestore.Firestore) {
         return;
       }
 
-      const data = snapshot.data() as DeviceRegistration;
+      const data = snapshot.data() as unknown as DeviceRegistration;
       res.json({
         userKey,
         pushoverUserKey: data.pushoverUserKey,
@@ -73,7 +74,7 @@ export function createDeviceDebugHandlers(db: admin.firestore.Firestore) {
         const results: any[] = [];
 
         for (const doc of snapshot.docs) {
-          const data = doc.data() as DeviceRegistration;
+          const data = doc.data() as unknown as DeviceRegistration;
           const deviceInfo: any = {
             deviceName: data.deviceName || doc.id,
             userKey: data.pushoverUserKey?.slice(0, 10) + '...',

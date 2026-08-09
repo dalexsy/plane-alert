@@ -1,4 +1,6 @@
-export type DocData = Record<string, unknown>;
+/** Loose document map — Pi JSON store (not cloud Firestore). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DocData = Record<string, any>;
 export type Store = Record<string, Record<string, DocData>>;
 
 export const DELETE_FIELD = Symbol('delete');

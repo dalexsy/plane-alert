@@ -4,7 +4,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import { isMilitaryCallsign } from '@plane-alert/shared';
 
 let milIcaos: Set<string> | null = null;

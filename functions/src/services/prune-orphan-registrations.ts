@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import {
   isValidDeviceRegistration,
   matchPushoverDeviceName,
@@ -10,7 +11,7 @@ import { inferDeviceName } from '../utils';
 import { fetchDeviceDocsForUserKey } from './device-list-formatting';
 
 export async function pruneOrphanDeviceRegistrations(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   pushoverUserKey: string,
   pushoverDevices: string[],
 ): Promise<number> {
@@ -21,7 +22,7 @@ export async function pruneOrphanDeviceRegistrations(
     if (!doc.exists) {
       continue;
     }
-    const data = doc.data() as DeviceRegistration;
+    const data = doc.data() as unknown as DeviceRegistration;
     const deviceName = inferDeviceName(docId, data);
 
     if (matchPushoverDeviceName(deviceName, pushoverDevices)) {

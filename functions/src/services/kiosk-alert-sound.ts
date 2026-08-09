@@ -9,7 +9,7 @@
 import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from 'firebase-functions/v2';
+import { logger } from '../pi-logger';
 import {
   kioskAlertFileName,
   kioskAlertVariantFromModel,

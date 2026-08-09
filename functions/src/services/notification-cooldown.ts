@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import { COOLDOWN_COLLECTION } from '../constants';
 
 function normalizeCooldownIcao(icao: string): string {
@@ -24,7 +25,7 @@ function lastSentOf(
  * Uses the local JSON store's transaction API (Firestore-shaped facade on Pi).
  */
 export async function checkAndMarkNotified(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   userKey: string,
   deviceName: string,
   icao: string,
@@ -152,7 +153,7 @@ export async function checkAndMarkNotified(
 }
 
 export async function releaseNotificationClaim(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   userKey: string,
   deviceName: string,
   icao: string,

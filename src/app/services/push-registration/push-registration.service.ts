@@ -8,7 +8,7 @@ import {
 import {
   pushCheckDeviceEndpoint,
   pushRegistrationEndpoint,
-} from '../../config/firebase.config';
+} from '../../config/planes-api.config';
 import { SettingsService } from '../settings/settings.service';
 
 export interface PushRegistrationOptions {
@@ -27,7 +27,7 @@ interface RegisterDeviceResponse {
 @Injectable({
   providedIn: 'root',
 })
-export class FirebaseMessagingService {
+export class PushRegistrationService {
   private readonly pushoverDeviceKey = 'plane-alert-pushover-device';
   private readonly pushoverKeyKey = 'plane-alert-pushover-key';
   private readonly deviceNameKey = 'plane-alert-device-name';

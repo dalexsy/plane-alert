@@ -1,16 +1,16 @@
 {
   "name": "plane-alert-functions",
   "version": "2026.7.17",
-  "description": "Plane Alert Pi API (local JSON store) + legacy Cloud Functions exports",
+  "description": "Plane Alert Pi API (local JSON store only)",
   "main": "lib/pi-server.js",
   "scripts": {
     "build": "tsc && node scripts/write-build-info.mjs",
     "gcp-build": "npm run build",
     "clean": "rimraf lib",
     "lint": "eslint --ext .ts src",
-    "serve": "firebase emulators:start --only functions",
+    "serve": "echo GCP firebase emulators removed — use npm run start:pi",
     "start:pi": "node lib/pi-server.js",
-    "deploy": "npm run clean && npm run build && firebase deploy --only functions"
+    "deploy": "echo GCP firebase deploy removed — use pi-install-planes-api.py"
   },
   "engines": {
     "node": ">=20"
@@ -19,8 +19,6 @@
     "@plane-alert/shared": "file:./shared-package",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^7.0.3",
     "graphql": "^16.12.0",
     "i18n-iso-countries": "^7.14.0",
     "node-cron": "^3.0.3",

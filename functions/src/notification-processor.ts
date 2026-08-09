@@ -1,6 +1,7 @@
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onSchedule } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import {
@@ -20,7 +21,7 @@ import {
 } from './services/notification-health';
 
 export async function runNotificationProcessing(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   const acquired = await tryAcquireProcessPlanesLock(db);
   if (!acquired) {
@@ -36,7 +37,7 @@ export async function runNotificationProcessing(
 }
 
 async function runNotificationProcessingBody(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   const snapshot = await db.collection(DEVICE_COLLECTION).get();
   if (snapshot.empty) {
@@ -49,7 +50,7 @@ async function runNotificationProcessingBody(
   const allDevices = snapshot.docs.map((doc) => ({
     ref: doc.ref,
     id: doc.id,
-    data: doc.data() as DeviceRegistration,
+    data: doc.data() as unknown as DeviceRegistration,
   }));
 
   const userKeys = [
@@ -81,7 +82,7 @@ async function runNotificationProcessingBody(
   const activeDevices = activeSnapshot.docs.map((doc) => ({
     ref: doc.ref,
     id: doc.id,
-    data: doc.data() as DeviceRegistration,
+    data: doc.data() as unknown as DeviceRegistration,
   }));
 
   await recordProcessPlanesStart(db, activeDevices.length);
@@ -163,7 +164,7 @@ async function runNotificationProcessingBody(
 }
 
 export function createNotificationProcessorFunction(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ) {
   return onSchedule(
     {

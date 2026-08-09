@@ -1,5 +1,6 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import { MILITARY_HISTORY_COLLECTION } from '../constants';
 import {
@@ -15,7 +16,7 @@ import {
 import type { PendingNotification } from './notification-types';
 
 export interface DeliverDeviceNotificationsParams {
-  db: admin.firestore.Firestore;
+  db: LocalFirestore;
   docId: string;
   data: DeviceRegistration;
   cooldownDeviceName: string;

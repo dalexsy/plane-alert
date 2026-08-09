@@ -1,5 +1,7 @@
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalDocumentSnapshot } from './local-firestore-refs';
+import { LocalFirestore } from '../local-firestore';
+import { logger } from '../pi-logger';
+import * as admin from '../admin-compat';
 import type { DeviceRegistration, Location } from '../types';
 import { DEVICE_COLLECTION } from '../constants';
 import { sanitizeDeviceName, inferDeviceName } from '../utils';
@@ -20,9 +22,9 @@ export type CheckDeviceEntry = {
 };
 
 export async function fetchDeviceDocsForUserKey(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
   pushoverUserKey: string,
-): Promise<Map<string, FirebaseFirestore.DocumentSnapshot>> {
+): Promise<Map<string, LocalDocumentSnapshot>> {
   const collectionRef = db.collection(DEVICE_COLLECTION);
   const prefix = `${pushoverUserKey}__`;
   const prefixEnd = `${prefix}${String.fromCharCode(0xf8ff)}`;
@@ -36,7 +38,7 @@ export async function fetchDeviceDocsForUserKey(
     collectionRef.doc(pushoverUserKey).get(),
   ]);
 
-  const snapshotDocs = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+  const snapshotDocs = new Map<string, LocalDocumentSnapshot>();
 
   for (const doc of fieldMatchSnapshot.docs) {
     snapshotDocs.set(doc.id, doc);
@@ -54,7 +56,7 @@ export async function fetchDeviceDocsForUserKey(
 }
 
 async function backfillDeviceMetadata(
-  doc: FirebaseFirestore.DocumentSnapshot,
+  doc: LocalDocumentSnapshot,
   data: DeviceRegistration,
   options?: { fireAndForget?: boolean },
 ): Promise<string> {
@@ -82,12 +84,12 @@ async function backfillDeviceMetadata(
 }
 
 export async function buildCheckDeviceEntries(
-  snapshotDocs: Map<string, FirebaseFirestore.DocumentSnapshot>,
+  snapshotDocs: Map<string, LocalDocumentSnapshot>,
 ): Promise<CheckDeviceEntry[]> {
   const deviceEntries: CheckDeviceEntry[] = [];
 
   for (const doc of snapshotDocs.values()) {
-    const data = doc.data() as DeviceRegistration;
+    const data = doc.data() as unknown as DeviceRegistration;
     const deviceName = await backfillDeviceMetadata(doc, data);
 
     deviceEntries.push({
@@ -138,7 +140,7 @@ export function markPushoverRegistration(
 }
 
 export async function formatListAllDeviceEntry(
-  doc: FirebaseFirestore.QueryDocumentSnapshot,
+  doc: LocalDocumentSnapshot,
   data: DeviceRegistration,
 ) {
   const deviceName = await backfillDeviceMetadata(doc, data, {

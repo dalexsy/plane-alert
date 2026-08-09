@@ -1,9 +1,10 @@
-import * as admin from 'firebase-admin';
+import { LocalDocumentReference } from './local-firestore-refs';
+import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import { inferDeviceName, resolvePushoverDeviceName } from '../utils';
 
 export interface DeviceDocEntry {
-  ref: admin.firestore.DocumentReference;
+  ref: LocalDocumentReference;
   id: string;
   data: DeviceRegistration;
 }
@@ -18,7 +19,7 @@ function registrationTimestamp(entry: DeviceDocEntry): number {
 
 export interface DedupeDeviceRegistrationsResult {
   toProcess: DeviceDocEntry[];
-  duplicateRefs: admin.firestore.DocumentReference[];
+  duplicateRefs: LocalDocumentReference[];
 }
 
 /**
@@ -33,7 +34,7 @@ export function dedupeToOneRegistrationPerUser(
   devices: DeviceDocEntry[],
 ): DedupeDeviceRegistrationsResult {
   const keptByUser = new Map<string, DeviceDocEntry>();
-  const duplicateRefs: admin.firestore.DocumentReference[] = [];
+  const duplicateRefs: LocalDocumentReference[] = [];
 
   for (const entry of devices) {
     const userKey = entry.data.pushoverUserKey?.trim();
@@ -66,7 +67,7 @@ export function dedupeDeviceRegistrationsByPushoverTarget(
   registeredDevicesByUserKey: Map<string, Set<string>>,
 ): DedupeDeviceRegistrationsResult {
   const keptByTarget = new Map<string, DeviceDocEntry>();
-  const duplicateRefs: admin.firestore.DocumentReference[] = [];
+  const duplicateRefs: LocalDocumentReference[] = [];
 
   for (const entry of devices) {
     const userKey = entry.data.pushoverUserKey?.trim();

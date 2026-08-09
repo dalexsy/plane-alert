@@ -1,6 +1,7 @@
-import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { logger } from 'firebase-functions/v2';
-import * as admin from 'firebase-admin';
+import { LocalFirestore } from './local-firestore';
+import { onSchedule } from './on-request';
+import { logger } from './pi-logger';
+import * as admin from './admin-compat';
 import {
   DEVICE_COLLECTION,
   NOTIFICATION_HEALTH_STALE_MS,
@@ -33,7 +34,7 @@ function describeStalls(
 }
 
 export async function runNotificationHealthWatchdog(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ): Promise<void> {
   const deviceSnapshot = await db.collection(DEVICE_COLLECTION).get();
   if (deviceSnapshot.empty) {
@@ -85,7 +86,7 @@ export async function runNotificationHealthWatchdog(
 }
 
 export function createNotificationHealthWatchdog(
-  db: admin.firestore.Firestore,
+  db: LocalFirestore,
 ) {
   return onSchedule(
     {
