@@ -1,10 +1,9 @@
-import { LocalDocumentReference } from './local-firestore-refs';
-import * as admin from '../admin-compat';
+import { JsonDocumentReference } from './json-document-store-refs';
 import type { DeviceRegistration } from '../types';
 import { inferDeviceName, resolvePushoverDeviceName } from '../utils';
 
 export interface DeviceDocEntry {
-  ref: LocalDocumentReference;
+  ref: JsonDocumentReference;
   id: string;
   data: DeviceRegistration;
 }
@@ -19,22 +18,22 @@ function registrationTimestamp(entry: DeviceDocEntry): number {
 
 export interface DedupeDeviceRegistrationsResult {
   toProcess: DeviceDocEntry[];
-  duplicateRefs: LocalDocumentReference[];
+  duplicateRefs: JsonDocumentReference[];
 }
 
 /**
- * Keep one Firestore registration per Pushover delivery target so parallel
+ * Keep one device registration per Pushover delivery target so parallel
  * notifyForDevice runs cannot send duplicate alerts to the same phone.
  */
 /**
- * Keep one Firestore registration per Pushover user key when broadcasting
+ * Keep one device registration per Pushover user key when broadcasting
  * to all devices — duplicate rows would each send the same alert fleet-wide.
  */
 export function dedupeToOneRegistrationPerUser(
   devices: DeviceDocEntry[],
 ): DedupeDeviceRegistrationsResult {
   const keptByUser = new Map<string, DeviceDocEntry>();
-  const duplicateRefs: LocalDocumentReference[] = [];
+  const duplicateRefs: JsonDocumentReference[] = [];
 
   for (const entry of devices) {
     const userKey = entry.data.pushoverUserKey?.trim();
@@ -67,7 +66,7 @@ export function dedupeDeviceRegistrationsByPushoverTarget(
   registeredDevicesByUserKey: Map<string, Set<string>>,
 ): DedupeDeviceRegistrationsResult {
   const keptByTarget = new Map<string, DeviceDocEntry>();
-  const duplicateRefs: LocalDocumentReference[] = [];
+  const duplicateRefs: JsonDocumentReference[] = [];
 
   for (const entry of devices) {
     const userKey = entry.data.pushoverUserKey?.trim();

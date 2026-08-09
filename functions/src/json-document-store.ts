@@ -7,15 +7,15 @@ import {
   type WhereClause,
   DELETE_FIELD,
   INCREMENT_FIELD,
-} from './services/local-firestore-write.util';
+} from './services/json-document-store-write.util';
 import {
-  LocalCollectionReference,
-  LocalDocumentReference,
-  LocalDocumentSnapshot,
-  LocalTransaction,
-} from './services/local-firestore-refs';
+  JsonCollectionReference,
+  JsonDocumentReference,
+  JsonDocumentSnapshot,
+  JsonTransaction,
+} from './services/json-document-store-refs';
 
-export class LocalFieldValue {
+export class DocumentFieldValue {
   static delete(): symbol {
     return DELETE_FIELD;
   }
@@ -29,7 +29,7 @@ export class LocalFieldValue {
   }
 }
 
-export class LocalTimestamp {
+export class DocumentTimestamp {
   /** Public so JSON.stringify persists millis (private fields become `{}`). */
   readonly millis: number;
 
@@ -37,8 +37,8 @@ export class LocalTimestamp {
     this.millis = millis;
   }
 
-  static fromMillis(millis: number): LocalTimestamp {
-    return new LocalTimestamp(millis);
+  static fromMillis(millis: number): DocumentTimestamp {
+    return new DocumentTimestamp(millis);
   }
 
   toMillis(): number {
@@ -50,7 +50,7 @@ export class LocalTimestamp {
   }
 }
 
-export class LocalFirestore {
+export class JsonDocumentStore {
   private state: Store = {};
   private readonly filePath: string;
   private writeChain: Promise<void> = Promise.resolve();
@@ -69,23 +69,23 @@ export class LocalFirestore {
     }
   }
 
-  collection(name: string): LocalCollectionReference {
-    return new LocalCollectionReference(this, name);
+  collection(name: string): JsonCollectionReference {
+    return new JsonCollectionReference(this, name);
   }
 
   /** Sequential write batch (not multi-doc atomic across process crashes). */
   batch(): {
-    delete(ref: LocalDocumentReference): void;
-    set(ref: LocalDocumentReference, data: DocData): void;
+    delete(ref: JsonDocumentReference): void;
+    set(ref: JsonDocumentReference, data: DocData): void;
     commit(): Promise<void>;
   } {
-    const deletes: LocalDocumentReference[] = [];
-    const sets: { ref: LocalDocumentReference; data: DocData }[] = [];
+    const deletes: JsonDocumentReference[] = [];
+    const sets: { ref: JsonDocumentReference; data: DocData }[] = [];
     return {
-      delete(ref: LocalDocumentReference) {
+      delete(ref: JsonDocumentReference) {
         deletes.push(ref);
       },
-      set(ref: LocalDocumentReference, data: DocData) {
+      set(ref: JsonDocumentReference, data: DocData) {
         sets.push({ ref, data });
       },
       commit: async () => {
@@ -100,10 +100,10 @@ export class LocalFirestore {
   }
 
   async runTransaction<T>(
-    fn: (transaction: LocalTransaction) => Promise<T>,
+    fn: (transaction: JsonTransaction) => Promise<T>,
   ): Promise<T> {
     return this.write(async (state) => {
-      const tx = new LocalTransaction(this);
+      const tx = new JsonTransaction(this);
       const result = await fn(tx);
       tx.commit(state);
       return result;
@@ -119,14 +119,14 @@ export class LocalFirestore {
     collectionName: string,
     filters: WhereClause[],
     limitCount?: number,
-  ): Promise<LocalDocumentSnapshot[]> {
+  ): Promise<JsonDocumentSnapshot[]> {
     const entries = Object.entries(this.state[collectionName] ?? {});
     let docs = entries
       .filter(([docId, data]) => matchesFilters(docId, data, filters))
       .map(
         ([docId, data]) =>
-          new LocalDocumentSnapshot(
-            new LocalDocumentReference(this, collectionName, docId),
+          new JsonDocumentSnapshot(
+            new JsonDocumentReference(this, collectionName, docId),
             { ...data },
           ),
       );
@@ -155,6 +155,6 @@ export class LocalFirestore {
   }
 }
 
-export function createLocalFirestore(filePath: string): LocalFirestore {
-  return new LocalFirestore(filePath);
+export function createJsonDocumentStore(filePath: string): JsonDocumentStore {
+  return new JsonDocumentStore(filePath);
 }

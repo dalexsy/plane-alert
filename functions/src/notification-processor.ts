@@ -1,7 +1,6 @@
-import { LocalFirestore } from './local-firestore';
+import { JsonDocumentStore } from './json-document-store';
 import { onSchedule } from './on-request';
 import { logger } from './pi-logger';
-import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import {
@@ -21,7 +20,7 @@ import {
 } from './services/notification-health';
 
 export async function runNotificationProcessing(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   const acquired = await tryAcquireProcessPlanesLock(db);
   if (!acquired) {
@@ -37,7 +36,7 @@ export async function runNotificationProcessing(
 }
 
 async function runNotificationProcessingBody(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   const snapshot = await db.collection(DEVICE_COLLECTION).get();
   if (snapshot.empty) {
@@ -164,7 +163,7 @@ async function runNotificationProcessingBody(
 }
 
 export function createNotificationProcessorFunction(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ) {
   return onSchedule(
     {

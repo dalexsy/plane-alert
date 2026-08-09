@@ -1,7 +1,6 @@
-import { LocalDocumentReference } from './local-firestore-refs';
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentReference } from './json-document-store-refs';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import { notifyForDevice } from './notify-for-device';
 import { chimeKioskForMilitaryInRange } from './kiosk-military-in-range-chime';
@@ -14,13 +13,13 @@ import {
 } from './notification-snapshot-cache';
 
 type DeviceDoc = {
-  ref: LocalDocumentReference;
+  ref: JsonDocumentReference;
   id: string;
   data: DeviceRegistration;
 };
 
 export async function processDevicesWithSnapshotCache(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   docs: DeviceDoc[],
   getRegisteredPushoverDevices?: (
     userKey: string,

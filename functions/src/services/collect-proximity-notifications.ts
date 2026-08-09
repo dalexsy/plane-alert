@@ -1,6 +1,5 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   normalizeCallsign,
@@ -21,7 +20,7 @@ import type { PendingNotification } from './notification-types';
 const PROXIMITY_THRESHOLD_KM = 3.0;
 
 export interface CollectProximityNotificationsParams {
-  db: LocalFirestore;
+  db: JsonDocumentStore;
   docId: string;
   data: DeviceRegistration;
   deviceLocation: Location;

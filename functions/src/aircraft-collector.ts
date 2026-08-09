@@ -1,11 +1,9 @@
-import { LocalFirestore } from './local-firestore';
+import { JsonDocumentStore } from './json-document-store';
 /**
- * Aircraft Data Collection Module
- * Handles fetching and storing aircraft data in Firestore
+ * Aircraft data collection — fetch ADS-B and persist snapshots in the Pi JSON store.
  */
 
 import { logger } from './pi-logger';
-import * as admin from './admin-compat';
 import { AdsBPlane } from '@plane-alert/shared';
 import { ORIGIN_HEADER } from './constants';
 import {
@@ -102,7 +100,7 @@ export function groupDevicesByLocation(
  * Store aircraft data in Firestore for a specific location
  */
 export async function storeAircraftSnapshot(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   locationKey: string,
   location: LocationGroup,
   aircraft: AdsBPlane[],
@@ -118,8 +116,7 @@ export async function storeAircraftSnapshot(
     aircraft: aircraft,
     deviceCount: location.devices.length,
     devices: location.devices,
-    // Plain millis — FieldValue.serverTimestamp() does not survive JSON store
-    // (admin.firestore getter defeats LocalFieldValue patch → `{}` timestamps).
+    // Plain millis — DocumentFieldValue.serverTimestamp() is Date.now(); store numbers.
     timestamp: Date.now(),
     expiresAt: Date.now() + 2 * 60 * 60 * 1000,
   });
@@ -135,7 +132,7 @@ export async function storeAircraftSnapshot(
  * Collect and store aircraft data for all registered device locations
  */
 export async function collectAircraftForAllLocations(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   try {
     const snapshot = await db.collection('deviceTokens').get();

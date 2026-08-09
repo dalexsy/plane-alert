@@ -1,7 +1,7 @@
-import { LocalDocumentSnapshot } from './local-firestore-refs';
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentSnapshot } from './json-document-store-refs';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
+import { FieldPath } from '../document-fields';
 import type { DeviceRegistration, Location } from '../types';
 import { DEVICE_COLLECTION } from '../constants';
 import { sanitizeDeviceName, inferDeviceName } from '../utils';
@@ -22,9 +22,9 @@ export type CheckDeviceEntry = {
 };
 
 export async function fetchDeviceDocsForUserKey(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   pushoverUserKey: string,
-): Promise<Map<string, LocalDocumentSnapshot>> {
+): Promise<Map<string, JsonDocumentSnapshot>> {
   const collectionRef = db.collection(DEVICE_COLLECTION);
   const prefix = `${pushoverUserKey}__`;
   const prefixEnd = `${prefix}${String.fromCharCode(0xf8ff)}`;
@@ -32,13 +32,13 @@ export async function fetchDeviceDocsForUserKey(
   const [fieldMatchSnapshot, prefixSnapshot, legacyDoc] = await Promise.all([
     collectionRef.where('pushoverUserKey', '==', pushoverUserKey).get(),
     collectionRef
-      .where(admin.firestore.FieldPath.documentId(), '>=', prefix)
-      .where(admin.firestore.FieldPath.documentId(), '<', prefixEnd)
+      .where(FieldPath.documentId(), '>=', prefix)
+      .where(FieldPath.documentId(), '<', prefixEnd)
       .get(),
     collectionRef.doc(pushoverUserKey).get(),
   ]);
 
-  const snapshotDocs = new Map<string, LocalDocumentSnapshot>();
+  const snapshotDocs = new Map<string, JsonDocumentSnapshot>();
 
   for (const doc of fieldMatchSnapshot.docs) {
     snapshotDocs.set(doc.id, doc);
@@ -56,7 +56,7 @@ export async function fetchDeviceDocsForUserKey(
 }
 
 async function backfillDeviceMetadata(
-  doc: LocalDocumentSnapshot,
+  doc: JsonDocumentSnapshot,
   data: DeviceRegistration,
   options?: { fireAndForget?: boolean },
 ): Promise<string> {
@@ -84,7 +84,7 @@ async function backfillDeviceMetadata(
 }
 
 export async function buildCheckDeviceEntries(
-  snapshotDocs: Map<string, LocalDocumentSnapshot>,
+  snapshotDocs: Map<string, JsonDocumentSnapshot>,
 ): Promise<CheckDeviceEntry[]> {
   const deviceEntries: CheckDeviceEntry[] = [];
 
@@ -140,7 +140,7 @@ export function markPushoverRegistration(
 }
 
 export async function formatListAllDeviceEntry(
-  doc: LocalDocumentSnapshot,
+  doc: JsonDocumentSnapshot,
   data: DeviceRegistration,
 ) {
   const deviceName = await backfillDeviceMetadata(doc, data, {

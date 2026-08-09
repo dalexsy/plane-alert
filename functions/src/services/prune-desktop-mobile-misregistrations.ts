@@ -1,6 +1,5 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import { matchPushoverDeviceName } from '@plane-alert/shared';
 import type { DeviceRegistration } from '../types';
 import { inferDeviceName } from '../utils';
@@ -29,12 +28,12 @@ function isMobilePushoverDeviceName(name: string): boolean {
 }
 
 /**
- * Remove Firestore rows where a desktop browser session was matched to a mobile
+ * Remove registration rows where a desktop browser session was matched to a mobile
  * Pushover device (e.g. Windows Edge → galaxys24). Those steal account-wide
  * cooldowns and send alerts to phones the user is not using.
  */
 export async function pruneDesktopMobileMisregistrations(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   pushoverUserKey: string,
   pushoverDevices: string[],
 ): Promise<number> {

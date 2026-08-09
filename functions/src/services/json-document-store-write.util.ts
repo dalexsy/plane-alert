@@ -1,4 +1,4 @@
-/** Loose document map — Pi JSON store (not cloud Firestore). */
+/** Loose document map — Pi JSON store (not cloud document store). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DocData = Record<string, any>;
 export type Store = Record<string, Record<string, DocData>>;
@@ -33,7 +33,7 @@ export function applyPatch(
         next[key] = current + (typeof delta === 'number' ? delta : 0);
         continue;
       }
-      // Unpatched firebase-admin Increment leaked into JSON as { operand: n }.
+      // Legacy Increment sentinel leaked into JSON as { operand: n }.
       if (
         'operand' in asRec &&
         typeof asRec.operand === 'number' &&

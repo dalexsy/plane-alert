@@ -4,21 +4,21 @@ import {
   type DocData,
   type Store,
   type WhereClause,
-} from './local-firestore-write.util';
+} from './json-document-store-write.util';
 
-export interface LocalFirestoreStore {
+export interface JsonDocumentStoreApi {
   readDoc(collectionName: string, docId: string): DocData | undefined;
   write<T>(fn: (state: Store) => Promise<T> | T): Promise<T>;
   readCollection(
     collectionName: string,
     filters: WhereClause[],
     limitCount?: number,
-  ): Promise<LocalDocumentSnapshot[]>;
+  ): Promise<JsonDocumentSnapshot[]>;
 }
 
-export class LocalDocumentSnapshot {
+export class JsonDocumentSnapshot {
   constructor(
-    readonly ref: LocalDocumentReference,
+    readonly ref: JsonDocumentReference,
     private readonly dataValue: DocData | undefined,
   ) {}
 
@@ -35,8 +35,8 @@ export class LocalDocumentSnapshot {
   }
 }
 
-export class LocalQuerySnapshot {
-  constructor(readonly docs: LocalDocumentSnapshot[]) {}
+export class JsonQuerySnapshot {
+  constructor(readonly docs: JsonDocumentSnapshot[]) {}
 
   get empty(): boolean {
     return this.docs.length === 0;
@@ -47,9 +47,9 @@ export class LocalQuerySnapshot {
   }
 }
 
-export class LocalDocumentReference {
+export class JsonDocumentReference {
   constructor(
-    private readonly store: LocalFirestoreStore,
+    private readonly store: JsonDocumentStoreApi,
     readonly collectionName: string,
     readonly id: string,
   ) {}
@@ -58,9 +58,9 @@ export class LocalDocumentReference {
     return `${this.collectionName}/${this.id}`;
   }
 
-  async get(): Promise<LocalDocumentSnapshot> {
+  async get(): Promise<JsonDocumentSnapshot> {
     const data = this.store.readDoc(this.collectionName, this.id);
-    return new LocalDocumentSnapshot(this, data);
+    return new JsonDocumentSnapshot(this, data);
   }
 
   async set(data: DocData, options?: { merge?: boolean }): Promise<void> {
@@ -88,12 +88,12 @@ export class LocalDocumentReference {
   }
 }
 
-export class LocalCollectionReference {
+export class JsonCollectionReference {
   private readonly filters: WhereClause[] = [];
   private readonly limitCount?: number;
 
   constructor(
-    private readonly store: LocalFirestoreStore,
+    private readonly store: JsonDocumentStoreApi,
     readonly id: string,
     filters: WhereClause[] = [],
     limitCount?: number,
@@ -102,17 +102,17 @@ export class LocalCollectionReference {
     this.limitCount = limitCount;
   }
 
-  doc(docId: string): LocalDocumentReference {
-    return new LocalDocumentReference(this.store, this.id, docId);
+  doc(docId: string): JsonDocumentReference {
+    return new JsonDocumentReference(this.store, this.id, docId);
   }
 
-  where(field: unknown, op: string, value: unknown): LocalCollectionReference {
+  where(field: unknown, op: string, value: unknown): JsonCollectionReference {
     const type =
       op === '==' ? 'eq' : op === '>=' ? 'gte' : op === '<' ? 'lt' : null;
     if (!type) {
       throw new Error(`Unsupported where operator: ${op}`);
     }
-    return new LocalCollectionReference(
+    return new JsonCollectionReference(
       this.store,
       this.id,
       [...this.filters, { type, field: normalizeWhereField(field), value }],
@@ -120,8 +120,8 @@ export class LocalCollectionReference {
     );
   }
 
-  limit(count: number): LocalCollectionReference {
-    return new LocalCollectionReference(
+  limit(count: number): JsonCollectionReference {
+    return new JsonCollectionReference(
       this.store,
       this.id,
       this.filters,
@@ -129,33 +129,33 @@ export class LocalCollectionReference {
     );
   }
 
-  async get(): Promise<LocalQuerySnapshot> {
+  async get(): Promise<JsonQuerySnapshot> {
     const docs = await this.store.readCollection(
       this.id,
       this.filters,
       this.limitCount,
     );
-    return new LocalQuerySnapshot(docs);
+    return new JsonQuerySnapshot(docs);
   }
 }
 
-export class LocalTransaction {
+export class JsonTransaction {
   private readonly pending = new Map<string, DocData | null>();
 
-  constructor(private readonly store: LocalFirestoreStore) {}
+  constructor(private readonly store: JsonDocumentStoreApi) {}
 
-  async get(ref: LocalDocumentReference): Promise<LocalDocumentSnapshot> {
+  async get(ref: JsonDocumentReference): Promise<JsonDocumentSnapshot> {
     const key = ref.path;
     if (this.pending.has(key)) {
       const data = this.pending.get(key);
-      return new LocalDocumentSnapshot(ref, data ?? undefined);
+      return new JsonDocumentSnapshot(ref, data ?? undefined);
     }
     const data = this.store.readDoc(ref.collectionName, ref.id);
-    return new LocalDocumentSnapshot(ref, data);
+    return new JsonDocumentSnapshot(ref, data);
   }
 
   set(
-    ref: LocalDocumentReference,
+    ref: JsonDocumentReference,
     data: DocData,
     options?: { merge?: boolean },
   ): void {
@@ -168,7 +168,7 @@ export class LocalTransaction {
     );
   }
 
-  delete(ref: LocalDocumentReference): void {
+  delete(ref: JsonDocumentReference): void {
     this.pending.set(ref.path, null);
   }
 

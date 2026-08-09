@@ -1,5 +1,4 @@
-import { LocalFirestore } from '../local-firestore';
-import * as admin from '../admin-compat';
+import { JsonDocumentStore } from '../json-document-store';
 import type { AdsBPlane } from '@plane-alert/shared';
 import {
   AIRCRAFT_SNAPSHOTS_COLLECTION,
@@ -28,7 +27,7 @@ function getTimestampMillis(value: unknown): number | null {
     const millis = (value as { toMillis: () => number }).toMillis();
     return typeof millis === 'number' && !Number.isNaN(millis) ? millis : null;
   }
-  // LocalTimestamp JSON round-trip → { millis: n } (no toMillis).
+  // DocumentTimestamp JSON round-trip → { millis: n } (no toMillis).
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -37,7 +36,7 @@ function getTimestampMillis(value: unknown): number | null {
   ) {
     return (value as { millis: number }).millis;
   }
-  // firebase-admin Timestamp JSON shape (patch miss / legacy writes).
+  // legacy Timestamp JSON shape (patch miss / legacy writes).
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -98,7 +97,7 @@ export function uniqueLocationKeysFromDevices(
 }
 
 export async function loadAircraftSnapshotCache(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   locationKeys: string[],
 ): Promise<Map<string, CachedAircraftSnapshot>> {
   const cache = new Map<string, CachedAircraftSnapshot>();

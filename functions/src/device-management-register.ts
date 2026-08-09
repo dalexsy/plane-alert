@@ -1,7 +1,7 @@
-import { LocalFirestore } from './local-firestore';
+import { JsonDocumentStore } from './json-document-store';
 import { onRequest } from './on-request';
 import { logger } from './pi-logger';
-import * as admin from './admin-compat';
+import { FieldValue } from './document-fields';
 import type { DeviceRegistration, Location } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
@@ -14,7 +14,7 @@ import {
 import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
 import { resolveRegistrationDeviceName } from './services/resolve-registration-device-name';
 
-export function createRegisterDeviceHandler(db: LocalFirestore) {
+export function createRegisterDeviceHandler(db: JsonDocumentStore) {
   return onRequest(
     { region: 'europe-west3' },
     async (req, res) => {
@@ -99,7 +99,7 @@ export function createRegisterDeviceHandler(db: LocalFirestore) {
         const docId = getDeviceDocId(pushoverUserKey, pushoverDeviceName);
         const deviceRef = db.collection(DEVICE_COLLECTION).doc(docId);
         const existing = await deviceRef.get();
-        const timestamp = admin.firestore.FieldValue.serverTimestamp();
+        const timestamp = FieldValue.serverTimestamp();
 
         const existingData = existing.exists
           ? (existing.data() as unknown as DeviceRegistration)

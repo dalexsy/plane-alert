@@ -1,6 +1,5 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import { COOLDOWN_COLLECTION } from '../constants';
 
 function normalizeCooldownIcao(icao: string): string {
@@ -25,7 +24,7 @@ function lastSentOf(
  * Uses the local JSON store's transaction API (Firestore-shaped facade on Pi).
  */
 export async function checkAndMarkNotified(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   userKey: string,
   deviceName: string,
   icao: string,
@@ -153,7 +152,7 @@ export async function checkAndMarkNotified(
 }
 
 export async function releaseNotificationClaim(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   userKey: string,
   deviceName: string,
   icao: string,

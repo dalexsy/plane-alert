@@ -1,6 +1,5 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import {
   DEFAULT_PUSH_DEVICE_NAMES,
   DEFAULT_PUSH_HOME,
@@ -11,7 +10,7 @@ import type { DeviceRegistration } from '../types';
 import { getDeviceDocId, sanitizeDeviceName } from '../utils';
 
 export async function seedDefaultDeviceRegistrations(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<number> {
   const snapshot = await db.collection(DEVICE_COLLECTION).get();
   const existingIds = new Set(snapshot.docs.map((doc) => doc.id));

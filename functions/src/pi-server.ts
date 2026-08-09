@@ -6,7 +6,7 @@ dotenv.config();
 import express from 'express';
 import cron from 'node-cron';
 import { logger } from './pi-logger';
-import { createLocalFirestore } from './local-firestore';
+import { createJsonDocumentStore } from './json-document-store';
 import { createDeviceManagementFunctions } from './device-management';
 import { runNotificationProcessing } from './notification-processor';
 import { runAircraftCollection } from './aircraft-collection';
@@ -25,7 +25,7 @@ const storePath =
   process.env.PLANES_API_STORE_PATH?.trim() ||
   path.join(process.cwd(), 'data', 'planes-api-store.json');
 
-const db = createLocalFirestore(storePath);
+const db = createJsonDocumentStore(storePath);
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));

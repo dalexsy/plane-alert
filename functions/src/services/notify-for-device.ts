@@ -1,7 +1,7 @@
-import { LocalDocumentReference } from './local-firestore-refs';
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentReference } from './json-document-store-refs';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
+import { FieldValue } from '../document-fields';
 import type { DeviceRegistration } from '../types';
 import { pruneOldNotifications } from '../utils';
 import { batchGetFlightData } from './flight-data-cache';
@@ -12,8 +12,8 @@ import type { CachedAircraftSnapshot } from './notification-snapshot-cache';
 import { buildNotifyDeviceContext } from './notify-device-context';
 
 export async function notifyForDevice(
-  db: LocalFirestore,
-  device: LocalDocumentReference,
+  db: JsonDocumentStore,
+  device: JsonDocumentReference,
   data: DeviceRegistration,
   docId: string,
   registeredPushoverDevices?: Set<string> | null,
@@ -149,7 +149,7 @@ export async function notifyForDevice(
       {
         lastNotified: updatedLastNotified,
         lastProximityNotified: updatedProximity,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );

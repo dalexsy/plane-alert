@@ -1,6 +1,6 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
+import { FieldValue } from '../document-fields';
 import {
   matchPushoverDeviceName,
   PUSHOVER_UNRELIABLE_DEVICE_NAMES,
@@ -39,13 +39,13 @@ function pickTemplateRegistration(
 }
 
 /**
- * Ensure every reliable Pushover device on the account has a Firestore
+ * Ensure every reliable Pushover device on the account has a document-store
  * registration when the household already has at least one. Restores phones
  * dropped by duplicate pruning — each Pushover device (pixel10, galaxys24, …)
  * is independent and receives its own notifications.
  */
 export async function syncMissingPushoverDeviceRegistrations(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   pushoverUserKey: string,
   pushoverDevices: string[],
 ): Promise<number> {
@@ -88,7 +88,7 @@ export async function syncMissingPushoverDeviceRegistrations(
   }
 
   let created = 0;
-  const timestamp = admin.firestore.FieldValue.serverTimestamp();
+  const timestamp = FieldValue.serverTimestamp();
 
   for (const pushoverDevice of pushoverDevices) {
     const trimmed = pushoverDevice.trim();

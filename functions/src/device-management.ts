@@ -1,7 +1,6 @@
-import { LocalFirestore } from './local-firestore';
+import { JsonDocumentStore } from './json-document-store';
 import { onRequest } from './on-request';
 import { logger } from './pi-logger';
-import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
 import { applyCors, handleOptionsPreflight } from './http';
@@ -17,7 +16,7 @@ import {
 } from './services/device-list-formatting';
 import { createRegisterDeviceHandler } from './device-management-register';
 
-export function createDeviceManagementFunctions(db: LocalFirestore) {
+export function createDeviceManagementFunctions(db: JsonDocumentStore) {
   const registerDevice = createRegisterDeviceHandler(db);
 
   const checkDevice = onRequest(

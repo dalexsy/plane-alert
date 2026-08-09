@@ -1,8 +1,7 @@
-import { LocalFirestore } from './local-firestore';
+import { JsonDocumentStore } from './json-document-store';
 import { onSchedule } from './on-request';
 import { onRequest } from './on-request';
 import { logger } from './pi-logger';
-import * as admin from './admin-compat';
 import type { DeviceRegistration } from './types';
 import {
   DEVICE_COLLECTION,
@@ -24,7 +23,7 @@ import {
 export { collectAircraftForLocation };
 
 export async function runAircraftCollection(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   await recordCollectAircraftStart(db);
 
@@ -125,7 +124,7 @@ export async function runAircraftCollection(
 }
 
 export function createAircraftCollectionFunction(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ) {
   return onSchedule(
     {
@@ -148,7 +147,7 @@ export function createAircraftCollectionFunction(
   );
 }
 
-export function createAircraftOnDemandFunction(db: LocalFirestore) {
+export function createAircraftOnDemandFunction(db: JsonDocumentStore) {
   return onRequest({ region: 'europe-west3' }, async (req, res) => {
     applyCors(res, 'GET, POST, OPTIONS');
     if (handleOptionsPreflight(req, res)) {

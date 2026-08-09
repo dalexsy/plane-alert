@@ -1,6 +1,5 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import {
   isValidDeviceRegistration,
   matchPushoverDeviceName,
@@ -11,7 +10,7 @@ import { inferDeviceName } from '../utils';
 import { fetchDeviceDocsForUserKey } from './device-list-formatting';
 
 export async function pruneOrphanDeviceRegistrations(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   pushoverUserKey: string,
   pushoverDevices: string[],
 ): Promise<number> {

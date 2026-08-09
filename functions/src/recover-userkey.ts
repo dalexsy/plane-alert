@@ -1,10 +1,9 @@
-import { LocalFirestore } from './local-firestore';
+import { JsonDocumentStore } from './json-document-store';
 import { onRequest } from './on-request';
 import { logger } from './pi-logger';
-import * as admin from './admin-compat';
 import { applyCors, handleOptionsPreflight } from './http';
 
-export function createRecoverUserKeyFunction(db: LocalFirestore) {
+export function createRecoverUserKeyFunction(db: JsonDocumentStore) {
   return onRequest({ region: 'europe-west3' }, async (req, res) => {
     applyCors(res, 'GET, OPTIONS');
     if (handleOptionsPreflight(req, res)) {

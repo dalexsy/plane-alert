@@ -1,12 +1,11 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { onRequest } from '../on-request';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import { MILITARY_HISTORY_COLLECTION } from '../constants';
 import { applyCors, handleOptionsPreflight } from '../http';
 import type { MilitaryHistorySighting } from '../military-history.types';
 
-export function createSaveMilitarySightingHandler(db: LocalFirestore) {
+export function createSaveMilitarySightingHandler(db: JsonDocumentStore) {
   return onRequest(
     {
       cors: true,

@@ -8,9 +8,9 @@
     "gcp-build": "npm run build",
     "clean": "rimraf lib",
     "lint": "eslint --ext .ts src",
-    "serve": "echo GCP firebase emulators removed — use npm run start:pi",
+    "serve": "echo Use npm run start:pi (local planes API)",
     "start:pi": "node lib/pi-server.js",
-    "deploy": "echo GCP firebase deploy removed — use pi-install-planes-api.py"
+    "deploy": "echo Use python scripts/pi-install-planes-api.py from plane-alert repo"
   },
   "engines": {
     "node": ">=20"

@@ -1,12 +1,11 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 
 const AEROAPI_STATS_COLLECTION = 'aeroapi-stats';
 const DAILY_CALL_LIMIT = 60;
 
 export async function canMakeAeroApiCall(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<boolean> {
   const today = new Date().toISOString().split('T')[0];
   const statsRef = db.collection(AEROAPI_STATS_COLLECTION).doc(today);
@@ -41,7 +40,7 @@ export async function canMakeAeroApiCall(
 }
 
 export async function cleanupExpiredFlightCache(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   collection: string,
   expiredBefore: number,
 ): Promise<number> {

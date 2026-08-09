@@ -1,7 +1,6 @@
-import { LocalDocumentReference } from './local-firestore-refs';
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentReference } from './json-document-store-refs';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import type { DeviceRegistration } from '../types';
 import {
   clampRadius,
@@ -22,8 +21,8 @@ export interface NotifyDeviceContext {
 }
 
 export async function buildNotifyDeviceContext(
-  db: LocalFirestore,
-  device: LocalDocumentReference,
+  db: JsonDocumentStore,
+  device: JsonDocumentReference,
   data: DeviceRegistration,
   docId: string,
   registeredPushoverDevices?: Set<string> | null,
@@ -55,7 +54,7 @@ export async function buildNotifyDeviceContext(
     logger.warn('No Pushover device match; skipping this registration', {
       docId,
       userKey: data.pushoverUserKey.slice(0, 8),
-      firestoreDeviceName: data.deviceName,
+      registrationDeviceName: data.deviceName,
       pushoverDevices: registeredPushoverDevices
         ? [...registeredPushoverDevices]
         : [],
@@ -69,7 +68,7 @@ export async function buildNotifyDeviceContext(
   ) {
     logger.info('Resolved Pushover device alias', {
       docId,
-      firestoreDeviceName: data.deviceName,
+      registrationDeviceName: data.deviceName,
       pushoverDeviceName: pushoverTargetName,
     });
   }

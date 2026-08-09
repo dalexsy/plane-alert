@@ -1,6 +1,5 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import { looksMilitary, type AdsBPlane } from '@plane-alert/shared';
 import { AIRCRAFT_SNAPSHOTS_COLLECTION } from '../constants';
 import { clampRadius, isSpecialAircraft } from '../utils';
@@ -16,7 +15,7 @@ export type LocationGroup = {
 };
 
 export async function storeAircraftForLocationGroup(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   locationKey: string,
   location: LocationGroup,
 ): Promise<void> {
@@ -26,7 +25,7 @@ export async function storeAircraftForLocationGroup(
   );
 
   if (aircraft === null) {
-    logger.warn('Skipping Firestore update due to API failure', {
+    logger.warn('Skipping aircraft snapshot update due to API failure', {
       locationKey,
     });
     return;
@@ -97,9 +96,7 @@ export async function storeAircraftForLocationGroup(
     history: history,
     deviceCount: location.devices.length,
     devices: location.devices,
-    // Date.now() — do not use FieldValue.serverTimestamp(); admin.firestore is a
-    // getter that returns a fresh namespace each access, so LocalFieldValue patches
-    // never stick and Sentinels JSON-serialize to `{}` (perpetual stale cache).
+    // Plain millis for the JSON document store.
     timestamp: Date.now(),
     expiresAt: Date.now() + 2 * 60 * 60 * 1000,
   });
@@ -116,7 +113,7 @@ export async function storeAircraftForLocationGroup(
  * Used by both scheduled collection and on-demand requests
  */
 export async function collectAircraftForLocation(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   lat: number,
   lon: number,
   radiusKm: number,

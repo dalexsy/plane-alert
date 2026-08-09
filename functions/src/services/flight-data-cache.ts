@@ -1,10 +1,9 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 /**
  * Flight Data Cache Manager
  */
 
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
 import { FlightData, fetchFlightData } from './aeroapi-client';
 import {
   canMakeAeroApiCall,
@@ -26,7 +25,7 @@ function getCacheKey(callsign: string): string {
 }
 
 export async function getFlightData(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   callsign: string,
 ): Promise<FlightData | null> {
   if (!callsign || !callsign.trim()) {
@@ -113,7 +112,7 @@ export async function getFlightData(
 }
 
 export async function batchGetFlightData(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   callsigns: string[],
 ): Promise<Map<string, FlightData>> {
   const results = new Map<string, FlightData>();
@@ -139,7 +138,7 @@ export async function batchGetFlightData(
 }
 
 export async function cleanupExpiredCache(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<number> {
   const expiredBefore = Date.now() - CACHE_TTL_MS;
   return cleanupExpiredFlightCache(db, FLIGHT_DATA_COLLECTION, expiredBefore);

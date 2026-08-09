@@ -1,7 +1,7 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { onRequest } from '../on-request';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
+import { FieldPath } from '../document-fields';
 import {
   COOLDOWN_COLLECTION,
   DEVICE_COLLECTION,
@@ -17,7 +17,7 @@ import type {
   NotificationCooldownRecord,
 } from '../military-history.types';
 
-export function createGetMilitaryHistoryHandler(db: LocalFirestore) {
+export function createGetMilitaryHistoryHandler(db: JsonDocumentStore) {
   return onRequest(
     {
       cors: true,
@@ -48,18 +48,18 @@ export function createGetMilitaryHistoryHandler(db: LocalFirestore) {
           await Promise.all([
             db
               .collection(MILITARY_HISTORY_COLLECTION)
-              .where(admin.firestore.FieldPath.documentId(), '>=', prefix)
-              .where(admin.firestore.FieldPath.documentId(), '<', prefixEnd)
+              .where(FieldPath.documentId(), '>=', prefix)
+              .where(FieldPath.documentId(), '<', prefixEnd)
               .get(),
             db
               .collection(COOLDOWN_COLLECTION)
-              .where(admin.firestore.FieldPath.documentId(), '>=', prefix)
-              .where(admin.firestore.FieldPath.documentId(), '<', prefixEnd)
+              .where(FieldPath.documentId(), '>=', prefix)
+              .where(FieldPath.documentId(), '<', prefixEnd)
               .get(),
             db
               .collection(DEVICE_COLLECTION)
-              .where(admin.firestore.FieldPath.documentId(), '>=', prefix)
-              .where(admin.firestore.FieldPath.documentId(), '<', prefixEnd)
+              .where(FieldPath.documentId(), '>=', prefix)
+              .where(FieldPath.documentId(), '<', prefixEnd)
               .get(),
             validatePushoverUserKey(pushoverUserKey),
           ]);

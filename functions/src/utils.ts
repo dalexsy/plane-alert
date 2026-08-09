@@ -24,7 +24,7 @@ export function getPushoverApiToken(): string {
 }
 
 /**
- * Map a Firestore registration to a Pushover device for delivery.
+ * Map a device registration to a Pushover device for delivery.
  * Returns null when unmatched — callers must skip (never broadcast).
  */
 export function resolvePushoverDeviceName(

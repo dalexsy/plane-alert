@@ -1,6 +1,6 @@
-import { LocalFirestore } from '../local-firestore';
+import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
-import * as admin from '../admin-compat';
+import { FieldValue } from '../document-fields';
 import {
   PROCESS_PLANES_LOCK_TTL_MS,
   SYSTEM_HEALTH_COLLECTION,
@@ -22,28 +22,28 @@ export interface NotificationHealthState {
   watchdogLastRecoveryError?: string;
 }
 
-function healthRef(db: LocalFirestore) {
+function healthRef(db: JsonDocumentStore) {
   return db
     .collection(SYSTEM_HEALTH_COLLECTION)
     .doc(NOTIFICATION_HEALTH_DOC_ID);
 }
 
 export async function readNotificationHealth(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<NotificationHealthState> {
   const snap = await healthRef(db).get();
   return (snap.data() as NotificationHealthState) ?? {};
 }
 
 async function mergeHealth(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   patch: Partial<NotificationHealthState>,
 ): Promise<void> {
   await healthRef(db).set(patch, { merge: true });
 }
 
 export async function tryAcquireProcessPlanesLock(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<boolean> {
   const ref = healthRef(db);
 
@@ -69,10 +69,10 @@ export async function tryAcquireProcessPlanesLock(
 }
 
 export async function releaseProcessPlanesLock(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   await mergeHealth(db, {
-    processPlanesLockedAt: admin.firestore.FieldValue.delete() as any,
+    processPlanesLockedAt: FieldValue.delete() as any,
   });
 }
 
@@ -87,27 +87,27 @@ export function isProcessPlanesLockHeld(
 }
 
 export async function recordProcessPlanesStart(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   deviceCount: number,
 ): Promise<void> {
   await mergeHealth(db, {
     processPlanesLastRunAt: Date.now(),
     processPlanesDeviceCount: deviceCount,
-    processPlanesLastError: admin.firestore.FieldValue.delete() as any,
+    processPlanesLastError: FieldValue.delete() as any,
   });
 }
 
 export async function recordProcessPlanesSuccess(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   await mergeHealth(db, {
     processPlanesLastSuccessAt: Date.now(),
-    processPlanesLastError: admin.firestore.FieldValue.delete() as any,
+    processPlanesLastError: FieldValue.delete() as any,
   });
 }
 
 export async function recordProcessPlanesFailure(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   error: string,
 ): Promise<void> {
   await mergeHealth(db, {
@@ -117,25 +117,25 @@ export async function recordProcessPlanesFailure(
 }
 
 export async function recordCollectAircraftStart(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   await mergeHealth(db, {
     collectAircraftLastRunAt: Date.now(),
-    collectAircraftLastError: admin.firestore.FieldValue.delete() as any,
+    collectAircraftLastError: FieldValue.delete() as any,
   });
 }
 
 export async function recordCollectAircraftSuccess(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   await mergeHealth(db, {
     collectAircraftLastSuccessAt: Date.now(),
-    collectAircraftLastError: admin.firestore.FieldValue.delete() as any,
+    collectAircraftLastError: FieldValue.delete() as any,
   });
 }
 
 export async function recordCollectAircraftFailure(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   error: string,
 ): Promise<void> {
   await mergeHealth(db, {
@@ -145,29 +145,29 @@ export async function recordCollectAircraftFailure(
 }
 
 export async function recordNotificationSent(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   const now = Date.now();
   await healthRef(db).set(
     {
       lastNotificationSentAt: now,
-      notificationsSentTotal: admin.firestore.FieldValue.increment(1),
+      notificationsSentTotal: FieldValue.increment(1),
     },
     { merge: true },
   );
 }
 
 export async function recordWatchdogRecovery(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
 ): Promise<void> {
   await mergeHealth(db, {
     watchdogLastRecoveryAt: Date.now(),
-    watchdogLastRecoveryError: admin.firestore.FieldValue.delete() as any,
+    watchdogLastRecoveryError: FieldValue.delete() as any,
   });
 }
 
 export async function recordWatchdogRecoveryFailure(
-  db: LocalFirestore,
+  db: JsonDocumentStore,
   error: string,
 ): Promise<void> {
   await mergeHealth(db, {
