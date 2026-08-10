@@ -137,12 +137,26 @@ export async function findAndDisplayAirports(
       }
     });
 
-    await applyRunwayRadii(ctx, radiusKm).catch(() => undefined);
-
     ctx.airportCircles.forEach((circle) =>
       circle.setStyle({ fillOpacity: 0.3 }),
     );
-  } catch {
+    // Drop spinner before runway refine — second Overpass call must not look like a hang.
+    ctx.ngZone.run(() => {
+      ctx.loadingAirports = false;
+    });
+    ctx.airportsLoading = false;
+    await applyRunwayRadii(ctx, radiusKm).catch(() => undefined);
+  } catch (error) {
+    const report = (
+      globalThis as unknown as {
+        drylReportError?: (v: unknown, ctx?: object, level?: string) => void;
+      }
+    ).drylReportError;
+    report?.(
+      error instanceof Error ? error : new Error('Overpass airport fetch failed'),
+      { source: 'overpass-airports', explicit: true },
+      'warn',
+    );
     scheduleAirportRetry(ctx, lat, lon, radiusKm, showLabels);
   } finally {
     ctx.ngZone.run(() => {

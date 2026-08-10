@@ -25,10 +25,10 @@ export async function fetchOverpassJson(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      // Raw QL body matches prior working browser calls (form encoding broke some mirrors).
       const response = await fetch(url, {
         method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: query,
         signal: controller.signal,
       });
       if (!response.ok) {
