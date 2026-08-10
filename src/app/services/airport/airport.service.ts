@@ -17,6 +17,8 @@ export class AirportService {
   clickedAirports = new Set<number>();
   loadingAirports = false;
   airportsLoading = false;
+  airportRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  airportBgRetries = 0;
   currentLat: number | null = null;
   currentLon: number | null = null;
 
@@ -69,6 +71,10 @@ export class AirportService {
   }
 
   destroy(): void {
+    if (this.airportRetryTimer != null) {
+      clearTimeout(this.airportRetryTimer);
+      this.airportRetryTimer = null;
+    }
     this.airportCircles.forEach((circle) => circle.remove());
     this.airportCircles.clear();
     this.airportData.clear();

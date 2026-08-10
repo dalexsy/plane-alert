@@ -87,19 +87,19 @@ export class MapUpdateService {
       // based on programmatic changes (home, current, address entry), not map position updates
     }
 
+    // Airports (Overpass) must not gate plane scan — public interpreter 504s can hang for minutes.
     void this.airportService
       .findAndDisplayAirports(lat, lon, mainRadius, this.settings.showAirportLabels)
-      .then(() => {
-        this.removeOutOfRangePlanes(planeLog, planeHistoricalLog, lat, lon, mainRadius);
-        if (!this._initialScanDone) {
-          this._initialScanDone = true;
-        } else {
-          this.scanService.forceScan();
-        }
-      })
       .catch((error) => {
         console.warn('Airport search failed:', error);
       });
+
+    this.removeOutOfRangePlanes(planeLog, planeHistoricalLog, lat, lon, mainRadius);
+    if (!this._initialScanDone) {
+      this._initialScanDone = true;
+    } else {
+      this.scanService.forceScan();
+    }
 
     // Update other services
     this.windService.fetchWindDirection(lat, lon);

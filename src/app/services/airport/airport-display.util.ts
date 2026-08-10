@@ -6,8 +6,35 @@ import {
   MINOR_AIRPORT_RADIUS_KM,
   type AirportDisplayCtx,
 } from './airport-circle-render.util';
+import { fetchOverpassJson } from './overpass-fetch.util';
 
 export type Ctx = AirportDisplayCtx;
+
+const RETRY_DELAY_MS = 8_000;
+const MAX_BG_RETRIES = 3;
+
+function clearAirports(ctx: Ctx): void {
+  ctx.airportCircles.forEach((circle) => circle.remove());
+  ctx.airportCircles.clear();
+  ctx.airportData.clear();
+}
+
+function scheduleAirportRetry(
+  ctx: Ctx,
+  lat: number,
+  lon: number,
+  radiusKm: number,
+  showLabels: boolean,
+): void {
+  if (ctx.airportRetryTimer != null || ctx.airportBgRetries >= MAX_BG_RETRIES) {
+    return;
+  }
+  ctx.airportBgRetries += 1;
+  ctx.airportRetryTimer = setTimeout(() => {
+    ctx.airportRetryTimer = null;
+    void findAndDisplayAirports(ctx, lat, lon, radiusKm, showLabels, true);
+  }, RETRY_DELAY_MS);
+}
 
 export async function findAndDisplayAirports(
   ctx: Ctx,
@@ -15,6 +42,7 @@ export async function findAndDisplayAirports(
   lon: number,
   radiusKm: number,
   showLabels: boolean,
+  force = false,
 ): Promise<void> {
   const locationChanged =
     ctx.currentLat === null ||
@@ -22,7 +50,7 @@ export async function findAndDisplayAirports(
     Math.abs(lat - ctx.currentLat) > 0.01 ||
     Math.abs(lon - ctx.currentLon) > 0.01;
 
-  if (!locationChanged && ctx.airportCircles.size > 0) {
+  if (!force && !locationChanged && ctx.airportCircles.size > 0) {
     ctx.updateAirportLabels(showLabels);
     return;
   }
@@ -37,61 +65,65 @@ export async function findAndDisplayAirports(
 
   ctx.currentLat = lat;
   ctx.currentLon = lon;
-  ctx.airportCircles.forEach((circle) => circle.remove());
-  ctx.airportCircles.clear();
-  ctx.airportData.clear();
+  if (locationChanged && !force) {
+    ctx.airportBgRetries = 0;
+  }
 
   try {
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: buildAerodromeQuery(radiusKm * 1000, lat, lon),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await fetchOverpassJson(
+      buildAerodromeQuery(radiusKm * 1000, lat, lon),
+    );
+    ctx.airportBgRetries = 0;
+    clearAirports(ctx);
     const foundAirportIds = new Set<number>();
 
-    for (const element of data.elements || []) {
-      if (element.type === 'node' || element.center) {
-        const airportLat = element.lat ?? element.center?.lat;
-        const airportLon = element.lon ?? element.center?.lon;
-        const airportId = element.id;
+    for (const element of (data.elements || []) as Array<{
+      type?: string;
+      center?: { lat: number; lon: number };
+      lat?: number;
+      lon?: number;
+      id: number;
+      tags?: { name?: string; iata?: string };
+    }>) {
+      if (element.type !== 'node' && !element.center) {
+        continue;
+      }
+      const airportLat = element.lat ?? element.center?.lat;
+      const airportLon = element.lon ?? element.center?.lon;
+      const airportId = element.id;
+      if (airportLat === undefined || airportLon === undefined) {
+        continue;
+      }
 
-        if (airportLat !== undefined && airportLon !== undefined) {
-          const name = element.tags?.['name'] || 'Unknown Airport';
-          const code = element.tags?.['iata'] || '';
-          ctx.airportData.set(airportId, { name, code });
-          foundAirportIds.add(airportId);
+      const name = element.tags?.['name'] || 'Unknown Airport';
+      const code = element.tags?.['iata'] || '';
+      ctx.airportData.set(airportId, { name, code });
+      foundAirportIds.add(airportId);
 
-          const defaultKm = code ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
-          const useKm = ctx.airportRadiusCache.get(airportId) ?? defaultKm;
+      const defaultKm = code ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
+      const useKm = ctx.airportRadiusCache.get(airportId) ?? defaultKm;
 
-          if (!ctx.airportCircles.has(airportId)) {
-            addAirportCircle(
-              ctx,
-              airportId,
-              airportLat,
-              airportLon,
-              name,
-              code,
-              showLabels,
-              useKm,
-            );
-          } else {
-            const existingCircle = ctx.airportCircles.get(airportId);
-            if (existingCircle) {
-              const isClicked = ctx.clickedAirports.has(airportId);
-              existingCircle.setStyle({
-                color: isClicked ? 'gold' : 'cyan',
-                fillColor: isClicked
-                  ? 'url(#airportStripedPatternGold)'
-                  : 'url(#airportStripedPatternCyan)',
-              });
-            }
-          }
+      if (!ctx.airportCircles.has(airportId)) {
+        addAirportCircle(
+          ctx,
+          airportId,
+          airportLat,
+          airportLon,
+          name,
+          code,
+          showLabels,
+          useKm,
+        );
+      } else {
+        const existingCircle = ctx.airportCircles.get(airportId);
+        if (existingCircle) {
+          const isClicked = ctx.clickedAirports.has(airportId);
+          existingCircle.setStyle({
+            color: isClicked ? 'gold' : 'cyan',
+            fillColor: isClicked
+              ? 'url(#airportStripedPatternGold)'
+              : 'url(#airportStripedPatternCyan)',
+          });
         }
       }
     }
@@ -110,14 +142,12 @@ export async function findAndDisplayAirports(
     ctx.airportCircles.forEach((circle) =>
       circle.setStyle({ fillOpacity: 0.3 }),
     );
-    ctx.ngZone.run(() => {
-      ctx.loadingAirports = false;
-    });
   } catch {
+    scheduleAirportRetry(ctx, lat, lon, radiusKm, showLabels);
+  } finally {
     ctx.ngZone.run(() => {
       ctx.loadingAirports = false;
     });
-  } finally {
     ctx.airportsLoading = false;
   }
 }

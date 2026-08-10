@@ -1,13 +1,13 @@
 import * as L from 'leaflet';
 import { haversineDistance } from '../../utils/geo-utils/geo-utils';
 import { toggleAirportColor } from './airport-toggle.util';
+import { fetchOverpassJson } from './overpass-fetch.util';
 import type { AirportService } from './airport.service';
 
 export type AirportDisplayCtx = AirportService;
 
 export const MAJOR_AIRPORT_RADIUS_KM = 5;
 export const MINOR_AIRPORT_RADIUS_KM = 1;
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 export function buildAerodromeQuery(radiusMeters: number, lat: number, lon: number): string {
   return `
@@ -96,15 +96,7 @@ export async function applyRunwayRadii(
     out geom;
   `;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    body: runwayQuery,
-  });
-  if (!response.ok) {
-    return;
-  }
-
-  const data = await response.json();
+  const data = await fetchOverpassJson(runwayQuery).catch(() => null);
   if (!data?.elements) {
     return;
   }

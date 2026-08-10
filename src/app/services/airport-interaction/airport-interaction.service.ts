@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as L from 'leaflet';
 import { haversineDistance } from '../../utils/geo-utils/geo-utils';
+import { fetchOverpassJson } from '../airport/overpass-fetch.util';
 
 interface OverpassElement {
   type: 'node' | 'way' | 'relation';
@@ -35,7 +36,6 @@ export class AirportInteractionService {
     lon: number,
     hasIata: boolean
   ): Promise<number> {
-    const overpassUrl = 'https://overpass-api.de/api/interpreter';
     const query = `
       [out:json][timeout:25];
       way["aeroway"="runway"](around:10000,${lat},${lon});
@@ -43,17 +43,13 @@ export class AirportInteractionService {
     `;
 
     try {
-      const res = await fetch(overpassUrl, { method: 'POST', body: query });
-      if (!res.ok) {
-        return hasIata ? MAJOR_AIRPORT_RADIUS_KM : MINOR_AIRPORT_RADIUS_KM;
-      }
-
-      const data = await res.json();
+      const data = await fetchOverpassJson(query);
       let maxLen = 0;
 
       for (const w of data.elements || []) {
-        const coords = w.geometry as Array<{ lat: number; lon: number }>;
-        if (coords.length < 2) continue;
+        const coords = (w as { geometry?: Array<{ lat: number; lon: number }> })
+          .geometry;
+        if (!coords || coords.length < 2) continue;
 
         // Approximate runway length by first-to-last node
         const start = coords[0];
