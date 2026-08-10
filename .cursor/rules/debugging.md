@@ -68,16 +68,16 @@ Production deploy duration telemetry for **plane-alert** (successful deploys onl
 | Metric | Value |
 |--------|-------|
 | Typical (median) | 136s |
-| p75 | 160s |
+| p75 | 162s |
 | p90 | 194s |
-| Last deploy | 160s |
+| Last deploy | 162s |
 | Samples | 16 |
 
-- **Agent shell wait:** use `block_until_ms` **120000** chunks (~120s), total budget **211616** (~212s) — poll / read deploy log between; never pad to 15+ min upfront.
+- **Agent shell wait:** use `block_until_ms` **120000** chunks (~120s), total budget **214474** (~214s) — poll / read deploy log between; never pad to 15+ min upfront.
 - **Fast read:** `.dryl-deploy-timing.json` in repo root mirrors this table.
 - **Outliers:** stalls above ~2.5× median (or 10 min) are excluded from typical/p75 after enough samples.
 
-Updated: 2026-08-10T19:25:57Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-10T19:31:46Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
