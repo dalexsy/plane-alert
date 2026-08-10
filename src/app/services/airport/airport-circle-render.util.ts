@@ -102,10 +102,11 @@ export async function applyRunwayRadii(
   }
 
   const lengthsByAirport = new Map<number, number>();
-  data.elements.forEach((elem: { geometry?: Array<{ lat: number; lon: number }> }) => {
+  for (const raw of data.elements) {
+    const elem = raw as { geometry?: Array<{ lat: number; lon: number }> };
     const coords = elem.geometry;
     if (!coords || coords.length < 2) {
-      return;
+      continue;
     }
 
     const start = coords[0];
@@ -131,7 +132,7 @@ export async function applyRunwayRadii(
       const prev = lengthsByAirport.get(bestId) || 0;
       lengthsByAirport.set(bestId, Math.max(prev, lenKm));
     }
-  });
+  }
 
   airportList.forEach((a) => {
     const circle = ctx.airportCircles.get(a.id);
