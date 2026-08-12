@@ -99,18 +99,13 @@ def main() -> int:
         ) or ""
         _must("EXIT:0" in session, "session verify exit 0 via admin.dryl.io", fails)
 
+        # curl + browser UA — Cloudflare blocks bare urllib (1010) on the kiosk Pi.
         adsb = run_remote(
             client,
-            "python3 - <<'PY'\n"
-            "import json,urllib.request\n"
-            f"u={ADS_URL!r}\n"
-            "try:\n"
-            "  with urllib.request.urlopen(u, timeout=12) as r:\n"
-            "    d=json.load(r)\n"
-            "  print(len(d.get('ac') or []))\n"
-            "except Exception as e:\n"
-            "  print('ERR', e)\n"
-            "PY",
+            "curl -sf -m 12 -A 'Mozilla/5.0 (X11; Linux aarch64) Chrome/120.0.0.0' "
+            f"'{ADS_URL}' | python3 -c "
+            "\"import sys,json; d=json.load(sys.stdin); print(len(d.get('ac') or []))\" "
+            "2>/dev/null || echo ERR",
             timeout=30,
         ) or "ERR"
         try:
