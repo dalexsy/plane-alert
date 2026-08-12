@@ -19,7 +19,7 @@ from kiosk_cdp import screenshot as cdp_screenshot
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR.parent.parent / "directory" / "scripts"))
-from pi_dryl_common import connect_pi, magicmirror_settings, run_remote  # noqa: E402
+from pi_dryl_common import connect_pi, kiosk_settings, run_remote  # noqa: E402
 
 PROBE_JS = r"""
 (async () => {
@@ -76,7 +76,7 @@ PROBE_JS = r"""
 
 
 def main() -> int:
-    host, user, _ = magicmirror_settings()
+    host, user = kiosk_settings()
     client = connect_pi(host, user)
     try:
         targets = json.loads(run_remote(client, "curl -s http://127.0.0.1:9222/json"))

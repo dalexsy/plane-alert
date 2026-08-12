@@ -5,6 +5,7 @@
 set -euo pipefail
 
 CHECK_URL="${KIOSK_WATCHDOG_URL:-https://admin.dryl.io/}"
+# Prefer local dryl-auth when co-located; kiosk-only Pi falls back to admin.
 LOCAL_AUTH="${KIOSK_WATCHDOG_AUTH:-http://127.0.0.1:8790/health}"
 POLL_SEC="${KIOSK_WATCHDOG_POLL_SEC:-20}"
 STABILISE_SEC="${KIOSK_WATCHDOG_STABILISE_SEC:-8}"

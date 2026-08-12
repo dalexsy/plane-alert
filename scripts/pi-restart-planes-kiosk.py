@@ -8,11 +8,11 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR.parent.parent / "directory" / "scripts"))
 
-from pi_dryl_common import connect_pi, magicmirror_settings, run_remote  # noqa: E402
+from pi_dryl_common import connect_pi, kiosk_settings, run_remote  # noqa: E402
 
 
 def main() -> None:
-    host, user, _www = magicmirror_settings()
+    host, user = kiosk_settings()
     print(f"[planes-kiosk] restarting on {user}@{host}")
     client = connect_pi(host, user)
     try:

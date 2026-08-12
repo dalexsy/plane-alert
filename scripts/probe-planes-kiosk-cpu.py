@@ -13,7 +13,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR.parent.parent / "directory" / "scripts"))
-from pi_dryl_common import connect_pi, magicmirror_settings, run_remote  # noqa: E402
+from pi_dryl_common import connect_pi, kiosk_settings, run_remote  # noqa: E402
 
 PROBE_JS = r"""
 (async () => {
@@ -82,7 +82,7 @@ PROBE_JS = r"""
 
 
 def main() -> int:
-    host, user, _ = magicmirror_settings()
+    host, user = kiosk_settings()
     client = connect_pi(host, user)
 
     print("=== chromium cpu (top 6) ===")

@@ -4,7 +4,8 @@ set -euo pipefail
 
 URL="${PLANES_KIOSK_URL:-https://planes.dryl.io/?kiosk=1}"
 GATEWAY="${PLANES_KIOSK_WATCH_GATEWAY:-192.168.178.1}"
-AUTH_URL="${PLANES_KIOSK_AUTH_URL:-http://127.0.0.1:8790/health}"
+# Post-split: dryl-auth is on dryl-prod, not magicmirror. Public admin is the truth.
+AUTH_URL="${PLANES_KIOSK_AUTH_URL:-https://admin.dryl.io/}"
 PROFILE="${PLANES_KIOSK_PROFILE:-/home/pi/.config/planes-kiosk-chromium}"
 KIOSK_MATCH="user-data-dir=${PROFILE}"
 STATE_DIR="/run/planes-kiosk-watch"
@@ -241,11 +242,18 @@ session_valid() {
 }
 
 plane_data_valid() {
+  # planes.dryl.io is public — do not require session.jar (missing jar was a
+  # permanent false "no JSON" after auth moved off this Pi).
   local body
-  [ -f "${SESSION_JAR}" ] || return 1
-  body="$(curl -sf -m 15 -b "${SESSION_JAR}" -H 'Cache-Control: no-cache' \
-    'https://planes.dryl.io/api/planes/adsbPointProxy?lat=52.4605886&lon=13.523268&radiusKm=100' \
-    2>/dev/null || true)"
+  if [ -f "${SESSION_JAR}" ]; then
+    body="$(curl -sf -m 15 -b "${SESSION_JAR}" -H 'Cache-Control: no-cache' \
+      'https://planes.dryl.io/api/planes/adsbPointProxy?lat=52.4605886&lon=13.523268&radiusKm=100' \
+      2>/dev/null || true)"
+  else
+    body="$(curl -sf -m 15 -H 'Cache-Control: no-cache' \
+      'https://planes.dryl.io/api/planes/adsbPointProxy?lat=52.4605886&lon=13.523268&radiusKm=100' \
+      2>/dev/null || true)"
+  fi
   echo "${body}" | grep -q '^{"ac":\['
 }
 
@@ -350,9 +358,8 @@ if ! check_dryl_auth; then
   strikes=$((strikes + 1))
   echo "${strikes}" >"${AUTH_STRIKES_FILE}"
   if [ "${strikes}" -ge "${AUTH_STRIKES_NEEDED}" ]; then
-    log "dryl-auth unhealthy (${strikes} strikes) — restarting dryl-auth.service"
-    systemctl restart dryl-auth.service 2>/dev/null || true
-    sleep 3
+    # dryl-auth is masked on magicmirror — never systemctl restart it here.
+    log "admin/auth unreachable (${strikes} strikes) — edge hosts auth; not restarting local dryl-auth"
     echo 0 >"${AUTH_STRIKES_FILE}" 2>/dev/null || true
   fi
 else
@@ -416,7 +423,12 @@ if ! plane_data_valid; then
   echo "${strikes}" >"${DATA_STRIKES_FILE}"
   log "aircraft API returned no JSON data (${strikes}/3)"
   if [ "${strikes}" -ge 3 ]; then
-    log "aircraft API returned no JSON data (${strikes}/3) — leave kiosk up"
+    # Soft-reload the tab (page-heal) — API may be fine while SPA is stuck empty.
+    log "aircraft API returned no JSON data (${strikes}/3) — soft page heal"
+    if [ -x /usr/local/sbin/planes-kiosk-page-heal.py ]; then
+      PLANES_KIOSK_PAGE_HEAL_FORCE=1 python3 /usr/local/sbin/planes-kiosk-page-heal.py 2>&1 \
+        | logger -t planes-kiosk-watch || true
+    fi
     echo 0 >"${DATA_STRIKES_FILE}" 2>/dev/null || true
   fi
 else

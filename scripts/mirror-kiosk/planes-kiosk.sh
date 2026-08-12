@@ -17,7 +17,8 @@ WAYLAND_WAIT_SEC="${PLANES_KIOSK_WAYLAND_WAIT:-90}"
 
 mkdir -p "${CONFIG_DIR}" "${PROFILE}"
 
-export DRYL_AUTH_LOGIN_JSON="${DRYL_AUTH_LOGIN_JSON:-http://127.0.0.1:8790/api/auth/login-json}"
+# Auth lives on dryl-prod; kiosk Pi has dryl-auth masked after the 2026-08 split.
+export DRYL_AUTH_LOGIN_JSON="${DRYL_AUTH_LOGIN_JSON:-https://admin.dryl.io/api/auth/login-json}"
 
 # User systemd can start before labwc publishes wayland-0 — wait or Chromium exits and Restart= storms.
 for _ in $(seq 1 "${WAYLAND_WAIT_SEC}"); do

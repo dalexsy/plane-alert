@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Soft-heal planes kiosk when Chromium is stuck on about:blank / empty app-root.
+"""Soft-heal planes kiosk when Chromium is stuck blank or empty of planes.
 
 Uses CDP on 127.0.0.1:9222. Prefer Page.reload / navigate over killing Chromium
 so quiet-hours bedroom flash is avoided.
+
+Also heals the post-split case: SPA shell + map render, but zero markers while
+the public ADS-B API still returns aircraft (watch used to log and leave it).
 """
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -19,6 +23,11 @@ except ImportError:
 
 CDP_LIST = "http://127.0.0.1:9222/json/list"
 PLANES_URL = "https://planes.dryl.io/?kiosk=1"
+ADS_URL = (
+    "https://planes.dryl.io/api/planes/adsbPointProxy"
+    "?lat=52.4605886&lon=13.523268&radiusKm=100"
+)
+FORCE = os.environ.get("PLANES_KIOSK_PAGE_HEAL_FORCE", "").strip() in ("1", "true", "yes")
 
 
 def _call(ws: websocket.WebSocket, method: str, params: dict | None = None) -> dict:
@@ -58,9 +67,22 @@ def _page_state(ws: websocket.WebSocket) -> dict:
   title: document.title || '',
   appRootLen: ((document.querySelector('app-root')||{}).innerHTML||'').length,
   hasMap: !!document.querySelector('.leaflet-container, canvas, app-map, #map'),
+  markerCount: document.querySelectorAll(
+    '.leaflet-marker-pane .leaflet-marker-icon, .leaflet-marker-icon'
+  ).length,
   bodyLen: (document.body && document.body.innerText || '').trim().length
 }))()""",
     )
+
+
+def _adsb_count() -> int:
+    try:
+        with urllib.request.urlopen(ADS_URL, timeout=10) as resp:
+            data = json.load(resp)
+        ac = data.get("ac") if isinstance(data, dict) else None
+        return len(ac) if isinstance(ac, list) else 0
+    except Exception:
+        return -1
 
 
 def _is_blank(state: dict) -> bool:
@@ -80,6 +102,39 @@ def _is_blank(state: dict) -> bool:
     return False
 
 
+def _is_empty_stuck(state: dict) -> bool:
+    """Map shell up but no markers while ADS-B still has aircraft nearby."""
+    if "planes.dryl.io" not in (state.get("href") or "").lower():
+        return False
+    if not bool(state.get("hasMap")):
+        return False
+    if int(state.get("markerCount") or 0) > 0:
+        return False
+    api = _adsb_count()
+    return api >= 3
+
+
+def _needs_heal(state: dict) -> str | None:
+    if FORCE:
+        return "force"
+    if _is_blank(state):
+        return "blank"
+    if _is_empty_stuck(state):
+        return f"empty-stuck api={_adsb_count()} markers=0"
+    return None
+
+
+def _soft_reload(ws: websocket.WebSocket, state: dict) -> dict:
+    _call(ws, "Page.enable")
+    href = (state.get("href") or "").lower()
+    if "planes.dryl.io" in href:
+        _call(ws, "Page.reload", {"ignoreCache": True})
+    else:
+        _call(ws, "Page.navigate", {"url": PLANES_URL})
+    time.sleep(8)
+    return _page_state(ws)
+
+
 def main() -> int:
     try:
         with urllib.request.urlopen(CDP_LIST, timeout=4) as resp:
@@ -96,36 +151,32 @@ def main() -> int:
     ws = websocket.create_connection(page["webSocketDebuggerUrl"], timeout=15)
     try:
         state = _page_state(ws)
-        if not _is_blank(state):
+        reason = _needs_heal(state)
+        if not reason:
             print(
                 f"planes-kiosk-page-heal: ok href={state.get('href')} "
-                f"appRootLen={state.get('appRootLen')} hasMap={state.get('hasMap')}"
+                f"appRootLen={state.get('appRootLen')} hasMap={state.get('hasMap')} "
+                f"markers={state.get('markerCount')}"
             )
             return 0
 
         print(
-            f"planes-kiosk-page-heal: blank detected href={state.get('href')} "
-            f"appRootLen={state.get('appRootLen')} — soft reload",
+            f"planes-kiosk-page-heal: heal reason={reason} href={state.get('href')} "
+            f"appRootLen={state.get('appRootLen')} markers={state.get('markerCount')} "
+            "— soft reload",
             file=sys.stderr,
         )
-        _call(ws, "Page.enable")
-        href = (state.get("href") or "").lower()
-        if "planes.dryl.io" in href:
-            _call(ws, "Page.reload", {"ignoreCache": True})
-        else:
-            _call(ws, "Page.navigate", {"url": PLANES_URL})
-        time.sleep(6)
-        after = _page_state(ws)
-        if _is_blank(after):
+        after = _soft_reload(ws, state)
+        if _needs_heal(after):
             print(
-                f"planes-kiosk-page-heal: still blank after heal "
-                f"href={after.get('href')} appRootLen={after.get('appRootLen')}",
+                f"planes-kiosk-page-heal: still unhealthy after heal "
+                f"href={after.get('href')} markers={after.get('markerCount')}",
                 file=sys.stderr,
             )
             return 1
         print(
             f"planes-kiosk-page-heal: healed href={after.get('href')} "
-            f"title={after.get('title')} hasMap={after.get('hasMap')}"
+            f"title={after.get('title')} markers={after.get('markerCount')}"
         )
         return 0
     finally:

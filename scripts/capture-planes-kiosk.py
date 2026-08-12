@@ -9,7 +9,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPOS_ROOT = SCRIPT_DIR.parent.parent
 sys.path.insert(0, str(REPOS_ROOT / "directory" / "scripts"))
 
-from pi_dryl_common import connect_pi, magicmirror_settings, run_remote  # noqa: E402
+from pi_dryl_common import connect_pi, kiosk_settings, run_remote  # noqa: E402
 
 REMOTE_PATH = "/tmp/planes-kiosk-verification.png"
 LOCAL_PATH = (
@@ -23,7 +23,7 @@ LOCAL_PATH = (
 
 
 def main() -> None:
-    host, user, _ = magicmirror_settings()
+    host, user = kiosk_settings()
     client = connect_pi(host, user)
     try:
         result = run_remote(

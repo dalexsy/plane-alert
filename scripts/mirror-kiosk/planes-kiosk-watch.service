@@ -1,13 +1,14 @@
 [Unit]
 Description=planes.dryl.io kiosk watchdog (magicmirror)
-After=network-online.target dryl-auth.service wayvnc.service
+After=network-online.target wayvnc.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 Environment=PLANES_KIOSK_URL=https://planes.dryl.io/?kiosk=1
 Environment=PLANES_KIOSK_WATCH_GATEWAY=192.168.178.1
-Environment=PLANES_KIOSK_AUTH_URL=http://127.0.0.1:8790/health
+# Auth is on dryl-prod via Cloudflare — local :8790 is masked on magicmirror.
+Environment=PLANES_KIOSK_AUTH_URL=https://admin.dryl.io/
 Environment=PLANES_KIOSK_CPU_HIGH=220
 Environment=PLANES_KIOSK_CPU_STRIKES=6
 # Match planes-kiosk-watch.sh defaults — unit env overrides script fallbacks.

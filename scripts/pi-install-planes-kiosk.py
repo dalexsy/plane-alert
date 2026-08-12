@@ -10,7 +10,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 KIOSK_DIR = SCRIPT_DIR / "mirror-kiosk"
 sys.path.insert(0, str(SCRIPT_DIR.parent.parent / "directory" / "scripts"))
 
-from pi_dryl_common import connect_pi, magicmirror_settings, run_remote  # noqa: E402
+from pi_dryl_common import connect_pi, kiosk_settings, run_remote  # noqa: E402
 
 FILES = {
     "planes-kiosk.sh": Path("/home/pi/bin/planes-kiosk.sh"),
@@ -38,7 +38,7 @@ def main() -> None:
         if not path.is_file():
             raise SystemExit(f"Missing {path}")
 
-    host, user, _www = magicmirror_settings()
+    host, user = kiosk_settings()
     gateway = ".".join(host.split(".")[:3]) + ".1"
     print(f"[planes-kiosk] {user}@{host} gateway={gateway}")
 

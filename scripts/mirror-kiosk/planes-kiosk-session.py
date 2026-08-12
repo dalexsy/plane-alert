@@ -17,8 +17,12 @@ from http.cookiejar import MozillaCookieJar
 from pathlib import Path
 
 COOKIE_NAME = "dryl_session"
-DEFAULT_LOGIN_URL = "http://127.0.0.1:8790/api/auth/login-json"
+# Post-2026-08 split: auth runs on dryl-prod (.79), not magicmirror (.74).
+# Local :8790 is masked on the kiosk Pi — use public admin (Cloudflare).
+DEFAULT_LOGIN_URL = "https://admin.dryl.io/api/auth/login-json"
+DEFAULT_VERIFY_URL = "https://admin.dryl.io/api/auth/verify"
 LOGIN_URL = os.environ.get("DRYL_AUTH_LOGIN_JSON", DEFAULT_LOGIN_URL)
+VERIFY_URL = os.environ.get("DRYL_AUTH_VERIFY_URL", DEFAULT_VERIFY_URL)
 PLANES_URL = os.environ.get("PLANES_KIOSK_URL", "https://planes.dryl.io/")
 CONFIG_DIR = Path(os.environ.get("PLANES_KIOSK_CONFIG", "/home/pi/.config/planes-kiosk"))
 PROFILE = Path(os.environ.get("PLANES_KIOSK_PROFILE", "/home/pi/.config/planes-kiosk-chromium"))
@@ -85,36 +89,64 @@ def clear_session_jar() -> None:
 
 
 def login_json(user: str, password: str) -> str:
+    """POST login-json. Prefer curl — Cloudflare blocks bare urllib (error 1010)."""
+    import subprocess
+
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    # login-json is on 127.0.0.1 but Set-Cookie Domain=.dryl.io — cookiejar often
-    # rejects that host/domain pair. Never reuse a prior jar entry as the token.
+    # Never reuse a prior jar entry as the token.
     clear_session_jar()
 
-    body = json.dumps({"username": user, "password": password}).encode("utf-8")
-    req = urllib.request.Request(
-        LOGIN_URL,
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
+    body = json.dumps({"username": user, "password": password})
+    ua = (
+        "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
-    set_cookie = ""
+    # curl -i: headers + body so we can read Set-Cookie Domain=.dryl.io.
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-            headers = resp.headers
-            if hasattr(headers, "get_all"):
-                parts = headers.get_all("Set-Cookie") or headers.get_all("set-cookie") or []
-                for part in parts:
-                    if COOKIE_NAME.lower() in part.lower():
-                        set_cookie = part
-                        break
-            if not set_cookie:
-                set_cookie = headers.get("Set-Cookie") or headers.get("set-cookie") or ""
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:200]
-        raise SystemExit(f"login-json HTTP {exc.code}: {detail}") from exc
-    except OSError as exc:
-        raise SystemExit(f"login-json failed: {exc}") from exc
+        completed = subprocess.run(
+            [
+                "curl",
+                "-sS",
+                "-m",
+                "20",
+                "-i",
+                "-X",
+                "POST",
+                LOGIN_URL,
+                "-H",
+                "Content-Type: application/json",
+                "-H",
+                f"User-Agent: {ua}",
+                "-d",
+                body,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=25,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise SystemExit(f"login-json curl failed: {exc}") from exc
+
+    raw = completed.stdout or ""
+    if completed.returncode != 0:
+        err = (completed.stderr or "").strip()[:200]
+        raise SystemExit(f"login-json curl exit {completed.returncode}: {err}")
+
+    header_blob, _, body_text = raw.partition("\r\n\r\n")
+    if not body_text:
+        header_blob, _, body_text = raw.partition("\n\n")
+    set_cookie = ""
+    for line in header_blob.splitlines():
+        if line.lower().startswith("set-cookie:") and COOKIE_NAME.lower() in line.lower():
+            set_cookie = line.split(":", 1)[1].strip()
+            break
+    try:
+        payload = json.loads(body_text.strip() or "{}")
+    except json.JSONDecodeError as exc:
+        raise SystemExit(
+            f"login-json non-JSON: {body_text.strip()[:200]}"
+        ) from exc
 
     if not payload.get("ok"):
         raise SystemExit(f"login-json rejected: {payload}")
@@ -265,31 +297,58 @@ def _local_auth_reachable() -> bool:
 
 
 def verify_session_cookie() -> bool:
+    import subprocess
+
     cookie_header = session_cookie_header()
     if not cookie_header:
         return False
-    req = urllib.request.Request(
-        "http://127.0.0.1:8790/api/auth/verify",
-        method="GET",
-        headers={
-            "X-Dryl-Host": "planes.dryl.io",
-            "Cookie": cookie_header,
-        },
+    # Prefer local verify when dryl-auth still shares the box; else public admin.
+    verify = (
+        "http://127.0.0.1:8790/api/auth/verify"
+        if _local_auth_reachable()
+        else VERIFY_URL
+    )
+    ua = (
+        "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return resp.status == 200
-    except OSError:
+        completed = subprocess.run(
+            [
+                "curl",
+                "-sS",
+                "-m",
+                "10",
+                "-o",
+                "/dev/null",
+                "-w",
+                "%{http_code}",
+                "-H",
+                f"User-Agent: {ua}",
+                "-H",
+                "X-Dryl-Host: planes.dryl.io",
+                "-H",
+                f"Cookie: {cookie_header}",
+                verify,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
         return False
+    return (completed.stdout or "").strip() == "200"
 
 
 def fetch_planes_html() -> tuple[bool, str]:
     if not JAR_FILE.is_file():
         return False, ""
 
+    if not verify_session_cookie():
+        return False, "auth-verify-failed"
+
     if _local_auth_reachable():
-        if not verify_session_cookie():
-            return False, "auth-verify-failed"
         cookie_header = session_cookie_header()
         if not cookie_header:
             return False, "missing-cookie"
@@ -314,23 +373,59 @@ def fetch_planes_html() -> tuple[bool, str]:
         except OSError:
             return False, "local-nginx-error"
 
-    opener = _cookie_opener()
-    req = urllib.request.Request(PLANES_URL, method="GET")
+    # Cloudflare blocks bare urllib (1010) — use curl + jar cookie.
+    import subprocess
+
+    cookie_header = session_cookie_header()
+    if not cookie_header:
+        return False, "missing-cookie"
+    ua = (
+        "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
     try:
-        with opener.open(req, timeout=15) as resp:
-            final = resp.geturl()
-            if "login" in final:
-                return False, final
-            body = resp.read(120_000).decode("utf-8", errors="replace")
-            if resp.status != 200:
-                return False, final
-            if "<app-root" not in body:
-                return False, final
-            if "main-" not in body and "scripts" not in body:
-                return False, final
-            return True, final
+        completed = subprocess.run(
+            [
+                "curl",
+                "-sS",
+                "-m",
+                "15",
+                "-L",
+                "-o",
+                "/tmp/planes-kiosk-session-body.html",
+                "-w",
+                "%{http_code} %{url_effective}",
+                "-H",
+                f"User-Agent: {ua}",
+                "-H",
+                f"Cookie: {cookie_header}",
+                PLANES_URL,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False, "curl-error"
+    meta = (completed.stdout or "").strip().split(" ", 1)
+    code = meta[0] if meta else "000"
+    final = meta[1] if len(meta) > 1 else PLANES_URL
+    if code != "200":
+        return False, f"http-{code}"
+    if "login" in final:
+        return False, final
+    try:
+        body = Path("/tmp/planes-kiosk-session-body.html").read_text(
+            encoding="utf-8", errors="replace"
+        )[:120_000]
     except OSError:
-        return False, ""
+        return False, "body-read-error"
+    if "<app-root" not in body:
+        return False, "missing-app-root"
+    if "main-" not in body and "scripts" not in body:
+        return False, "missing-bundle"
+    return True, final
 
 
 def verify_planes() -> bool:

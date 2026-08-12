@@ -53,7 +53,7 @@ fi
 
 if [ -f /home/pi/.config/planes-kiosk/credentials.env ]; then
   sudo -u "${PI_USER}" env \
-    DRYL_AUTH_LOGIN_JSON="${DRYL_AUTH_LOGIN_JSON:-http://127.0.0.1:8790/api/auth/login-json}" \
+    DRYL_AUTH_LOGIN_JSON="${DRYL_AUTH_LOGIN_JSON:-https://admin.dryl.io/api/auth/login-json}" \
     python3 /home/pi/bin/planes-kiosk-session.py || true
 fi
 

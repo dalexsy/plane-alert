@@ -23,7 +23,7 @@ Agents: **read Symptom tables before retrying.** After a failed attempt, add **o
 | Symptom | Fix path | Do not |
 |---------|----------|--------|
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit (`systemctl --user`); watch must resurrect via `chromium-missing`. Run `python scripts/pi-install-planes-kiosk.py --launch` | Treat `systemctl is-active planes-kiosk` (system bus) as truth — it is always inactive |
-| _(add rows as real production fails appear)_ | | |
+| Kiosk empty / no planes, never recovers | Auth/API moved to dryl-prod (.79); `.74` has `dryl-auth` **masked**. Session login → `admin.dryl.io`; `plane_data_valid` must not require `session.jar`; page-heal soft-reloads when markers=0 but ADS-B has aircraft. Install via `kiosk_settings()` (.74) | Point session/watch at `127.0.0.1:8790` or `systemctl restart dryl-auth` on magicmirror; use `magicmirror_settings()` for kiosk install (that is .79) |
 
 Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep narrative → archive.
 
@@ -31,6 +31,7 @@ Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep n
 
 ## Failed experiments (do not repeat)
 
+- **2026-08-12** — Kiosk empty/no recover: do not check/restart `127.0.0.1:8790` dryl-auth on magicmirror after Pi split (masked); do not require `session.jar` for ADS-B validity; do not install kiosk via `magicmirror_settings()` (.79).
 - **2026-08-06** — Mobile results: `height:fit-content` + `max-height` only capped — flex body collapsed to ~18vh (~4 rows of 24). Expanded sheet needs **definite** `height: calc(100dvh - 5.5rem)`; assert body ≥62vh. Also: rails-only gates, `plus-lighter` bleed, seen `60vh`.
 - **2026-08-06** — Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` active/enabled: that unit is **user** systemd; system check always false → kill Chromium + block resurrection overnight. Yield/renice only under balcony pressure.
 - **2026-08-05** — Kiosk “animations on” + window labels without chrome: force **effectiveAnimationsEnabled=false** on kiosk (do not leave product motion on). Window `.plane-label` must always have solid `rgba(0,0,0,0.9)` bg — `has-details` only at ≤10km left close-by planes (e.g. Voodoo ~11km) as bare text. Treat **mlat/unknown** as junk identity (not alert-worthy). Muted mil green use **0.7** not 0.5.
