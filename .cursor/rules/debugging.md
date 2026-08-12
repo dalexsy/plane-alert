@@ -23,7 +23,7 @@ Agents: **read Symptom tables before retrying.** After a failed attempt, add **o
 | Symptom | Fix path | Do not |
 |---------|----------|--------|
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit (`systemctl --user`); watch must resurrect via `chromium-missing`. Run `python scripts/pi-install-planes-kiosk.py --launch` | Treat `systemctl is-active planes-kiosk` (system bus) as truth — it is always inactive |
-| Kiosk empty / no planes, never recovers | Auth/API moved to dryl-prod (.79); `.74` has `dryl-auth` **masked**. Session login → `admin.dryl.io`; `plane_data_valid` must not require `session.jar`; page-heal soft-reloads when markers=0 but ADS-B has aircraft. Install via `kiosk_settings()` (.74) | Point session/watch at `127.0.0.1:8790` or `systemctl restart dryl-auth` on magicmirror; use `magicmirror_settings()` for kiosk install (that is .79) |
+| Kiosk empty / no planes, never recovers | Auth/API moved to dryl-prod (.79); `.74` has `dryl-auth` **masked**. Session login → `admin.dryl.io`; `plane_data_valid` must not require `session.jar`; page-heal soft-reloads when markers=0 but ADS-B has aircraft. Install via `kiosk_settings()` (.74). Prove: `npm run verify:kiosk-recovery` | Point session/watch at `127.0.0.1:8790` or `systemctl restart dryl-auth` on magicmirror; use `magicmirror_settings()` for kiosk install (that is .79) |
 
 Keep each symptom to **this table or a short bullet list** (≤15 lines). Deep narrative → archive.
 
