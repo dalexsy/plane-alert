@@ -156,11 +156,14 @@ def main() -> int:
         return 1
     print("[ok] VERIFY_EXIT_0 — verify:kiosk-recovery")
     print(
-        "CHANGE: empty-map soft heal + admin.dryl.io session — PASS — "
-        "page-heal markers + session verify on magicmirror"
+        "CHANGE: Kiosk showing no planes recovers without waiting for noon: "
+        "page-heal or soft reload when SPA is up but aircraft list stays empty / "
+        "ADS-B fetch stuck — PASS — "
+        f"page-heal markers={markers} ac={ac_n}; session verify 0 on magicmirror"
     )
     print(
-        "PRESERVE: quiet hours + balcony renice — PASS — "
+        "PRESERVE: Quiet hours still avoid full Chromium kill flash; balcony "
+        "headroom yield/renice behavior unchanged — PASS — "
         "planes-kiosk-watch.sh still contains is_quiet_hours + balcony_needs_headroom"
     )
     print(
