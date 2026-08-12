@@ -164,11 +164,14 @@ def main() -> int:
         "planes-kiosk-watch.sh still contains is_quiet_hours + balcony_needs_headroom"
     )
     print(
-        "PREVENT: planes-kiosk-watch timer + page-heal empty-stuck + "
-        "npm run verify:kiosk-recovery"
+        "PREVENT: planes-kiosk-watch.timer page-heal empty-stuck + "
+        "errors:probe:planes-kiosk in directory/scripts"
     )
-    print("OWNER: planes-kiosk-watch.timer (fleet) / verify:kiosk-recovery")
-    print("PROVE: npm run verify:kiosk-recovery")
+    print(
+        "OWNER: errors:probe:planes-kiosk / errors:maintain planes:kiosk-recovery "
+        "cluster in directory/scripts"
+    )
+    print("PROVE: cd directory && npm run errors:probe:planes-kiosk")
     return 0
 
 
