@@ -21,7 +21,7 @@ export class UnknownListService {
   loadUnknownList(): Promise<void> {
     const cacheBuster = new Date().getTime();
     return this.http
-      .get(`/assets/unknown-device-icaos.json?_=${cacheBuster}`, {
+      .get(`assets/unknown-device-icaos.json?_=${cacheBuster}`, {
         responseType: 'text',
       })
       .toPromise()

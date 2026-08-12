@@ -13,7 +13,7 @@ export class MilitaryPrefixService {
       return Promise.resolve();
     }
     return this.http
-      .get<string[]>('/assets/military-prefixes.json')
+      .get<string[]>('assets/military-prefixes.json')
       .toPromise()
       .then(list => {
         this.prefixes = (list || []).map(p => p.toUpperCase());

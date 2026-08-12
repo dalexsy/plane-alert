@@ -19,7 +19,7 @@ describe('AircraftCountryService', () => {
     });
     service = TestBed.inject(AircraftCountryService);
     TestBed.inject(HttpTestingController)
-      .expectOne('/assets/data/icao-country-ranges.json')
+      .expectOne('assets/data/icao-country-ranges.json')
       .flush(icaoRanges);
     flushMicrotasks();
     service.clearCache(); // Clear cache before each test

@@ -46,9 +46,9 @@ export class AircraftDbService {
       return this.loadPromise;
     }
     this.loadPromise = Promise.all([
-      this.http.get('/assets/basic-ac-db1.json', { responseType: 'text' }).toPromise(),
-      this.http.get('/assets/basic-ac-db2.json', { responseType: 'text' }).toPromise(),
-      this.http.get('/assets/user-aircraft-db.json', { responseType: 'text' }).toPromise().catch(() => ''),
+      this.http.get('assets/basic-ac-db1.json', { responseType: 'text' }).toPromise(),
+      this.http.get('assets/basic-ac-db2.json', { responseType: 'text' }).toPromise(),
+      this.http.get('assets/user-aircraft-db.json', { responseType: 'text' }).toPromise().catch(() => ''),
     ])
       .then((texts) => {
         parseDbTextFragments(texts).forEach((rec) => this.db.set(rec.icao.toLowerCase(), rec));

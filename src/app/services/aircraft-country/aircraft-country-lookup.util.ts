@@ -5,7 +5,7 @@ import type { CountryDetectionResult, IcaoCountryRange } from './aircraft-countr
 export async function loadIcaoCountryRanges(http: HttpClient): Promise<IcaoCountryRange[]> {
   try {
     const rawRanges = await http
-      .get<Omit<IcaoCountryRange, 'startDec' | 'finishDec'>[]>('/assets/data/icao-country-ranges.json')
+      .get<Omit<IcaoCountryRange, 'startDec' | 'finishDec'>[]>('assets/data/icao-country-ranges.json')
       .toPromise();
     return (rawRanges || []).map((r) => ({
       ...r,

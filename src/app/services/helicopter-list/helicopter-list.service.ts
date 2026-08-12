@@ -37,7 +37,7 @@ export class HelicopterListService {
     const cacheBuster = new Date().getTime();
 
     return this.http
-      .get(`/assets/helicopter-icaos.json?_=${cacheBuster}`, {
+      .get(`assets/helicopter-icaos.json?_=${cacheBuster}`, {
         responseType: 'text',
       })
       .toPromise()
