@@ -1,6 +1,6 @@
 import { onRequest } from './on-request';
 import { applyCors, handleOptionsPreflight } from './http';
-import { fetchAircraftForCollection } from './services/aircraft-collection-fetch';
+import { fetchAircraft } from './services/aircraft-fetcher';
 
 /**
  * Proxy for ADS-B point queries so the browser avoids CORS-blocked direct API calls.
@@ -38,7 +38,7 @@ export const adsbPointProxy = onRequest(
       return;
     }
 
-    const aircraft = await fetchAircraftForCollection({ lat, lon }, radiusKm);
+    const aircraft = await fetchAircraft({ lat, lon }, radiusKm);
     res.json({ ac: aircraft ?? [] });
   },
 );

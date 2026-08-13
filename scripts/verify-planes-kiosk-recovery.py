@@ -112,7 +112,26 @@ def main() -> int:
             ac_n = int(str(adsb).strip().splitlines()[-1])
         except ValueError:
             ac_n = -1
+        fi = run_remote(
+            client,
+            "curl -sf -m 12 -A 'Mozilla/5.0 (X11; Linux aarch64) Chrome/120.0.0.0' "
+            "'https://opendata.adsb.fi/api/v2/lat/52.4605886/lon/13.523268/dist/54' "
+            "| python3 -c \"import sys,json; d=json.load(sys.stdin); "
+            "print(len(d.get('ac') or d.get('aircraft') or []))\" "
+            "2>/dev/null || echo ERR",
+            timeout=30,
+        ) or "ERR"
+        try:
+            fi_n = int(str(fi).strip().splitlines()[-1])
+        except ValueError:
+            fi_n = -1
         _must(ac_n >= 0, f"public ADS-B reachable (ac={ac_n})", fails)
+        if fi_n >= 3:
+            _must(
+                ac_n >= 1,
+                f"proxy not empty while adsb.fi has traffic (ac={ac_n} fi={fi_n})",
+                fails,
+            )
 
         heal_out = run_remote(
             client,

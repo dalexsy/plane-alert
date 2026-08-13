@@ -1,22 +1,11 @@
 import { logger } from '../pi-logger';
-import fetch from 'node-fetch';
 import type { AdsBPlane } from '@plane-alert/shared';
 import type { Location } from '../types';
 import { ORIGIN_HEADER } from '../constants';
-
-async function fetchWithTimeout(
-  url: string,
-  init: any,
-  timeoutMs: number,
-): Promise<any> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal } as any);
-  } finally {
-    clearTimeout(timer);
-  }
-}
+import {
+  fetchAdsbPointNonEmpty,
+  fetchWithTimeout,
+} from './aircraft-adsb-point';
 
 async function fetchFromOpenSky(
   location: Location,
@@ -110,49 +99,8 @@ export async function fetchAircraft(
   location: Location,
   radiusKm: number,
 ): Promise<AdsBPlane[]> {
-  const radiusNm = radiusKm / 1.852;
-  const baseUrls = (
-    process.env.ADSB_POINT_API_BASE_URL?.trim()
-      ? [process.env.ADSB_POINT_API_BASE_URL.trim()]
-      : ['https://api.adsb.lol', 'https://api.airplanes.live']
-  ).map((u) => u.replace(/\/$/, ''));
-
-  for (const baseUrl of baseUrls) {
-    const url = `${baseUrl}/v2/point/${location.lat}/${location.lon}/${radiusNm.toFixed(
-      2,
-    )}`;
-
-    try {
-      const response = await fetchWithTimeout(
-        url,
-        {
-          headers: {
-            'User-Agent': ORIGIN_HEADER,
-            Accept: 'application/json',
-          },
-        },
-        5000,
-      );
-
-      if (!response.ok) {
-        logger.warn('ADS-B API error', {
-          baseUrl,
-          status: response.status,
-          statusText: response.statusText,
-        });
-        continue;
-      }
-
-      const payload = (await response.json()) as { ac?: AdsBPlane[] };
-      return payload.ac ?? [];
-    } catch (error: any) {
-      logger.warn('ADS-B API request failed', {
-        baseUrl,
-        error: error?.message,
-      });
-    }
-  }
-
+  const ac = await fetchAdsbPointNonEmpty(location.lat, location.lon, radiusKm);
+  if (ac?.length) return ac;
   const fallback = await fetchFromOpenSky(location, radiusKm);
   return fallback ?? [];
 }

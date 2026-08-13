@@ -5,7 +5,6 @@ import { JsonDocumentStore } from './json-document-store';
 
 import { logger } from './pi-logger';
 import { AdsBPlane } from '@plane-alert/shared';
-import { ORIGIN_HEADER } from './constants';
 import {
   DEFAULT_RADIUS_KM,
   MIN_RADIUS_KM,
@@ -14,6 +13,7 @@ import {
   type HomeLocation,
   type LocationGroup,
 } from './services/aircraft-collector-types';
+import { fetchAdsbPointNonEmpty } from './services/aircraft-adsb-point';
 
 export {
   DEFAULT_RADIUS_KM,
@@ -40,30 +40,14 @@ export async function fetchAircraft(
   home: HomeLocation,
   radiusKm: number,
 ): Promise<AdsBPlane[]> {
-  const radiusNm = radiusKm / 1.852;
-  const baseUrl =
-    process.env.ADSB_POINT_API_BASE_URL?.trim() || 'https://api.adsb.lol';
-  const url = `${baseUrl.replace(/\/$/, '')}/v2/point/${home.lat}/${
-    home.lon
-  }/${radiusNm.toFixed(2)}`;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': ORIGIN_HEADER,
-      Accept: 'application/json',
-    },
-    signal: controller.signal,
-  }).finally(() => clearTimeout(timer));
-
-  if (!response.ok) {
-    logger.warn('ADS-B API error', response.status, response.statusText);
-    return [];
-  }
-
-  const payload = (await response.json()) as { ac?: AdsBPlane[] };
-  return payload.ac ?? [];
+  const ac = await fetchAdsbPointNonEmpty(home.lat, home.lon, radiusKm);
+  if (ac?.length) return ac;
+  logger.warn('ADS-B collection empty after all sources', {
+    lat: home.lat,
+    lon: home.lon,
+    radiusKm,
+  });
+  return [];
 }
 
 /**
