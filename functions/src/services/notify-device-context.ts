@@ -27,7 +27,8 @@ export async function buildNotifyDeviceContext(
   data: DeviceRegistration,
   docId: string,
   registeredPushoverDevices?: Set<string> | null,
-  cachedSnapshot?: CachedAircraftSnapshot
+  cachedSnapshot?: CachedAircraftSnapshot,
+  householdTarget?: string,
 ): Promise<NotifyDeviceContext | null> {
   const deviceLocation = getDeviceLocation(data);
   if (!data.pushoverUserKey || !deviceLocation) {
@@ -74,10 +75,12 @@ export async function buildNotifyDeviceContext(
     });
   }
 
-  const pushoverTargetDeviceName = householdPushoverDeviceTarget(
-    registeredPushoverDevices,
-    pushoverTargetName,
-  );
+  const pushoverTargetDeviceName =
+    householdTarget?.trim() ||
+    householdPushoverDeviceTarget(
+      registeredPushoverDevices,
+      pushoverTargetName,
+    );
 
   logger.info('Processing device', {
     docId,

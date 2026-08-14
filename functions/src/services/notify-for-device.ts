@@ -18,6 +18,7 @@ export async function notifyForDevice(
   docId: string,
   registeredPushoverDevices?: Set<string> | null,
   cachedSnapshot?: CachedAircraftSnapshot,
+  householdTarget?: string,
 ): Promise<void> {
   try {
     const ctx = await buildNotifyDeviceContext(
@@ -27,6 +28,7 @@ export async function notifyForDevice(
       docId,
       registeredPushoverDevices,
       cachedSnapshot,
+      householdTarget,
     );
     if (!ctx) return;
 

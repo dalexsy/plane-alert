@@ -2,6 +2,7 @@ import { JsonDocumentReference } from './json-document-store-refs';
 import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
 import type { DeviceRegistration } from '../types';
+import { householdTargetFromRegistrations } from '../utils';
 import { notifyForDevice } from './notify-for-device';
 import { chimeKioskForMilitaryInRange } from './kiosk-military-in-range-chime';
 import {
@@ -58,10 +59,16 @@ export async function processDevicesWithSnapshotCache(
       ? await getRegisteredPushoverDevices(userKey)
       : undefined;
 
+    const householdTarget = householdTargetFromRegistrations(
+      entries,
+      registeredPushoverDevices,
+    );
+
     if (entries.length > 1) {
-      logger.warn('Multiple device registrations for one Pushover user', {
+      logger.info('Household Pushover registrations', {
         userKey: userKey.slice(0, 8),
         registrationCount: entries.length,
+        householdTarget,
       });
     }
 
@@ -86,6 +93,7 @@ export async function processDevicesWithSnapshotCache(
         entry.id,
         registeredPushoverDevices,
         cachedSnapshot,
+        householdTarget,
       ).catch((error) =>
         logger.error('notifyForDevice failed', {
           docId: entry.id,

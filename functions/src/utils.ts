@@ -1,6 +1,7 @@
 import { logger } from './pi-logger';
 import fetch from 'node-fetch';
 import {
+  householdPushoverDeviceTarget,
   resolvePushoverDeliveryTarget,
 } from '@plane-alert/shared';
 import {
@@ -152,6 +153,25 @@ export async function validatePushoverUserKey(
     });
     return { devices: [], valid: false };
   }
+}
+
+/** Phones that have a plane-alert registration — not every Pushover device. */
+export function householdTargetFromRegistrations(
+  entries: Array<{ id: string; data: DeviceRegistration }>,
+  registeredPushoverDevices?: Set<string> | null,
+): string {
+  const names: string[] = [];
+  for (const entry of entries) {
+    const resolved = resolvePushoverDeviceName(
+      inferDeviceName(entry.id, entry.data),
+      registeredPushoverDevices,
+      entry.data.platform,
+    );
+    if (resolved) {
+      names.push(resolved);
+    }
+  }
+  return householdPushoverDeviceTarget(names, names[0] ?? '');
 }
 
 export function clampRadius(radiusKm?: number | null): number {

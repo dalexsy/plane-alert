@@ -11,7 +11,7 @@
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `python scripts/pi-install-planes-kiosk.py --launch` | Treat system-bus `planes-kiosk` as truth |
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
-| Same plane twice in Pushover inbox | Household cooldown (`userKey__ICAO`) + one `device=galaxys24,pixel10` send | Per-device cooldown on the shared user key |
+| Same plane twice in Pushover inbox | Household cooldown (`userKey__ICAO`) + one send to registered phones | Per-device cooldown; targeting every Pushover device (stale pixel5) |
 
 ## Failed experiments (do not repeat)
 

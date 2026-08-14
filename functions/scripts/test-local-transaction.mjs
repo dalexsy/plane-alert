@@ -73,11 +73,22 @@ assert.equal(
 const {
   householdPushoverDeviceTarget,
 } = require("@plane-alert/shared");
+const { householdTargetFromRegistrations } = require("../lib/utils.js");
 assert.equal(
   householdPushoverDeviceTarget(["pixel10", "desktop", "galaxys24"], "pixel10"),
   "galaxys24,pixel10",
 );
 assert.equal(householdPushoverDeviceTarget([], "pixel10"), "pixel10");
+assert.equal(
+  householdTargetFromRegistrations(
+    [
+      { id: "u__galaxys24", data: { deviceName: "galaxys24" } },
+      { id: "u__pixel10", data: { deviceName: "pixel10" } },
+    ],
+    new Set(["galaxys24", "pixel10", "pixel5", "desktop"]),
+  ),
+  "galaxys24,pixel10",
+);
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log("[ok] local transaction cooldown gate");
