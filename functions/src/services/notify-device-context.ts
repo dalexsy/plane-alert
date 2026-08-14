@@ -4,6 +4,7 @@ import { logger } from '../pi-logger';
 import type { DeviceRegistration } from '../types';
 import {
   clampRadius,
+  householdPushoverDeviceTarget,
   inferDeviceName,
   resolvePushoverDeviceName,
   sanitizeDeviceName,
@@ -73,17 +74,21 @@ export async function buildNotifyDeviceContext(
     });
   }
 
+  const pushoverTargetDeviceName = householdPushoverDeviceTarget(
+    registeredPushoverDevices,
+    pushoverTargetName,
+  );
+
   logger.info('Processing device', {
     docId,
     userKey: data.pushoverUserKey.slice(0, 8),
     deviceName: data.deviceName,
     pushoverDeviceName: pushoverTargetName,
+    householdTarget: pushoverTargetDeviceName,
     radiusKm: data.radiusKm,
     notifyProximity: data.notifyProximity,
     ignoredTypesCount: data.ignoredTypes?.length || 0,
   });
-
-  const pushoverTargetDeviceName = pushoverTargetName;
   const radiusKm = clampRadius(data.radiusKm);
   const aircraft = await resolveAircraftForNotification(
     deviceLocation,
@@ -103,7 +108,7 @@ export async function buildNotifyDeviceContext(
   return {
     deviceLocation,
     pushoverTargetDeviceName,
-    cooldownDeviceName: pushoverTargetDeviceName,
+    cooldownDeviceName: pushoverTargetName,
     radiusKm,
     aircraft,
   };

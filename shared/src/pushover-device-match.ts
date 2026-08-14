@@ -170,3 +170,22 @@ export function isValidDeviceRegistration(
     resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevices) !== null
   );
 }
+
+/**
+ * One Pushover `device=` value for the household: every reliable phone,
+ * comma-separated. Shared inbox stays unique; both phones still receive it.
+ */
+export function householdPushoverDeviceTarget(
+  pushoverDevices: Iterable<string> | null | undefined,
+  fallback: string,
+): string {
+  const phones = eligibleDevices(
+    [...(pushoverDevices ?? [])].filter(Boolean),
+  );
+  if (!phones.length) {
+    return fallback.trim();
+  }
+  return [...new Set(phones)]
+    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+    .join(',');
+}

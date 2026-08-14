@@ -19,9 +19,35 @@ function lastSentOf(
   return snap.data()?.lastSent || 0;
 }
 
+function householdCooldownId(userKey: string, icao: string): string {
+  return `${userKey}__${icao}`;
+}
+
+function legacyCooldownIds(
+  userKey: string,
+  deviceName: string,
+  icao: string,
+): string[] {
+  const normalizedDevice = normalizeCooldownDeviceName(deviceName);
+  const ids = new Set<string>();
+  if (normalizedDevice && !normalizedDevice.includes(',')) {
+    ids.add(`${userKey}__${normalizedDevice}__${icao}`);
+    const raw = `${userKey}__${deviceName}__${icao}`;
+    if (raw !== `${userKey}__${normalizedDevice}__${icao}`) {
+      ids.add(raw);
+    }
+  }
+  if (!icao.startsWith('PROXIMITY_')) {
+    ids.add(`${userKey}__proximity_${icao}`);
+  }
+  ids.add(`${userKey}__${icao.toLowerCase()}`);
+  ids.delete(householdCooldownId(userKey, icao));
+  return [...ids];
+}
+
 /**
- * Check if notification should be sent and atomically mark as notified if allowed.
- * Uses the local JSON store's transaction API (Firestore-shaped facade on Pi).
+ * Claim one household send per user+ICAO. Shared Pushover inbox stays unique;
+ * delivery targets every reliable phone in one API call.
  */
 export async function checkAndMarkNotified(
   db: JsonDocumentStore,
@@ -35,53 +61,22 @@ export async function checkAndMarkNotified(
     return false;
   }
 
-  // Per-device cooldown so both household phones can notify.
-  const normalizedDevice = normalizeCooldownDeviceName(deviceName);
-  const cooldownId = normalizedDevice
-    ? `${userKey}__${normalizedDevice}__${normalizedIcao}`
-    : `${userKey}__${normalizedIcao}`;
+  const cooldownId = householdCooldownId(userKey, normalizedIcao);
   const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
-
-  // Only treat as legacy when the path differs — pixel10/galaxys24 are already
-  // lowercase, so raw device path === cooldownId and must not be deleted after claim.
-  const rawDevicePath = normalizedDevice
-    ? `${userKey}__${deviceName}__${normalizedIcao}`
-    : null;
-  const legacyCooldownRef =
-    rawDevicePath && rawDevicePath !== cooldownId
-      ? db.collection(COOLDOWN_COLLECTION).doc(rawDevicePath)
-      : null;
-  const legacyProximityCooldownRef = !normalizedIcao.startsWith('PROXIMITY_')
-    ? db
-        .collection(COOLDOWN_COLLECTION)
-        .doc(`${userKey}__proximity_${normalizedIcao}`)
-    : null;
-  const legacyUserCooldownRef = db
-    .collection(COOLDOWN_COLLECTION)
-    .doc(`${userKey}__${normalizedIcao}`);
-  const legacyLowercaseCooldownRef = db
-    .collection(COOLDOWN_COLLECTION)
-    .doc(`${userKey}__${normalizedIcao.toLowerCase()}`);
+  const legacyRefs = legacyCooldownIds(userKey, deviceName, normalizedIcao).map(
+    (id) => db.collection(COOLDOWN_COLLECTION).doc(id),
+  );
 
   try {
     const shouldNotify = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(cooldownRef);
-      const legacyDoc = legacyCooldownRef
-        ? await transaction.get(legacyCooldownRef)
-        : null;
-      const legacyProximityDoc = legacyProximityCooldownRef
-        ? await transaction.get(legacyProximityCooldownRef)
-        : null;
-      const legacyUserDoc = await transaction.get(legacyUserCooldownRef);
-      const legacyLowercaseDoc = await transaction.get(legacyLowercaseCooldownRef);
+      const legacyDocs = await Promise.all(
+        legacyRefs.map((ref) => transaction.get(ref)),
+      );
       const now = Date.now();
-
       const recentLastSent = Math.max(
         lastSentOf(doc),
-        lastSentOf(legacyDoc),
-        lastSentOf(legacyProximityDoc),
-        lastSentOf(legacyUserDoc),
-        lastSentOf(legacyLowercaseDoc),
+        ...legacyDocs.map((snap) => lastSentOf(snap)),
       );
 
       if (now - recentLastSent < cooldownMs) {
@@ -111,23 +106,10 @@ export async function checkAndMarkNotified(
         { merge: true },
       );
 
-      if (legacyCooldownRef && legacyDoc?.exists) {
-        transaction.delete(legacyCooldownRef);
-      }
-      if (legacyProximityCooldownRef && legacyProximityDoc?.exists) {
-        transaction.delete(legacyProximityCooldownRef);
-      }
-      if (
-        legacyUserCooldownRef.path !== cooldownRef.path &&
-        legacyUserDoc.exists
-      ) {
-        transaction.delete(legacyUserCooldownRef);
-      }
-      if (
-        legacyLowercaseCooldownRef.path !== cooldownRef.path &&
-        legacyLowercaseDoc.exists
-      ) {
-        transaction.delete(legacyLowercaseCooldownRef);
+      for (const [index, legacyRef] of legacyRefs.entries()) {
+        if (legacyDocs[index]?.exists) {
+          transaction.delete(legacyRef);
+        }
       }
 
       return true;
@@ -162,16 +144,14 @@ export async function releaseNotificationClaim(
     return;
   }
 
-  const normalizedDevice = normalizeCooldownDeviceName(deviceName);
-  const cooldownId = normalizedDevice
-    ? `${userKey}__${normalizedDevice}__${normalizedIcao}`
-    : `${userKey}__${normalizedIcao}`;
+  const cooldownId = householdCooldownId(userKey, normalizedIcao);
 
   try {
     await db.collection(COOLDOWN_COLLECTION).doc(cooldownId).delete();
     logger.info('Released notification claim', {
       userKey: userKey.slice(0, 8),
       icao: normalizedIcao,
+      deviceName,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -12,7 +12,10 @@ import {
 } from './constants';
 import type { DeviceRegistration } from './types';
 
-export { matchPushoverDeviceName } from '@plane-alert/shared';
+export {
+  matchPushoverDeviceName,
+  householdPushoverDeviceTarget,
+} from '@plane-alert/shared';
 
 /**
  * Get Pushover API token from environment

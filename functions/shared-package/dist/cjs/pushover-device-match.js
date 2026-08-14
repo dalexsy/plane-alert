@@ -5,6 +5,7 @@ exports.autoMatchPushoverDevice = autoMatchPushoverDevice;
 exports.matchPushoverDeviceName = matchPushoverDeviceName;
 exports.resolvePushoverDeliveryTarget = resolvePushoverDeliveryTarget;
 exports.isValidDeviceRegistration = isValidDeviceRegistration;
+exports.householdPushoverDeviceTarget = householdPushoverDeviceTarget;
 /** Pushover browser client — unreliable Web Push; never auto-target. */
 exports.PUSHOVER_UNRELIABLE_DEVICE_NAMES = new Set(['desktop']);
 function eligibleDevices(devices) {
@@ -120,5 +121,18 @@ function resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevices) {
 /** True when this Firestore row maps to a live Pushover device. */
 function isValidDeviceRegistration(deviceName, platform, pushoverDevices) {
     return (resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevices) !== null);
+}
+/**
+ * One Pushover `device=` value for the household: every reliable phone,
+ * comma-separated. Shared inbox stays unique; both phones still receive it.
+ */
+function householdPushoverDeviceTarget(pushoverDevices, fallback) {
+    const phones = eligibleDevices([...(pushoverDevices ?? [])].filter(Boolean));
+    if (!phones.length) {
+        return fallback.trim();
+    }
+    return [...new Set(phones)]
+        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+        .join(',');
 }
 //# sourceMappingURL=pushover-device-match.js.map

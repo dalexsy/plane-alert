@@ -7,7 +7,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolvePushoverDeliveryTarget = exports.matchPushoverDeviceName = exports.autoMatchPushoverDevice = exports.PUSHOVER_UNRELIABLE_DEVICE_NAMES = exports.DEFAULT_PUSH_DEVICE_NAMES = exports.DEFAULT_PUSH_HOME = exports.PUSHOVER_USER_KEY = exports.getAircraftTypeName = exports.AIRCRAFT_TYPE_NAMES = exports.COMMON_MILITARY_TYPES = exports.isMilitaryAircraft = exports.isAircraftMilitary = exports.createAircraftLookupMap = exports.humanReadableLocation = exports.isCoordinateLikeLocation = exports.getCountryFlagEmoji = exports.getArrowForDirection = exports.formatNotificationTitle = exports.formatNotificationBody = exports.formatDistance = exports.bearingToCardinal = exports.computeBearing = exports.haversineDistanceKm = exports.toDegrees = exports.toRadians = exports.planeFieldsToAdsB = exports.shouldAlertForAircraft = exports.isHelicopterTypeCode = exports.isHelicopterCategory = exports.isHelicopterCallsign = exports.isJunkAircraftIdentityToken = exports.hasMeaningfulAircraftModel = exports.isLikelyHelicopter = exports.MIL_OPERATOR_KEYWORDS = exports.MIL_CALLSIGN_PREFIXES = exports.BORING_MIL_CALLSIGN_PREFIXES = exports.BORING_AIRCRAFT_TYPES = exports.shouldSkipBoringMilitaryFilter = exports.isMilitaryOperator = exports.isBoringMilitaryCallsign = exports.isMilitaryCallsign = exports.normalizeCallsign = exports.isBoringMilitaryAircraft = exports.looksMilitary = exports.ICAO_LOOKUP_CONFIG = exports.isKnownCountry = exports.getRegistrationPrefixesForCountry = exports.getAircraftCountry = exports.getCountryFromRegistration = exports.getCountryFromIcaoHex = void 0;
-exports.isValidDeviceRegistration = void 0;
+exports.householdPushoverDeviceTarget = exports.isValidDeviceRegistration = void 0;
 // Export country detection functions
 var country_detection_1 = require("./country-detection");
 Object.defineProperty(exports, "getCountryFromIcaoHex", { enumerable: true, get: function () { return country_detection_1.getCountryFromIcaoHex; } });
@@ -80,4 +80,5 @@ Object.defineProperty(exports, "autoMatchPushoverDevice", { enumerable: true, ge
 Object.defineProperty(exports, "matchPushoverDeviceName", { enumerable: true, get: function () { return pushover_device_match_1.matchPushoverDeviceName; } });
 Object.defineProperty(exports, "resolvePushoverDeliveryTarget", { enumerable: true, get: function () { return pushover_device_match_1.resolvePushoverDeliveryTarget; } });
 Object.defineProperty(exports, "isValidDeviceRegistration", { enumerable: true, get: function () { return pushover_device_match_1.isValidDeviceRegistration; } });
+Object.defineProperty(exports, "householdPushoverDeviceTarget", { enumerable: true, get: function () { return pushover_device_match_1.householdPushoverDeviceTarget; } });
 //# sourceMappingURL=index.js.map

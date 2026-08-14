@@ -41,8 +41,8 @@ function pickTemplateRegistration(
 /**
  * Ensure every reliable Pushover device on the account has a document-store
  * registration when the household already has at least one. Restores phones
- * dropped by duplicate pruning — each Pushover device (pixel10, galaxys24, …)
- * is independent and receives its own notifications.
+ * dropped by duplicate pruning — each phone still has a home pin so in-range
+ * scans cover both, but one household Pushover message is sent per ICAO.
  */
 export async function syncMissingPushoverDeviceRegistrations(
   db: JsonDocumentStore,

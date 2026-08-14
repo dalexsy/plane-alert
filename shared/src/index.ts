@@ -107,5 +107,6 @@ export {
   matchPushoverDeviceName,
   resolvePushoverDeliveryTarget,
   isValidDeviceRegistration,
+  householdPushoverDeviceTarget,
 } from './pushover-device-match';
 export type { PushoverDeviceMatchInput } from './pushover-device-match';
