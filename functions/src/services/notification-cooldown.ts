@@ -46,10 +46,10 @@ function legacyCooldownIds(
 }
 
 /**
- * Claim one household send per user+ICAO. Shared Pushover inbox stays unique;
- * delivery targets every reliable phone in one API call.
- * Do not put the device name back in this id — that is how "twice of everything"
- * returns after a quiet-phone "fix".
+ * Claim one send per Pushover account + ICAO.
+ * One account means one API call (`device=galaxys24,pixel10`), not one claim
+ * per phone. Putting the device name back in this id (`5cc5b90`) is the
+ * regression that doubled the inbox. Daryl did not report a missed phone.
  */
 export async function checkAndMarkNotified(
   db: JsonDocumentStore,

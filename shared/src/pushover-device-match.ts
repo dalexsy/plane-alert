@@ -172,8 +172,8 @@ export function isValidDeviceRegistration(
 }
 
 /**
- * One Pushover `device=` value for the household: every reliable phone,
- * comma-separated. Shared inbox stays unique; both phones still receive it.
+ * One Pushover `device=` list for the account: registered phones only,
+ * comma-separated. One API call; each listed phone receives that same message.
  */
 export function householdPushoverDeviceTarget(
   pushoverDevices: Iterable<string> | null | undefined,

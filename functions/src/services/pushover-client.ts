@@ -67,7 +67,7 @@ export async function sendPushoverNotification(
       message: message.message,
       url: message.url || '',
       url_title: message.url_title || '',
-      // Audible — silent ('none') made one household phone look "broken".
+      // Always audible. Do not set sound none.
       priority: '0',
       sound: 'pushover',
       icon: message.icon || '',

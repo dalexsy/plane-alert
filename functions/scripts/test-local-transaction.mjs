@@ -1,6 +1,6 @@
 /**
- * Gate: LocalTransaction must support delete and not wipe a claim when
- * "legacy" cooldown path equals the canonical per-device path.
+ * Gate: one account + ICAO claim. A second phone must not open a second
+ * inbox row. Do not put the device name back in the cooldown id.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -30,6 +30,11 @@ const device = "pixel10";
 const otherDevice = "galaxys24";
 const legacyId = `${userKey}__${device}__${icao}`;
 const householdId = `${userKey}__${icao}`;
+assert.equal(
+  householdId.split("__").length,
+  2,
+  "cooldown id is userKey + ICAO only — never a device segment",
+);
 
 // Pre-seed expired per-device cooldown (production leftover).
 await db.collection("notification-cooldowns").doc(legacyId).set({

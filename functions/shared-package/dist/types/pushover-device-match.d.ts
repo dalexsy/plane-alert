@@ -13,8 +13,8 @@ export declare function resolvePushoverDeliveryTarget(deviceName: string, platfo
 /** True when this Firestore row maps to a live Pushover device. */
 export declare function isValidDeviceRegistration(deviceName: string, platform: string | undefined, pushoverDevices: string[]): boolean;
 /**
- * One Pushover `device=` value for the household: every reliable phone,
- * comma-separated. Shared inbox stays unique; both phones still receive it.
+ * One Pushover `device=` list for the account: registered phones only,
+ * comma-separated. One API call; each listed phone receives that same message.
  */
 export declare function householdPushoverDeviceTarget(pushoverDevices: Iterable<string> | null | undefined, fallback: string): string;
 //# sourceMappingURL=pushover-device-match.d.ts.map
