@@ -148,6 +148,11 @@ def main() -> int:
             f"page-heal ok with live markers (markers={markers} ac={ac_n})",
             fails,
         )
+        _must(
+            "href=https://planes.dryl.io" in heal_out,
+            "Kallax live tab is planes.dryl.io (mirror-verify canary)",
+            fails,
+        )
 
         # Chromium must be the user-unit kiosk, not system-bus fiction.
         user_active = run_remote(
