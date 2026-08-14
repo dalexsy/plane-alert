@@ -20,7 +20,7 @@ function lastSentOf(
 }
 
 function householdCooldownId(userKey: string, icao: string): string {
-  return `${userKey}__${icao}`;
+  return `${userKey.trim()}__${icao}`;
 }
 
 function legacyCooldownIds(
@@ -59,13 +59,18 @@ export async function checkAndMarkNotified(
   cooldownMs: number,
 ): Promise<boolean> {
   const normalizedIcao = normalizeCooldownIcao(icao);
-  if (!normalizedIcao) {
+  const normalizedUserKey = userKey.trim();
+  if (!normalizedIcao || !normalizedUserKey) {
     return false;
   }
 
-  const cooldownId = householdCooldownId(userKey, normalizedIcao);
+  const cooldownId = householdCooldownId(normalizedUserKey, normalizedIcao);
   const cooldownRef = db.collection(COOLDOWN_COLLECTION).doc(cooldownId);
-  const legacyRefs = legacyCooldownIds(userKey, deviceName, normalizedIcao).map(
+  const legacyRefs = legacyCooldownIds(
+    normalizedUserKey,
+    deviceName,
+    normalizedIcao,
+  ).map(
     (id) => db.collection(COOLDOWN_COLLECTION).doc(id),
   );
 
@@ -83,7 +88,7 @@ export async function checkAndMarkNotified(
 
       if (now - recentLastSent < cooldownMs) {
         logger.info('Aircraft in cooldown, skipping', {
-          userKey: userKey.slice(0, 8),
+          userKey: normalizedUserKey.slice(0, 8),
           deviceName,
           icao: normalizedIcao,
           timeSinceLastMs: now - recentLastSent,
@@ -93,7 +98,7 @@ export async function checkAndMarkNotified(
       }
 
       logger.info('Claiming notification for aircraft', {
-        userKey: userKey.slice(0, 8),
+        userKey: normalizedUserKey.slice(0, 8),
         icao: normalizedIcao,
         docExists: doc.exists,
       });
@@ -101,7 +106,7 @@ export async function checkAndMarkNotified(
       transaction.set(
         cooldownRef,
         {
-          userKey,
+          userKey: normalizedUserKey,
           icao: normalizedIcao,
           lastSent: now,
         },
@@ -118,7 +123,7 @@ export async function checkAndMarkNotified(
     });
 
     logger.info('Transaction result', {
-      userKey: userKey.slice(0, 8),
+      userKey: normalizedUserKey.slice(0, 8),
       icao: normalizedIcao,
       shouldNotify,
     });
@@ -127,7 +132,7 @@ export async function checkAndMarkNotified(
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error('checkAndMarkNotified transaction failed', {
-      userKey: userKey.slice(0, 8),
+      userKey: normalizedUserKey.slice(0, 8),
       icao: normalizedIcao,
       error: message,
     });
@@ -142,23 +147,24 @@ export async function releaseNotificationClaim(
   icao: string,
 ): Promise<void> {
   const normalizedIcao = normalizeCooldownIcao(icao);
-  if (!normalizedIcao) {
+  const normalizedUserKey = userKey.trim();
+  if (!normalizedIcao || !normalizedUserKey) {
     return;
   }
 
-  const cooldownId = householdCooldownId(userKey, normalizedIcao);
+  const cooldownId = householdCooldownId(normalizedUserKey, normalizedIcao);
 
   try {
     await db.collection(COOLDOWN_COLLECTION).doc(cooldownId).delete();
     logger.info('Released notification claim', {
-      userKey: userKey.slice(0, 8),
+      userKey: normalizedUserKey.slice(0, 8),
       icao: normalizedIcao,
       deviceName,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error('Failed to release notification claim', {
-      userKey: userKey.slice(0, 8),
+      userKey: normalizedUserKey.slice(0, 8),
       icao: normalizedIcao,
       error: message,
     });

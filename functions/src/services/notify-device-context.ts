@@ -2,6 +2,7 @@ import { JsonDocumentReference } from './json-document-store-refs';
 import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
 import type { DeviceRegistration } from '../types';
+import { MAX_RADIUS_KM } from '../constants';
 import {
   clampRadius,
   householdPushoverDeviceTarget,
@@ -92,7 +93,9 @@ export async function buildNotifyDeviceContext(
     notifyProximity: data.notifyProximity,
     ignoredTypesCount: data.ignoredTypes?.length || 0,
   });
-  const radiusKm = clampRadius(data.radiusKm);
+  const radiusKm = cachedSnapshot?.skipRadiusFilter
+    ? MAX_RADIUS_KM
+    : clampRadius(data.radiusKm);
   const aircraft = await resolveAircraftForNotification(
     deviceLocation,
     radiusKm,

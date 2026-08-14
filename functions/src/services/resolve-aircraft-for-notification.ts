@@ -29,6 +29,10 @@ export async function resolveAircraftForNotification(
   cachedSnapshot: CachedAircraftSnapshot | undefined,
   docId: string,
 ): Promise<AdsBPlane[]> {
+  if (cachedSnapshot?.skipRadiusFilter && cachedSnapshot.aircraft.length) {
+    return cachedSnapshot.aircraft;
+  }
+
   const useCache =
     cachedSnapshot &&
     cachedSnapshot.aircraft.length > 0 &&

@@ -11,7 +11,7 @@
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `python scripts/pi-install-planes-kiosk.py --launch` | Treat system-bus `planes-kiosk` as truth |
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
-| Same plane twice in one Pushover inbox | One account → one API send, `device=galaxys24,pixel10`, cooldown `userKey__ICAO` | Per-device cooldown/send (`5cc5b90`). Daryl did not report a missed phone |
+| Same plane twice in one Pushover inbox | One notify pass per userKey + `device=galaxys24,pixel10` + cooldown `userKey__ICAO` | Loop `notifyForDevice` per phone and trust cooldown (`5cc5b90`) |
 
 ## Failed experiments (do not repeat)
 
@@ -28,6 +28,7 @@
 - Remove speechSynthesis — MP3 only
 - Never deploy non-`main` / Cloud Functions for planes-api
 - Do not restore per-device cooldown or a second API send. One account, one `device=galaxys24,pixel10` send. A “missed phone” story is not the bug and doubles the inbox (`5cc5b90`)
+- Do not loop `notifyForDevice` per phone and rely on cooldown — one notify pass per userKey (2026-08-14 still doubled)
 
 Older: `.cursor/rules/debugging-archive.md`
 

@@ -10,6 +10,8 @@ import type { DeviceRegistration, Location } from '../types';
 export interface CachedAircraftSnapshot {
   aircraft: AdsBPlane[];
   snapshotAgeMs: number | null;
+  /** Union of household homes — do not refetch from one location. */
+  skipRadiusFilter?: boolean;
 }
 
 function getTimestampMillis(value: unknown): number | null {

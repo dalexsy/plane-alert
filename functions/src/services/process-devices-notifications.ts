@@ -4,13 +4,14 @@ import { logger } from '../pi-logger';
 import type { DeviceRegistration } from '../types';
 import { householdTargetFromRegistrations } from '../utils';
 import { notifyForDevice } from './notify-for-device';
+import {
+  mergeHouseholdInRangeAircraft,
+  pickHouseholdPrimary,
+} from './household-notify';
 import { chimeKioskForMilitaryInRange } from './kiosk-military-in-range-chime';
 import {
-  getDeviceLocation,
   loadAircraftSnapshotCache,
-  locationCacheKey,
   uniqueLocationKeysFromDevices,
-  type CachedAircraftSnapshot,
 } from './notification-snapshot-cache';
 
 type DeviceDoc = {
@@ -72,37 +73,28 @@ export async function processDevicesWithSnapshotCache(
       });
     }
 
-    for (const entry of entries) {
-      const deviceLocation = getDeviceLocation(entry.data);
+    const primary = pickHouseholdPrimary(entries);
+    const cachedSnapshot = mergeHouseholdInRangeAircraft(
+      entries,
+      aircraftCache,
+    );
 
-      let cachedSnapshot: CachedAircraftSnapshot | undefined;
-      if (deviceLocation) {
-        cachedSnapshot = aircraftCache.get(
-          locationCacheKey(
-            deviceLocation.lat,
-            deviceLocation.lon,
-            entry.data.radiusKm,
-          ),
-        );
-      }
-
-      await notifyForDevice(
-        db,
-        entry.ref,
-        entry.data,
-        entry.id,
-        registeredPushoverDevices,
-        cachedSnapshot,
-        householdTarget,
-      ).catch((error) =>
-        logger.error('notifyForDevice failed', {
-          docId: entry.id,
-          deviceName: entry.data.deviceName,
-          userKey: entry.data.pushoverUserKey?.slice(0, 8),
-          error,
-        }),
-      );
-    }
+    await notifyForDevice(
+      db,
+      primary.ref,
+      primary.data,
+      primary.id,
+      registeredPushoverDevices,
+      cachedSnapshot,
+      householdTarget,
+    ).catch((error) =>
+      logger.error('notifyForDevice failed', {
+        docId: primary.id,
+        deviceName: primary.data.deviceName,
+        userKey: primary.data.pushoverUserKey?.slice(0, 8),
+        error,
+      }),
+    );
   });
 
   await Promise.all(tasks);

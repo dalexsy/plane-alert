@@ -75,6 +75,20 @@ assert.equal(
   "other household phone must not send a second inbox row",
 );
 
+const paddedKey = ` ${userKey} `;
+const blockedPadded = await checkAndMarkNotified(
+  db,
+  paddedKey,
+  otherDevice,
+  icao,
+  30 * 60 * 1000,
+);
+assert.equal(
+  blockedPadded,
+  false,
+  "trimmed userKey must share the same household claim",
+);
+
 const {
   householdPushoverDeviceTarget,
 } = require("@plane-alert/shared");
@@ -93,6 +107,54 @@ assert.equal(
     new Set(["galaxys24", "pixel10", "pixel5", "desktop"]),
   ),
   "galaxys24,pixel10",
+);
+
+const {
+  pickHouseholdPrimary,
+  mergeHouseholdInRangeAircraft,
+} = require("../lib/services/household-notify.js");
+const galaxy = {
+  id: "u__galaxys24",
+  ref: { id: "u__galaxys24" },
+  data: {
+    deviceName: "galaxys24",
+    location: { lat: 52.5, lon: 13.4 },
+    radiusKm: 100,
+  },
+};
+const pixel = {
+  id: "u__pixel10",
+  ref: { id: "u__pixel10" },
+  data: {
+    deviceName: "pixel10",
+    notifyProximity: true,
+    location: { lat: 52.37, lon: 13.5 },
+    radiusKm: 100,
+  },
+};
+const primary = pickHouseholdPrimary([galaxy, pixel]);
+assert.equal(primary.id, pixel.id, "one primary per account, not one per phone");
+const merged = mergeHouseholdInRangeAircraft([galaxy, pixel], new Map([
+  [
+    "52.5_13.4_100",
+    {
+      aircraft: [{ hex: "aaaaaa", lat: 52.5, lon: 13.4 }],
+      snapshotAgeMs: 1000,
+    },
+  ],
+  [
+    "52.37_13.5_100",
+    {
+      aircraft: [{ hex: "bbbbbb", lat: 52.37, lon: 13.5 }],
+      snapshotAgeMs: 1000,
+    },
+  ],
+]));
+assert.equal(merged.skipRadiusFilter, true);
+assert.equal(merged.aircraft.length, 2, "both household homes contribute aircraft");
+assert.equal(
+  new Set(merged.aircraft.map((p) => p.hex.toUpperCase())).size,
+  2,
 );
 
 fs.rmSync(tmp, { recursive: true, force: true });
