@@ -123,8 +123,8 @@ function isValidDeviceRegistration(deviceName, platform, pushoverDevices) {
     return (resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevices) !== null);
 }
 /**
- * One Pushover `device=` value for the household: every reliable phone,
- * comma-separated. Shared inbox stays unique; both phones still receive it.
+ * One Pushover `device=` list for the account: registered phones only,
+ * comma-separated. One API call; each listed phone receives that same message.
  */
 function householdPushoverDeviceTarget(pushoverDevices, fallback) {
     const phones = eligibleDevices([...(pushoverDevices ?? [])].filter(Boolean));
