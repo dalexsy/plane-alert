@@ -11,7 +11,7 @@
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `python scripts/pi-install-planes-kiosk.py --launch` | Treat system-bus `planes-kiosk` as truth |
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
-| Same plane twice in one Pushover inbox | One notify pass per userKey + `device=galaxys24,pixel10` + cooldown `userKey__ICAO` | Loop `notifyForDevice` per phone and trust cooldown (`5cc5b90`) |
+| Same plane twice in one Pushover inbox | One notify/Berlin-day + `/health.recentPushoverSends`; `verifyPlanesPushDedup` fails on a same-day ICAO | Treat `/health` freshness as unique; wait for Daryl to report doubles |
 
 ## Failed experiments (do not repeat)
 
@@ -29,6 +29,7 @@
 - Never deploy non-`main` / Cloud Functions for planes-api
 - Do not restore per-device cooldown or a second API send. One account, one `device=galaxys24,pixel10` send. A “missed phone” story is not the bug and doubles the inbox (`5cc5b90`)
 - Do not loop `notifyForDevice` per phone and rely on cooldown — one notify pass per userKey (2026-08-14 still doubled)
+- Do not treat `/health` ok as a unique inbox. 30 min TTL re-sent `43C39D` the same Berlin day; Daryl is not the sensor — fail `verifyPlanesPushDedup` on the send ledger
 
 Older: `.cursor/rules/debugging-archive.md`
 

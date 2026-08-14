@@ -6,7 +6,7 @@ import {
   releaseNotificationClaim,
 } from './notification-cooldown';
 import { sendPushoverNotification } from './pushover-client';
-import { recordNotificationSent } from './notification-health';
+import { recordPushoverSend } from './pushover-send-ledger';
 import { playKioskAlertSound } from './kiosk-alert-sound';
 import {
   ackKioskInRange,
@@ -91,7 +91,7 @@ export async function deliverDeviceNotifications(
       });
     }
 
-    await recordNotificationSent(db);
+    await recordPushoverSend(db, pending.icao);
 
     if (
       pending.message.hex &&

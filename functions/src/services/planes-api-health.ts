@@ -7,6 +7,7 @@ export interface NotificationHealthSlice {
   lastNotificationSentAt?: number;
   processPlanesDeviceCount?: number;
   notificationsSentTotal?: number;
+  recentPushoverSends?: Array<{ icao: string; at: number }>;
 }
 
 function asMillis(value: unknown): number | undefined {
@@ -57,5 +58,8 @@ export function buildPlanesApiHealthResponse(input: {
     lastNotificationSentAt: sentAt ?? null,
     processPlanesStale: processStale,
     notificationsSentTotal: asCount(input.health.notificationsSentTotal) ?? 0,
+    recentPushoverSends: Array.isArray(input.health.recentPushoverSends)
+      ? input.health.recentPushoverSends
+      : [],
   };
 }

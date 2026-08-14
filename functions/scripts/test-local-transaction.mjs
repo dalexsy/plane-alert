@@ -40,7 +40,7 @@ assert.equal(
 await db.collection("notification-cooldowns").doc(legacyId).set({
   userKey,
   icao,
-  lastSent: Date.now() - 60 * 60 * 1000,
+  lastSent: Date.now() - 36 * 60 * 60 * 1000,
 });
 
 const ok = await checkAndMarkNotified(db, userKey, device, icao, 30 * 60 * 1000);
@@ -87,6 +87,37 @@ assert.equal(
   blockedPadded,
   false,
   "trimmed userKey must share the same household claim",
+);
+
+const nextDayIcao = "43C39D";
+const nextDayId = `${userKey}__${nextDayIcao}`;
+await db.collection("notification-cooldowns").doc(nextDayId).set({
+  userKey,
+  icao: nextDayIcao,
+  lastSent: Date.now() - 36 * 60 * 60 * 1000,
+});
+const nextDayOk = await checkAndMarkNotified(
+  db,
+  userKey,
+  device,
+  nextDayIcao,
+  30 * 60 * 1000,
+);
+assert.equal(nextDayOk, true, "a later Berlin day must still be allowed");
+
+const {
+  duplicateIcaosSameBerlinDay,
+} = require("../lib/services/pushover-send-ledger.js");
+assert.deepEqual(
+  duplicateIcaosSameBerlinDay([
+    { icao: "43C39D", at: Date.now() },
+    { icao: "43C39D", at: Date.now() + 1000 },
+  ]),
+  ["43C39D"],
+);
+assert.deepEqual(
+  duplicateIcaosSameBerlinDay([{ icao: "43C39D", at: Date.now() }]),
+  [],
 );
 
 const {

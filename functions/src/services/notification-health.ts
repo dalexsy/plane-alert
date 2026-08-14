@@ -18,6 +18,7 @@ export interface NotificationHealthState {
   collectAircraftLastError?: string;
   lastNotificationSentAt?: number;
   notificationsSentTotal?: number;
+  recentPushoverSends?: Array<{ icao: string; at: number }>;
   watchdogLastRecoveryAt?: number;
   watchdogLastRecoveryError?: string;
 }

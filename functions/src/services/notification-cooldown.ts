@@ -1,6 +1,7 @@
 import { JsonDocumentStore } from '../json-document-store';
 import { logger } from '../pi-logger';
 import { COOLDOWN_COLLECTION } from '../constants';
+import { sameBerlinCalendarDay } from './berlin-day';
 
 function normalizeCooldownIcao(icao: string): string {
   return icao.trim().toUpperCase();
@@ -86,7 +87,20 @@ export async function checkAndMarkNotified(
         ...legacyDocs.map((snap) => lastSentOf(snap)),
       );
 
-      if (now - recentLastSent < cooldownMs) {
+      const isProximity = normalizedIcao.startsWith('PROXIMITY_');
+      if (
+        recentLastSent > 0 &&
+        !isProximity &&
+        sameBerlinCalendarDay(now, recentLastSent)
+      ) {
+        logger.info('Aircraft already notified this Berlin day, skipping', {
+          userKey: normalizedUserKey.slice(0, 8),
+          deviceName,
+          icao: normalizedIcao,
+        });
+        return false;
+      }
+      if (isProximity && now - recentLastSent < cooldownMs) {
         logger.info('Aircraft in cooldown, skipping', {
           userKey: normalizedUserKey.slice(0, 8),
           deviceName,
