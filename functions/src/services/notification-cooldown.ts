@@ -48,6 +48,8 @@ function legacyCooldownIds(
 /**
  * Claim one household send per user+ICAO. Shared Pushover inbox stays unique;
  * delivery targets every reliable phone in one API call.
+ * Do not put the device name back in this id — that is how "twice of everything"
+ * returns after a quiet-phone "fix".
  */
 export async function checkAndMarkNotified(
   db: JsonDocumentStore,

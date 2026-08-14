@@ -27,6 +27,7 @@
 - Kiosk MP3 uses `plane.isMilitary` (DB or prefix); interrupt in-flight audio
 - Remove speechSynthesis — MP3 only
 - Never deploy non-`main` / Cloud Functions for planes-api
+- Do not restore per-device cooldown when one phone is quiet — that doubles the shared inbox. One `device=galaxys24,pixel10` send; quiet phone is pin/sound/Pushover, not a second claim
 
 Older: `.cursor/rules/debugging-archive.md`
 
