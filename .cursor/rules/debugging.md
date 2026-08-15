@@ -39,7 +39,7 @@ Older: `.cursor/rules/debugging-archive.md`
 
 Median **146s** · wait `block_until_ms` **120000** chunks, total **218692** · details: `.dryl-deploy-timing.json`
 
-Updated: 2026-08-13T06:51:19Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-15T09:08:22Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
