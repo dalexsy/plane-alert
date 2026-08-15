@@ -6,7 +6,7 @@ import {
 } from '../constants';
 import { berlinCalendarDay } from './berlin-day';
 
-export const PUSHOVER_SEND_LEDGER_MAX = 40;
+export const PUSHOVER_SEND_LEDGER_MAX = 500;
 
 export type PushoverSendRow = {
   icao: string;
@@ -54,16 +54,23 @@ export async function recordPushoverSend(
   const ref = db
     .collection(SYSTEM_HEALTH_COLLECTION)
     .doc(NOTIFICATION_HEALTH_DOC_ID);
-  const snap = await ref.get();
-  const data = (snap.data() ?? {}) as { recentPushoverSends?: PushoverSendRow[] };
-  const now = Date.now();
-  const recent = appendSendRow(data.recentPushoverSends, { icao, at: now });
-  await ref.set(
-    {
-      lastNotificationSentAt: now,
-      notificationsSentTotal: FieldValue.increment(1),
-      recentPushoverSends: recent,
-    },
-    { merge: true },
-  );
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(ref);
+    const data = (snap.data() ?? {}) as {
+      recentPushoverSends?: PushoverSendRow[];
+    };
+    const now = Date.now();
+    transaction.set(
+      ref,
+      {
+        lastNotificationSentAt: now,
+        notificationsSentTotal: FieldValue.increment(1),
+        recentPushoverSends: appendSendRow(data.recentPushoverSends, {
+          icao,
+          at: now,
+        }),
+      },
+      { merge: true },
+    );
+  });
 }

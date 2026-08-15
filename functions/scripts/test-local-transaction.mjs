@@ -107,7 +107,11 @@ assert.equal(nextDayOk, true, "a later Berlin day must still be allowed");
 
 const {
   duplicateIcaosSameBerlinDay,
+  recordPushoverSend,
 } = require("../lib/services/pushover-send-ledger.js");
+const {
+  createJsonDocumentStore,
+} = require("../lib/json-document-store.js");
 assert.deepEqual(
   duplicateIcaosSameBerlinDay([
     { icao: "43C39D", at: Date.now() },
@@ -118,6 +122,26 @@ assert.deepEqual(
 assert.deepEqual(
   duplicateIcaosSameBerlinDay([{ icao: "43C39D", at: Date.now() }]),
   [],
+);
+
+const ledgerDb = createJsonDocumentStore(path.join(tmp, "ledger.json"));
+await Promise.all([
+  recordPushoverSend(ledgerDb, "3E83CB"),
+  recordPushoverSend(ledgerDb, "3F43E6"),
+]);
+const health = await ledgerDb
+  .collection("system")
+  .doc("notification-health")
+  .get();
+assert.equal(
+  health.data()?.recentPushoverSends?.length,
+  2,
+  "concurrent ledger writes must preserve both rows",
+);
+assert.equal(
+  health.data()?.notificationsSentTotal,
+  2,
+  "send counter and ledger rows must advance together",
 );
 
 const {
