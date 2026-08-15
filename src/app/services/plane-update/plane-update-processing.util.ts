@@ -53,7 +53,6 @@ export function playAlertsForNewPlanes(
   );
   const hasA400 = alertable.some((p) => p.model?.match(/a\s*-?\s*400/i));
   const hasAlertPlanes = alertable.length > 0;
-  const militaryPlanes = newVisible.filter((p) => p.isMilitary);
 
   if (!svc['settings'].militaryMute && hasAlertPlanes) {
     const sample = alertable.slice(0, 5).map((p) => ({
@@ -91,22 +90,8 @@ export function playAlertsForNewPlanes(
     }
   }
 
-  militaryPlanes.forEach((plane) => {
-    const record = svc['aircraftDb'].lookup(plane.icao);
-    const modelLabel = plane.model?.trim() || record?.model || undefined;
-    svc['notificationService'].showMilitaryPlaneNotification({
-      icao: plane.icao,
-      callsign: plane.callsign,
-      model: modelLabel,
-      operator: record?.ownop,
-      altitude: plane.altitude || undefined,
-      speed: plane.velocity || undefined,
-      direction: plane.cardinal,
-      distanceKm: plane.distanceKm,
-      origin: plane.origin,
-      verticalRate: plane.verticalRate || undefined,
-    });
-  });
+  // Automatic delivery is server-side Pushover only. A browser notification
+  // here creates a second OS alert for the same aircraft while the SPA is open.
 }
 
 export function processPlaneModels(

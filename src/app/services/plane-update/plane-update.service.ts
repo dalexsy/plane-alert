@@ -12,7 +12,6 @@ import { LocationUpdateService } from '../location-update/location-update.servic
 import { PlaneModel } from '../../models/plane-model';
 import { CountryService } from '../country/country.service';
 import { SpecialListService } from '../special-list/special-list.service';
-import { NotificationService } from '../notification/notification.service';
 import * as L from 'leaflet';
 import {
   getFaviconUrlForPlanes,
@@ -40,7 +39,6 @@ export class PlaneUpdateService {
     private locationUpdateService: LocationUpdateService,
     private countryService: CountryService,
     private specialListService: SpecialListService,
-    private notificationService: NotificationService,
   ) {}
 
   async findPlanes(
