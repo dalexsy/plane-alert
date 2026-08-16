@@ -17,6 +17,7 @@ import { seedDefaultDeviceRegistrations } from './services/seed-default-device-r
 import { readPlanesApiBuildInfo } from './services/planes-api-build-info';
 import { buildPlanesApiHealthResponse } from './services/planes-api-health';
 import { readNotificationHealth } from './services/notification-health';
+import { isPushoverSendEnabled } from './services/pushover-send-gate';
 import { DEVICE_COLLECTION } from './constants';
 
 const buildInfo = readPlanesApiBuildInfo();
@@ -80,6 +81,7 @@ app.get('/health', async (_req, res) => {
         build: buildInfo,
         deviceCount: devices.size,
         health,
+        pushoverSendEnabled: isPushoverSendEnabled(),
       }),
     );
   } catch (error: unknown) {

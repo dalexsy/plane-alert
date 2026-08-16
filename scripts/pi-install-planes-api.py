@@ -18,6 +18,7 @@ from pi_dryl_common import (  # noqa: E402
     magicmirror_settings,
     run_remote,
     run_subprocess,
+    staging_settings,
     upload_directory,
 )
 
@@ -67,12 +68,49 @@ def build_functions() -> None:
             result.returncode or "[fail] local transaction cooldown gate"
         )
 
+    print("[gate] pushover send gate")
+    result = run_subprocess(
+        ["node", str(FUNCTIONS_DIR / "scripts" / "test-pushover-send-gate.mjs")],
+        cwd=FUNCTIONS_DIR,
+        shell=sys.platform == "win32",
+    )
+    if result.returncode != 0:
+        raise SystemExit(result.returncode or "[fail] pushover send gate")
 
-def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
+
+def sanitize_staging_env_cmd() -> str:
+    return r"""
+python3 - <<'PY'
+from pathlib import Path
+p = Path("/home/pi/planes-api/.env")
+p.parent.mkdir(parents=True, exist_ok=True)
+keep = []
+if p.exists():
+    for ln in p.read_text(encoding="utf-8").splitlines():
+        key = ln.split("=", 1)[0].strip()
+        if key in {"PUSHOVER_API_TOKEN", "PLANES_API_PUSHOVER_ENABLED", "DRYL_ENV"}:
+            continue
+        keep.append(ln)
+keep += [
+    "DRYL_ENV=staging",
+    "PLANES_API_PUSHOVER_ENABLED=0",
+    "PUSHOVER_API_TOKEN=disabled-on-staging",
+]
+p.write_text("\n".join(keep) + "\n", encoding="utf-8")
+print("SANITIZED_ENV_OK")
+PY
+""".strip()
+
+
+def deploy(
+    skip_build: bool = False,
+    skip_nginx: bool = False,
+    staging: bool = False,
+) -> None:
     if not skip_build:
         build_functions()
 
-    host, user, _ = magicmirror_settings()
+    host, user, _ = staging_settings() if staging else magicmirror_settings()
     print(f"[upload] planes-api -> {host}:{REMOTE_ROOT}")
 
     client = connect_pi(host, user)
@@ -132,7 +170,9 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
             sftp.put(str(build_info), f"{STAGING}/lib/build-info.json")
 
     env_local = FUNCTIONS_DIR / ".env"
-    if env_local.is_file():
+    if staging:
+        print("[staging] skipping live Pushover .env — will sanitize on host")
+    elif env_local.is_file():
         sftp.put(str(env_local), f"{STAGING}/.env")
     else:
         print("[warn] functions/.env missing — Pushover token must exist on Pi")
@@ -141,6 +181,8 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
         client,
         f"cp -a {STAGING}/. {REMOTE_ROOT}/",
     )
+    if staging:
+        print(run_remote(client, sanitize_staging_env_cmd(), timeout=30))
     # npm can keep stale `file:` deps around (esp. @plane-alert/shared).
     # Force a reinstall so new shared exports land on the Pi.
     run_remote(client, f"rm -rf {REMOTE_ROOT}/node_modules/@plane-alert/shared")
@@ -160,6 +202,15 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     ).strip()
     if '"ok"' not in health:
         raise SystemExit(f"[fail] planes-api health: {health}")
+    compact = health.replace(" ", "")
+    if staging and '"pushoverSendEnabled":false' not in compact:
+        raise SystemExit(
+            f"[fail] staging planes-api still allows Pushover:\n{health}"
+        )
+    if not staging and '"pushoverSendEnabled":false' in compact:
+        raise SystemExit(
+            f"[fail] prod planes-api muted Pushover unexpectedly:\n{health}"
+        )
     print(health)
     import subprocess as _sp
 
@@ -176,7 +227,7 @@ def deploy(skip_build: bool = False, skip_nginx: bool = False) -> None:
     client.close()
     print("[ok] planes-api deployed and healthy on :8795")
 
-    if skip_nginx:
+    if skip_nginx or staging:
         return
 
     print("[nginx] refresh dryl-apps.conf (planes /api/planes/ proxy)")
@@ -193,9 +244,18 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--skip-nginx", action="store_true")
+    parser.add_argument(
+        "--staging",
+        action="store_true",
+        help="Install on dryl-staging and mute live Pushover",
+    )
     args = parser.parse_args()
     _ = load_manifest()
-    deploy(skip_build=args.skip_build, skip_nginx=args.skip_nginx)
+    deploy(
+        skip_build=args.skip_build,
+        skip_nginx=args.skip_nginx,
+        staging=args.staging,
+    )
 
 
 if __name__ == "__main__":
