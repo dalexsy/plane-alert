@@ -94,7 +94,8 @@ def main() -> int:
 
         session = run_remote(
             client,
-            "sudo -u pi python3 /home/pi/bin/planes-kiosk-session.py --verify-only; echo EXIT:$?",
+            "set +e; sudo -u pi python3 /home/pi/bin/planes-kiosk-session.py --verify-only; "
+            "echo EXIT:$?",
             timeout=45,
         ) or ""
         _must("EXIT:0" in session, "session verify exit 0 via admin.dryl.io", fails)

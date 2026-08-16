@@ -302,12 +302,8 @@ def verify_session_cookie() -> bool:
     cookie_header = session_cookie_header()
     if not cookie_header:
         return False
-    # Prefer local verify when dryl-auth still shares the box; else public admin.
-    verify = (
-        "http://127.0.0.1:8790/api/auth/verify"
-        if _local_auth_reachable()
-        else VERIFY_URL
-    )
+    # Kiosk Pi (.74) must not hit masked local dryl-auth — public admin only.
+    verify = VERIFY_URL
     ua = (
         "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -341,14 +337,14 @@ def verify_session_cookie() -> bool:
     return (completed.stdout or "").strip() == "200"
 
 
-def fetch_planes_html() -> tuple[bool, str]:
-    if not JAR_FILE.is_file():
-        return False, ""
+def fetch_planes_html(*, require_auth: bool = True) -> tuple[bool, str]:
+    if require_auth:
+        if not JAR_FILE.is_file():
+            return False, ""
+        if not verify_session_cookie():
+            return False, "auth-verify-failed"
 
-    if not verify_session_cookie():
-        return False, "auth-verify-failed"
-
-    if _local_auth_reachable():
+    if require_auth and _local_auth_reachable():
         cookie_header = session_cookie_header()
         if not cookie_header:
             return False, "missing-cookie"
@@ -376,31 +372,32 @@ def fetch_planes_html() -> tuple[bool, str]:
     # Cloudflare blocks bare urllib (1010) — use curl + jar cookie.
     import subprocess
 
-    cookie_header = session_cookie_header()
-    if not cookie_header:
+    cookie_header = session_cookie_header() if JAR_FILE.is_file() else None
+    if require_auth and not cookie_header:
         return False, "missing-cookie"
     ua = (
         "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
+    curl_cmd = [
+        "curl",
+        "-sS",
+        "-m",
+        "15",
+        "-L",
+        "-o",
+        "/tmp/planes-kiosk-session-body.html",
+        "-w",
+        "%{http_code} %{url_effective}",
+        "-H",
+        f"User-Agent: {ua}",
+    ]
+    if cookie_header:
+        curl_cmd.extend(["-H", f"Cookie: {cookie_header}"])
+    curl_cmd.append(PLANES_URL)
     try:
         completed = subprocess.run(
-            [
-                "curl",
-                "-sS",
-                "-m",
-                "15",
-                "-L",
-                "-o",
-                "/tmp/planes-kiosk-session-body.html",
-                "-w",
-                "%{http_code} %{url_effective}",
-                "-H",
-                f"User-Agent: {ua}",
-                "-H",
-                f"Cookie: {cookie_header}",
-                PLANES_URL,
-            ],
+            curl_cmd,
             check=False,
             capture_output=True,
             text=True,
@@ -437,7 +434,10 @@ def token_from_jar() -> str:
     if not JAR_FILE.is_file():
         return ""
     jar = MozillaCookieJar(str(JAR_FILE))
-    jar.load(ignore_discard=True, ignore_expires=True)
+    try:
+        jar.load(ignore_discard=True, ignore_expires=True)
+    except OSError:
+        return ""
     for cookie in jar:
         if cookie.name == COOKIE_NAME:
             return cookie.value
@@ -454,7 +454,8 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.verify_only:
-        ok, reason = fetch_planes_html()
+        # Public SPA — do not require session.jar (Pi-split / jar permission).
+        ok, reason = fetch_planes_html(require_auth=False)
         if not ok and reason:
             print(f"[verify-only] fail: {reason}", file=sys.stderr)
         sys.exit(0 if ok else 1)
