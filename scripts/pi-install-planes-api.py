@@ -88,13 +88,12 @@ keep = []
 if p.exists():
     for ln in p.read_text(encoding="utf-8").splitlines():
         key = ln.split("=", 1)[0].strip()
-        if key in {"PUSHOVER_API_TOKEN", "PLANES_API_PUSHOVER_ENABLED", "DRYL_ENV"}:
+        if key in {"PLANES_API_PUSHOVER_ENABLED", "DRYL_ENV"}:
             continue
         keep.append(ln)
 keep += [
     "DRYL_ENV=staging",
     "PLANES_API_PUSHOVER_ENABLED=0",
-    "PUSHOVER_API_TOKEN=disabled-on-staging",
 ]
 p.write_text("\n".join(keep) + "\n", encoding="utf-8")
 print("SANITIZED_ENV_OK")
