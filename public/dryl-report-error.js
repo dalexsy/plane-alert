@@ -97,3 +97,37 @@
 
   boot(0);
 })();
+/* dryl-bug-report-boot:2 */
+(function () {
+  try {
+    var host = (location.hostname || "").toLowerCase();
+    if (host === "balcony.dryl.io" || host === "planes.dryl.io") return;
+    function isPrivateLan(h) {
+      var parts = h.split(".");
+      if (parts.length !== 4) return false;
+      var a = +parts[0], b = +parts[1], c = +parts[2], d = +parts[3];
+      if (!(a >= 0 && a <= 255 && b >= 0 && b <= 255 && c >= 0 && c <= 255 && d >= 0 && d <= 255)) {
+        return false;
+      }
+      if (a === 10) return true;
+      if (a === 172 && b >= 16 && b <= 31) return true;
+      if (a === 192 && b === 168) return true;
+      return false;
+    }
+    var isLocal =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      isPrivateLan(host);
+    var isDryl = host === "dryl.io" || host.slice(-8) === ".dryl.io";
+    if (!isLocal && !isDryl) return;
+    if (document.querySelector('script[src*="dryl-bug-report.js"]')) return;
+    var script = document.createElement("script");
+    script.src = "/dryl-bug-report.js";
+    script.async = true;
+    (document.head || document.documentElement).appendChild(script);
+  } catch (_err) {
+    /* ignore */
+  }
+})();
+
