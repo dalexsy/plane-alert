@@ -35,6 +35,7 @@ export function buildPlanesApiHealthResponse(input: {
   build: PlanesApiBuildInfo;
   deviceCount: number;
   health: NotificationHealthSlice;
+  pushoverSendEnabled?: boolean;
   now?: number;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
@@ -58,6 +59,7 @@ export function buildPlanesApiHealthResponse(input: {
     lastNotificationSentAt: sentAt ?? null,
     processPlanesStale: processStale,
     notificationsSentTotal: asCount(input.health.notificationsSentTotal) ?? 0,
+    pushoverSendEnabled: input.pushoverSendEnabled !== false,
     recentPushoverSends: Array.isArray(input.health.recentPushoverSends)
       ? input.health.recentPushoverSends
       : [],

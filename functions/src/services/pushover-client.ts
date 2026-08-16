@@ -2,6 +2,7 @@ import { logger } from '../pi-logger';
 import fetch from 'node-fetch';
 import { fetchAircraftImage, downloadAndEncodeImage } from './image-fetcher';
 import { getPushoverApiToken } from '../utils';
+import { isPushoverSendEnabled } from './pushover-send-gate';
 
 export interface PushoverMessage {
   title: string;
@@ -24,6 +25,10 @@ export async function sendPushoverNotification(
   message: PushoverMessage,
   docId: string
 ): Promise<boolean> {
+  if (!isPushoverSendEnabled()) {
+    logger.info('Pushover send skipped — disabled on this host', { docId });
+    return false;
+  }
   try {
     logger.info('Sending Pushover notification', {
       docId,

@@ -18,10 +18,18 @@ import {
   releaseProcessPlanesLock,
   tryAcquireProcessPlanesLock,
 } from './services/notification-health';
+import { isPushoverSendEnabled } from './services/pushover-send-gate';
 
 export async function runNotificationProcessing(
   db: JsonDocumentStore,
 ): Promise<void> {
+  if (!isPushoverSendEnabled()) {
+    logger.info('Skipping processPlanes — Pushover send disabled on this host');
+    await recordProcessPlanesStart(db, 0);
+    await recordProcessPlanesSuccess(db);
+    return;
+  }
+
   const acquired = await tryAcquireProcessPlanesLock(db);
   if (!acquired) {
     logger.info('Skipping processPlanes — another run is in progress');
