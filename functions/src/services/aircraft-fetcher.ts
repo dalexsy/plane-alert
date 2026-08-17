@@ -7,6 +7,35 @@ import {
   fetchWithTimeout,
 } from './aircraft-adsb-point';
 
+const LAST_GOOD_TTL_MS = 15 * 60 * 1000;
+const lastGoodByArea = new Map<string, { ac: AdsBPlane[]; at: number }>();
+
+function areaCacheKey(location: Location, radiusKm: number): string {
+  return `${location.lat.toFixed(2)}_${location.lon.toFixed(2)}_${Math.round(radiusKm)}`;
+}
+
+function rememberGood(
+  location: Location,
+  radiusKm: number,
+  ac: AdsBPlane[],
+): void {
+  if (!ac.length) return;
+  lastGoodByArea.set(areaCacheKey(location, radiusKm), {
+    ac,
+    at: Date.now(),
+  });
+}
+
+function readLastGood(
+  location: Location,
+  radiusKm: number,
+): AdsBPlane[] | null {
+  const hit = lastGoodByArea.get(areaCacheKey(location, radiusKm));
+  if (!hit?.ac.length) return null;
+  if (Date.now() - hit.at > LAST_GOOD_TTL_MS) return null;
+  return hit.ac;
+}
+
 async function fetchFromOpenSky(
   location: Location,
   radiusKm: number,
@@ -93,14 +122,31 @@ async function fetchFromOpenSky(
 }
 
 /**
- * Fetch aircraft within a radius from ADS-B One API
+ * Fetch aircraft within a radius for the live map proxy.
+ * ADS-B sources (parallel) → OpenSky → short-lived last-good cache.
  */
 export async function fetchAircraft(
   location: Location,
   radiusKm: number,
 ): Promise<AdsBPlane[]> {
   const ac = await fetchAdsbPointNonEmpty(location.lat, location.lon, radiusKm);
-  if (ac?.length) return ac;
+  if (ac?.length) {
+    rememberGood(location, radiusKm, ac);
+    return ac;
+  }
   const fallback = await fetchFromOpenSky(location, radiusKm);
-  return fallback ?? [];
+  if (fallback?.length) {
+    rememberGood(location, radiusKm, fallback);
+    return fallback;
+  }
+  const cached = readLastGood(location, radiusKm);
+  if (cached?.length) {
+    logger.warn('ADS-B live empty; serving last-good aircraft cache', {
+      location,
+      radiusKm,
+      count: cached.length,
+    });
+    return cached;
+  }
+  return [];
 }
