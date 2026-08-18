@@ -44,7 +44,8 @@
     var host = typeof location !== "undefined" ? location.hostname || "" : "";
     var statusHost = ingestHostname();
     if (host === "localhost" || host === "127.0.0.1") {
-      list.push("http://localhost:3905/api/client-errors");
+      var localIngest = ingestUrl();
+      if (localIngest) list.push(localIngest);
     } else if (host && statusHost && host !== statusHost) {
       var url = ingestUrl();
       if (url) list.push(url);
