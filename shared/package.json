@@ -19,6 +19,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "copy:data": "node -e \"require('fs').cpSync('data', 'dist/data', {recursive: true})\"",
     "clean": "rimraf dist",
+    "test": "node --test military-alert-gate.test.mjs",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [

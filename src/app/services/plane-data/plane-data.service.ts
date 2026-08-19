@@ -36,6 +36,8 @@ export interface ProcessedPlaneData {
   isA380: boolean;
   isUnknown: boolean;
   model: string;
+  /** ADS-B ICAO type designator (`ac.t`), e.g. C30J. */
+  icaoType?: string;
   operator: string;
   isNew: boolean;
   isFiltered: boolean;
@@ -139,7 +141,8 @@ export class PlaneDataService {
     });
     return {
       id, callsign, registration: reg, origin, lat, lon, track, velocity, altitude, onGround, isMilitary,
-      isSpecial, isA380, isUnknown, model, operator, isNew, isFiltered, verticalRate: ac.baro_rate ?? null, distanceKm: dist,
+      isSpecial, isA380, isUnknown, model, icaoType: apiIcaoType || undefined, operator, isNew, isFiltered,
+      verticalRate: ac.baro_rate ?? null, distanceKm: dist,
     };
   }
 
@@ -166,6 +169,7 @@ export class PlaneDataService {
       });
     }
     planeModelInstance.model = processedData.model;
+    planeModelInstance.icaoType = processedData.icaoType;
     planeModelInstance.operator = processedData.operator;
     planeModelInstance.distanceKm = processedData.distanceKm;
     const bearing = computeBearingDegrees(centerLat, centerLon, lat, lon);
