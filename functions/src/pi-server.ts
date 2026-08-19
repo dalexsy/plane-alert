@@ -13,6 +13,7 @@ import { runAircraftCollection } from './aircraft-collection';
 import { runNotificationHealthWatchdog } from './notification-health-watchdog';
 import { adsbPointProxy } from './adsb-point-proxy';
 import { createMilitaryHistoryFunctions } from './military-history';
+import { createNotifyRowSessionHandler } from './services/row-session-push.handler';
 import { seedDefaultDeviceRegistrations } from './services/seed-default-device-registrations';
 import { readPlanesApiBuildInfo } from './services/planes-api-build-info';
 import { buildPlanesApiHealthResponse } from './services/planes-api-health';
@@ -33,6 +34,7 @@ app.use(express.json({ limit: '1mb' }));
 
 const deviceFunctions = createDeviceManagementFunctions(db);
 const militaryHistoryFunctions = createMilitaryHistoryFunctions(db);
+const notifyRowSession = createNotifyRowSessionHandler(db);
 const PORT = Number(process.env.PORT || 8795);
 
 type HttpHandler = (
@@ -69,6 +71,10 @@ app.all(
   bindHandler(
     militaryHistoryFunctions.saveMilitarySighting as unknown as HttpHandler,
   ),
+);
+app.all(
+  '/notifyRowSession',
+  bindHandler(notifyRowSession as unknown as HttpHandler),
 );
 
 app.get('/health', async (_req, res) => {

@@ -77,6 +77,15 @@ def build_functions() -> None:
     if result.returncode != 0:
         raise SystemExit(result.returncode or "[fail] pushover send gate")
 
+    print("[gate] row session pushover")
+    result = run_subprocess(
+        ["node", str(FUNCTIONS_DIR / "scripts" / "test-row-session-push.mjs")],
+        cwd=FUNCTIONS_DIR,
+        shell=sys.platform == "win32",
+    )
+    if result.returncode != 0:
+        raise SystemExit(result.returncode or "[fail] row session pushover")
+
 
 def sanitize_staging_env_cmd() -> str:
     return r"""
