@@ -25,7 +25,7 @@
     "deploy:pi-api": "python scripts/pi-install-planes-api.py",
     "deploy:backend": "npm run deploy:fast",
     "verify:backend": "node ../directory/scripts/errors/probe-planes-verify.mjs",
-    "test:local-tx": "npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs && node functions/scripts/test-pushover-send-gate.mjs",
+    "test:local-tx": "npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs && node functions/scripts/test-pushover-send-gate.mjs && node functions/scripts/test-row-session-push.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint:bem": "node ../directory/scripts/check-no-bem.mjs",

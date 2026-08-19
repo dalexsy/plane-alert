@@ -23,6 +23,7 @@ const token = process.env.PUSHOVER_API_TOKEN;
 
 - `PUSHOVER_API_TOKEN` - Pushover API application token
 - `DEBUG_TOKEN_SECRET` - Secret for debug endpoints
+- `ROW_SESSION_NOTIFY_SECRET` - Bearer/header secret for `POST /notifyRowSession` (row.dryl.io session saves)
 
 ## Frontend (Angular App)
 
