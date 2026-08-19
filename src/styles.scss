@@ -1,3 +1,5 @@
+@use '@dryl/ui/styles';
+@use "styles/vscode-themes";
 @use "app/styles/plane-marker" as *;
 @use "app/styles/plane-tooltip" as *;
 @use "app/directives/tooltip" as *;
