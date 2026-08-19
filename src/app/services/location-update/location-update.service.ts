@@ -44,7 +44,6 @@ export class LocationUpdateService {
         const currentMainRadius = this.settings.radius ?? 5;
         updateMapCallback(newLat, newLon, currentMainRadius);
 
-        // Update backend (Firebase)
         await this.pushRegistration.updateHomeLocation(newLat, newLon);
 
         this.lastUpdateTime = new Date();

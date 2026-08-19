@@ -31,6 +31,7 @@
 - Do not loop `notifyForDevice` per phone and rely on cooldown — one notify pass per userKey (2026-08-14 still doubled)
 - Do not treat `/health` ok as a unique inbox. 30 min TTL re-sent `43C39D` the same Berlin day; Daryl is not the sensor — fail `verifyPlanesPushDedup` on the send ledger
 - Do not treat a unique **prod** send ledger as proof. dryl-staging planes-api was active with the same Pushover account (2026-08-16) so every alert hit phones twice
+- Do not restore FCM `/sw.js` or a caching SPA worker. Receive-side firebasejs white-screens `/`; alerts are Pushover only
 
 Older: `.cursor/rules/debugging-archive.md`
 

@@ -48,12 +48,6 @@ export class NotificationService {
       silent: false,
       data: { icao: planeInfo.icao, callsign: planeInfo.callsign, distanceKm: planeInfo.distanceKm, link: notificationUrl },
     };
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready
-        .then((registration) => registration.showNotification(title, options).catch(() => spawnWindowNotification(title, options)))
-        .catch(() => spawnWindowNotification(title, options));
-    } else {
-      spawnWindowNotification(title, options);
-    }
+    spawnWindowNotification(title, options);
   }
 }
