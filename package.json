@@ -17,7 +17,8 @@
     "verify:kiosk-motion": "python scripts/verify-planes-kiosk-motion.py",
     "verify:kiosk-recovery": "python scripts/verify-planes-kiosk-recovery.py",
     "sync:favicons": "node ..\\directory\\scripts\\sync-favicons.mjs plane-alert",
-    "prebuild": "npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui",
+    "generate:themes": "node ../directory/scripts/generate-vscode-theme-scss.mjs",
+    "prebuild": "npm run generate:themes && npm run build:shared && npm run sync:favicons && npm run sync:errors && npm run lint:ui",
     "build:shared": "npm run build --prefix shared",
     "lint:ui": "npm run lint:bem && npm run lint:lines && npm run lint:component-budget && npm run lint:typography && npm run lint:spacing && npm run lint:flex-gap && npm run lint:mobile-first && npm run lint:inline-layout && npm run lint:logical-padding && npm run lint:physical-borders && npm run lint:notification-delivery && npm run lint:exceptions",
     "deploy:fast": "python scripts/pi-install-planes-api.py",
@@ -46,6 +47,7 @@
   },
   "private": true,
   "dependencies": {
+    "@dryl/ui": "file:../dryl/ui/dist/dryl/ui",
     "@plane-alert/shared": "file:./shared",
     "@angular/animations": "^19.2.5",
     "@angular/common": "^19.2.0",
