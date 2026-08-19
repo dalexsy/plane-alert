@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { test } from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { shouldAlertForAircraft } = require('./dist/cjs/index.js');
+const { shouldAlertForAircraft } = require('../functions/shared-package/dist/cjs/index.js');
 
 const kingDesc = 'Lockheed Martin HC-130J Combat King II';
 
