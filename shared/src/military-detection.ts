@@ -263,7 +263,7 @@ const BORING_MIL_DESC_PATTERN =
  * are not enough to justify a Pushover alert.
  */
 const INTERESTING_MIL_DESC_PATTERN =
-  /\bF-?\d{2}\b|\bF\d{2}\b|\bE-?\d{1,2}\b|\bC-?\s*130\b|\bC-?\s*17\b|\bC-?\s*5\b|\bB-?\d{1,2}\b|\bA-?10\b|\bKC-?\d{2,3}\b|\bP-?\d\b|\bCH-?\d{2}\b|\bUH-?\d{2}\b|\bAH-?\d{2}\b|HERCULES|GLOBEMASTER|CHINOOK|APACHE|BLACK\s*HAWK|TYPHOON|TORNADO|RAFALE|GRIPEN|HORNET|EAGLE|RAPTOR|LIGHTNING|THUNDERBOLT|POSEIDON|STRATOFORT|ORION|AWACS|SENTRY|MRTT|TANKER|REFUEL/i;
+  /\bF-?\d{2}\b|\bF\d{2}\b|\bE-?\d{1,2}\b|\bH?C-?\s*130J?\b|\bC-?\s*17\b|\bC-?\s*5\b|\bB-?\d{1,2}\b|\bA-?10\b|\bKC-?\d{2,3}\b|\bP-?\d\b|\bCH-?\d{2}\b|\bUH-?\d{2}\b|\bAH-?\d{2}\b|HERCULES|GLOBEMASTER|CHINOOK|APACHE|BLACK\s*HAWK|TYPHOON|TORNADO|RAFALE|GRIPEN|HORNET|EAGLE|RAPTOR|LIGHTNING|THUNDERBOLT|POSEIDON|STRATOFORT|ORION|AWACS|SENTRY|MRTT|TANKER|REFUEL|COMBAT\s*KING/i;
 
 /**
  * Boring-type filter applies when mil/dbFlags mark an aircraft military but the ICAO

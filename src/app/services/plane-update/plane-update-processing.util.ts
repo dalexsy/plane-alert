@@ -43,6 +43,7 @@ export function playAlertsForNewPlanes(
         icao: p.icao,
         callsign: p.callsign,
         model: p.model,
+        type: p.icaoType,
         isMilitary: p.isMilitary,
       }),
       { isSpecial: svc['specialListService'].isSpecial(p.icao) },
@@ -118,6 +119,7 @@ export function processPlaneModels(
       icao: planeModel.icao,
       callsign: planeModel.callsign,
       model: planeModel.model,
+      type: planeModel.icaoType,
       isMilitary,
       isSpecial: svc['specialListService'].isSpecial(planeModel.icao),
     });

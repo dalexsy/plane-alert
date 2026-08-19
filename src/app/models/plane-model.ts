@@ -17,6 +17,8 @@ export class PlaneModel implements Plane {
   origin!: string;
   firstSeen!: number;
   model!: string;
+  /** ADS-B ICAO type designator (`ac.t`), e.g. C30J. */
+  icaoType?: string;
   operator!: string;
   bearing!: number;
   cardinal!: string;
