@@ -18,6 +18,12 @@ if (typeof document !== 'undefined') {
   applyKioskDomPerformance(document);
 }
 
+async function unregisterServiceWorkers(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return;
+  const regs = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(regs.map((r) => r.unregister()));
+}
+
 function shellAsset(text: string, pattern: RegExp): string | undefined {
   return text.match(pattern)?.[0];
 }
@@ -51,10 +57,7 @@ async function ensureFreshShell(): Promise<void> {
     if (reloaded) return;
 
     sessionStorage.setItem('planes-shell-reload', liveMain);
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
-    }
+    await unregisterServiceWorkers();
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));
@@ -76,17 +79,8 @@ bootstrapApplication(AppComponent, {
   ],
 })
   .then(() => {
-    // Register service worker for PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration);
-        })
-        .catch((error) => {
-          console.log('Service Worker registration failed:', error);
-        });
-    }
+    // Drop leftover receive-side workers. Alerts are Pushover; do not register /sw.js.
+    void unregisterServiceWorkers();
   })
   .catch((err) => {
     // Error handling removed - errors will be thrown naturally
