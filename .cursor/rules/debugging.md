@@ -13,6 +13,7 @@
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
 | Kiosk speaker silent after Pi split | API on `.79` POSTs `.74:8796`; listener `pw-play --volume=0.7` to **wpctl** default **Jabra SPEAK 510** | Treat prod `pw-play` as audible (`.79` has aplay only); `pactl`; HDMI sink; re-enable leftover `planes-api` on `.74` |
 | Same plane twice in one Pushover inbox | Prod-only send. Staging hostname/`PLANES_API_PUSHOVER_ENABLED=0` mute. `verifyPlanesPushDedup` checks ledger **and** staging `pushoverSendEnabled:false` | Treat prod `/health` unique ledger as proof; copy prod `.env` to staging |
+| deploy:fast drops kiosk play token | Leave Pi `/home/pi/planes-api/.env` in place; restore after `cp -a` staging | `sftp.put` local `functions/.env` over prod |
 
 ## Failed experiments (do not repeat)
 
@@ -36,6 +37,8 @@
 - After Pi split: do not treat local `pw-play` on dryl-prod as the house speaker. POST the `.74` listener; missing prod player is not success if that trigger fails
 - Do not re-enable leftover `planes-api` on magicmirror `.74` (disabled/inactive; API is `.79` only)
 - `.74` audio: `wpctl` default Jabra SPEAK 510 Analog Stereo vol 1.00 — not HDMI, not `pactl get-default-sink` (empty)
+- Do not `sftp.put` local `functions/.env` onto dryl-prod — `deploy:fast` dropped `PLANES_KIOSK_PLAY_TOKEN` (2026-08-20)
+- Do not snapshot-then-merge only missing kiosk keys after upload (`2c12bb5`) — a laptop `.env` that already has `PLANES_KIOSK_PLAY_TOKEN` keeps the laptop value
 
 Older: `.cursor/rules/debugging-archive.md`
 
