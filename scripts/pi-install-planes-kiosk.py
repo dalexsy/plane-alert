@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Install planes.dryl.io kiosk scripts + autostart on magicmirror."""
+"""Install planes.dryl.io kiosk scripts + autostart on magicmirror (.74).
+
+Do not enable leftover planes-api.service on this host — API is dryl-prod
+(.79) only. Audio-local is planes-kiosk-alert.service (pw-play → Jabra).
+"""
 from __future__ import annotations
 
 import argparse
@@ -106,7 +110,8 @@ p = Path("/home/pi/.config/planes-kiosk/alert-play.env")
 p.write_text(
     "PLANES_KIOSK_PLAY_TOKEN=" + secrets.token_hex(24) + "\\n"
     "PLANES_KIOSK_ALERT_LISTEN_PORT=8796\\n"
-    "PLANES_KIOSK_ALERTS_DIR=/home/pi/.config/planes-kiosk/alerts\\n"
+    "PLANES_KIOSK_ALERTS_DIR=/home/pi/planes-api/assets/alerts\\n"
+    "PLANES_KIOSK_PWPLAY_VOLUME=0.7\\n"
 )
 p.chmod(0o600)
 print("ALERT_PLAY_ENV_CREATED")
@@ -141,6 +146,10 @@ systemctl is-active planes-kiosk-watch.timer
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user is-active kiosk-watchdog.service || true
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user is-active planes-kiosk-alert.service || true
 python3 /home/pi/bin/planes-kiosk-alert-listen.py --self-test
+/home/pi/bin/planes-kiosk-alert-play.sh --self-test || true
+# Leftover API unit on .74 stays disabled — do not re-enable.
+sudo systemctl disable --now planes-api.service >/dev/null 2>&1 || true
+echo "[kiosk-alert] leftover planes-api.service on .74 left disabled"
 echo "[kiosk-alert] copy PLANES_KIOSK_PLAY_TOKEN from /home/pi/.config/planes-kiosk/alert-play.env to dryl-prod planes-api .env"
 """
         if args.launch:

@@ -22,7 +22,11 @@ const {
 assert.equal(isKioskAudioHost("magicmirror"), true);
 assert.equal(isKioskAudioHost("magicmirror.local"), true);
 assert.equal(isKioskAudioHost("dryl-prod"), false);
-assert.equal(shouldUseRemoteKioskPlay({}, "dryl-prod"), true);
+assert.equal(
+  shouldUseRemoteKioskPlay({}, "dryl-prod"),
+  true,
+  "dryl-prod has no pw-play/paplay or PipeWire sinks — POST the kiosk",
+);
 assert.equal(shouldUseRemoteKioskPlay({}, "magicmirror"), false);
 assert.equal(
   shouldUseRemoteKioskPlay(

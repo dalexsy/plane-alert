@@ -26,7 +26,7 @@
     "deploy:backend": "npm run deploy:fast",
     "verify:backend": "node ../directory/scripts/errors/probe-planes-verify.mjs",
     "test:local-tx": "npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs && node functions/scripts/test-pushover-send-gate.mjs && node functions/scripts/test-row-session-push.mjs && node functions/scripts/test-kiosk-alert-sound.mjs",
-    "verify:kiosk-alert": "npm run build --prefix functions && node functions/scripts/test-kiosk-alert-sound.mjs && python3 scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test",
+    "verify:kiosk-alert": "npm run build --prefix functions && node functions/scripts/test-kiosk-alert-sound.mjs && python3 scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test && bash scripts/mirror-kiosk/planes-kiosk-alert-play.sh --self-test",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint:bem": "node ../directory/scripts/check-no-bem.mjs",

@@ -1,6 +1,9 @@
 /**
- * After the 2026-08 Pi split, planes-api runs on dryl-prod (.79).
- * The speaker is on magicmirror (.74). Prod POSTs; local pw-play is not audible.
+ * After the 2026-08 Pi split, planes-api is active only on dryl-prod (.79).
+ * .79 has aplay only — no pw-play/paplay and no PipeWire sinks, so local
+ * playKioskAlertSound can never be audible. Leftover planes-api on .74 stays
+ * disabled. Prod POSTs the kiosk listener; .74 pw-plays to the wpctl Jabra
+ * SPEAK 510 default sink (not HDMI; pactl get-default-sink is empty).
  */
 import { hostname as osHostname } from 'os';
 import { logger } from '../pi-logger';

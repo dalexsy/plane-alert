@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LAN-only kiosk chime listener — pw-play stays on magicmirror (.74)."""
+"""LAN listener: .74 pw-play to wpctl Jabra. Do not re-enable leftover planes-api."""
 from __future__ import annotations
 
 import hmac

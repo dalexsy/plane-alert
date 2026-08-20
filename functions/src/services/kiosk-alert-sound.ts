@@ -1,6 +1,7 @@
 /**
- * Military/special kiosk chime. After the 2026-08 split, planes-api on
- * dryl-prod POSTs the magicmirror LAN listener — local pw-play on .79 is silent.
+ * Military/special kiosk chime. planes-api is dryl-prod (.79) only — that
+ * host has no pw-play and no PipeWire sinks. Prod POSTs the .74 listener,
+ * which pw-plays to the wpctl Jabra SPEAK 510 (leftover API unit stays down).
  *
  * Visit edge lives in kiosk-in-range-edge-state. Rate-limit backs up bursts.
  */

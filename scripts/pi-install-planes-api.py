@@ -28,6 +28,14 @@ SERVICE_NAME = "planes-api.service"
 NGINX_SETUP = REPO_ROOT.parent / "directory" / "scripts" / "pi-setup-dryl-host.py"
 
 
+def is_leftover_kiosk_api_host(host: str) -> bool:
+    """True for magicmirror .74 — leftover planes-api there must stay disabled."""
+    name = host.strip().lower()
+    return name.endswith(".74") or name == "magicmirror" or name.startswith(
+        "magicmirror."
+    )
+
+
 def build_functions() -> None:
     shared = REPO_ROOT / "shared"
     print("[build] shared package")
@@ -129,6 +137,11 @@ def deploy(
         build_functions()
 
     host, user, _ = staging_settings() if staging else magicmirror_settings()
+    if not staging and is_leftover_kiosk_api_host(host):
+        raise SystemExit(
+            "[fail] planes-api is dryl-prod (.79) only — do not re-enable "
+            f"the leftover unit on kiosk host {host}"
+        )
     print(f"[upload] planes-api -> {host}:{REMOTE_ROOT}")
 
     client = connect_pi(host, user)
@@ -259,6 +272,15 @@ def deploy(
 
 
 def main() -> None:
+    if "--self-test" in sys.argv:
+        assert is_leftover_kiosk_api_host("192.168.178.74")
+        assert is_leftover_kiosk_api_host("magicmirror")
+        assert is_leftover_kiosk_api_host("magicmirror.local")
+        assert not is_leftover_kiosk_api_host("192.168.178.79")
+        assert not is_leftover_kiosk_api_host("dryl-prod")
+        print("[ok] leftover kiosk api host guard")
+        return
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--skip-nginx", action="store_true")
