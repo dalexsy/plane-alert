@@ -86,6 +86,15 @@ def build_functions() -> None:
     if result.returncode != 0:
         raise SystemExit(result.returncode or "[fail] row session pushover")
 
+    print("[gate] kiosk alert remote play")
+    result = run_subprocess(
+        ["node", str(FUNCTIONS_DIR / "scripts" / "test-kiosk-alert-sound.mjs")],
+        cwd=FUNCTIONS_DIR,
+        shell=sys.platform == "win32",
+    )
+    if result.returncode != 0:
+        raise SystemExit(result.returncode or "[fail] kiosk alert remote play")
+
 
 def sanitize_staging_env_cmd() -> str:
     return r"""
@@ -97,12 +106,13 @@ keep = []
 if p.exists():
     for ln in p.read_text(encoding="utf-8").splitlines():
         key = ln.split("=", 1)[0].strip()
-        if key in {"PLANES_API_PUSHOVER_ENABLED", "DRYL_ENV"}:
+        if key in {"PLANES_API_PUSHOVER_ENABLED", "DRYL_ENV", "PLANES_KIOSK_LOCAL_ALERT"}:
             continue
         keep.append(ln)
 keep += [
     "DRYL_ENV=staging",
     "PLANES_API_PUSHOVER_ENABLED=0",
+    "PLANES_KIOSK_LOCAL_ALERT=0",
 ]
 p.write_text("\n".join(keep) + "\n", encoding="utf-8")
 print("SANITIZED_ENV_OK")

@@ -18,14 +18,24 @@ FILES = {
     "planes-kiosk-page-heal.py": Path("/usr/local/sbin/planes-kiosk-page-heal.py"),
     "planes-kiosk-restart.sh": Path("/usr/local/sbin/planes-kiosk-restart.sh"),
     "planes-kiosk-watch.sh": Path("/usr/local/sbin/planes-kiosk-watch.sh"),
+    "planes-kiosk-alert-listen.py": Path("/home/pi/bin/planes-kiosk-alert-listen.py"),
+    "planes-kiosk-alert-play.sh": Path("/home/pi/bin/planes-kiosk-alert-play.sh"),
     "kiosk-watchdog.sh": Path("/home/pi/kiosk-watchdog.sh"),
     "kiosk-watchdog.service": Path("/home/pi/.config/systemd/user/kiosk-watchdog.service"),
     "planes-kiosk.desktop": Path("/home/pi/.config/autostart/planes-kiosk.desktop"),
     "planes-kiosk.service": Path("/home/pi/.config/systemd/user/planes-kiosk.service"),
+    "planes-kiosk-alert.service": Path("/home/pi/.config/systemd/user/planes-kiosk-alert.service"),
     "planes-kiosk-watch.service": Path("/etc/systemd/system/planes-kiosk-watch.service"),
     "planes-kiosk-watch.timer": Path("/etc/systemd/system/planes-kiosk-watch.timer"),
     "credentials.env.example": Path("/home/pi/.config/planes-kiosk/credentials.env.example"),
+    "alert-play.env.example": Path("/home/pi/.config/planes-kiosk/alert-play.env.example"),
 }
+
+ALERT_MP3S = (
+    "precious_little_life_forms.mp3",
+    "hercules.mp3",
+    "iago.mp3",
+)
 
 
 def main() -> None:
@@ -53,14 +63,27 @@ def main() -> None:
                 run_remote(client, f"chmod +x {tmp}", sudo=False)
         sftp.close()
 
+        alerts_src = SCRIPT_DIR.parent / "src" / "assets" / "alerts"
+        run_remote(client, "mkdir -p /tmp/kiosk-alerts /home/pi/.config/planes-kiosk/alerts")
+        sftp = client.open_sftp()
+        for name in ALERT_MP3S:
+            local = alerts_src / name
+            if local.is_file():
+                sftp.put(str(local), f"/tmp/kiosk-alerts/{name}")
+            else:
+                print(f"[warn] missing kiosk alert mp3: {local}")
+        sftp.close()
+
         install_cmds = """
 set -euo pipefail
-mkdir -p /home/pi/bin /home/pi/.config/autostart /home/pi/.config/systemd/user /home/pi/.config/planes-kiosk
-for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-page-heal.py planes-kiosk-restart.sh planes-kiosk-watch.sh kiosk-watchdog.sh; do
+mkdir -p /home/pi/bin /home/pi/.config/autostart /home/pi/.config/systemd/user /home/pi/.config/planes-kiosk/alerts
+for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-page-heal.py planes-kiosk-restart.sh planes-kiosk-watch.sh planes-kiosk-alert-listen.py planes-kiosk-alert-play.sh kiosk-watchdog.sh; do
   sed -i 's/\\r$//' /tmp/$f
 done
 install -m 755 /tmp/planes-kiosk.sh /home/pi/bin/planes-kiosk.sh
 install -m 755 /tmp/planes-kiosk-session.py /home/pi/bin/planes-kiosk-session.py
+install -m 755 /tmp/planes-kiosk-alert-listen.py /home/pi/bin/planes-kiosk-alert-listen.py
+install -m 755 /tmp/planes-kiosk-alert-play.sh /home/pi/bin/planes-kiosk-alert-play.sh
 sudo install -m 755 /tmp/planes-kiosk-page-heal.py /usr/local/sbin/planes-kiosk-page-heal.py
 sudo install -m 755 /tmp/planes-kiosk-restart.sh /usr/local/sbin/planes-kiosk-restart.sh
 sudo install -m 755 /tmp/planes-kiosk-watch.sh /usr/local/sbin/planes-kiosk-watch.sh
@@ -69,7 +92,27 @@ install -m 755 /tmp/kiosk-watchdog.sh /home/pi/kiosk-watchdog.sh
 install -m 644 /tmp/kiosk-watchdog.service /home/pi/.config/systemd/user/kiosk-watchdog.service
 install -m 644 /tmp/planes-kiosk.desktop /home/pi/.config/autostart/planes-kiosk.desktop
 install -m 644 /tmp/planes-kiosk.service /home/pi/.config/systemd/user/planes-kiosk.service
+install -m 644 /tmp/planes-kiosk-alert.service /home/pi/.config/systemd/user/planes-kiosk-alert.service
 install -m 644 /tmp/credentials.env.example /home/pi/.config/planes-kiosk/credentials.env.example
+install -m 644 /tmp/alert-play.env.example /home/pi/.config/planes-kiosk/alert-play.env.example
+if [ -d /tmp/kiosk-alerts ]; then
+  install -m 644 /tmp/kiosk-alerts/*.mp3 /home/pi/.config/planes-kiosk/alerts/ || true
+fi
+if [ ! -f /home/pi/.config/planes-kiosk/alert-play.env ]; then
+  python3 - <<'PY'
+import secrets
+from pathlib import Path
+p = Path("/home/pi/.config/planes-kiosk/alert-play.env")
+p.write_text(
+    "PLANES_KIOSK_PLAY_TOKEN=" + secrets.token_hex(24) + "\\n"
+    "PLANES_KIOSK_ALERT_LISTEN_PORT=8796\\n"
+    "PLANES_KIOSK_ALERTS_DIR=/home/pi/.config/planes-kiosk/alerts\\n"
+)
+p.chmod(0o600)
+print("ALERT_PLAY_ENV_CREATED")
+PY
+fi
+chown -R pi:pi /home/pi/.config/planes-kiosk /home/pi/bin/planes-kiosk-alert-listen.py /home/pi/bin/planes-kiosk-alert-play.sh /home/pi/.config/systemd/user/planes-kiosk-alert.service
 """
         run_remote(client, install_cmds, sudo=True, timeout=60)
 
@@ -93,8 +136,12 @@ sudo systemctl enable --now planes-kiosk-watch.timer
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user daemon-reload
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user enable planes-kiosk.service
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user enable --now kiosk-watchdog.service
+sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user enable --now planes-kiosk-alert.service
 systemctl is-active planes-kiosk-watch.timer
 sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user is-active kiosk-watchdog.service || true
+sudo -u pi XDG_RUNTIME_DIR=/run/user/$(id -u pi) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u pi)/bus systemctl --user is-active planes-kiosk-alert.service || true
+python3 /home/pi/bin/planes-kiosk-alert-listen.py --self-test
+echo "[kiosk-alert] copy PLANES_KIOSK_PLAY_TOKEN from /home/pi/.config/planes-kiosk/alert-play.env to dryl-prod planes-api .env"
 """
         if args.launch:
             finish_cmds += "\n/usr/local/sbin/planes-kiosk-restart.sh || true\n"

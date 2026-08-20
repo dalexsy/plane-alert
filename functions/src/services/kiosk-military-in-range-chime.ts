@@ -6,7 +6,7 @@
  * Point `/v2/point` near dense hubs drops in-range mil; merge `/v2/mil` and
  * ring fills so magicmirror hears visits phones would push from another center.
  *
- * Chime once per visit; ack only after pw-play exit 0 (or quiet-hours absorb).
+ * Chime once per visit; ack only after audible play on .74 (or quiet-hours absorb).
  * Prune uses the union of all homes + grace — never per-home hard drop.
  */
 import { logger } from '../pi-logger';

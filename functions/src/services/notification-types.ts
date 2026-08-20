@@ -15,7 +15,7 @@ export interface PendingNotification {
   altitude?: number;
   bearing?: number;
   cardinal?: string;
-  /** Play local PipeWire MP3 on magicmirror after Pushover delivery. */
+  /** Trigger magicmirror PipeWire MP3 after Pushover delivery (LAN listener). */
   playKioskAlert?: boolean;
 }
 
