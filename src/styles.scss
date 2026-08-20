@@ -1,4 +1,5 @@
 @use '@dryl/ui/styles';
+@use './vscode-themes.generated';
 @use "styles/vscode-themes";
 @use "app/styles/plane-marker" as *;
 @use "app/styles/plane-tooltip" as *;
@@ -123,3 +124,4 @@ a:hover {
   opacity: 0.8;
   transform: scale(1.04);
 }
+
