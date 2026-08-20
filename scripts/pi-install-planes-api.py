@@ -104,6 +104,51 @@ def build_functions() -> None:
         raise SystemExit(result.returncode or "[fail] kiosk alert remote play")
 
 
+
+def snapshot_kiosk_env_cmd() -> str:
+    return r"""
+python3 - <<'PY'
+from pathlib import Path
+src = Path("/home/pi/planes-api/.env")
+bak = Path("/home/pi/planes-api/.env.kiosk-keys.bak")
+keep = []
+if src.exists():
+    for ln in src.read_text(encoding="utf-8", errors="replace").splitlines():
+        key = ln.split("=", 1)[0].strip()
+        if key in {"PLANES_KIOSK_PLAY_TOKEN", "PLANES_KIOSK_PLAY_URL", "PLANES_KIOSK_LOCAL_ALERT"}:
+            keep.append(ln)
+bak.write_text(("\n".join(keep) + "\n") if keep else "", encoding="utf-8")
+print("KIOSK_ENV_SNAP", len(keep))
+PY
+""".strip()
+
+
+def merge_kiosk_env_cmd() -> str:
+    return r"""
+python3 - <<'PY'
+from pathlib import Path
+live = Path("/home/pi/planes-api/.env")
+bak = Path("/home/pi/planes-api/.env.kiosk-keys.bak")
+lines = live.read_text(encoding="utf-8", errors="replace").splitlines() if live.exists() else []
+have = {ln.split("=", 1)[0].strip() for ln in lines if "=" in ln and not ln.strip().startswith("#")}
+added = []
+if bak.exists():
+    for ln in bak.read_text(encoding="utf-8", errors="replace").splitlines():
+        if "=" not in ln:
+            continue
+        key = ln.split("=", 1)[0].strip()
+        if key and key not in have:
+            lines.append(ln)
+            have.add(key)
+            added.append(key)
+live.parent.mkdir(parents=True, exist_ok=True)
+live.write_text("\n".join(lines) + "\n", encoding="utf-8")
+print("KIOSK_ENV_MERGED", ",".join(added) or "none")
+print("KIOSK_TOKEN", "present" if "PLANES_KIOSK_PLAY_TOKEN" in have else "missing")
+PY
+""".strip()
+
+
 def sanitize_staging_env_cmd() -> str:
     return r"""
 python3 - <<'PY'
@@ -208,10 +253,13 @@ def deploy(
     else:
         print("[warn] functions/.env missing — Pushover token must exist on Pi")
 
+    print(run_remote(client, snapshot_kiosk_env_cmd(), timeout=30))
     run_remote(
         client,
         f"cp -a {STAGING}/. {REMOTE_ROOT}/",
     )
+    if not staging:
+        print(run_remote(client, merge_kiosk_env_cmd(), timeout=30))
     if staging:
         print(run_remote(client, sanitize_staging_env_cmd(), timeout=30))
     # npm can keep stale `file:` deps around (esp. @plane-alert/shared).
