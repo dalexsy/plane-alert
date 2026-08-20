@@ -3,29 +3,60 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 FUNCTIONS_DIR = REPO_ROOT / "functions"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-sys.path.insert(0, str(REPO_ROOT.parent / "directory" / "scripts"))
-
-from pi_dryl_common import (  # noqa: E402
-    connect_pi,
-    load_manifest,
-    magicmirror_settings,
-    run_remote,
-    run_subprocess,
-    staging_settings,
-    upload_directory,
+from planes_api_env import (  # noqa: E402
+    REMOTE_ROOT,
+    STAGING,
+    backup_remote_env_cmd,
+    restore_remote_env_cmd,
+    self_test as env_preserve_self_test,
 )
 
-REMOTE_ROOT = "/home/pi/planes-api"
-STAGING = "/home/pi/.dryl-deploy/planes-api"
 SERVICE_NAME = "planes-api.service"
 NGINX_SETUP = REPO_ROOT.parent / "directory" / "scripts" / "pi-setup-dryl-host.py"
+
+
+def _load_pi_common():
+    scripts = REPO_ROOT.parent / "directory" / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    from pi_dryl_common import (  # noqa: PLC0415
+        connect_pi,
+        load_manifest,
+        magicmirror_settings,
+        run_remote,
+        staging_settings,
+        upload_directory,
+    )
+
+    return {
+        "connect_pi": connect_pi,
+        "load_manifest": load_manifest,
+        "magicmirror_settings": magicmirror_settings,
+        "run_remote": run_remote,
+        "staging_settings": staging_settings,
+        "upload_directory": upload_directory,
+    }
+
+
+def run_local(cmd: list[str], cwd: Path, fail: str) -> None:
+    result = subprocess.run(
+        cmd,
+        cwd=cwd,
+        shell=sys.platform == "win32",
+        check=False,
+    )
+    if result.returncode != 0:
+        raise SystemExit(result.returncode or fail)
 
 
 def is_leftover_kiosk_api_host(host: str) -> bool:
@@ -39,114 +70,53 @@ def is_leftover_kiosk_api_host(host: str) -> bool:
 def build_functions() -> None:
     shared = REPO_ROOT / "shared"
     print("[build] shared package")
-    result = run_subprocess(
-        ["npm", "run", "build"],
-        cwd=shared,
-        shell=sys.platform == "win32",
-    )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] shared build")
+    run_local(["npm", "run", "build"], shared, "[fail] shared build")
 
     print("[build] prepare functions shared-package")
-    result = run_subprocess(
+    run_local(
         ["node", str(REPO_ROOT / "scripts" / "prepare-functions-shared.js")],
-        cwd=REPO_ROOT,
-        shell=sys.platform == "win32",
+        REPO_ROOT,
+        "[fail] prepare-functions-shared",
     )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] prepare-functions-shared")
 
     print("[build] functions TypeScript")
-    result = run_subprocess(
-        ["npm", "run", "build"],
-        cwd=FUNCTIONS_DIR,
-        shell=sys.platform == "win32",
+    run_local(["npm", "run", "build"], FUNCTIONS_DIR, "[fail] functions build")
+
+    print("[gate] planes-api .env preserve")
+    run_local(
+        [sys.executable, str(SCRIPT_DIR / "planes_api_env.py")],
+        REPO_ROOT,
+        "[fail] planes-api .env preserve gate",
     )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] functions build")
 
     print("[gate] local transaction cooldown")
-    result = run_subprocess(
+    run_local(
         ["node", str(FUNCTIONS_DIR / "scripts" / "test-local-transaction.mjs")],
-        cwd=FUNCTIONS_DIR,
-        shell=sys.platform == "win32",
+        FUNCTIONS_DIR,
+        "[fail] local transaction cooldown gate",
     )
-    if result.returncode != 0:
-        raise SystemExit(
-            result.returncode or "[fail] local transaction cooldown gate"
-        )
 
     print("[gate] pushover send gate")
-    result = run_subprocess(
+    run_local(
         ["node", str(FUNCTIONS_DIR / "scripts" / "test-pushover-send-gate.mjs")],
-        cwd=FUNCTIONS_DIR,
-        shell=sys.platform == "win32",
+        FUNCTIONS_DIR,
+        "[fail] pushover send gate",
     )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] pushover send gate")
 
     print("[gate] row session pushover")
-    result = run_subprocess(
+    run_local(
         ["node", str(FUNCTIONS_DIR / "scripts" / "test-row-session-push.mjs")],
-        cwd=FUNCTIONS_DIR,
-        shell=sys.platform == "win32",
+        FUNCTIONS_DIR,
+        "[fail] row session pushover",
     )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] row session pushover")
 
     print("[gate] kiosk alert remote play")
-    result = run_subprocess(
+    run_local(
         ["node", str(FUNCTIONS_DIR / "scripts" / "test-kiosk-alert-sound.mjs")],
-        cwd=FUNCTIONS_DIR,
-        shell=sys.platform == "win32",
+        FUNCTIONS_DIR,
+        "[fail] kiosk alert remote play",
     )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] kiosk alert remote play")
 
-
-
-def snapshot_kiosk_env_cmd() -> str:
-    return r"""
-python3 - <<'PY'
-from pathlib import Path
-src = Path("/home/pi/planes-api/.env")
-bak = Path("/home/pi/planes-api/.env.kiosk-keys.bak")
-keep = []
-if src.exists():
-    for ln in src.read_text(encoding="utf-8", errors="replace").splitlines():
-        key = ln.split("=", 1)[0].strip()
-        if key in {"PLANES_KIOSK_PLAY_TOKEN", "PLANES_KIOSK_PLAY_URL", "PLANES_KIOSK_LOCAL_ALERT"}:
-            keep.append(ln)
-bak.write_text(("\n".join(keep) + "\n") if keep else "", encoding="utf-8")
-print("KIOSK_ENV_SNAP", len(keep))
-PY
-""".strip()
-
-
-def merge_kiosk_env_cmd() -> str:
-    return r"""
-python3 - <<'PY'
-from pathlib import Path
-live = Path("/home/pi/planes-api/.env")
-bak = Path("/home/pi/planes-api/.env.kiosk-keys.bak")
-lines = live.read_text(encoding="utf-8", errors="replace").splitlines() if live.exists() else []
-have = {ln.split("=", 1)[0].strip() for ln in lines if "=" in ln and not ln.strip().startswith("#")}
-added = []
-if bak.exists():
-    for ln in bak.read_text(encoding="utf-8", errors="replace").splitlines():
-        if "=" not in ln:
-            continue
-        key = ln.split("=", 1)[0].strip()
-        if key and key not in have:
-            lines.append(ln)
-            have.add(key)
-            added.append(key)
-live.parent.mkdir(parents=True, exist_ok=True)
-live.write_text("\n".join(lines) + "\n", encoding="utf-8")
-print("KIOSK_ENV_MERGED", ",".join(added) or "none")
-print("KIOSK_TOKEN", "present" if "PLANES_KIOSK_PLAY_TOKEN" in have else "missing")
-PY
-""".strip()
 
 
 def sanitize_staging_env_cmd() -> str:
@@ -181,7 +151,13 @@ def deploy(
     if not skip_build:
         build_functions()
 
-    host, user, _ = staging_settings() if staging else magicmirror_settings()
+    pi = _load_pi_common()
+    connect_pi = pi["connect_pi"]
+    run_remote = pi["run_remote"]
+    upload_directory = pi["upload_directory"]
+    host, user, _ = (
+        pi["staging_settings"]() if staging else pi["magicmirror_settings"]()
+    )
     if not staging and is_leftover_kiosk_api_host(host):
         raise SystemExit(
             "[fail] planes-api is dryl-prod (.79) only — do not re-enable "
@@ -245,21 +221,20 @@ def deploy(
             sftp.put(str(build_info), f"{STAGING}/{build_info.name}")
             sftp.put(str(build_info), f"{STAGING}/lib/build-info.json")
 
-    env_local = FUNCTIONS_DIR / ".env"
-    if staging:
-        print("[staging] skipping live Pushover .env — will sanitize on host")
-    elif env_local.is_file():
-        sftp.put(str(env_local), f"{STAGING}/.env")
+    # Never sftp.put local functions/.env — Pi keys stay on the host.
+    # Staging must not contain a .env so `cp -a` cannot clobber prod.
+    if (FUNCTIONS_DIR / ".env").is_file():
+        print("[env] leaving Pi .env in place (local functions/.env is not uploaded)")
     else:
-        print("[warn] functions/.env missing — Pushover token must exist on Pi")
+        print("[warn] functions/.env missing — existing Pi .env is still left in place")
+    run_remote(client, f"rm -f {STAGING}/.env")
+    print(run_remote(client, backup_remote_env_cmd(), timeout=30))
 
-    print(run_remote(client, snapshot_kiosk_env_cmd(), timeout=30))
     run_remote(
         client,
         f"cp -a {STAGING}/. {REMOTE_ROOT}/",
     )
-    if not staging:
-        print(run_remote(client, merge_kiosk_env_cmd(), timeout=30))
+    print(run_remote(client, restore_remote_env_cmd(), timeout=30))
     if staging:
         print(run_remote(client, sanitize_staging_env_cmd(), timeout=30))
     # npm can keep stale `file:` deps around (esp. @plane-alert/shared).
@@ -291,9 +266,7 @@ def deploy(
             f"[fail] prod planes-api muted Pushover unexpectedly:\n{health}"
         )
     print(health)
-    import subprocess as _sp
-
-    expected_sha = _sp.check_output(
+    expected_sha = subprocess.check_output(
         ["git", "rev-parse", "HEAD"],
         cwd=REPO_ROOT,
         text=True,
@@ -310,13 +283,11 @@ def deploy(
         return
 
     print("[nginx] refresh dryl-apps.conf (planes /api/planes/ proxy)")
-    result = run_subprocess(
+    run_local(
         [sys.executable, str(NGINX_SETUP)],
-        cwd=NGINX_SETUP.parent,
-        shell=False,
+        NGINX_SETUP.parent,
+        "[fail] pi-setup-dryl-host nginx refresh",
     )
-    if result.returncode != 0:
-        raise SystemExit(result.returncode or "[fail] pi-setup-dryl-host nginx refresh")
 
 
 def main() -> None:
@@ -327,6 +298,7 @@ def main() -> None:
         assert not is_leftover_kiosk_api_host("192.168.178.79")
         assert not is_leftover_kiosk_api_host("dryl-prod")
         print("[ok] leftover kiosk api host guard")
+        env_preserve_self_test()
         return
 
     parser = argparse.ArgumentParser()
@@ -338,7 +310,8 @@ def main() -> None:
         help="Install on dryl-staging and mute live Pushover",
     )
     args = parser.parse_args()
-    _ = load_manifest()
+    pi = _load_pi_common()
+    _ = pi["load_manifest"]()
     deploy(
         skip_build=args.skip_build,
         skip_nginx=args.skip_nginx,

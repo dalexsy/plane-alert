@@ -1,10 +1,28 @@
 /**
  * Gate: after the Pi split, prod must POST the kiosk speaker host.
  * Local pw-play on dryl-prod is not audible and must not ack the visit.
+ *
+ * Also fails if pi-install-planes-api.py would upload/clobber the Pi .env
+ * (PLANES_KIOSK_PLAY_TOKEN must survive a second deploy:fast).
  */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import http from "node:http";
 import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const envGate = spawnSync(
+  "python3",
+  [path.join(repoRoot, "scripts/pi-install-planes-api.py"), "--self-test"],
+  { encoding: "utf8" },
+);
+assert.equal(
+  envGate.status,
+  0,
+  `planes-api .env preserve gate failed\n${envGate.stdout}\n${envGate.stderr}`,
+);
 
 const require = createRequire(import.meta.url);
 const {

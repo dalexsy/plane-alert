@@ -25,8 +25,11 @@
     "deploy:pi-api": "python scripts/pi-install-planes-api.py",
     "deploy:backend": "npm run deploy:fast",
     "verify:backend": "node ../directory/scripts/errors/probe-planes-verify.mjs",
-    "test:local-tx": "npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs && node functions/scripts/test-pushover-send-gate.mjs && node functions/scripts/test-row-session-push.mjs && node functions/scripts/test-kiosk-alert-sound.mjs",
-    "verify:kiosk-alert": "npm run build --prefix functions && node functions/scripts/test-kiosk-alert-sound.mjs && python3 scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test && bash scripts/mirror-kiosk/planes-kiosk-alert-play.sh --self-test",
+    "errors:probe:planes-api-env": "python3 scripts/probe-planes-api-env.py",
+    "errors:probe:planes-kiosk-alert": "npm run verify:kiosk-alert",
+    "test:local-tx": "python3 scripts/pi-install-planes-api.py --self-test && npm run build --prefix functions && node functions/scripts/test-local-transaction.mjs && node functions/scripts/test-pushover-send-gate.mjs && node functions/scripts/test-row-session-push.mjs && node functions/scripts/test-kiosk-alert-sound.mjs",
+    "verify:planes-api-env": "python3 scripts/pi-install-planes-api.py --self-test",
+    "verify:kiosk-alert": "python3 scripts/pi-install-planes-api.py --self-test && npm run build --prefix functions && node functions/scripts/test-kiosk-alert-sound.mjs && python3 scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test && bash scripts/mirror-kiosk/planes-kiosk-alert-play.sh --self-test",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint:bem": "node ../directory/scripts/check-no-bem.mjs",
@@ -95,6 +98,14 @@
       "@dryl/auth-client": "0.2.0",
       "@dryl/app-data": "0.3.1",
       "@dryl/storage": "0.3.1"
+    },
+    "maintain": {
+      "owner": "errors:maintain / errors:probe:refresh",
+      "scripts": [
+        "verify:planes-api-env",
+        "verify:kiosk-alert",
+        "errors:probe:planes-api-env"
+      ]
     }
   }
 }
