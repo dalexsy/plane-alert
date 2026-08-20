@@ -1,4 +1,8 @@
-/** Local pw-play/paplay — only when planes-api is on the kiosk speaker host. */
+/**
+ * Local pw-play fallback — not the live path. planes-api runs on dryl-prod
+ * (.79), which has no pw-play/paplay and no PipeWire sinks. Live chimes POST
+ * the .74 listener. Do not re-enable leftover planes-api on magicmirror.
+ */
 import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';

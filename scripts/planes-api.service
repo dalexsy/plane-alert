@@ -11,11 +11,9 @@ ExecStart=/usr/bin/node lib/pi-server.js
 Restart=on-failure
 RestartSec=5
 EnvironmentFile=-/home/pi/planes-api/.env
-# Speaker is on magicmirror (.74). Prod POSTs the kiosk listener — do not
-# treat local pw-play on this host as audible. Token lives in .env.
-Environment=XDG_RUNTIME_DIR=/run/user/1000
+# dryl-prod (.79) has aplay only — no pw-play/paplay, no PipeWire sinks.
+# Speaker is Jabra SPEAK 510 on magicmirror (.74). POST the LAN listener.
 Environment=PLANES_KIOSK_PLAY_URL=http://192.168.178.74:8796/play
-Environment=PLANES_KIOSK_ALERT_MP3=/home/pi/planes-api/assets/alerts/precious_little_life_forms.mp3
 
 [Install]
 WantedBy=multi-user.target

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""LAN-only kiosk chime listener — pw-play stays on magicmirror (.74)."""
+"""LAN-only kiosk chime listener — pw-play stays on magicmirror (.74).
+
+planes-api is active only on dryl-prod (.79). Leftover planes-api.service
+on .74 stays disabled. This unit pw-plays to the wpctl default Jabra
+SPEAK 510 (not HDMI; pactl get-default-sink is empty on this box).
+"""
 from __future__ import annotations
 
 import hmac
