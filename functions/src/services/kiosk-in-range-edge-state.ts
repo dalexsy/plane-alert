@@ -31,7 +31,7 @@ export function isKioskInRangeAcked(icao: string): boolean {
   return rec != null && rec.playedAt != null;
 }
 
-/** Mark visit chimed — only after pw-play exit 0 or quiet-hours absorb. */
+/** Mark visit chimed — only after audible play on .74 or quiet-hours absorb. */
 export function ackKioskInRange(icao: string, now: number = Date.now()): void {
   const key = icao.toUpperCase();
   const map = loadVisitMap();

@@ -1,0 +1,15 @@
+[Unit]
+Description=planes kiosk LAN alert listener (pw-play on magicmirror)
+After=network-online.target
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/bin/planes-kiosk-alert-listen.py
+Restart=always
+RestartSec=5
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+EnvironmentFile=-/home/pi/.config/planes-kiosk/alert-play.env
+
+[Install]
+WantedBy=default.target

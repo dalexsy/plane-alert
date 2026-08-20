@@ -11,6 +11,7 @@
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `python scripts/pi-install-planes-kiosk.py --launch` | Treat system-bus `planes-kiosk` as truth |
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
+| Kiosk speaker silent after Pi split | API on `.79` POSTs `PLANES_KIOSK_PLAY_URL` on `.74:8796`; listener runs `pw-play` | Treat prod `pw-play` as audible; SSH from prod to play |
 | Same plane twice in one Pushover inbox | Prod-only send. Staging hostname/`PLANES_API_PUSHOVER_ENABLED=0` mute. `verifyPlanesPushDedup` checks ledger **and** staging `pushoverSendEnabled:false` | Treat prod `/health` unique ledger as proof; copy prod `.env` to staging |
 
 ## Failed experiments (do not repeat)
@@ -32,6 +33,7 @@
 - Do not treat `/health` ok as a unique inbox. 30 min TTL re-sent `43C39D` the same Berlin day; Daryl is not the sensor — fail `verifyPlanesPushDedup` on the send ledger
 - Do not treat a unique **prod** send ledger as proof. dryl-staging planes-api was active with the same Pushover account (2026-08-16) so every alert hit phones twice
 - Do not restore FCM `/sw.js` or a caching SPA worker. Receive-side firebasejs white-screens `/`; alerts are Pushover only
+- After Pi split: do not treat local `pw-play` on dryl-prod as the house speaker. POST the `.74` listener; missing prod player is not success if that trigger fails
 
 Older: `.cursor/rules/debugging-archive.md`
 

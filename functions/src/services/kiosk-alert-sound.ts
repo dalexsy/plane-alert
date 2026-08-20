@@ -1,20 +1,24 @@
 /**
- * Play a local MP3 on magicmirror when military/special newly enters range.
- * Live SPA kiosk audio is unreliable (stale bundle); phones still TTS.
- * planes-api ships this without republishing the SPA (deploy:fast).
+ * Military/special kiosk chime. After the 2026-08 split, planes-api on
+ * dryl-prod POSTs the magicmirror LAN listener — local pw-play on .79 is silent.
  *
- * Visit edge lives in kiosk-in-range-edge-state — do not re-chime loiterers
- * on a rolling timer. Rate-limit only backs up multi-ICAO bursts.
+ * Visit edge lives in kiosk-in-range-edge-state. Rate-limit backs up bursts.
  */
-import { spawn, type ChildProcess } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
+import { hostname as osHostname } from 'os';
 import { logger } from '../pi-logger';
+import { kioskAlertVariantFromModel } from './kiosk-alert-variant';
 import {
-  kioskAlertFileName,
-  kioskAlertVariantFromModel,
-  type KioskAlertVariant,
-} from './kiosk-alert-variant';
+  playWithPlayer,
+  resolveAlertMp3,
+  resolvePlayer,
+} from './kiosk-alert-local';
+import {
+  isKioskAlertDisabled,
+  isStagingKioskHost,
+  postKioskAlertPlay,
+  shouldUseRemoteKioskPlay,
+  type PostKioskAlertPlay,
+} from './kiosk-alert-remote';
 
 const KIOSK_QUIET_TZ = 'Europe/Berlin';
 const KIOSK_QUIET_START_HOUR = 22;
@@ -22,7 +26,6 @@ const KIOSK_QUIET_END_HOUR = 7;
 const MIN_PLAY_INTERVAL_MS = 8000;
 
 let lastPlayAt = 0;
-/** ICAOs with an in-flight pw-play — avoid double-spawn before exit. */
 const inFlightIcaos = new Set<string>();
 
 export type KioskAlertPlayOptions = {
@@ -30,6 +33,16 @@ export type KioskAlertPlayOptions = {
   onPlayed?: () => void;
   /** Aircraft model — picks hercules / A400 (iago) / default mil MP3. */
   model?: string | null;
+};
+
+export type KioskAlertPlayHooks = {
+  env?: NodeJS.ProcessEnv;
+  hostname?: string;
+  now?: Date;
+  nowMs?: number;
+  postRemote?: PostKioskAlertPlay;
+  spawnLocal?: typeof playWithPlayer;
+  resolvePlayerBin?: () => string | null;
 };
 
 /** Same overnight window as SPA `isKioskQuietHours` (22:00–07:00 Berlin). */
@@ -46,106 +59,41 @@ export function isKioskQuietHoursBerlin(now: Date = new Date()): boolean {
   return hour >= KIOSK_QUIET_START_HOUR || hour < KIOSK_QUIET_END_HOUR;
 }
 
-function resolveAlertMp3(variant: KioskAlertVariant): string | null {
-  const fileName = kioskAlertFileName(variant);
-  // Env override is default mil only — never force it over A400/Hercules.
-  if (variant === 'default') {
-    const fromEnv = process.env.PLANES_KIOSK_ALERT_MP3?.trim();
-    if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
-  }
-  const candidates = [
-    path.join(process.cwd(), 'assets', 'alerts', fileName),
-    path.join(__dirname, '..', 'assets', 'alerts', fileName),
-  ];
-  const hit = candidates.find((p) => fs.existsSync(p));
-  if (hit) return hit;
-  if (variant !== 'default') {
-    logger.warn('Kiosk alert variant MP3 missing — falling back to default', {
-      variant,
-      fileName,
-    });
-    return resolveAlertMp3('default');
-  }
-  return null;
-}
-
-function resolvePlayer(): string | null {
-  for (const absolute of ['/usr/bin/pw-play', '/usr/bin/paplay']) {
-    if (fs.existsSync(absolute)) return absolute;
-  }
-  return null;
-}
-
-function playWithPlayer(
-  player: string,
-  mp3Path: string,
-  icao: string,
-  reason: string,
-  onPlayed?: () => void,
-): ChildProcess | null {
-  try {
-    const child = spawn(player, [mp3Path], {
-      stdio: ['ignore', 'ignore', 'pipe'],
-      env: {
-        ...process.env,
-        XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || '/run/user/1000',
-      },
-    });
-    let stderr = '';
-    child.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-    child.on('error', (err) => {
-      inFlightIcaos.delete(icao.toUpperCase());
-      logger.warn('Kiosk alert player failed', {
-        player,
-        icao,
-        reason,
-        error: err.message,
-      });
-    });
-    child.on('exit', (code) => {
-      const key = icao.toUpperCase();
-      inFlightIcaos.delete(key);
-      if (code === 0 || code === null) {
-        onPlayed?.();
-        logger.info('Kiosk alert sound finished', { icao, reason, code });
-        return;
-      }
-      logger.warn('Kiosk alert player exit', {
-        player,
-        icao,
-        reason,
-        code,
-        stderr: stderr.slice(0, 300),
-      });
-    });
-    return child;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.warn('Kiosk alert spawn failed', { player, icao, reason, error: message });
-    return null;
-  }
+export function resetKioskAlertSoundForTests(): void {
+  lastPlayAt = 0;
+  inFlightIcaos.clear();
 }
 
 /**
- * Fire-and-forget local alert for military/special that SPA may not hear.
- * No-op during quiet hours, when disabled, or when the MP3 is missing.
+ * Fire-and-forget alert for military/special that SPA may not hear.
  * Quiet hours still invoke onPlayed so the visit is absorbed (no 7am dump).
  */
 export function playKioskAlertSound(
   icao: string,
   reason: string,
   options?: KioskAlertPlayOptions,
+  hooks?: KioskAlertPlayHooks,
 ): void {
-  if (process.env.PLANES_KIOSK_LOCAL_ALERT === '0') return;
-  if (isKioskQuietHoursBerlin()) {
+  void playKioskAlertSoundAsync(icao, reason, options, hooks);
+}
+
+export async function playKioskAlertSoundAsync(
+  icao: string,
+  reason: string,
+  options?: KioskAlertPlayOptions,
+  hooks?: KioskAlertPlayHooks,
+): Promise<void> {
+  const env = hooks?.env ?? process.env;
+  const hostName = hooks?.hostname ?? osHostname();
+  if (isKioskAlertDisabled(env) || isStagingKioskHost(env, hostName)) return;
+  const nowDate = hooks?.now ?? new Date();
+  if (isKioskQuietHoursBerlin(nowDate)) {
     logger.info('Kiosk alert skipped — quiet hours', { icao, reason });
     options?.onPlayed?.();
     return;
   }
 
-  const now = Date.now();
+  const now = hooks?.nowMs ?? Date.now();
   if (now - lastPlayAt < MIN_PLAY_INTERVAL_MS) {
     logger.info('Kiosk alert skipped — min interval', { icao, reason });
     return;
@@ -158,20 +106,42 @@ export function playKioskAlertSound(
   }
 
   const variant = kioskAlertVariantFromModel(options?.model);
+  if (shouldUseRemoteKioskPlay(env, hostName)) {
+    const postRemote = hooks?.postRemote ?? postKioskAlertPlay;
+    inFlightIcaos.add(key);
+    lastPlayAt = now;
+    const ok = await postRemote(
+      { icao, reason, variant, model: options?.model },
+      env,
+    );
+    inFlightIcaos.delete(key);
+    if (ok) {
+      options?.onPlayed?.();
+      return;
+    }
+    logger.warn('Kiosk alert: remote trigger failed', { icao, reason, variant });
+    return;
+  }
+
   const mp3Path = resolveAlertMp3(variant);
   if (!mp3Path) {
     logger.warn('Kiosk alert MP3 missing', { icao, reason, variant });
     return;
   }
 
-  const player = resolvePlayer();
+  const player = (hooks?.resolvePlayerBin ?? resolvePlayer)();
   if (!player) {
     logger.warn('Kiosk alert: no audio player found', { icao, reason });
     return;
   }
 
+  const spawnLocal = hooks?.spawnLocal ?? playWithPlayer;
   inFlightIcaos.add(key);
-  if (!playWithPlayer(player, mp3Path, icao, reason, options?.onPlayed)) {
+  if (
+    !spawnLocal(player, mp3Path, icao, reason, options?.onPlayed, () => {
+      inFlightIcaos.delete(key);
+    })
+  ) {
     inFlightIcaos.delete(key);
     logger.warn('Kiosk alert: spawn failed', { icao, reason, player });
     return;
