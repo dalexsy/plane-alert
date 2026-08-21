@@ -94,7 +94,7 @@
   "packageManager": "npm@11.17.0",
   "dryl": {
     "packages": {
-      "@dryl/ui": "0.6.2",
+      "@dryl/ui": "0.6.3",
       "@dryl/auth-client": "0.2.0",
       "@dryl/app-data": "0.3.1",
       "@dryl/storage": "0.3.1"
