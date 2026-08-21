@@ -1,0 +1,28 @@
+name: dryl-plane-alert-runner
+
+services:
+  staging-node:
+    image: node:24-bookworm-slim
+    user: "1001:1001"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777,uid=1001,gid=1001
+      - /home/node:mode=0755,uid=1001,gid=1001
+    volumes:
+      - ./sandbox-scripts:/opt/fleet-scripts:ro
+      - runner-work:/work
+    working_dir: /work
+    environment:
+      DRYL_ENV: staging
+      LIVE_POLL_ONLY: "1"
+      HOME: /home/node
+    command: ["sh", "-c", "find /opt/fleet-scripts -maxdepth 1 -type f -name '*.sh' -print -exec sh {} \\;"]
+    restart: "no"
+
+volumes:
+  runner-work:
