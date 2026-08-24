@@ -45,19 +45,27 @@ form {
 
   input[type="range"] {
     flex: 1;
-    height: 0.5rem;
+    min-width: 0;
+    height: 1.25rem;
+    line-height: 1;
     border-radius: 0.25rem;
-    background: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.2) 0%,
-      rgba(255, 255, 255, 0.4) 100%
-    );
+    background: transparent;
     outline: none;
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
     margin: 0;
     padding: 0;
+
+    &::-webkit-slider-runnable-track {
+      height: 0.5rem;
+      border-radius: 0.25rem;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.4) 100%
+      );
+    }
 
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -69,7 +77,17 @@ form {
       cursor: pointer;
       border: 0.125rem solid rgba(255, 255, 255, 0.8);
       box-shadow: 0 0 0.25rem rgba(0, 0, 0, 0.5);
-      margin-top: -0.375rem; // gap-ok slider thumb centering
+      margin-top: -0.375rem; // gap-ok thumb vs 0.5rem track
+    }
+
+    &::-moz-range-track {
+      height: 0.5rem;
+      border-radius: 0.25rem;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.4) 100%
+      );
     }
 
     &::-moz-range-thumb {
