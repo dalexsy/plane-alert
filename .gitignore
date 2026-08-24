@@ -57,3 +57,6 @@ functions/data/
 agent-tools/
 __pycache__/
 *.pyc
+
+# Local one-off probe scripts — never auto-commit onto main
+/_*.py
