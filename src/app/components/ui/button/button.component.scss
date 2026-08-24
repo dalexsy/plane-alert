@@ -16,6 +16,9 @@ button {
   width: 100%;
   font-size: 0.875rem;
   font-weight: 500;
+  // @dryl/ui global `button` uses --space-sm/--space-lg (0.75rem / 2.25rem).
+  // Overlay chrome keeps padding on .text / .icon instead.
+  padding: 0;
 
   // Styles for disabled state
   &[disabled] {

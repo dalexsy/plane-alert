@@ -38,7 +38,7 @@ export type InputSize = 'small' | 'medium' | 'large';
         (focus)="onFocus($event)"
         (blur)="onBlur($event)"
         (keydown)="onKeydown($event)"
-        class="input-field textarea"
+        class="input-field control-plain textarea"
       ></textarea>
 
       <input
@@ -54,7 +54,7 @@ export type InputSize = 'small' | 'medium' | 'large';
         (focus)="onFocus($event)"
         (blur)="onBlur($event)"
         (keydown)="onKeydown($event)"
-        class="input-field"
+        class="input-field control-plain"
       />
     </div>
   `,

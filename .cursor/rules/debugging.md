@@ -8,6 +8,7 @@
 
 | Symptom | Fix path | Do not |
 |---------|----------|--------|
+| Overlay type-scale blowup (peeped heading, bulky address buttons, off-center radius) | Rename `.section-title` (reserved by `@dryl/ui` h2 scale); zero `app-button` padding vs dryl global `button`; range track height = thumb | Do not put `.section-title` on map chrome |
 | Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `python scripts/pi-install-planes-kiosk.py --launch` | Treat system-bus `planes-kiosk` as truth |
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
