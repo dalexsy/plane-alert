@@ -49,7 +49,7 @@ Older: `.cursor/rules/debugging-archive.md`
 
 Median **136s** · wait `block_until_ms` **120000** chunks, total **214474** · details: `.dryl-deploy-timing.json`
 
-Updated: 2026-08-16T17:12:41Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-24T17:23:33Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
@@ -57,6 +57,6 @@ Updated: 2026-08-16T17:12:41Z · source: `directory/data/deploy-timing.json`
 
 ## Deploy & verify
 
-- Ship SPA: `npm run deploy:dryl` on dryl-prod
+- Ship SPA: `npm run deploy:dryl` on dryl-prod (do not keep a blocked `deploy:backend` script — `run-full-deploy` would abort)
 - Kiosk: install/watch on magicmirror `.74` only
 - Prove: production PNG + `QUOTE_VISIBLE`
