@@ -105,4 +105,7 @@ export const TYPE_ICON_MAP: Record<string, PlaneIconData> = {
   SKYHAWK: { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
   CTLS: { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
   'CT LS': { path: SINGLE_ENGINE_SVG, iconType: 'single_engine' },
+  BALL: { path: BALLOON_SVG, iconType: 'balloon' },
+  BLMP: { path: BALLOON_SVG, iconType: 'balloon' },
+  SHIP: { path: BALLOON_SVG, iconType: 'balloon' },
 };

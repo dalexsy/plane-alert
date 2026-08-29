@@ -115,7 +115,6 @@ export class MapBootstrapSubscriptionsService {
     this.scanService.start(this.settings.interval, () => {
       this.planeOps.findPlanes(inputOverlayComponent, cdr);
     });
-    this.scanService.forceScan();
 
     this.settings.radiusChanged.subscribe((newRadius) => {
       const lat = this.settings.lat ?? this.runtime.DEFAULT_COORDS[0];

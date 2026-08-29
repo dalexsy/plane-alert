@@ -8,6 +8,8 @@ export interface Plane {
   model: string;
   /** ADS-B ICAO type designator (`ac.t`), e.g. C30J. */
   icaoType?: string;
+  /** ADS-B emitter category (`ac.category`), e.g. B2 lighter-than-air. */
+  category?: string;
   operator: string;
   bearing: number;
   cardinal: string;

@@ -1,0 +1,24 @@
+# dryl fleet: LF in the repo and on checkout (Windows included).
+# Overrides core.autocrlf. Refresh: cd directory && npm run bootstrap:line-endings
+* text=auto eol=lf
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.mp4 binary
+*.webm binary
+*.zip binary
+*.gz binary
+*.wasm binary
+*.lnk binary

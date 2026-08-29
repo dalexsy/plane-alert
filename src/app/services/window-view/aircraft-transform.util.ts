@@ -67,6 +67,9 @@ export function getPerspectiveTransform(plane: WindowViewPlane): string {
 }
 
 export function getIconRotation(plane: WindowViewPlane): string {
+  if (plane.iconType === 'balloon' || plane.isHelicopter) {
+    return 'rotateZ(0deg)';
+  }
   const delta = trailDeltaFromHistory(plane);
   if (delta) {
     let movementAngle = Math.atan2(-delta.dy, delta.dx) * (180 / Math.PI);
@@ -110,28 +113,24 @@ function getPerspectiveTrailRotation(plane: WindowViewPlane): string {
   return 'rotate(180deg)';
 }
 
-export function getChemtrailRotation(plane: WindowViewPlane): string {
-  if (
+function skipsAircraftFx(plane: WindowViewPlane): boolean {
+  return !!(
     plane.isMarker ||
     plane.isHelicopter ||
     plane.isGrounded ||
-    plane.isCelestial
-  ) {
-    return '';
-  }
+    plane.isCelestial ||
+    plane.iconType === 'balloon'
+  );
+}
+
+export function getChemtrailRotation(plane: WindowViewPlane): string {
+  if (skipsAircraftFx(plane)) return '';
   if (!plane.altitude || plane.altitude < 8000) return '';
   return getPerspectiveTrailRotation(plane);
 }
 
 export function getChemtrailScale(plane: WindowViewPlane): number {
-  if (
-    plane.isMarker ||
-    plane.isHelicopter ||
-    plane.isGrounded ||
-    plane.isCelestial
-  ) {
-    return 0;
-  }
+  if (skipsAircraftFx(plane)) return 0;
   if (!plane.altitude || plane.altitude < 8000) return 0;
   if (!plane.velocity || plane.velocity <= 0) return 1;
   const minVelocity = 50;

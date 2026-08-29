@@ -21,18 +21,20 @@ import { MapComponentFacadeService } from '../services/map/map-component-facade.
 import { MapContainerComponent } from './container/map-container.component';
 import { MapOverlaysComponent } from './overlays/map-overlays.component';
 import { MapInfoStackComponent } from './info-stack/map-info-stack.component';
+import { BootCoverComponent } from '../components/boot-cover/boot-cover.component';
 import type { ViewConeConfig } from '../services/settings/settings.service';
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, MapContainerComponent, MapOverlaysComponent, MapInfoStackComponent],
+  imports: [CommonModule, MapContainerComponent, MapOverlaysComponent, MapInfoStackComponent, BootCoverComponent],
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
   encapsulation: ViewEncapsulation.None,
 })
 export class MapComponent implements AfterViewInit, OnDestroy {
   @HostBinding('class.map-panning') panning = false;
+  bootCover = true;
 
   @ViewChild(MapOverlaysComponent, { static: true })
   overlaysComponent!: MapOverlaysComponent;
@@ -85,12 +87,17 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   async ngAfterViewInit(): Promise<void> {
-    await this.bootstrap.bootstrap({
-      inputOverlayComponent: this.overlaysComponent.inputOverlayComponent,
-      resultsOverlayComponent: this.overlaysComponent.resultsOverlayComponent,
-      windowViewOverlayComponent: this.infoStackComponent.windowViewOverlayComponent,
-      cdr: this.cdr,
-    });
+    try {
+      await this.bootstrap.bootstrap({
+        inputOverlayComponent: this.overlaysComponent.inputOverlayComponent,
+        resultsOverlayComponent: this.overlaysComponent.resultsOverlayComponent,
+        windowViewOverlayComponent: this.infoStackComponent.windowViewOverlayComponent,
+        cdr: this.cdr,
+      });
+    } finally {
+      this.bootCover = false;
+      this.cdr.detectChanges();
+    }
   }
 
   ngOnDestroy(): void {

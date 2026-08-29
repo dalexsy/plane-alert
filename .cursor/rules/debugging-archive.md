@@ -3,6 +3,11 @@
 > Agents: **do not load this file by default.** Primary playbook is `debugging.md` (≤200 lines).
 > Compacted 2026-07-27 from a 109-line dump.
 
+## Archived failed experiments (2026-08-25)
+
+- Empty map: do not treat HTTP 200 `{"ac":[]}` from adsb.lol as success
+- After Pi split: do not check dryl-auth on magicmirror; do not install kiosk via `.79` helper
+
 ---
 
 # Debugging notes — plane-alert

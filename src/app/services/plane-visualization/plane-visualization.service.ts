@@ -54,11 +54,14 @@ export class PlaneVisualizationService {
     const planeData = {
       icao, callsign, operator: plane.operator, registration: '', model, isMilitary,
       country: plane.origin, altitude, onGround, isSpecial, isUnknown,
+      icaoType: plane.icaoType, category: plane.category,
     };
     const { marker } = createOrUpdatePlaneMarker(
       plane.marker, map, lat, lon, trackForMarker, extraStyle, isNew, onGround, tooltip, '',
       isMilitary, model,
-      this.helicopterIdentificationService.isHelicopter(icao, model, plane.operator, callsign),
+      this.helicopterIdentificationService.isHelicopter(
+        icao, model, plane.operator, callsign, plane.icaoType,
+      ),
       isSpecial, isUnknown, altitude, false, this.settings.interval, icao, callsign,
       this.operatorTooltipService,
       planeData,
