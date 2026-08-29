@@ -47,9 +47,9 @@ Older: `.cursor/rules/debugging-archive.md`
 
 ## Deploy timing (auto)
 
-Median **136s** · wait `block_until_ms` **120000** chunks, total **214474** · details: `.dryl-deploy-timing.json`
+Median **136s** · wait `block_until_ms` **120000** chunks, total **218692** · details: `.dryl-deploy-timing.json`
 
-Updated: 2026-08-24T17:23:33Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-08-29T09:39:32Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
