@@ -38,6 +38,8 @@ export interface ProcessedPlaneData {
   model: string;
   /** ADS-B ICAO type designator (`ac.t`), e.g. C30J. */
   icaoType?: string;
+  /** ADS-B emitter category (`ac.category`), e.g. B2 lighter-than-air. */
+  category?: string;
   operator: string;
   isNew: boolean;
   isFiltered: boolean;
@@ -88,6 +90,7 @@ export class PlaneDataService {
     const reg: string = ac.r?.trim() || '';
     const apiModel = ac.desc?.trim() || '';
     const apiIcaoType = ac.t?.trim() || '';
+    const apiCategory = typeof ac.category === 'string' ? ac.category.trim() : '';
     const dbAircraft = getAircraftInfo(id);
     const prefixIsMil = this.militaryPrefixService.isMilitaryCallsign(callsign);
     // Single military picture: ADS-B Exchange mil/dbFlags OR local DB mil OR callsign prefix.
@@ -141,7 +144,8 @@ export class PlaneDataService {
     });
     return {
       id, callsign, registration: reg, origin, lat, lon, track, velocity, altitude, onGround, isMilitary,
-      isSpecial, isA380, isUnknown, model, icaoType: apiIcaoType || undefined, operator, isNew, isFiltered,
+      isSpecial, isA380, isUnknown, model, icaoType: apiIcaoType || undefined,
+      category: apiCategory || undefined, operator, isNew, isFiltered,
       verticalRate: ac.baro_rate ?? null, distanceKm: dist,
     };
   }
@@ -170,6 +174,7 @@ export class PlaneDataService {
     }
     planeModelInstance.model = processedData.model;
     planeModelInstance.icaoType = processedData.icaoType;
+    planeModelInstance.category = processedData.category;
     planeModelInstance.operator = processedData.operator;
     planeModelInstance.distanceKm = processedData.distanceKm;
     const bearing = computeBearingDegrees(centerLat, centerLon, lat, lon);

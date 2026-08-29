@@ -28,9 +28,11 @@ export function updateWindowViewPlanes(
       const alt = isGrounded ? 0 : plane.altitude ?? 0;
       const y = (Math.min(alt, 20000) / 20000) * 100;
       const isHelicopter = ctx.helicopterIdentificationService.isHelicopter(
-        plane.icao, plane.model, plane.operator, plane.callsign
+        plane.icao, plane.model, plane.operator, plane.callsign, plane.icaoType
       );
-      const iconData = getIconPathForModel(plane.model, plane.callsign, alt, isHelicopter);
+      const iconData = getIconPathForModel(plane.model, plane.callsign, alt, isHelicopter, {
+        icaoType: plane.icaoType, category: plane.category,
+      });
       const distKm = haversineDistance(centerLat, centerLon, plane.lat!, plane.lon!);
       const maxRadius = ctx.settings.radius ?? 5;
       const isMobile = window.innerWidth < 600;

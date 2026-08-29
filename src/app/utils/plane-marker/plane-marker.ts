@@ -50,12 +50,16 @@ export function createOrUpdatePlaneMarker(
   const isCopter = isCustomHelicopter;
   const iconData = isCopter
     ? { path: '', iconType: 'helicopter' as const }
-    : getIconPathForModel(model, callsign, altitude || undefined, isCopter);
+    : getIconPathForModel(model, callsign, altitude || undefined, isCopter, {
+        icaoType: planeData?.icaoType,
+        category: planeData?.category,
+      });
+  const skipHeading = isCopter || iconData.iconType === 'balloon';
   const iconInner =
     !isCopter && !isUnknown
       ? `<svg class="inline-plane ${iconData.iconType}" viewBox="0 0 64 64"><path d="${iconData.path}"/></svg>`
       : '';
-  const shadowStyle = computePlaneShadowStyle(lat, lon, rotation, isCopter, isGrounded, altitude);
+  const shadowStyle = computePlaneShadowStyle(lat, lon, rotation, skipHeading, isGrounded, altitude);
   const classString = buildPlaneMarkerClassString(
     isCopter,
     isUnknown,
@@ -68,10 +72,10 @@ export function createOrUpdatePlaneMarker(
     militaryAlertWorthy,
   );
   const markerHtml = `<div class="${classString}" style="transform: rotate(${
-    isCopter ? 0 : rotation
+    skipHeading ? 0 : rotation
   }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
   const ghostMarkerHtml = `<div class="${classString} ghost-plane-marker" style="transform: rotate(${
-    isCopter ? 0 : rotation
+    skipHeading ? 0 : rotation
   }deg); ${extraStyle} ${shadowStyle}">${iconInner}</div>`;
   const icon = L.divIcon({
     className: 'plane-marker-container',

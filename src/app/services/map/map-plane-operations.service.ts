@@ -72,12 +72,12 @@ export class MapPlaneOperationsService {
     return this.geocodingCache.reverseGeocode(lat, lon);
   }
 
-  findPlanes(inputOverlayComponent: InputOverlayComponent, cdr: ChangeDetectorRef): void {
+  findPlanes(inputOverlayComponent: InputOverlayComponent, cdr: ChangeDetectorRef): Promise<void> {
     if (inputOverlayComponent) {
       inputOverlayComponent.lastScanTime = new Date();
     }
 
-    this.planeUpdate
+    return this.planeUpdate
       .findPlanes(
         this.runtime.map,
         this.runtime.planeLog,

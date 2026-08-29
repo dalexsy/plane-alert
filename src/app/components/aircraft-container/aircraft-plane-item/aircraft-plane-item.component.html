@@ -33,7 +33,7 @@
     <div *ngIf="!plane.isHelicopter" class="icon-scale-wrapper">
       <div
         class="icon-wrapper"
-        [style.--transform]="plane.isGrounded ? null : getPerspectiveTransform(plane)"
+        [style.--transform]="plane.isGrounded || plane.iconType === 'balloon' ? null : getPerspectiveTransform(plane)"
       >
         <app-aircraft-trail
           *ngIf="showTrail"

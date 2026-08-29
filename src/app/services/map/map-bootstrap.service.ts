@@ -91,7 +91,6 @@ export class MapBootstrapService {
         /* private mode */
       }
     }
-    const aircraftDbReady = this.aircraftDb.load();
     this.overlay.clickedAirports = this.settings.getClickedAirports();
 
     prepareBootstrapRuntimeState({
@@ -152,7 +151,8 @@ export class MapBootstrapService {
     this.astronomicalDisplay.startAstronomicalUpdates();
     this.mapUpdate.setInitialScanDone(false);
     this.subscriptions.wire(refs, startLat, startLon);
-    void aircraftDbReady.then(() => this.scanService.forceScan());
+    await this.planeOps.findPlanes(inputOverlayComponent, cdr);
+    void this.aircraftDb.load().then(() => this.scanService.forceScan());
   }
 
   teardown(): void {

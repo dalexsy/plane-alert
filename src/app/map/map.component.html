@@ -1,4 +1,6 @@
 <div class="map-shell" [@.disabled]="!uiState.animationsEnabled">
+  <app-boot-cover *ngIf="bootCover"></app-boot-cover>
+
   <app-map-overlays></app-map-overlays>
 
   <app-map-info-stack

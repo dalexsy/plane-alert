@@ -68,8 +68,8 @@ async function ensureFreshShell(): Promise<void> {
   }
 }
 
-void ensureFreshShell().then(() =>
-bootstrapApplication(AppComponent, {
+void ensureFreshShell();
+void bootstrapApplication(AppComponent, {
   providers: [
     importProvidersFrom(
       HttpClientModule,
@@ -84,4 +84,4 @@ bootstrapApplication(AppComponent, {
   })
   .catch((err) => {
     // Error handling removed - errors will be thrown naturally
-  }));
+  });
