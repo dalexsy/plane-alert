@@ -13,12 +13,17 @@ import { runAircraftCollection } from './aircraft-collection';
 import { runNotificationHealthWatchdog } from './notification-health-watchdog';
 import { adsbPointProxy } from './adsb-point-proxy';
 import { createMilitaryHistoryFunctions } from './military-history';
+import {
+  createAntennaSightingsFunctions,
+  startAntennaSightingsPoller,
+} from './antenna-sightings';
 import { createNotifyRowSessionHandler } from './services/row-session-push.handler';
 import { seedDefaultDeviceRegistrations } from './services/seed-default-device-registrations';
 import { readPlanesApiBuildInfo } from './services/planes-api-build-info';
 import { buildPlanesApiHealthResponse } from './services/planes-api-health';
 import { readNotificationHealth } from './services/notification-health';
 import { isPushoverSendEnabled } from './services/pushover-send-gate';
+import { getAntennaPollerStatus } from './services/antenna-sighting-poller';
 import { DEVICE_COLLECTION } from './constants';
 
 const buildInfo = readPlanesApiBuildInfo();
@@ -34,6 +39,7 @@ app.use(express.json({ limit: '1mb' }));
 
 const deviceFunctions = createDeviceManagementFunctions(db);
 const militaryHistoryFunctions = createMilitaryHistoryFunctions(db);
+const antennaSightingsFunctions = createAntennaSightingsFunctions();
 const notifyRowSession = createNotifyRowSessionHandler(db);
 const PORT = Number(process.env.PORT || 8795);
 
@@ -76,6 +82,12 @@ app.all(
   '/notifyRowSession',
   bindHandler(notifyRowSession as unknown as HttpHandler),
 );
+app.all(
+  '/antennaSightings',
+  bindHandler(
+    antennaSightingsFunctions.getAntennaSightings as unknown as HttpHandler,
+  ),
+);
 
 app.get('/health', async (_req, res) => {
   try {
@@ -88,6 +100,7 @@ app.get('/health', async (_req, res) => {
         deviceCount: devices.size,
         health,
         pushoverSendEnabled: isPushoverSendEnabled(),
+        antenna: getAntennaPollerStatus(),
       }),
     );
   } catch (error: unknown) {
@@ -167,4 +180,6 @@ app.listen(PORT, '127.0.0.1', () => {
       runNotificationHealthWatchdog(db),
     ),
   );
+
+  startAntennaSightingsPoller();
 });

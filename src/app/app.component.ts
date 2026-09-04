@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { MapComponent } from './map/map.component';
+import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NoonRefreshService } from './services/noon-refresh/noon-refresh.service';
 import {
@@ -13,7 +13,7 @@ import { PushRegistrationService } from './services/push-registration/push-regis
   standalone: true,
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  imports: [CommonModule, MapComponent], // Import MapComponent and CommonModule
+  imports: [CommonModule, RouterOutlet],
 })
 export class AppComponent implements OnInit {
   title = 'plane-alert';

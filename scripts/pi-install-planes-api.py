@@ -117,6 +117,13 @@ def build_functions() -> None:
         "[fail] kiosk alert remote play",
     )
 
+    print("[gate] antenna sightings upsert")
+    run_local(
+        ["node", str(FUNCTIONS_DIR / "scripts" / "test-antenna-sightings.mjs")],
+        FUNCTIONS_DIR,
+        "[fail] antenna sightings upsert",
+    )
+
 
 
 def sanitize_staging_env_cmd() -> str:

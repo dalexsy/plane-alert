@@ -11,3 +11,5 @@ export const adsbPointProxyUrl = `${planesApiBase}/adsbPointProxy`;
 export const getMilitaryHistoryEndpoint = `${planesApiBase}/getMilitaryHistory`;
 
 export const saveMilitarySightingEndpoint = `${planesApiBase}/saveMilitarySighting`;
+
+export const antennaSightingsEndpoint = `${planesApiBase}/antennaSightings`;
