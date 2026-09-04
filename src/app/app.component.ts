@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { MapComponent } from './map/map.component';
+import { AntennaSightingsPage } from './pages/antenna-sightings/antenna-sightings.page';
 import { NoonRefreshService } from './services/noon-refresh/noon-refresh.service';
 import {
   NotificationService,
@@ -8,15 +9,21 @@ import {
 } from './services/notification/notification.service';
 import { PushRegistrationService } from './services/push-registration/push-registration.service';
 
+function isSightingsPath(): boolean {
+  if (typeof location === 'undefined') return false;
+  return location.pathname.replace(/\/+$/, '') === '/sightings';
+}
+
 @Component({
   selector: 'app-root',
   standalone: true,
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, MapComponent, AntennaSightingsPage],
 })
 export class AppComponent implements OnInit {
   title = 'plane-alert';
+  readonly sightings = isSightingsPath();
 
   constructor(
     private noonRefreshService: NoonRefreshService,
