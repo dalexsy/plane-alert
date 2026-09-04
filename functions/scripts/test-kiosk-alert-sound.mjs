@@ -13,8 +13,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const py = process.platform === "win32" ? "python" : "python3";
 const envGate = spawnSync(
-  "python3",
+  py,
   [path.join(repoRoot, "scripts/pi-install-planes-api.py"), "--self-test"],
   { encoding: "utf8" },
 );

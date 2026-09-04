@@ -9,20 +9,14 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const {
-  createLocalFirestore,
-  patchAdminFirestoreNamespace,
-} = require("../lib/local-firestore.js");
-const admin = require("firebase-admin");
+const { createJsonDocumentStore } = require("../lib/json-document-store.js");
 const {
   checkAndMarkNotified,
 } = require("../lib/services/notification-cooldown.js");
 
-patchAdminFirestoreNamespace(admin);
-
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "planes-local-tx-"));
 const storePath = path.join(tmp, "store.json");
-const db = createLocalFirestore(storePath);
+const db = createJsonDocumentStore(storePath);
 
 const userKey = "testuserkey";
 const icao = "3F93E4";
@@ -109,9 +103,6 @@ const {
   duplicateIcaosSameBerlinDay,
   recordPushoverSend,
 } = require("../lib/services/pushover-send-ledger.js");
-const {
-  createJsonDocumentStore,
-} = require("../lib/json-document-store.js");
 assert.deepEqual(
   duplicateIcaosSameBerlinDay([
     { icao: "43C39D", at: Date.now() },
