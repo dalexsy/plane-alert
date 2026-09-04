@@ -2,10 +2,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { importProvidersFrom, enableProdMode } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
-import { provideRouter, TitleStrategy } from '@angular/router';
-import { routes } from './app/app.routes';
 import { Title } from '@angular/platform-browser';
-import { PlanesTitleStrategy } from './app/planes-title.strategy';
 import {
   BrowserAnimationsModule,
   NoopAnimationsModule,
@@ -79,8 +76,6 @@ void bootstrapApplication(AppComponent, {
       isKioskMode() ? NoopAnimationsModule : BrowserAnimationsModule,
     ),
     Title,
-    provideRouter(routes),
-    { provide: TitleStrategy, useClass: PlanesTitleStrategy },
   ],
 })
   .then(() => {

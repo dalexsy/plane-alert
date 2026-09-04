@@ -1,6 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { ButtonComponent } from '../ui/button/button.component';
 import { TabComponent } from '../ui/tab/tab.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
@@ -37,13 +36,10 @@ export class ResultsToolbarComponent {
 
   readonly kiosk = isKioskMode();
 
-  constructor(
-    public settings: SettingsService,
-    private readonly router: Router,
-  ) {}
+  constructor(public settings: SettingsService) {}
 
   openSightings(): void {
-    void this.router.navigateByUrl('/sightings');
+    location.assign('/sightings');
   }
 
   get collapseTooltip(): string {

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { ButtonComponent } from '../../components/ui/button/button.component';
 import { InputComponent } from '../../components/ui/input/input.component';
 import {
@@ -34,10 +34,11 @@ export class AntennaSightingsPage implements OnInit, OnDestroy {
 
   constructor(
     private readonly api: AntennaSightingsService,
-    private readonly router: Router,
+    private readonly title: Title,
   ) {}
 
   ngOnInit(): void {
+    this.title.setTitle('Antenna sightings | Planes | dryl.io');
     void this.reload();
   }
 
@@ -46,7 +47,7 @@ export class AntennaSightingsPage implements OnInit, OnDestroy {
   }
 
   goMap(): void {
-    void this.router.navigateByUrl('/');
+    location.assign('/');
   }
 
   onSearchChange(value: string): void {
