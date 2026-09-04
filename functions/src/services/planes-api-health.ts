@@ -37,6 +37,7 @@ export function buildPlanesApiHealthResponse(input: {
   health: NotificationHealthSlice;
   pushoverSendEnabled?: boolean;
   now?: number;
+  antenna?: Record<string, unknown>;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const processAt = asMillis(input.health.processPlanesLastSuccessAt);
@@ -63,5 +64,6 @@ export function buildPlanesApiHealthResponse(input: {
     recentPushoverSends: Array.isArray(input.health.recentPushoverSends)
       ? input.health.recentPushoverSends
       : [],
+    antenna: input.antenna ?? null,
   };
 }

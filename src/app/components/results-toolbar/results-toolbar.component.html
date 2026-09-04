@@ -128,6 +128,17 @@
       (click)="openMilitaryHistory.emit()"
     ></app-button>
     <app-button
+      *ngIf="!kiosk"
+      class="antenna-sightings"
+      icon="cell_tower"
+      type="tertiary"
+      size="medium"
+      ariaLabel="Antenna sightings"
+      appTooltip="Antenna sightings"
+      tooltipPosition="left"
+      (click)="openSightings()"
+    ></app-button>
+    <app-button
       class="window-view-toggle"
       icon="window_closed"
       type="tertiary"

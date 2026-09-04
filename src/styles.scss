@@ -30,7 +30,8 @@ body {
 
 /* Map children are position:fixed — without this, app-root height is 0 and smoke blank-shell fails. */
 app-root,
-app-map {
+app-map,
+app-antenna-sightings-page {
   display: block;
   height: 100%;
   width: 100%;

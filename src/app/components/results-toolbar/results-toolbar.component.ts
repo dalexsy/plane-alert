@@ -1,10 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { ButtonComponent } from '../ui/button/button.component';
 import { TabComponent } from '../ui/tab/tab.component';
 import { TooltipDirective } from '../../directives/tooltip.directive';
 import { SettingsService } from '../../services/settings/settings.service';
 import { ResultsOverlayFacadeService } from '../../services/results/results-overlay-facade.service';
+import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
 
 @Component({
   selector: 'app-results-toolbar',
@@ -33,7 +35,16 @@ export class ResultsToolbarComponent {
   @Output() toggleMilitaryPriority = new EventEmitter<void>();
   @Output() toggleWindowView = new EventEmitter<void>();
 
-  constructor(public settings: SettingsService) {}
+  readonly kiosk = isKioskMode();
+
+  constructor(
+    public settings: SettingsService,
+    private readonly router: Router,
+  ) {}
+
+  openSightings(): void {
+    void this.router.navigateByUrl('/sightings');
+  }
 
   get collapseTooltip(): string {
     return this.facade.collapsed ? 'Expand results' : 'Collapse results';

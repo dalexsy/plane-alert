@@ -1,0 +1,87 @@
+<section class="sightings-page">
+  <header class="page-header">
+    <div class="title-row">
+      <h1>Antenna sightings</h1>
+      <app-button
+        type="tertiary"
+        size="small"
+        icon="map"
+        text="Map"
+        ariaLabel="Back to map"
+        (click)="goMap()"
+      ></app-button>
+    </div>
+    <p class="muted">
+      Unique aircraft the home ADS-B antenna has logged.
+    </p>
+    <p class="status muted" *ngIf="statusLine">{{ statusLine }}</p>
+  </header>
+
+  <div class="controls">
+    <app-input
+      label="Search"
+      placeholder="Hex or callsign"
+      [value]="search"
+      (inputChange)="onSearchChange($event)"
+    ></app-input>
+    <div class="filters">
+      <app-button
+        type="tertiary"
+        size="small"
+        text="Today"
+        [attr.data-active]="todayOnly"
+        (click)="setToday(true)"
+      ></app-button>
+      <app-button
+        type="tertiary"
+        size="small"
+        text="All"
+        [attr.data-active]="!todayOnly"
+        (click)="setToday(false)"
+      ></app-button>
+      <app-button
+        type="tertiary"
+        size="small"
+        text="Last seen"
+        [attr.data-active]="sort === 'lastSeen'"
+        (click)="setSort('lastSeen')"
+      ></app-button>
+      <app-button
+        type="tertiary"
+        size="small"
+        text="Closest"
+        [attr.data-active]="sort === 'closest'"
+        (click)="setSort('closest')"
+      ></app-button>
+    </div>
+  </div>
+
+  <p class="load-error" *ngIf="error">{{ error }}</p>
+  <p class="muted" *ngIf="loading && !error">Loading sightings…</p>
+
+  <div class="table-wrap" *ngIf="!loading && !error">
+    <table *ngIf="rows.length > 0">
+      <thead>
+        <tr>
+          <th>Hex</th>
+          <th>Flight</th>
+          <th>Closest</th>
+          <th>First seen</th>
+          <th>Last seen</th>
+          <th>Hits</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rows">
+          <td class="mono">{{ row.hex }}</td>
+          <td>{{ row.flight }}</td>
+          <td>{{ row.closest }}</td>
+          <td>{{ row.firstSeenLabel }}</td>
+          <td>{{ row.lastSeenLabel }}</td>
+          <td>{{ row.hits }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted empty" *ngIf="rows.length === 0">{{ emptyLabel }}</p>
+  </div>
+</section>

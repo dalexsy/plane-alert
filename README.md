@@ -2,6 +2,26 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.6.
 
+## Antenna sightings
+
+Tracker of every unique aircraft the home ADS-B antenna has seen.
+
+- **Open:** [https://planes.dryl.io/sightings](https://planes.dryl.io/sightings) (map toolbar: cell-tower icon). Kiosk stays on the map.
+- **Feed:** `http://192.168.178.27/tar1090/data/aircraft.json` (tar1090 UI: `http://192.168.178.27/tar1090/`).
+- **Poller:** `planes-api` on dryl-prod (`.79`) reads the feed every 12s and upserts by ICAO hex. Does not run on a laptop.
+- **Store:** `/home/pi/planes-api/data/antenna-sightings.json` on dryl-prod.
+
+Point the feed (optional, in `/home/pi/planes-api/.env` — never overwrite that file from a laptop):
+
+```
+PLANES_ANTENNA_FEED_URL=http://192.168.178.27/tar1090/data/aircraft.json
+PLANES_ANTENNA_POLL_MS=12000
+PLANES_ANTENNA_SIGHTINGS_PATH=/home/pi/planes-api/data/antenna-sightings.json
+PLANES_ANTENNA_ENABLED=1
+```
+
+Set `PLANES_ANTENNA_ENABLED=0` to pause the poller. Defaults match the home tar1090 URL above if unset.
+
 ## Development server
 
 To start a local development server, run:
