@@ -64,15 +64,12 @@ button {
     width: fit-content;
     padding: 0.5rem;
 
-    // When a button has both icon and text
+    // When a button has both icon and text — the parent `button` flex row
+    // already sets `gap: 0.25rem`, so icon-to-text spacing needs no extra
+    // padding here.
     &:has(+ .text),
     &:has(~ .text) {
       padding: 0 0.5rem;
-
-      + .text,
-      ~ .text {
-        padding-left: 0.25rem;
-      }
     }
   }
 

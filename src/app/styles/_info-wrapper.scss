@@ -27,11 +27,11 @@
   }
 
   &.left-bar-visible {
-    padding-left: 4rem;
+    padding-left: 4rem; // gap-ok — clears the fixed sidebar overlay, not sibling spacing
   }
 
   &.results-expanded {
-    padding-right: calc(1rem + 28rem);
+    padding-right: calc(1rem + 28rem); // gap-ok — clears the fixed results panel overlay
   }
 
   > app-angle-overlay {
