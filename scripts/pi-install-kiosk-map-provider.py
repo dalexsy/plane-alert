@@ -69,4 +69,16 @@ sha256sum /usr/local/sbin/planes-kiosk-page-heal.py /usr/local/sbin/planes_kiosk
     if code or not all(value in out for value in hashes.values()):
         raise SystemExit('Kiosk provider installation verification failed')
 finally:
+    if 'temporary' in locals() and temporary.startswith('/tmp/planes-map-provider.'):
+        sftp = client.open_sftp()
+        try:
+            cache = temporary + '/__pycache__'
+            for name in sftp.listdir(cache):
+                sftp.remove(cache + '/' + name)
+            sftp.rmdir(cache)
+            for name in names:
+                sftp.remove(temporary + '/' + name)
+            sftp.rmdir(temporary)
+        finally:
+            sftp.close()
     client.close()
