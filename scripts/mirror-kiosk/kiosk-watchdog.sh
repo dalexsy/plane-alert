@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # magicmirror: heal planes kiosk after dryl-auth / admin tunnel outages.
-# Long-running user service (not a timer). Full Chromium restart is daytime-only —
-# overnight restarts light the bedroom (see planes-kiosk-daytime-restart.timer).
+# Long-running user service (not a timer). Auth recovery never restarts Chromium.
+# Page recovery belongs to the page healer and kiosk health watch.
 set -euo pipefail
 
 CHECK_URL="${KIOSK_WATCHDOG_URL:-https://admin.dryl.io/}"
@@ -49,24 +49,26 @@ endpoint_up() {
   is_up "${CHECK_URL}"
 }
 
-restart_kiosk_if_allowed() {
+recover_kiosk_if_needed() {
   if is_quiet_hours; then
-    log "$(date -Iseconds) quiet hours (22:00-07:00 Berlin) — skip Chromium restart after auth recovery"
+    log "$(date -Iseconds) quiet hours (22:00-07:00 Berlin) — leave Chromium untouched after auth recovery"
     return 0
   fi
-  log "restarting planes-kiosk.service"
-  if systemctl --user restart planes-kiosk.service; then
-    sleep 3
-    log "planes-kiosk status after restart: $(systemctl --user is-active planes-kiosk.service 2>/dev/null || echo unknown)"
-  else
-    log "planes-kiosk restart failed"
+  # Auth connectivity is not page health. A healthy display must keep its process
+  # and document, even when the remote admin endpoint flaps repeatedly.
+  # The existing page healer inspects the live tab and reloads only a broken page.
+  log "auth recovered — inspect page without restarting Chromium"
+  if ! python3 /usr/local/sbin/planes-kiosk-page-heal.py; then
+    log "page inspection failed — leave Chromium running; kiosk health watch retains recovery ownership"
   fi
 }
+
+main() {
 
 was_down=0
 down_since=""
 
-log "started (poll ${POLL_SEC}s, quiet 22:00-07:00 Berlin, no overnight Chromium restart)"
+log "started (poll ${POLL_SEC}s, quiet 22:00-07:00 Berlin, auth recovery never restarts Chromium)"
 
 while true; do
   if endpoint_up; then
@@ -75,7 +77,7 @@ while true; do
       log "waiting ${STABILISE_SEC}s for tunnel to stabilise..."
       sleep "${STABILISE_SEC}"
       if endpoint_up; then
-        restart_kiosk_if_allowed
+        recover_kiosk_if_needed
       else
         log "auth still flapping after stabilise wait — leave kiosk alone"
       fi
@@ -91,3 +93,9 @@ while true; do
   fi
   sleep "${POLL_SEC}"
 done
+
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main
+fi
