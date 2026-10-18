@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import urllib.request
+from planes_kiosk_map_provider import apply_night_basemap
 
 try:
     import websocket
@@ -150,13 +151,14 @@ def main() -> int:
 
     ws = websocket.create_connection(page["webSocketDebuggerUrl"], timeout=15)
     try:
+        provider = apply_night_basemap(_evaluate, ws)
         state = _page_state(ws)
         reason = _needs_heal(state)
         if not reason:
             print(
                 f"planes-kiosk-page-heal: ok href={state.get('href')} "
                 f"appRootLen={state.get('appRootLen')} hasMap={state.get('hasMap')} "
-                f"markers={state.get('markerCount')}"
+                f"markers={state.get('markerCount')} provider={provider}"
             )
             return 0
 
@@ -167,6 +169,7 @@ def main() -> int:
             file=sys.stderr,
         )
         after = _soft_reload(ws, state)
+        apply_night_basemap(_evaluate, ws)
         if _needs_heal(after):
             print(
                 f"planes-kiosk-page-heal: still unhealthy after heal "

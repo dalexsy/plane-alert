@@ -26,6 +26,8 @@ FILES = {
     "planes-kiosk.sh": Path("/home/pi/bin/planes-kiosk.sh"),
     "planes-kiosk-session.py": Path("/home/pi/bin/planes-kiosk-session.py"),
     "planes-kiosk-page-heal.py": Path("/usr/local/sbin/planes-kiosk-page-heal.py"),
+    "planes_kiosk_map_provider.py": Path("/usr/local/sbin/planes_kiosk_map_provider.py"),
+    "planes-kiosk-night-basemap.js": Path("/usr/local/sbin/planes-kiosk-night-basemap.js"),
     "planes-kiosk-restart.sh": Path("/usr/local/sbin/planes-kiosk-restart.sh"),
     "planes-kiosk-watch.sh": Path("/usr/local/sbin/planes-kiosk-watch.sh"),
     "planes-kiosk-alert-listen.py": Path("/home/pi/bin/planes-kiosk-alert-listen.py"),
@@ -399,6 +401,7 @@ install -m 755 /tmp/planes-kiosk-session.py /home/pi/bin/planes-kiosk-session.py
 install -m 755 /tmp/planes-kiosk-alert-listen.py /home/pi/bin/planes-kiosk-alert-listen.py
 install -m 755 /tmp/planes-kiosk-alert-play.sh /home/pi/bin/planes-kiosk-alert-play.sh
 sudo install -m 755 /tmp/planes-kiosk-page-heal.py /usr/local/sbin/planes-kiosk-page-heal.py
+sudo install -m 644 /tmp/planes_kiosk_map_provider.py /tmp/planes-kiosk-night-basemap.js /usr/local/sbin/
 sudo install -m 755 /tmp/planes-kiosk-restart.sh /usr/local/sbin/planes-kiosk-restart.sh
 sudo install -m 755 /tmp/planes-kiosk-watch.sh /usr/local/sbin/planes-kiosk-watch.sh
 # Live path is /home/pi/kiosk-watchdog.sh (user service); keep that path.

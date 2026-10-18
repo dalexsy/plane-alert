@@ -29,9 +29,10 @@ export class MapInitializerService {
   ): { map: L.Map; currentLocationMarker: L.Marker } {
     const map = L.map(mapId, {
       zoomControl: false,
-      attributionControl: false,
+      attributionControl: true,
       doubleClickZoom: false,
     }).setView([lat, lon], 12);
+    map.attributionControl.setPrefix(false).setPosition('topleft');
 
     // Disable CD for frequent panning events, only toggle class inside Angular when needed
     map.on('movestart', () => {

@@ -42,6 +42,8 @@ export class MapThemeService {
       const nightTheme = MAP_THEMES.night;
       const tileLayer = L.tileLayer(nightTheme.url, {
         attribution: nightTheme.attribution,
+        className: nightTheme.className,
+        updateWhenIdle: true,
         maxZoom: 18,
         minZoom: 1,
       });
