@@ -14,7 +14,7 @@ export { shouldAlertForAircraft, planeFieldsToAdsB, } from './military-alert-gat
 // Export geo utilities
 export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';
 // Export notification formatting
-export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, getCountryFlagEmoji, isCoordinateLikeLocation, humanReadableLocation, } from './notification-formatter';
+export { formatNotificationBody, formatNotificationTitle, formatHeadingBound, formatPlaceAndBearingFromHome, joinNotificationParts, getArrowForDirection, getCountryFlagEmoji, isCoordinateLikeLocation, humanReadableLocation, } from './notification-formatter';
 // Export aircraft database utilities
 export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from './aircraft-db-loader';
 // Export military types for filtering

@@ -28,20 +28,27 @@ export declare function humanReadableLocation(value: string | null | undefined):
  * Get arrow for cardinal direction
  */
 export declare function getArrowForDirection(direction: string): string;
+/** Join non-empty notification segments without stray separators. */
+export declare function joinNotificationParts(parts: Array<string | undefined | null>): string;
+/** Nearby place plus bearing from home, e.g. `Rudow SE`. */
+export declare function formatPlaceAndBearingFromHome(location?: string, direction?: string): string | undefined;
+/** Aircraft track as compact heading text, e.g. `E-bound`. */
+export declare function formatHeadingBound(planeHeading: number): string;
 /**
  * Convert country code to flag emoji
  */
 export declare function getCountryFlagEmoji(countryCode: string): string;
 /**
- * Format notification title with flag emoji and aircraft identifier
- * Format: "[flag] [model]" if model exists, otherwise "[flag] [callsign]"
+ * Notification title (no flags or decorative emoji).
+ * Model + operator when both exist; else model, callsign, operator, or ICAO; else fallback.
+ * Operator is shown in the title only alongside a model (not with callsign-only titles).
+ * @param _flagEmoji Ignored (kept for call-site compatibility).
  */
-export declare function formatNotificationTitle(flagEmoji: string, model?: string, callsign?: string, icao?: string): string;
+export declare function formatNotificationTitle(_flagEmoji?: string, model?: string, callsign?: string, icao?: string, operator?: string): string;
 /**
- * Format notification body - single source of truth for both desktop and push notifications
- * Format: "over [location] to the [bearing] flying [heading] • [callsign] • [speed] • [altitude]"
- * @param data Notification data
- * @param skipCallsignInBody If true, omits the callsign from the body (when it's already in the title)
+ * Compact notification body for phone lock screens.
+ * Format: `Rudow SE · E-bound · 7,600 m ↑` (omits missing fields).
+ * @param _skipCallsignInBody Ignored (callsign lives in the title when needed).
  */
-export declare function formatNotificationBody(data: NotificationData, skipCallsignInBody?: boolean): string;
+export declare function formatNotificationBody(data: NotificationData, _skipCallsignInBody?: boolean): string;
 //# sourceMappingURL=notification-formatter.d.ts.map

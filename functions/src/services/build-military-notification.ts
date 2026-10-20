@@ -14,7 +14,7 @@ import {
 import type { DeviceRegistration, Location } from '../types';
 import { FRONTEND_BASE_URL } from '../constants';
 import { isSpecialAircraft } from '../utils';
-import { buildNotificationBody } from './notification-builder';
+import { buildNotificationBody, getOperatorFromCallsign } from './notification-builder';
 import type { FlightData } from './aeroapi-client';
 import type { PendingNotification } from './notification-types';
 
@@ -82,24 +82,14 @@ export async function buildMilitaryPendingNotification(
     flightData,
   );
 
-  let title = formatNotificationTitle(
+  const operator = getOperatorFromCallsign(callsign);
+  const title = formatNotificationTitle(
     flagEmoji,
     model,
     callsign,
     icaoUpper,
+    operator ?? undefined,
   );
-
-  if (model) {
-    const modelUpper = model.toUpperCase();
-    if (modelUpper.includes('A400') || modelUpper.includes('A-400')) {
-      title = '🦜 ' + title;
-    } else if (
-      modelUpper.includes('E-3') ||
-      modelUpper.includes('SENTRY')
-    ) {
-      title = '🛸 ' + title;
-    }
-  }
 
   const iconPath = isSpecialAircraft(icaoUpper)
     ? 'favicon/special'

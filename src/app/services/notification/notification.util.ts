@@ -1,6 +1,5 @@
 import { DistanceUnit } from '../../utils/units/units.util';
-import { formatNotificationBody, getCountryFlagEmoji } from '@plane-alert/shared';
-import type { CountryService } from '../country/country.service';
+import { formatNotificationBody } from '@plane-alert/shared';
 import type { SettingsService } from '../settings/settings.service';
 
 export type MilitaryPlaneInfo = {
@@ -14,24 +13,16 @@ export type MilitaryPlaneInfo = {
   distanceKm?: number;
   origin?: string;
   verticalRate?: number;
+  location?: string;
+  planeHeading?: number;
 };
-
-export function buildMilitaryNotificationTitle(label: string): string {
-  const upper = label.toUpperCase();
-  if (upper.includes('A400') || upper.includes('A-400')) return '🦜 ' + label;
-  if (upper.includes('E-3') || upper.includes('SENTRY')) return '🛸 ' + label;
-  return label || 'Military Plane Alert';
-}
 
 export function buildMilitaryNotificationBody(
   planeInfo: MilitaryPlaneInfo,
-  settings: SettingsService,
-  countryService: CountryService
+  settings: SettingsService
 ): string {
   const unitPreference = settings.distanceUnit === 'miles' ? DistanceUnit.MILES : DistanceUnit.KILOMETERS;
   const callsign = planeInfo.callsign?.trim() || planeInfo.icao;
-  const countryCode = planeInfo.origin || extractCountryCode(planeInfo.operator, countryService);
-  const flagEmoji = countryCode ? getCountryFlagEmoji(countryCode) : '🏳️';
   let speed: number | undefined;
   let speedUnit: 'mph' | 'km/h';
   if (planeInfo.speed && planeInfo.speed > 0) {
@@ -49,23 +40,17 @@ export function buildMilitaryNotificationBody(
     altitudeUnit = unitPreference === DistanceUnit.MILES ? 'ft' : 'm';
   }
   return formatNotificationBody({
-    callsign, icao: planeInfo.icao, direction: planeInfo.direction, flagEmoji,
-    operator: planeInfo.operator, speed, speedUnit, altitude, altitudeUnit, verticalRate: planeInfo.verticalRate,
+    callsign,
+    icao: planeInfo.icao,
+    direction: planeInfo.direction,
+    planeHeading: planeInfo.planeHeading,
+    location: planeInfo.location,
+    speed,
+    speedUnit,
+    altitude,
+    altitudeUnit,
+    verticalRate: planeInfo.verticalRate,
   });
-}
-
-function extractCountryCode(operator: string | undefined, countryService: CountryService): string | null {
-  if (!operator) return null;
-  let candidate = operator.trim();
-  const parenMatch = candidate.match(/\(([^)]+)\)/);
-  if (parenMatch && parenMatch[1].trim().length > 2) candidate = parenMatch[1].trim();
-  if (candidate.includes(' - ')) candidate = candidate.split(' - ')[0].trim();
-  if (candidate.includes(',')) {
-    const parts = candidate.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length) candidate = parts[parts.length - 1];
-  }
-  candidate = candidate.replace(/\s+/g, ' ').trim();
-  return countryService.getCountryCode(candidate) || null;
 }
 
 export async function detectIncognitoMode(): Promise<boolean> {
