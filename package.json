@@ -46,6 +46,7 @@
     "prestart": "npm run lint:ui",
     "verify:visual": "node ..\\directory\\scripts\\assert-deploy-screenshots.mjs planes",
     "verify:localhost": "node ..\\directory\\scripts\\verify-localhost-ui.mjs --repo plane-alert",
+    "verify:clock": "node scripts/verify-planes-clock.mjs",
     "verify:dist:local": "npm run build && node ..\\directory\\scripts\\verify-dist-git-sha.mjs --dist=dist/plane-alert/browser --repo=. --site-id=planes && node ..\\directory\\scripts\\smoke-spa-console.mjs planes --local",
     "lint:logical-padding": "node ../directory/scripts/lint-logical-padding.mjs",
     "lint:physical-borders": "node ../directory/scripts/lint-physical-borders.mjs",

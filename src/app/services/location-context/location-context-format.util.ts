@@ -4,6 +4,7 @@ import { getCurrentTimeForTimezone } from './location-context.util';
 export function formatTimeForTimezone(
   timezone: TimezoneData | null,
   options?: Intl.DateTimeFormatOptions,
+  at: Date = new Date(),
 ): string {
   const base: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -16,7 +17,7 @@ export function formatTimeForTimezone(
     return new Intl.DateTimeFormat('en-GB', {
       ...base,
       timeZone: timezone.timezone,
-    }).format(new Date());
+    }).format(at);
   }
   return getCurrentTimeForTimezone(timezone).toLocaleTimeString('en-GB', base);
 }
