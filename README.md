@@ -93,6 +93,38 @@ There is **no Firestore or FCM service worker** in this repo (`lint:no-fcm-sw`).
 
 Dedup, quiet hours, and kiosk audio: `.cursor/rules/debugging.md`.
 
+### Push notification copy (example)
+
+Pushover messages use a **title** and **body**. The installed PWA uses the same body formatter when it shows a Web Notification for a military aircraft in range.
+
+**Examples (Pushover or PWA — same formatters):**
+
+| Case | Title | Body |
+|------|-------|------|
+| Model + operator | `Airbus A400M · Luftwaffe` | `Rudow SE · E-bound · 7,600 m ↑` |
+| Model only | `Airbus A400M` | `Rudow SE · E-bound · 7,600 m` |
+| Callsign only | `GAF871` | `Rudow SE · E-bound · 7,600 m` |
+
+Map link (unchanged): `https://planes.dryl.io/?icao=3F717C&follow=1` (“View on Map”).
+
+Title priority: **model** (with **operator** appended only when both exist), else **callsign**, else **operator**, else **ICAO**, else `Aircraft nearby`. The body always leads with place + bearing from home when known, then `[cardinal]-bound`, then altitude (`↑` / `↓` only for meaningful climb or descent). No speed, flags, or filler words.
+
+### How the body is built
+
+One shared function formats the text for **planes-api Pushover** and the **browser** (`@plane-alert/shared` → `formatNotificationBody` in `shared/src/notification-formatter.ts`).
+
+**Server path (background Pushover):**
+
+1. Cron on planes-api runs `runNotificationProcessing` (every ~2 minutes) after ADS-B collection.
+2. For each registered home location, aircraft inside the user’s radius that pass the military/special gate are candidates.
+3. `buildMilitaryPendingNotification` (`functions/src/services/build-military-notification.ts`) computes bearing from home → plane, cardinal direction, operator from callsign prefixes, and title via `formatNotificationTitle`.
+4. `buildNotificationBody` (`functions/src/services/notification-builder.ts`) adds altitude from ADS-B (`alt_baro`, `baro_rate`), track as heading, and optional place name from `reverseGeocode` (never raw lat/lon in the body).
+5. `formatNotificationBody` joins up to three segments with ` · `: `[place] [bearing from home]`, `[cardinal]-bound`, `[altitude] [↑|↓]`. Missing fields are omitted with no extra separators.
+
+**Browser path (PWA):** `notification.service` → `buildMilitaryNotificationBody` in `src/app/services/notification/notification.util.ts` calls the same `formatNotificationBody` with units from your distance setting (km vs miles).
+
+To change wording for both phone and map test toasts, edit `shared/src/notification-formatter.ts`, run `npm run build:shared`, then redeploy the SPA and planes-api.
+
 ## Antenna sightings
 
 Every unique ICAO hex reported by the home feed is upserted by planes-api.

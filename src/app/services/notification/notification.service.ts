@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from '../settings/settings.service';
-import { CountryService } from '../country/country.service';
+import { formatNotificationTitle } from '@plane-alert/shared';
 import {
   buildMilitaryNotificationBody,
-  buildMilitaryNotificationTitle,
   evaluateNotificationStatus,
   MilitaryPlaneInfo,
   NotificationStatusInfo,
@@ -14,10 +13,7 @@ export type { NotificationState, NotificationStatusInfo } from './notification.u
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
-  constructor(
-    private settings: SettingsService,
-    private countryService: CountryService
-  ) {}
+  constructor(private settings: SettingsService) {}
 
   async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
@@ -35,9 +31,14 @@ export class NotificationService {
 
   showMilitaryPlaneNotification(planeInfo: MilitaryPlaneInfo): void {
     if (Notification.permission !== 'granted') return;
-    const label = planeInfo.model?.trim() || planeInfo.callsign?.trim() || planeInfo.icao;
-    const title = buildMilitaryNotificationTitle(label);
-    const body = buildMilitaryNotificationBody(planeInfo, this.settings, this.countryService);
+    const title = formatNotificationTitle(
+      undefined,
+      planeInfo.model,
+      planeInfo.callsign,
+      planeInfo.icao,
+      planeInfo.operator
+    );
+    const body = buildMilitaryNotificationBody(planeInfo, this.settings);
     const notificationUrl = `${window.location.origin}/?icao=${planeInfo.icao}&follow=1`;
     const options: NotificationOptions = {
       body,

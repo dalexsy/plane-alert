@@ -1,6 +1,9 @@
 /**
  * Shared notification formatting logic used by both frontend and backend
  */
+import { bearingToCardinal } from './geo-utils';
+const NOTIFICATION_PART_SEP = ' · ';
+const VERTICAL_RATE_THRESHOLD_FT_MIN = 64;
 /**
  * True when a string is lat/lon (decimal, ARINC, NSEW packs) — not for end users.
  */
@@ -58,13 +61,29 @@ export function getArrowForDirection(direction) {
     };
     return arrows[dir] || '';
 }
-/**
- * Convert bearing to cardinal direction
- */
-function bearingToCardinal(bearing) {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const index = Math.round((bearing % 360) / 45) % 8;
-    return directions[index];
+/** Join non-empty notification segments without stray separators. */
+export function joinNotificationParts(parts) {
+    return parts
+        .map((p) => p?.trim())
+        .filter((p) => Boolean(p))
+        .join(NOTIFICATION_PART_SEP);
+}
+/** Nearby place plus bearing from home, e.g. `Rudow SE`. */
+export function formatPlaceAndBearingFromHome(location, direction) {
+    const place = humanReadableLocation(location);
+    const dir = direction?.trim().toUpperCase();
+    if (place && dir)
+        return `${place} ${dir}`;
+    if (place)
+        return place;
+    if (dir)
+        return dir;
+    return undefined;
+}
+/** Aircraft track as compact heading text, e.g. `E-bound`. */
+export function formatHeadingBound(planeHeading) {
+    const cardinal = bearingToCardinal(planeHeading);
+    return `${cardinal}-bound`;
 }
 /**
  * Convert country code to flag emoji
@@ -82,87 +101,54 @@ export function getCountryFlagEmoji(countryCode) {
     return String.fromCodePoint(...codePoints);
 }
 /**
- * Format notification title with flag emoji and aircraft identifier
- * Format: "[flag] [model]" if model exists, otherwise "[flag] [callsign]"
+ * Notification title (no flags or decorative emoji).
+ * Model + operator when both exist; else model, callsign, operator, or ICAO; else fallback.
+ * Operator is shown in the title only alongside a model (not with callsign-only titles).
+ * @param _flagEmoji Ignored (kept for call-site compatibility).
  */
-export function formatNotificationTitle(flagEmoji, model, callsign, icao) {
-    const flag = flagEmoji || '🏳️';
-    // Use model if available, otherwise use callsign, otherwise use ICAO
-    const identifier = model?.trim() || callsign?.trim() || icao?.toUpperCase() || '';
-    if (!identifier) {
-        return flag; // Just flag if nothing else available
-    }
-    return `${flag} ${identifier}`;
+export function formatNotificationTitle(_flagEmoji, model, callsign, icao, operator) {
+    const m = cleanNotificationField(model);
+    const op = cleanNotificationField(operator);
+    const cs = cleanNotificationField(callsign);
+    const hex = icao?.trim().toUpperCase();
+    if (m)
+        return op ? joinNotificationParts([m, op]) : m;
+    if (cs)
+        return cs;
+    if (op)
+        return op;
+    if (hex)
+        return hex;
+    return 'Aircraft nearby';
+}
+function cleanNotificationField(value) {
+    const trimmed = value?.trim();
+    if (!trimmed)
+        return undefined;
+    const lower = trimmed.toLowerCase();
+    if (lower === 'undefined' || lower === 'null' || lower === 'unknown')
+        return undefined;
+    return trimmed;
 }
 /**
- * Format notification body - single source of truth for both desktop and push notifications
- * Format: "over [location] to the [bearing] flying [heading] • [callsign] • [speed] • [altitude]"
- * @param data Notification data
- * @param skipCallsignInBody If true, omits the callsign from the body (when it's already in the title)
+ * Compact notification body for phone lock screens.
+ * Format: `Rudow SE · E-bound · 7,600 m ↑` (omits missing fields).
+ * @param _skipCallsignInBody Ignored (callsign lives in the title when needed).
  */
-export function formatNotificationBody(data, skipCallsignInBody = false) {
-    const callsign = data.callsign?.trim() || data.icao.toUpperCase();
-    const flagEmoji = data.flagEmoji || '🏳️';
-    // Build location/direction header (place names only — never lat/lon)
-    let header = '';
-    const place = humanReadableLocation(data.location);
-    if (place) {
-        header = `over ${place}`;
-    }
-    // Add "to the [bearing]" if bearing available
-    if (data.direction) {
-        const arrow = getArrowForDirection(data.direction);
-        const directionText = arrow ? `${data.direction} ${arrow}` : data.direction;
-        header += header ? ` to the ${directionText}` : `to the ${directionText}`;
-    }
-    // Add "flying [heading]" if plane heading available
-    if (data.planeHeading !== undefined) {
-        const headingCardinal = bearingToCardinal(data.planeHeading);
-        const headingArrow = getArrowForDirection(headingCardinal);
-        const headingText = headingArrow
-            ? `${headingCardinal} ${headingArrow}`
-            : headingCardinal;
-        header += ` flying ${headingText}`;
-    }
-    // Build details array
-    const parts = [];
-    // Add header as first part if it exists
-    if (header) {
-        parts.push(header);
-    }
-    // Flag and callsign (skip if already in title)
-    if (!skipCallsignInBody) {
-        parts.push(`${flagEmoji} ${callsign}`);
-    }
-    // Operator (if available)
-    if (data.operator) {
-        parts.push(data.operator);
-    }
-    // Route (origin→destination with ETA)
-    if (data.route) {
-        parts.push(data.route);
-    }
-    // Speed (if available)
-    if (data.speed && data.speed > 0) {
-        const speed = Math.round(data.speed);
-        parts.push(`${speed} ${data.speedUnit}`);
-    }
-    // Altitude (if available)
+export function formatNotificationBody(data, _skipCallsignInBody = false) {
+    const placeBearing = formatPlaceAndBearingFromHome(data.location, data.direction);
+    const headingPart = data.planeHeading !== undefined && Number.isFinite(data.planeHeading)
+        ? formatHeadingBound(data.planeHeading)
+        : undefined;
+    let altitudePart;
     if (data.altitude && data.altitude > 0) {
         const formattedAlt = Math.round(data.altitude).toLocaleString('en-US');
         let altitudeText = `${formattedAlt} ${data.altitudeUnit}`;
-        // Add vertical rate arrow (verticalRate is in ft/min)
-        if (data.verticalRate && Math.abs(data.verticalRate) > 64) {
-            if (data.verticalRate > 0) {
-                altitudeText += ' ↗'; // Ascending
-            }
-            else {
-                altitudeText += ' ↘'; // Descending
-            }
+        if (data.verticalRate && Math.abs(data.verticalRate) > VERTICAL_RATE_THRESHOLD_FT_MIN) {
+            altitudeText += data.verticalRate > 0 ? ' ↑' : ' ↓';
         }
-        parts.push(altitudeText);
+        altitudePart = altitudeText;
     }
-    // Join with bullets
-    return parts.join(' • ');
+    return joinNotificationParts([placeBearing, headingPart, altitudePart]);
 }
 //# sourceMappingURL=notification-formatter.js.map

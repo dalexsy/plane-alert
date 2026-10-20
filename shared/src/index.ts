@@ -67,6 +67,9 @@ export {
 export {
   formatNotificationBody,
   formatNotificationTitle,
+  formatHeadingBound,
+  formatPlaceAndBearingFromHome,
+  joinNotificationParts,
   getArrowForDirection,
   getCountryFlagEmoji,
   isCoordinateLikeLocation,

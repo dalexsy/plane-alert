@@ -11,7 +11,7 @@ export { isLikelyHelicopter, hasMeaningfulAircraftModel, isJunkAircraftIdentityT
 export { shouldAlertForAircraft, planeFieldsToAdsB, } from './military-alert-gate';
 export type { AlertAircraftOptions } from './military-alert-gate';
 export { toRadians, toDegrees, haversineDistanceKm, computeBearing, bearingToCardinal, formatDistance, } from './geo-utils';
-export { formatNotificationBody, formatNotificationTitle, getArrowForDirection, getCountryFlagEmoji, isCoordinateLikeLocation, humanReadableLocation, } from './notification-formatter';
+export { formatNotificationBody, formatNotificationTitle, formatHeadingBound, formatPlaceAndBearingFromHome, joinNotificationParts, getArrowForDirection, getCountryFlagEmoji, isCoordinateLikeLocation, humanReadableLocation, } from './notification-formatter';
 export type { NotificationData } from './notification-formatter';
 export { createAircraftLookupMap, isAircraftMilitary, isMilitaryAircraft, } from './aircraft-db-loader';
 export type { AircraftDbEntry, AircraftDbMetadata } from './aircraft-db-loader';
