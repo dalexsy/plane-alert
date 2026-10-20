@@ -13,8 +13,9 @@ export const MAP_THEMES = {
     },
   },
   night: {
-    // CARTO Dark Matter tiles for night mode
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    // Standard browser-cached raster tiles; the night treatment affects this layer only.
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    className: 'night-basemap',
   },
 };

@@ -1,0 +1,15 @@
+// Keep the raster basemap dark without changing aircraft, weather or labels above it.
+.leaflet-layer.night-basemap {
+  filter: invert(1) hue-rotate(180deg) brightness(0.65) contrast(0.9);
+}
+
+// Leave room for the controls toggle; the sky view covers the bottom of the map.
+.leaflet-control-container .leaflet-top.leaflet-left {
+  inset-block-start: 3rem;
+}
+
+.leaflet-control-attribution {
+  color-scheme: dark;
+  color: CanvasText;
+  background: Canvas;
+}

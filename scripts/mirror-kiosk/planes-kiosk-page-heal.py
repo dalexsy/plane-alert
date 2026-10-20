@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Soft-heal planes kiosk when Chromium is stuck blank or empty of planes.
 
-Uses CDP on 127.0.0.1:9222. Prefer Page.reload / navigate over killing Chromium
-so quiet-hours bedroom flash is avoided.
+Uses CDP on 127.0.0.1:9222 for daytime page recovery. Quiet hours prohibit
+all document navigation; provider repair does not navigate or restart Chromium.
 
 Also heals the post-split case: SPA shell + map render, but zero markers while
 the public ADS-B API still returns aircraft (watch used to log and leave it).
@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import urllib.request
+from planes_kiosk_map_provider import apply_night_basemap, kiosk_quiet_hours
 
 try:
     import websocket
@@ -125,10 +126,12 @@ def _needs_heal(state: dict) -> str | None:
 
 
 def _soft_reload(ws: websocket.WebSocket, state: dict) -> dict:
+    if kiosk_quiet_hours():
+        raise RuntimeError("quiet hours 22:00-07:00 Berlin: leave document untouched")
     _call(ws, "Page.enable")
     href = (state.get("href") or "").lower()
     if "planes.dryl.io" in href:
-        _call(ws, "Page.reload", {"ignoreCache": True})
+        _call(ws, "Page.reload", {"ignoreCache": False})
     else:
         _call(ws, "Page.navigate", {"url": PLANES_URL})
     time.sleep(8)
@@ -150,13 +153,14 @@ def main() -> int:
 
     ws = websocket.create_connection(page["webSocketDebuggerUrl"], timeout=15)
     try:
+        provider = apply_night_basemap(_evaluate, ws)
         state = _page_state(ws)
         reason = _needs_heal(state)
         if not reason:
             print(
                 f"planes-kiosk-page-heal: ok href={state.get('href')} "
                 f"appRootLen={state.get('appRootLen')} hasMap={state.get('hasMap')} "
-                f"markers={state.get('markerCount')}"
+                f"markers={state.get('markerCount')} provider={provider}"
             )
             return 0
 
@@ -167,6 +171,7 @@ def main() -> int:
             file=sys.stderr,
         )
         after = _soft_reload(ws, state)
+        apply_night_basemap(_evaluate, ws)
         if _needs_heal(after):
             print(
                 f"planes-kiosk-page-heal: still unhealthy after heal "
@@ -188,4 +193,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:
         print(f"planes-kiosk-page-heal: {exc}", file=sys.stderr)
-        raise SystemExit(0)
+        raise SystemExit(1)
