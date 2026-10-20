@@ -3,14 +3,12 @@ import { onSchedule } from './on-request';
 import { logger } from './pi-logger';
 import type { DeviceRegistration } from './types';
 import { DEVICE_COLLECTION } from './constants';
-import {
-  validatePushoverUserKey,
-} from './utils';
-import { pruneOrphanDeviceRegistrations } from './services/prune-orphan-registrations';
-import {
-  dedupeDeviceRegistrationsByPushoverTarget,
-} from './services/dedupe-device-registrations';
 import { processDevicesWithSnapshotCache } from './services/process-devices-notifications';
+import {
+  buildDevicesToNotify,
+  createPushoverDeviceResolver,
+  pruneOrphansForUserKeys,
+} from './services/notification-processor-prepare';
 import {
   recordProcessPlanesFailure,
   recordProcessPlanesStart,
@@ -18,13 +16,13 @@ import {
   releaseProcessPlanesLock,
   tryAcquireProcessPlanesLock,
 } from './services/notification-health';
-import { isPushoverSendEnabled } from './services/pushover-send-gate';
+import { isNotificationProcessingEnabled } from './services/notification-processing-enabled';
 
 export async function runNotificationProcessing(
   db: JsonDocumentStore,
 ): Promise<void> {
-  if (!isPushoverSendEnabled()) {
-    logger.info('Skipping processPlanes — Pushover send disabled on this host');
+  if (!isNotificationProcessingEnabled()) {
+    logger.info('Skipping processPlanes — no notification transport enabled');
     await recordProcessPlanesStart(db, 0);
     await recordProcessPlanesSuccess(db);
     return;
@@ -68,22 +66,7 @@ async function runNotificationProcessingBody(
     ),
   ];
 
-  for (const userKey of userKeys) {
-    const validation = await validatePushoverUserKey(userKey);
-    if (validation.valid && validation.devices.length) {
-      const pruned = await pruneOrphanDeviceRegistrations(
-        db,
-        userKey,
-        validation.devices,
-      );
-      if (pruned > 0) {
-        logger.info('Auto-pruned orphan registrations during processPlanes', {
-          userKey: userKey.slice(0, 8),
-          pruned,
-        });
-      }
-    }
-  }
+  await pruneOrphansForUserKeys(db, userKeys);
 
   const activeSnapshot = await db.collection(DEVICE_COLLECTION).get();
   const activeDevices = activeSnapshot.docs.map((doc) => ({
@@ -94,51 +77,11 @@ async function runNotificationProcessingBody(
 
   await recordProcessPlanesStart(db, activeDevices.length);
 
-  const pushoverDeviceCache = new Map<string, Set<string> | null>();
-
-  const getRegisteredPushoverDevices = async (userKey: string) => {
-    if (pushoverDeviceCache.has(userKey)) {
-      return pushoverDeviceCache.get(userKey)!;
-    }
-
-    const validation = await validatePushoverUserKey(userKey);
-    if (!validation.valid) {
-      pushoverDeviceCache.set(userKey, null);
-      return null;
-    }
-
-    const devices = new Set(
-      validation.devices
-        .filter(
-          (name): name is string =>
-            typeof name === 'string' && name.trim().length > 0,
-        )
-        .map((name) => name.trim()),
-    );
-
-    if (!devices.size) {
-      pushoverDeviceCache.set(userKey, null);
-      return null;
-    }
-
-    pushoverDeviceCache.set(userKey, devices);
-    return devices;
-  };
-
-  const registeredDevicesByUserKey = new Map<string, Set<string>>();
-  for (const userKey of userKeys) {
-    const devices = await getRegisteredPushoverDevices(userKey);
-    if (devices?.size) {
-      registeredDevicesByUserKey.set(userKey, devices);
-    }
-  }
-
-  const dedupeResult = dedupeDeviceRegistrationsByPushoverTarget(
+  const getRegisteredPushoverDevices = createPushoverDeviceResolver();
+  const { devicesToProcess, duplicateRefs } = await buildDevicesToNotify(
     activeDevices,
-    registeredDevicesByUserKey,
+    getRegisteredPushoverDevices,
   );
-
-  const { toProcess: devicesToProcess, duplicateRefs } = dedupeResult;
 
   if (duplicateRefs.length > 0) {
     await Promise.all(duplicateRefs.map((ref) => ref.delete()));
@@ -164,7 +107,6 @@ async function runNotificationProcessingBody(
     db,
     devicesToProcess,
     getRegisteredPushoverDevices,
-    // Chime every home even when Pushover target list is empty / unmatched.
     activeDevices,
   );
   await recordProcessPlanesSuccess(db);

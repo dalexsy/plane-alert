@@ -14,6 +14,7 @@ import {
 import type { DeviceRegistration, Location } from '../types';
 import { FRONTEND_BASE_URL, RECENT_NOTIFICATION_TTL_MS } from '../constants';
 import { checkAndMarkNotified } from './notification-cooldown';
+import { notificationAccountKey } from './notification-delivery';
 import { reverseGeocode } from './geocoding';
 import type { PendingNotification } from './notification-types';
 
@@ -101,9 +102,14 @@ export async function collectProximityNotifications(
     );
 
     if (distanceKm <= PROXIMITY_THRESHOLD_KM) {
+      const accountKey = notificationAccountKey(data, docId);
+      if (!accountKey) {
+        continue;
+      }
+
       const shouldNotify = await checkAndMarkNotified(
         db,
-        data.pushoverUserKey,
+        accountKey,
         cooldownDeviceName,
         icao,
         RECENT_NOTIFICATION_TTL_MS,

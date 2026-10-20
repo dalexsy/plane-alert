@@ -13,6 +13,12 @@ import {
 import { resolveAircraftForNotification } from './resolve-aircraft-for-notification';
 import { getDeviceLocation } from './notification-snapshot-cache';
 import type { CachedAircraftSnapshot } from './notification-snapshot-cache';
+import {
+  deviceHasNotificationDestination,
+  isPwaInstallationRegistration,
+  prefersPwaDelivery,
+  installationIdForRegistration,
+} from './notification-delivery';
 
 export interface NotifyDeviceContext {
   deviceLocation: { lat: number; lon: number };
@@ -32,7 +38,11 @@ export async function buildNotifyDeviceContext(
   householdTarget?: string,
 ): Promise<NotifyDeviceContext | null> {
   const deviceLocation = getDeviceLocation(data);
-  if (!data.pushoverUserKey || !deviceLocation) {
+  if (!deviceLocation) {
+    return null;
+  }
+
+  if (!deviceHasNotificationDestination(data, registeredPushoverDevices, docId)) {
     return null;
   }
 
@@ -41,58 +51,79 @@ export async function buildNotifyDeviceContext(
     const slug = sanitizeDeviceName(inferredDeviceName);
     await device.set(
       { deviceName: inferredDeviceName, deviceSlug: slug },
-      { merge: true }
+      { merge: true },
     );
     data.deviceName = inferredDeviceName;
     data.deviceSlug = slug;
   }
 
-  const pushoverTargetName = resolvePushoverDeviceName(
-    data.deviceName || '',
-    registeredPushoverDevices,
-    data.platform
-  );
+  const pwaInstall = isPwaInstallationRegistration(docId, data);
+  let pushoverTargetName = '';
+  let cooldownDeviceName = data.deviceName || docId;
 
-  if (pushoverTargetName === null) {
-    logger.warn('No Pushover device match; skipping this registration', {
-      docId,
-      userKey: data.pushoverUserKey.slice(0, 8),
-      registrationDeviceName: data.deviceName,
-      pushoverDevices: registeredPushoverDevices
-        ? [...registeredPushoverDevices]
-        : [],
-    });
-    return null;
+  const needsPushoverResolution =
+    Boolean(data.pushoverUserKey?.trim()) &&
+    (!pwaInstall || data.pushoverFallbackEnabled === true);
+
+  if (needsPushoverResolution) {
+    const resolved = resolvePushoverDeviceName(
+      data.deviceName || '',
+      registeredPushoverDevices,
+      data.platform,
+    );
+
+    if (resolved === null && !prefersPwaDelivery(data, docId)) {
+      logger.warn('No Pushover device match; skipping this registration', {
+        docId,
+        userKey: data.pushoverUserKey!.slice(0, 8),
+        registrationDeviceName: data.deviceName,
+        pushoverDevices: registeredPushoverDevices
+          ? [...registeredPushoverDevices]
+          : [],
+      });
+      return null;
+    }
+
+    if (resolved) {
+      pushoverTargetName = resolved;
+      if (!pwaInstall) {
+        cooldownDeviceName = resolved;
+      }
+    }
   }
 
-  if (
-    pushoverTargetName &&
-    pushoverTargetName !== data.deviceName
-  ) {
-    logger.info('Resolved Pushover device alias', {
-      docId,
-      registrationDeviceName: data.deviceName,
-      pushoverDeviceName: pushoverTargetName,
-    });
+  if (pwaInstall) {
+    const install = installationIdForRegistration(data, docId);
+    if (install) {
+      cooldownDeviceName = `pwa:${install}`;
+    }
+    if (!pushoverTargetName) {
+      pushoverTargetName = data.deviceName || cooldownDeviceName;
+    }
   }
 
   const pushoverTargetDeviceName =
     householdTarget?.trim() ||
-    householdPushoverDeviceTarget(
-      registeredPushoverDevices,
-      pushoverTargetName,
-    );
+    (pushoverTargetName
+      ? householdPushoverDeviceTarget(
+          registeredPushoverDevices,
+          pushoverTargetName,
+        )
+      : pushoverTargetName);
 
   logger.info('Processing device', {
     docId,
-    userKey: data.pushoverUserKey.slice(0, 8),
+    userKey: data.pushoverUserKey?.slice(0, 8),
     deviceName: data.deviceName,
-    pushoverDeviceName: pushoverTargetName,
-    householdTarget: pushoverTargetDeviceName,
+    pushoverDeviceName: pushoverTargetName || undefined,
+    householdTarget: pushoverTargetDeviceName || undefined,
+    pwaInstall,
+    pwaPreferred: prefersPwaDelivery(data, docId),
     radiusKm: data.radiusKm,
     notifyProximity: data.notifyProximity,
     ignoredTypesCount: data.ignoredTypes?.length || 0,
   });
+
   const radiusKm = cachedSnapshot?.skipRadiusFilter
     ? MAX_RADIUS_KM
     : clampRadius(data.radiusKm);
@@ -100,7 +131,7 @@ export async function buildNotifyDeviceContext(
     deviceLocation,
     radiusKm,
     cachedSnapshot,
-    docId
+    docId,
   );
 
   logger.info('Fetched aircraft', {
@@ -113,8 +144,8 @@ export async function buildNotifyDeviceContext(
 
   return {
     deviceLocation,
-    pushoverTargetDeviceName,
-    cooldownDeviceName: pushoverTargetName,
+    pushoverTargetDeviceName: pushoverTargetDeviceName || pushoverTargetName,
+    cooldownDeviceName,
     radiusKm,
     aircraft,
   };

@@ -10,6 +10,7 @@ import {
   pushRegistrationEndpoint,
 } from '../../config/planes-api.config';
 import { SettingsService } from '../settings/settings.service';
+import { getOrCreateInstallationId } from '../pwa-push/pwa-push.util';
 
 export interface PushRegistrationOptions {
   radiusKm?: number;
@@ -54,6 +55,7 @@ export class PushRegistrationService {
       (this.settings.distanceUnit === 'miles' ? 'miles' : 'km');
     const payload = {
       pushoverUserKey: pushoverUserKey.trim(),
+      installationId: getOrCreateInstallationId(),
       platform: navigator.userAgent,
       clientModel,
       distanceUnit,

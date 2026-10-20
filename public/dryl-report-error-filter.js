@@ -1,6 +1,103 @@
 /**
  * Dedupe and noise filtering for dryl client error reporter.
  */
+(function drylConciergeShellHeal() {
+  if (typeof window === "undefined" || typeof location === "undefined") return;
+  if (location.hostname !== "concierge.dryl.io") return;
+
+  function heal(trigger) {
+    var key = "drylConciergeShellHeal";
+    try {
+      var last = parseInt(sessionStorage.getItem(key + ":at") || "0", 10);
+      if (last && Date.now() - last < 60000) return;
+      sessionStorage.setItem(key + ":at", String(Date.now()));
+      var n = parseInt(sessionStorage.getItem(key) || "0", 10);
+      if (n >= 3) {
+        if (!sessionStorage.getItem(key + ":hard")) {
+          sessionStorage.setItem(key + ":hard", "1");
+          location.replace(
+            location.origin + "/index.html?_=" + Date.now() + "&next=/inbox",
+          );
+        }
+        return;
+      }
+      sessionStorage.setItem(key, String(n + 1));
+    } catch (e) {
+      return;
+    }
+    function go() {
+      location.replace(location.origin + "/?_shell=" + Date.now());
+    }
+    function afterCaches() {
+      if (typeof caches !== "undefined" && caches.keys) {
+        caches
+          .keys()
+          .then(function (keys) {
+            return Promise.all(
+              keys.map(function (k) {
+                return caches.delete(k);
+              }),
+            );
+          })
+          .catch(function () {})
+          .finally(go);
+      } else go();
+    }
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then(function (regs) {
+          return Promise.all(
+            regs.map(function (r) {
+              return r.unregister();
+            }),
+          );
+        })
+        .catch(function () {})
+        .then(afterCaches);
+    } else afterCaches();
+  }
+
+  var appId = window.__DRYL_APP_ID__;
+  if (appId && appId !== "concierge") heal("app-id");
+
+  window.addEventListener(
+    "error",
+    function (ev) {
+      var t = ev.target;
+      if (!t || t.tagName !== "SCRIPT") return;
+      var src = t.src || t.getAttribute("src") || "";
+      if (/main-[A-Z0-9]+\.js/i.test(src)) {
+        try {
+          location.replace(location.origin + "/shell-heal.html");
+        } catch (e) {
+          heal("asset");
+        }
+        return;
+      }
+      if (/styles-[A-Z0-9]+\.css/i.test(src)) {
+        heal("asset");
+      }
+    },
+    true,
+  );
+
+  function probeMain() {
+    var s = document.querySelector('script[src*="main-"]');
+    if (!s || !s.src) return;
+    fetch(s.src, { method: "HEAD", cache: "no-store", credentials: "same-origin" })
+      .then(function (r) {
+        if (!r.ok) heal("main-head");
+      })
+      .catch(function () {
+        heal("main-head");
+      });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", probeMain);
+  } else probeMain();
+})();
+
 (function () {
   "use strict";
 

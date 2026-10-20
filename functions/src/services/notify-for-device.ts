@@ -139,12 +139,14 @@ export async function notifyForDevice(
 
     const updatedLastNotified = await deliverDeviceNotifications({
       db,
+      deviceRef: device,
       docId,
       data,
       cooldownDeviceName,
       pendingNotifications,
       lastNotified,
       now,
+      registeredPushoverDevices,
     });
 
     await device.set(

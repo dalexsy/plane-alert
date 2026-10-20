@@ -9,6 +9,7 @@
     <app-pushover-form-sections
       [state]="state"
       (customFilterChange)="onCustomFilterChange()"
+      (pwaChange)="onStateChange()"
     />
     <app-pushover-type-grid [state]="state" (stateChange)="onStateChange()" />
   </div>

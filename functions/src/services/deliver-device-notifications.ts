@@ -1,27 +1,20 @@
 import { JsonDocumentStore } from '../json-document-store';
+import type { JsonDocumentReference } from './json-document-store-refs';
 import { logger } from '../pi-logger';
 import type { DeviceRegistration } from '../types';
-import { MILITARY_HISTORY_COLLECTION } from '../constants';
-import {
-  releaseNotificationClaim,
-} from './notification-cooldown';
-import { sendPushoverNotification } from './pushover-client';
-import { recordPushoverSend } from './pushover-send-ledger';
-import { playKioskAlertSound } from './kiosk-alert-sound';
-import {
-  ackKioskInRange,
-  isKioskInRangeAcked,
-} from './kiosk-in-range-edge-state';
+import { sendPendingNotification } from './send-pending-notification';
 import type { PendingNotification } from './notification-types';
 
 export interface DeliverDeviceNotificationsParams {
   db: JsonDocumentStore;
+  deviceRef: JsonDocumentReference;
   docId: string;
   data: DeviceRegistration;
   cooldownDeviceName: string;
   pendingNotifications: PendingNotification[];
   lastNotified: Record<string, number>;
   now: number;
+  registeredPushoverDevices?: Set<string> | null;
 }
 
 export async function deliverDeviceNotifications(
@@ -29,12 +22,14 @@ export async function deliverDeviceNotifications(
 ): Promise<Record<string, number>> {
   const {
     db,
+    deviceRef,
     docId,
     data,
     cooldownDeviceName,
     pendingNotifications,
     lastNotified,
     now,
+    registeredPushoverDevices,
   } = params;
 
   const updatedLastNotified = { ...lastNotified };
@@ -49,95 +44,30 @@ export async function deliverDeviceNotifications(
       continue;
     }
     sentIcaos.add(pending.icao);
-    logger.info('Sending notification for pending aircraft', {
+
+    logger.info('Delivering pending aircraft notification', {
       docId,
       deviceName: pending.deviceName,
       icao: pending.icao,
-      targetDevice: pending.deviceName || 'ALL_DEVICES',
     });
 
-    const sent = await sendPushoverNotification(
-      data.pushoverUserKey,
-      pending.deviceName,
-      pending.message,
+    const delivered = await sendPendingNotification(
+      db,
+      deviceRef,
       docId,
+      data,
+      cooldownDeviceName,
+      pending,
+      now,
+      registeredPushoverDevices,
     );
 
-    if (!sent) {
-      logger.warn('Notification send failed', {
-        docId,
-        deviceName: pending.deviceName,
-        icao: pending.icao,
-      });
-      await releaseNotificationClaim(
-        db,
-        data.pushoverUserKey,
-        cooldownDeviceName,
-        pending.icao,
-      );
-      continue;
-    }
-
-    logger.info('Notification sent successfully', {
-      docId,
-      deviceName: pending.deviceName,
-      icao: pending.icao,
-    });
-
-    if (pending.playKioskAlert && !isKioskInRangeAcked(pending.icao)) {
-      playKioskAlertSound(pending.icao, 'military-pushover', {
-        model: pending.model,
-        onPlayed: () => ackKioskInRange(pending.icao),
-      });
-    }
-
-    await recordPushoverSend(db, pending.icao);
-
     if (
+      delivered &&
       pending.message.hex &&
       !pending.message.title.startsWith('✈️ Plane Nearby')
     ) {
       updatedLastNotified[pending.icao] = now;
-
-      const historyDocId = `${data.pushoverUserKey}__${pending.icao.toLowerCase()}`;
-      const historyRef = db
-        .collection(MILITARY_HISTORY_COLLECTION)
-        .doc(historyDocId);
-      const existingSighting = await historyRef.get();
-
-      const historyPayload = {
-        lastSeen: now,
-        notificationDelivered: true,
-        notifiedDeviceName: data.deviceName,
-        notificationLocation: pending.location,
-        ...(pending.callsign && { callsign: pending.callsign }),
-        ...(pending.model && { model: pending.model }),
-        ...(pending.countryCode && { country: pending.countryCode }),
-        ...(pending.registration && { registration: pending.registration }),
-        ...(pending.lat != null && { lat: pending.lat }),
-        ...(pending.lon != null && { lon: pending.lon }),
-        ...(pending.altitude != null && { altitude: pending.altitude }),
-        ...(pending.bearing != null && { bearing: pending.bearing }),
-        ...(pending.cardinal && { cardinal: pending.cardinal }),
-      };
-
-      if (existingSighting.exists) {
-        const existing = existingSighting.data()!;
-        await historyRef.set(
-          {
-            ...historyPayload,
-            sightingCount: (existing.sightingCount || 1) + 1,
-          },
-          { merge: true },
-        );
-      } else {
-        await historyRef.set({
-          icao: pending.icao.toLowerCase(),
-          firstSeen: now,
-          sightingCount: 1,
-          ...historyPayload,
-        });
-      }
     }
   }
 

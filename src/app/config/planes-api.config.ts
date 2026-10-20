@@ -6,6 +6,10 @@ export const pushRegistrationEndpoint = `${planesApiBase}/registerDevice`;
 
 export const pushCheckDeviceEndpoint = `${planesApiBase}/checkDevice`;
 
+export const pwaVapidPublicKeyEndpoint = `${planesApiBase}/push/vapidPublicKey`;
+
+export const pwaAlertsRegisterEndpoint = `${planesApiBase}/registerPwaAlerts`;
+
 export const adsbPointProxyUrl = `${planesApiBase}/adsbPointProxy`;
 
 export const getMilitaryHistoryEndpoint = `${planesApiBase}/getMilitaryHistory`;

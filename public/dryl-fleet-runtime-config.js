@@ -6,7 +6,7 @@
   "use strict";
   window.__DRYL_FLEET_RUNTIME__ = {
   "version": 1,
-  "generatedAt": "2026-08-16T17:30:02.040Z",
+  "generatedAt": "2026-10-16T23:04:33.103Z",
   "fleetStatusOrigin": "https://status.dryl.io",
   "fleetStatusHostname": "status.dryl.io",
   "clientErrorIngestUrl": "https://status.dryl.io/api/client-errors",

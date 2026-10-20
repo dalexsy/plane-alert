@@ -10,15 +10,22 @@ import {
 } from './household-notify';
 import { chimeKioskForMilitaryInRange } from './kiosk-military-in-range-chime';
 import {
+  getDeviceLocation,
   loadAircraftSnapshotCache,
+  locationCacheKey,
   uniqueLocationKeysFromDevices,
 } from './notification-snapshot-cache';
+import { isPwaInstallationRegistration } from './notification-delivery';
 
 type DeviceDoc = {
   ref: JsonDocumentReference;
   id: string;
   data: DeviceRegistration;
 };
+
+function isPwaInstallationDoc(entry: DeviceDoc): boolean {
+  return isPwaInstallationRegistration(entry.id, entry.data);
+}
 
 export async function processDevicesWithSnapshotCache(
   db: JsonDocumentStore,
@@ -40,12 +47,38 @@ export async function processDevicesWithSnapshotCache(
     cachedLocations: aircraftCache.size,
   });
 
-  // Chime before Pushover notify — same boring gate as Pushover; device match
-  // failures must not silence interesting mil on the house speaker.
   await chimeKioskForMilitaryInRange(chimeSource, aircraftCache);
 
+  const pwaDocs = docs.filter((entry) => isPwaInstallationDoc(entry));
+  const pushoverDocs = docs.filter(
+    (entry) =>
+      Boolean(entry.data?.pushoverUserKey?.trim()) &&
+      !isPwaInstallationDoc(entry),
+  );
+
+  const pwaTasks = pwaDocs.map((entry) => {
+    const loc = getDeviceLocation(entry.data);
+    const snapKey = loc
+      ? locationCacheKey(loc.lat, loc.lon, entry.data.radiusKm)
+      : '';
+    const cachedSnapshot = snapKey ? aircraftCache.get(snapKey) : undefined;
+    return notifyForDevice(
+      db,
+      entry.ref,
+      entry.data,
+      entry.id,
+      undefined,
+      cachedSnapshot,
+    ).catch((error) =>
+      logger.error('notifyForDevice failed (pwa)', {
+        docId: entry.id,
+        error,
+      }),
+    );
+  });
+
   const docsByUserKey = new Map<string, DeviceDoc[]>();
-  for (const entry of docs) {
+  for (const entry of pushoverDocs) {
     const userKey = entry.data?.pushoverUserKey?.trim();
     if (!userKey) {
       continue;
@@ -55,47 +88,49 @@ export async function processDevicesWithSnapshotCache(
     docsByUserKey.set(userKey, group);
   }
 
-  const tasks = [...docsByUserKey.entries()].map(async ([userKey, entries]) => {
-    const registeredPushoverDevices = getRegisteredPushoverDevices
-      ? await getRegisteredPushoverDevices(userKey)
-      : undefined;
+  const pushoverTasks = [...docsByUserKey.entries()].map(
+    async ([userKey, entries]) => {
+      const registeredPushoverDevices = getRegisteredPushoverDevices
+        ? await getRegisteredPushoverDevices(userKey)
+        : undefined;
 
-    const householdTarget = householdTargetFromRegistrations(
-      entries,
-      registeredPushoverDevices,
-    );
+      const householdTarget = householdTargetFromRegistrations(
+        entries,
+        registeredPushoverDevices,
+      );
 
-    if (entries.length > 1) {
-      logger.info('Household Pushover registrations', {
-        userKey: userKey.slice(0, 8),
-        registrationCount: entries.length,
+      if (entries.length > 1) {
+        logger.info('Household Pushover registrations', {
+          userKey: userKey.slice(0, 8),
+          registrationCount: entries.length,
+          householdTarget,
+        });
+      }
+
+      const primary = pickHouseholdPrimary(entries);
+      const cachedSnapshot = mergeHouseholdInRangeAircraft(
+        entries,
+        aircraftCache,
+      );
+
+      await notifyForDevice(
+        db,
+        primary.ref,
+        primary.data,
+        primary.id,
+        registeredPushoverDevices,
+        cachedSnapshot,
         householdTarget,
-      });
-    }
+      ).catch((error) =>
+        logger.error('notifyForDevice failed', {
+          docId: primary.id,
+          deviceName: primary.data.deviceName,
+          userKey: primary.data.pushoverUserKey?.slice(0, 8),
+          error,
+        }),
+      );
+    },
+  );
 
-    const primary = pickHouseholdPrimary(entries);
-    const cachedSnapshot = mergeHouseholdInRangeAircraft(
-      entries,
-      aircraftCache,
-    );
-
-    await notifyForDevice(
-      db,
-      primary.ref,
-      primary.data,
-      primary.id,
-      registeredPushoverDevices,
-      cachedSnapshot,
-      householdTarget,
-    ).catch((error) =>
-      logger.error('notifyForDevice failed', {
-        docId: primary.id,
-        deviceName: primary.data.deviceName,
-        userKey: primary.data.pushoverUserKey?.slice(0, 8),
-        error,
-      }),
-    );
-  });
-
-  await Promise.all(tasks);
+  await Promise.all([...pwaTasks, ...pushoverTasks]);
 }

@@ -33,5 +33,5 @@ if (automaticCallers.length) {
 }
 
 console.log(
-  "[ok] notification delivery has one automatic owner (server-side Pushover)",
+  "[ok] notification delivery: in-tab test only; server Pushover and/or Web Push",
 );
