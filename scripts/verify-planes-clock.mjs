@@ -37,7 +37,8 @@ try {
   await page.evaluate(() => {
     localStorage.setItem("showDateTimeOverlay", "true");
   });
-  await page.reload({ waitUntil: "networkidle", timeout: 120_000 });
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 120_000 });
+  await page.waitForTimeout(3000);
   const clock = page.locator("app-clock .time-overlay");
   await clock.waitFor({ state: "visible", timeout: 60_000 });
   const shown = (await clock.innerText()).trim();
