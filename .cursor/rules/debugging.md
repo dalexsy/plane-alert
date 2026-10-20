@@ -47,9 +47,9 @@ Older: `.cursor/rules/debugging-archive.md`
 
 ## Deploy timing (auto)
 
-Median **136s** · wait `block_until_ms` **120000** chunks, total **218692** · details: `.dryl-deploy-timing.json`
+Median **146s** · wait `block_until_ms` **120000** chunks, total **218692** · details: `.dryl-deploy-timing.json`
 
-Updated: 2026-08-29T09:39:32Z · source: `directory/data/deploy-timing.json`
+Updated: 2026-10-20T16:24:44Z · source: `directory/data/deploy-timing.json`
 
 <!-- end deploy-timing -->
 
@@ -60,3 +60,5 @@ Updated: 2026-08-29T09:39:32Z · source: `directory/data/deploy-timing.json`
 - Ship SPA: `npm run deploy:dryl` on dryl-prod (do not keep a blocked `deploy:backend` script — `run-full-deploy` would abort)
 - Kiosk: install/watch on magicmirror `.74` only
 - Prove: production PNG + `QUOTE_VISIBLE`
+- **live-sha false fail (2026-10-20):** `verify-live-git-sha` compared `window.__DRYL_BUILD_VERSION__` (git sha) to deploy **version** ISO — fix in `directory/scripts/lib/live-git-sha.mjs` (`wantBoot = sha || version`). Re-check: `node ../directory/scripts/verify-live-git-sha.mjs --dist=dist/plane-alert/browser --url=https://planes.dryl.io --site-id=planes`
+- **Pushover copy preview (no send):** `cd functions && npm run build && node scripts/test-pushover-notification-format.mjs` (`PLANES_API_PUSHOVER_ENABLED=0`)
