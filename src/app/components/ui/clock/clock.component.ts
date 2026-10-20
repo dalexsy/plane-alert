@@ -81,7 +81,11 @@ export class ClockComponent implements OnInit, OnDestroy, AfterViewInit {
       day: 'numeric',
       month: 'long',
     });
-    // 24-hour display at the map center timezone (never strip AM/PM from 12-hour locales)
-    this.currentTime = this.locationContext.formatTimeForLocation();
+    this.currentTime = this.locationContext.formatTimeForLocation({
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    });
   }
 }
