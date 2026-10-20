@@ -81,12 +81,7 @@ export class ClockComponent implements OnInit, OnDestroy, AfterViewInit {
       day: 'numeric',
       month: 'long',
     });
-    // Use default locale, only hour and minute, strip AM/PM
-    let timeString = locationTime.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    timeString = timeString.replace(/\s*AM|\s*PM|\s*a\.m\.|\s*p\.m\./gi, '');
-    this.currentTime = timeString.trim();
+    // 24-hour display at the map center timezone (never strip AM/PM from 12-hour locales)
+    this.currentTime = this.locationContext.formatTimeForLocation();
   }
 }

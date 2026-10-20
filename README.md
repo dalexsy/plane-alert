@@ -1,17 +1,48 @@
-# PlaneAlert
+# Plane Alert
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.6.
+Live ADS-B map and alert stack for the home antenna: radius search around an address or home point, military/special aircraft highlighting, weather and sky overlays, Pushover notifications, and a dedicated kitchen kiosk. Production app: [https://planes.dryl.io](https://planes.dryl.io).
+
+## What ships where
+
+| Piece | Role |
+|-------|------|
+| **This repo (`src/`)** | Angular SPA — map UI, settings, device registration UI |
+| **`functions/`** | **planes-api** — Express on dryl-prod (`.79`), local JSON store (no Firestore / no Firebase hosting) |
+| **magicmirror (`.74`)** | Full-screen Chromium kiosk; speaker for alert chimes |
+| **Home tar1090** | Primary ADS-B feed on the LAN (see antenna section) |
+
+Nginx on dryl-prod serves the SPA and proxies `/api/planes/*` to planes-api.
+
+## Features (SPA)
+
+- Map centered on home, current location, or a searched address, with configurable search radius
+- Live aircraft from multiple ADS-B sources (server-side proxy avoids browser CORS limits)
+- Military and special-aircraft detection (shared rules in `@plane-alert/shared`)
+- Operator logos, country flags, window-view / altitude band overlays, rain and cloud layers
+- Date, time, and temperature for the map center’s timezone
+- **Antenna sightings** map: every unique ICAO the home feed has ever reported ([`/sightings`](https://planes.dryl.io/sightings); toolbar cell-tower icon on the main map)
+- Military history and related panels backed by planes-api
+
+## Push notifications (Pushover)
+
+Alerts are **server-side only**. The browser does not use FCM, Firestore, or a notification service worker.
+
+1. Create an account at [Pushover](https://pushover.net).
+2. On a phone or desktop browser, open [https://planes.dryl.io/?setup=pushover](https://planes.dryl.io/?setup=pushover) and enter your Pushover user key.
+3. Set home location and alert radius in the app.
+
+planes-api polls ADS-B on a schedule, applies military/special filters and deduplication, and sends Pushover messages. Staging and prod send gates are separate (`PLANES_API_PUSHOVER_ENABLED` on the server). See `.cursor/rules/debugging.md` for dedup and kiosk-audio pitfalls.
 
 ## Antenna sightings
 
 Tracker of every unique aircraft the home ADS-B antenna has seen.
 
-- **Open:** [https://planes.dryl.io/sightings](https://planes.dryl.io/sightings) (map toolbar: cell-tower icon). Kiosk stays on the map.
+- **Open:** [https://planes.dryl.io/sightings](https://planes.dryl.io/sightings) (main map: cell-tower icon). The kiosk stays on the main map.
 - **Feed:** `http://192.168.178.27/tar1090/data/aircraft.json` (tar1090 UI: `http://192.168.178.27/tar1090/`).
-- **Poller:** `planes-api` on dryl-prod (`.79`) reads the feed every 12s and upserts by ICAO hex. Does not run on a laptop.
+- **Poller:** planes-api on dryl-prod reads the feed every 12s and upserts by ICAO hex.
 - **Store:** `/home/pi/planes-api/data/antenna-sightings.json` on dryl-prod.
 
-Point the feed (optional, in `/home/pi/planes-api/.env` — never overwrite that file from a laptop):
+Optional env on the Pi (in `/home/pi/planes-api/.env` — **do not overwrite that file from a laptop**):
 
 ```
 PLANES_ANTENNA_FEED_URL=http://192.168.178.27/tar1090/data/aircraft.json
@@ -20,125 +51,67 @@ PLANES_ANTENNA_SIGHTINGS_PATH=/home/pi/planes-api/data/antenna-sightings.json
 PLANES_ANTENNA_ENABLED=1
 ```
 
-Set `PLANES_ANTENNA_ENABLED=0` to pause the poller. Defaults match the home tar1090 URL above if unset.
+Set `PLANES_ANTENNA_ENABLED=0` to pause the poller. Defaults match the home tar1090 URL when unset.
 
-## Development server
+## Shared detection logic
 
-To start a local development server, run:
+`shared/` (`@plane-alert/shared`) holds country, military, and geo helpers used by the SPA and planes-api. Build before the app: `npm run build:shared` (also run from `prebuild`).
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Local development
 
 ```bash
-ng generate component component-name
+npm install
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+`npm start` runs the small local `server.js` helper and `ng serve` with `proxy.conf.json` so `/api/planes` can reach a configured backend.
+
+Production build:
 
 ```bash
-ng generate --help
+npm run build
 ```
 
-## Building
+Output: `dist/plane-alert/browser`.
 
-To build the project run:
+## Deploy and verify (dryl.io)
+
+From this repo on a machine allowed to deploy:
 
 ```bash
-ng build
+npm run deploy:staging
+npm run verify:staging
+# merge to main, then:
+npm run deploy:dryl
+npm run verify:console
+npm run verify:visual
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-BRUJO02
+Backend (planes-api) on dryl-prod: `python scripts/pi-install-planes-api.py` (see `package.json` scripts). Kiosk on magicmirror: `python scripts/pi-install-planes-kiosk.py`.
 
-## Geocoding (Address Lookup)
+Agent/deploy detail: `../directory/.cursor/rules/deploy-verify-loop.mdc` and this repo’s `.cursor/rules/debugging.md`.
 
-The app uses geocoding services to convert coordinates to human-readable addresses. If you encounter 504 Gateway Timeout errors:
+## Geocoding (address lookup)
 
-### Quick Fix
+Reverse geocoding turns map coordinates into addresses. If lookups time out (504), you can disable client geocoding temporarily:
 
 ```javascript
-// In browser console, disable geocoding:
 localStorage.setItem("disable-geocoding", "true");
 location.reload();
 ```
 
-### What This Does
-
-### Re-enable Geocoding
+Re-enable:
 
 ```javascript
 localStorage.removeItem("disable-geocoding");
 location.reload();
 ```
 
-### Alternative Solutions
-
-## Background notifications (Firebase Cloud Functions)
-
-This repo now contains a minimal Firebase Functions project in the `functions/` folder. It stores device push tokens in Firestore and pings the ADS-B feed every few minutes to send background alerts.
-
-### Setup for New Devices
-
-**Quick Setup URL**: Open `https://planes.dryl.io/?setup=pushover` on any device to be prompted for your Pushover User Key.
-
-1. Sign up at [Pushover.net](https://pushover.net) (free)
-2. Find your User Key on your dashboard
-3. Visit `https://planes.dryl.io/?setup=pushover` on your device
-4. Enter your User Key when prompted
-5. Set your home location in the app
-6. You'll receive push notifications for aircraft near your location!
-
-### Cloud Function Deployment
-
-1. Install the Firebase CLI if you have not already:
-   ```bash
-   npm install -g firebase-tools
-   ```
-2. Configure the functions project:
-   ```bash
-   cd functions
-   npm install
-   ```
-3. Make sure the active Firebase project is `plane-alert-800ff` (or update the IDs in `src/app/config/firebase.config.ts` if you renamed it). Cloud Scheduler triggers require the Blaze plan.
-4. Deploy the functions:
-   ```bash
-   firebase deploy --only functions
-   ```
-
-Once deployed, the web app automatically POSTs each browser's FCM token, home location, radius, and distance units to the HTTPS endpoint. The scheduled function polls ADS-B data, filters for likely military flights, and pushes notifications even when the PWA is closed. Tokens are removed automatically if Firebase reports them as invalid.
-
-### Notification Features
-
-- **Follow Aircraft**: Click "View on Map" in push notifications to automatically center and follow the aircraft
-- **Military & Special Aircraft**: Automatic detection of military callsigns and special ICAO codes
-- **Customizable Alerts**: Set your own home location and radius
-- **Cross-Platform**: Works on Android, iOS, and Desktop via Pushover
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## Tests and lint
 
 ```bash
-ng test
+npm run lint:ui
+npm test
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+planes-api self-tests and Pushover gate tests: `npm run test:local-tx` (see `package.json`).
