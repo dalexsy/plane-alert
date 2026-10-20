@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy Plane Alert Pi backend (replaces Firebase Cloud Functions billing)."""
+"""Deploy planes-api (Express + JSON store) on dryl-prod."""
 from __future__ import annotations
 
 import argparse

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge exported Firestore deviceTokens into the Pi planes-api local store."""
+"""Merge a legacy Firebase export (deviceTokens JSON) into the Pi planes-api store."""
 from __future__ import annotations
 
 import argparse
@@ -44,7 +44,7 @@ def main() -> None:
         "--export",
         type=Path,
         default=DEFAULT_EXPORT,
-        help="firestore-export-deviceTokens.json path",
+        help="legacy export JSON path (e.g. firestore-export-deviceTokens.json)",
     )
     args = parser.parse_args()
     if not args.export.is_file():

@@ -1,5 +1,5 @@
 /**
- * Identity wrapper for former firebase-functions onRequest handlers.
+ * Express handler wrapper (same shape as the old Cloud Functions onRequest handlers).
  * Pi express binds the returned function directly.
  */
 import type { Request, Response } from "express";

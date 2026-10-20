@@ -100,7 +100,7 @@ export {
   DEFAULT_PUSH_DEVICE_NAMES,
 } from './pushover-defaults';
 
-// Pushover device matching (client + Cloud Functions)
+// Pushover device matching (SPA + planes-api)
 export {
   PUSHOVER_UNRELIABLE_DEVICE_NAMES,
   autoMatchPushoverDevice,

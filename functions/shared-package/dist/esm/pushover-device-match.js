@@ -85,7 +85,7 @@ export function matchPushoverDeviceName(requestedName, pushoverDevices) {
     }
     return (pushoverDevices.find((name) => name.toLowerCase() === normalized) ?? null);
 }
-/** Resolve Firestore registration to a Pushover delivery target (never broadcast). */
+/** Resolve a stored device registration to a Pushover delivery target (never broadcast). */
 export function resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevices) {
     const devices = pushoverDevices.filter(Boolean);
     if (!devices.length) {
@@ -110,7 +110,7 @@ export function resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevi
     }
     return null;
 }
-/** True when this Firestore row maps to a live Pushover device. */
+/** True when this device record maps to a live Pushover device. */
 export function isValidDeviceRegistration(deviceName, platform, pushoverDevices) {
     return (resolvePushoverDeliveryTarget(deviceName, platform, pushoverDevices) !== null);
 }

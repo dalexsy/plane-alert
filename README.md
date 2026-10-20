@@ -117,6 +117,14 @@ Set `PLANES_ANTENNA_ENABLED=0` to pause.
 
 `shared/` → `@plane-alert/shared`: military/country detection and geo helpers used by **both** the SPA and planes-api. Build: `npm run build:shared` (runs in `prebuild`). Details: `shared/README.md`.
 
+## More docs
+
+| File | Topic |
+|------|--------|
+| `functions/README.md` | planes-api layout, deploy, legacy Firebase scripts |
+| `SECURITY.md` | Secrets on the Pi `.env`, frontend vs backend keys |
+| `.cursor/rules/debugging.md` | Kiosk, Pushover dedup, deploy pitfalls |
+
 ## Local development
 
 Prerequisites: Node 20+, sibling repos `dryl/` (for `@dryl/ui` and auth packages) and `directory/` (for lint/deploy scripts).

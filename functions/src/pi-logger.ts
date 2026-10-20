@@ -1,4 +1,4 @@
-/** Console logger replacing firebase-functions/v2 logger (Pi-only runtime). */
+/** Structured console logger for planes-api on the Pi. */
 
 type Fields = Record<string, unknown> | unknown;
 

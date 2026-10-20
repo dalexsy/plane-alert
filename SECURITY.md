@@ -1,82 +1,47 @@
-# Security & API Keys
+# Security & API keys
 
-## ⚠️ IMPORTANT: Never Commit Secrets!
+## Never commit secrets
 
-This project uses several API keys and tokens. **Never commit these to git!**
+API tokens and shared secrets belong in **server `.env` files** or local `.env` (gitignored). Do not put them in the Angular bundle or commit them to git.
 
-## Backend (Cloud Functions)
+## Backend (planes-api)
 
-API keys for Cloud Functions are stored as **Firebase environment variables** using Firebase Functions secrets:
+Production API runs on dryl-prod as **planes-api** (built from `functions/`, local JSON store — not Google Cloud Functions or Firestore).
 
-```bash
-# Set a secret
-firebase functions:secrets:set PUSHOVER_API_TOKEN
+Secrets live in **`/home/pi/planes-api/.env`** on the Pi. Set them on the server; do not overwrite that file from a laptop deploy.
 
-# View secrets
-firebase functions:secrets:access PUSHOVER_API_TOKEN
+Typical keys:
 
-# Use in functions/src/index.ts
-const token = process.env.PUSHOVER_API_TOKEN;
-```
+| Variable | Purpose |
+|----------|---------|
+| `PUSHOVER_API_TOKEN` | Pushover application token (optional legacy alerts) |
+| `PLANES_API_PUSHOVER_ENABLED` | `0` to mute Pushover sends |
+| `ROW_SESSION_NOTIFY_SECRET` | Bearer/header for `POST /notifyRowSession` (row.dryl.io) |
+| `PLANES_KIOSK_PLAY_URL` / `PLANES_KIOSK_PLAY_TOKEN` | Kitchen Kallax speaker trigger |
+| `DEBUG_TOKEN_SECRET` | Debug endpoints (if enabled) |
 
-### Current Backend Secrets:
-
-- `PUSHOVER_API_TOKEN` - Pushover API application token
-- `DEBUG_TOKEN_SECRET` - Secret for debug endpoints
-- `ROW_SESSION_NOTIFY_SECRET` - Bearer/header secret for `POST /notifyRowSession` (row.dryl.io session saves)
-
-## Frontend (Angular App)
-
-Frontend API keys are **client-side visible** (users can see them in browser). These keys should have:
-
-- Domain restrictions (only work from your domain)
-- API usage limits
-- No sensitive permissions
-
-### Current Frontend API Keys:
-
-- **OpenWeatherMap API** - Used in multiple services for weather data
-- **Google Custom Search API** - Used for aircraft image search
-
-### Security Notes:
-
-1. **OpenWeatherMap & Google API keys are OK to be public** because:
-
-   - They're restricted to specific domains (planes.dryl.io)
-   - They have usage quotas/limits
-   - They're read-only APIs
-
-2. **Pushover tokens should NEVER be frontend** - they're only in Cloud Functions ✅
-
-## Testing Scripts
-
-For local testing scripts like `test-pushover.js`, use a `.env` file:
+Local / script testing: copy `.env.example` to `.env` in the repo root or `functions/.env` as documented in each script.
 
 ```bash
-# Copy the example
 cp .env.example .env
-
-# Edit .env and add your credentials
-# The .env file is in .gitignore and won't be committed
+# edit .env — never commit it
 ```
 
-## If You Accidentally Commit a Secret
+## Frontend (Angular PWA)
 
-1. **Immediately rotate/regenerate the API key**
-2. **Remove the commit from history** (or accept that it's compromised)
-3. **Update the new key in Firebase secrets**
+Some third-party keys are **visible in the browser** (weather, image search). Those should use domain restrictions and quotas on the provider side.
 
-```bash
-# Rotate Pushover token
-firebase functions:secrets:set PUSHOVER_API_TOKEN
-# Enter new value when prompted
-```
+- OpenWeatherMap — weather layers
+- Google Custom Search — aircraft images (where configured)
 
-## GitGuardian Alerts
+**Pushover application tokens and user keys must not ship in frontend code.** Registration posts the user key to planes-api over HTTPS; the API token stays on the server.
 
-If you get GitGuardian alerts:
+## If a secret is exposed
 
-- Check which file triggered it
-- Verify the secret is in `.gitignore` going forward
-- Rotate the exposed credential immediately
-- Update Firebase Functions secrets with new value
+1. Rotate the credential at the provider (Pushover, etc.).
+2. Update `/home/pi/planes-api/.env` on dryl-prod (or your local `.env` for dev).
+3. Redeploy planes-api if needed: `python scripts/pi-install-planes-api.py`
+
+## Historical note
+
+Plane Alert previously used Firebase Cloud Functions + Firestore. That stack was removed; `lint:no-fcm-sw` blocks reintroducing Firebase messaging in the SPA. One-off migration scripts under `functions/scripts/` may still mention Firebase for **exporting old data only**.

@@ -23,4 +23,5 @@ export const FieldPath = {
   documentId: () => "__name__" as const,
 };
 
-export type AdminFirestore = JsonDocumentStore;
+/** Local JSON store (replaces the old Firestore-backed Cloud Functions data). */
+export type PlanesApiDocumentStore = JsonDocumentStore;
