@@ -10,9 +10,8 @@ import {
 import type { DeviceRegistration, Location } from '../types';
 import {
   MAX_NOTIFICATIONS_PER_DEVICE,
-  RECENT_NOTIFICATION_TTL_MS,
 } from '../constants';
-import { checkAndMarkNotified } from './notification-cooldown';
+import { claimMilitaryNotificationSend } from './military-notification-claim';
 import { buildMilitaryPendingNotification } from './build-military-notification';
 import type { FlightData } from './aeroapi-client';
 import type {
@@ -161,12 +160,12 @@ export async function collectMilitaryNotifications(
       continue;
     }
 
-    const shouldNotify = await checkAndMarkNotified(
+    const shouldNotify = await claimMilitaryNotificationSend(
       db,
-      data.pushoverUserKey,
+      data,
+      docId,
       cooldownDeviceName,
       icao,
-      RECENT_NOTIFICATION_TTL_MS,
     );
 
     if (!shouldNotify) {

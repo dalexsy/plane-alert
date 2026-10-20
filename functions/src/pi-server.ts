@@ -63,6 +63,14 @@ app.all(
   bindHandler(deviceFunctions.checkDevice as unknown as HttpHandler),
 );
 app.all(
+  '/push/vapidPublicKey',
+  bindHandler(deviceFunctions.vapidPublicKey as unknown as HttpHandler),
+);
+app.all(
+  '/registerPwaAlerts',
+  bindHandler(deviceFunctions.registerPwaAlerts as unknown as HttpHandler),
+);
+app.all(
   '/adsbPointProxy',
   bindHandler(adsbPointProxy as unknown as HttpHandler),
 );

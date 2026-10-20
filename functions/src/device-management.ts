@@ -15,9 +15,11 @@ import {
   markPushoverRegistration,
 } from './services/device-list-formatting';
 import { createRegisterDeviceHandler } from './device-management-register';
+import { createPwaPushHandlers } from './device-management-pwa-register';
 
 export function createDeviceManagementFunctions(db: JsonDocumentStore) {
   const registerDevice = createRegisterDeviceHandler(db);
+  const pwaHandlers = createPwaPushHandlers(db);
 
   const checkDevice = onRequest(
     { region: 'europe-west3' },
@@ -165,6 +167,8 @@ export function createDeviceManagementFunctions(db: JsonDocumentStore) {
     checkDevice,
     listAllDevices,
     unsubscribeDevice,
+    vapidPublicKey: pwaHandlers.vapidPublicKey,
+    registerPwaAlerts: pwaHandlers.registerPwaAlerts,
     ...debugHandlers,
   };
 }

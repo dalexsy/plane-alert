@@ -1,5 +1,33 @@
 <div class="sections">
   <div class="section">
+    <h4>PWA alerts (Android)</h4>
+    <p class="section-desc">
+      Background alerts through the installed app. Uses your configured home location on the server, not phone GPS.
+    </p>
+    <label class="checkbox-row">
+      <input type="checkbox" [(ngModel)]="state.pwaAlertsEnabled" (ngModelChange)="pwaChange.emit()" />
+      Enable PWA Web Push on this device
+    </label>
+    @if (state.pwaAlertsEnabled) {
+      <label class="checkbox-row">
+        <input type="checkbox" [(ngModel)]="state.pushoverFallback" (ngModelChange)="pwaChange.emit()" />
+        Use Pushover only if Web Push fails (requires Pushover key below)
+      </label>
+      <p class="help-text">
+        Existing Pushover alerts stay on until you receive a test notification and confirm below.
+      </p>
+      <label class="checkbox-row">
+        <input type="checkbox" [(ngModel)]="state.confirmWebPushReceived" (ngModelChange)="pwaChange.emit()" />
+        I received a test alert on this device — use Web Push for aircraft alerts
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" [(ngModel)]="state.preferPushoverChannel" (ngModelChange)="pwaChange.emit()" />
+        Prefer Pushover again for this device
+      </label>
+    }
+  </div>
+
+  <div class="section">
     <h4>Pushover User Key</h4>
     <p class="section-desc">
       Enter your Pushover user key to enable push notifications.

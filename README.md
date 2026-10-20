@@ -71,7 +71,8 @@ Nginx exposes the app under **`/api/planes/`** (see `src/app/config/planes-api.c
 | Route | Purpose |
 |-------|---------|
 | `GET /adsbPointProxy` | Server-side ADS-B fetch for lat/lon/radius |
-| `POST /registerDevice`, `/checkDevice` | Device registration (Pushover user key today) + home/radius |
+| `POST /registerDevice`, `/checkDevice` | Pushover registration + home/radius (optional `installationId` link) |
+| `GET /push/vapidPublicKey`, `POST /registerPwaAlerts` | PWA Web Push subscription + channel preference |
 | `GET /getMilitaryHistory`, `POST /saveMilitarySighting` | Military sighting log |
 | `GET /antennaSightings` | Aggregated home-antenna unique hex list |
 | `GET /reverseGeocode` | Address lookup for the SPA (do not call Nominatim from the browser) |
@@ -85,11 +86,13 @@ Cron (local time on the API host): collect aircraft every **5** minutes; run not
 
 **Kitchen Kallax:** the map runs fullscreen on the Pi; military/special flyovers can play a chime on the speaker wired to that box.
 
-**Phones and laptops (PWA):** Plane Alert is an installable PWA. The app already uses the browser **Web Notifications** API (permission prompt, `Notification` in `notification.service`) so alerts can surface from the installed app without a third-party inbox. That is the preferred long-term direction instead of Pushover.
+**Phones and laptops (PWA):** Install the PWA, open **notification settings** (toolbar), enable **PWA Web Push**, and save. Background alerts use `/sw.js` + `registerPwaAlerts` on planes-api (VAPID). In-tab test toasts still use the browser `Notification` API in `notification.service` only.
 
-**What runs in production today:** planes-api still has an optional **Pushover** path for background polling while the PWA is closed (`registerDevice` / cron on the API). You do not have to use it — set `PLANES_API_PUSHOVER_ENABLED=0` on the server to mute sends. Legacy setup: [pushover.net](https://pushover.net) + [?setup=pushover](https://planes.dryl.io/?setup=pushover).
+**Pushover (optional fallback):** Existing Pushover registrations keep delivering until you **receive a test alert** and check **use Web Push for aircraft alerts**. That preference is stored per `installationId` and is reversible (**Prefer Pushover again**). New PWA-only installs (no Pushover row) use Web Push immediately. Same-attempt Pushover fallback applies when Web Push fails or the subscription is gone — server acceptance does not prove the phone showed the notification.
 
-There is **no Firestore or FCM service worker** in this repo (`lint:no-fcm-sw`). A future native web-push stack would be a new service worker + push subscription endpoint, not the old Firebase setup.
+Legacy Pushover-only setup: [pushover.net](https://pushover.net) + [?setup=pushover](https://planes.dryl.io/?setup=pushover). Mute all Pushover sends with `PLANES_API_PUSHOVER_ENABLED=0` on the API host.
+
+There is **no Firestore or FCM** in this repo (`lint:no-fcm-sw`).
 
 Dedup, quiet hours, and kiosk audio: `.cursor/rules/debugging.md`.
 

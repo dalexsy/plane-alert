@@ -3,10 +3,17 @@ const path = require("path");
 
 // Pi/nginx SPA fallback uses try_files → /index.html (not Surge's 200.html).
 const distPath = path.join(__dirname, "../dist/plane-alert/browser");
+const swSource = path.join(__dirname, "../public/sw.js");
+const swDest = path.join(distPath, "sw.js");
 
 if (!fs.existsSync(path.join(distPath, "index.html"))) {
   console.error("[fail] index.html not found in dist/plane-alert/browser");
   process.exit(1);
+}
+
+if (fs.existsSync(swSource)) {
+  fs.copyFileSync(swSource, swDest);
+  console.log("[info] Copied Web Push service worker to dist");
 }
 
 // Auth-gated nginx serves /assets/favicon/* without SSO — keep probe paths in dist.

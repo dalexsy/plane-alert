@@ -41,6 +41,7 @@ export function createRegisterDeviceHandler(db: JsonDocumentStore) {
           notifyProximity,
           deviceName,
           ignoredTypes,
+          installationId,
         } = req.body as {
           pushoverUserKey?: string;
           platform?: string;
@@ -53,6 +54,7 @@ export function createRegisterDeviceHandler(db: JsonDocumentStore) {
           notifyProximity?: boolean;
           deviceName?: string;
           ignoredTypes?: string[];
+          installationId?: string;
         };
 
         if (!pushoverUserKey || typeof pushoverUserKey !== 'string') {
@@ -122,8 +124,12 @@ export function createRegisterDeviceHandler(db: JsonDocumentStore) {
               : {}),
         };
 
+        const trimmedInstall = installationId?.trim();
         const doc: DeviceRegistration = {
           pushoverUserKey,
+          ...(trimmedInstall && trimmedInstall.length >= 8
+            ? { installationId: trimmedInstall }
+            : {}),
           platform,
           distanceUnit: distanceUnit === 'miles' ? 'miles' : 'km',
           radiusKm: clampRadius(radiusKm),

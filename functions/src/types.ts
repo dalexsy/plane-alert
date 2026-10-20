@@ -4,8 +4,21 @@ export interface Location {
   address?: string;
 }
 
+export interface WebPushSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 export interface DeviceRegistration {
-  pushoverUserKey: string;
+  pushoverUserKey?: string;
+  installationId?: string;
+  /** Explicit channel choice after user confirms a received Web Push test. */
+  deliveryChannelPreference?: 'pwa' | 'pushover';
+  webPushChannelConfirmedAt?: number;
+  pwaNotificationsEnabled?: boolean;
+  /** When PWA is primary, optionally retry via Pushover on delivery failure. */
+  pushoverFallbackEnabled?: boolean;
+  webPushSubscription?: WebPushSubscription;
   platform?: string;
   distanceUnit?: 'km' | 'miles';
   radiusKm?: number;

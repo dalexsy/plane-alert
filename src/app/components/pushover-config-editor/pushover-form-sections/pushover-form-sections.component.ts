@@ -14,6 +14,7 @@ import { PushoverConfigState } from '../../../services/pushover/pushover-config.
 export class PushoverFormSectionsComponent {
   @Input({ required: true }) state!: PushoverConfigState;
   @Output() customFilterChange = new EventEmitter<void>();
+  @Output() pwaChange = new EventEmitter<void>();
   @Output() radiusChange = new EventEmitter<number>();
 
   onRadiusInput(value: number): void {

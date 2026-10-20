@@ -36,6 +36,10 @@ export interface PushoverConfigState {
   radiusKm: number;
   distanceUnit: 'km' | 'miles';
   pushoverUserKey: string;
+  pwaAlertsEnabled: boolean;
+  pushoverFallback: boolean;
+  confirmWebPushReceived: boolean;
+  preferPushoverChannel: boolean;
 }
 
 export function loadPushoverConfig(
@@ -48,6 +52,10 @@ export function loadPushoverConfig(
     radiusKm: 100,
     distanceUnit: 'km',
     pushoverUserKey: storedUserKey || PUSHOVER_USER_KEY,
+    pwaAlertsEnabled: localStorage.getItem('plane-alert-pwa-alerts-enabled') === '1',
+    pushoverFallback: localStorage.getItem('plane-alert-pushover-fallback') === '1',
+    confirmWebPushReceived: false,
+    preferPushoverChannel: false,
   };
   const saved = localStorage.getItem('pushover-config');
   if (saved) {
