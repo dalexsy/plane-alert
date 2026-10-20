@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * DEPRECATED — one-time migration from Firebase Firestore (2026 Pi move).
+ * New installs use planes-api JSON only; do not run unless exporting legacy data.
+ */
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');

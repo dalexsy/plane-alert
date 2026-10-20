@@ -73,7 +73,7 @@ var pushover_defaults_1 = require("./pushover-defaults");
 Object.defineProperty(exports, "PUSHOVER_USER_KEY", { enumerable: true, get: function () { return pushover_defaults_1.PUSHOVER_USER_KEY; } });
 Object.defineProperty(exports, "DEFAULT_PUSH_HOME", { enumerable: true, get: function () { return pushover_defaults_1.DEFAULT_PUSH_HOME; } });
 Object.defineProperty(exports, "DEFAULT_PUSH_DEVICE_NAMES", { enumerable: true, get: function () { return pushover_defaults_1.DEFAULT_PUSH_DEVICE_NAMES; } });
-// Pushover device matching (client + Cloud Functions)
+// Pushover device matching (SPA + planes-api)
 var pushover_device_match_1 = require("./pushover-device-match");
 Object.defineProperty(exports, "PUSHOVER_UNRELIABLE_DEVICE_NAMES", { enumerable: true, get: function () { return pushover_device_match_1.PUSHOVER_UNRELIABLE_DEVICE_NAMES; } });
 Object.defineProperty(exports, "autoMatchPushoverDevice", { enumerable: true, get: function () { return pushover_device_match_1.autoMatchPushoverDevice; } });

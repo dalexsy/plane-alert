@@ -1,5 +1,5 @@
 // Test script to check what aircraft are currently being detected
-// This simulates what the Cloud Function does
+// Simulates planes-api aircraft collection / notification filtering locally
 
 const BORING_AIRCRAFT_TYPES = [
   "BE20",

@@ -81,7 +81,7 @@ export function groupDevicesByLocation(
 }
 
 /**
- * Store aircraft data in Firestore for a specific location
+ * Store aircraft snapshot in the local JSON document store for a location
  */
 export async function storeAircraftSnapshot(
   db: JsonDocumentStore,

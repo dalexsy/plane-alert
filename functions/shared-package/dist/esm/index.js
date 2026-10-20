@@ -23,6 +23,6 @@ export { COMMON_MILITARY_TYPES } from './military-types';
 export { AIRCRAFT_TYPE_NAMES, getAircraftTypeName, } from './aircraft-type-names';
 // Household Pushover defaults (client + Pi backend)
 export { PUSHOVER_USER_KEY, DEFAULT_PUSH_HOME, DEFAULT_PUSH_DEVICE_NAMES, } from './pushover-defaults';
-// Pushover device matching (client + Cloud Functions)
+// Pushover device matching (SPA + planes-api)
 export { PUSHOVER_UNRELIABLE_DEVICE_NAMES, autoMatchPushoverDevice, matchPushoverDeviceName, resolvePushoverDeliveryTarget, isValidDeviceRegistration, householdPushoverDeviceTarget, } from './pushover-device-match';
 //# sourceMappingURL=index.js.map

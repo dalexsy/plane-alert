@@ -18,12 +18,8 @@ export {
   householdPushoverDeviceTarget,
 } from '@plane-alert/shared';
 
-/**
- * Get Pushover API token from environment
- * Handles process.env (Firebase Functions v7+ only supports environment variables)
- */
+/** Pushover application token from planes-api environment (.env on the Pi). */
 export function getPushoverApiToken(): string {
-  // In Firebase Functions v7, only process.env is available
   return process.env.PUSHOVER_API_TOKEN || '';
 }
 
@@ -32,11 +28,11 @@ export function getPushoverApiToken(): string {
  * Returns null when unmatched — callers must skip (never broadcast).
  */
 export function resolvePushoverDeviceName(
-  firestoreName: string,
+  registrationName: string,
   registeredDevices: Set<string> | null | undefined,
   platform?: string,
 ): string | null {
-  const trimmed = (firestoreName ?? '').trim();
+  const trimmed = (registrationName ?? '').trim();
   if (!trimmed) {
     return null;
   }

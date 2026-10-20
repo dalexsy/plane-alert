@@ -126,7 +126,7 @@ export function matchPushoverDeviceName(
   );
 }
 
-/** Resolve Firestore registration to a Pushover delivery target (never broadcast). */
+/** Resolve a stored device registration to a Pushover delivery target (never broadcast). */
 export function resolvePushoverDeliveryTarget(
   deviceName: string,
   platform: string | undefined,
@@ -160,7 +160,7 @@ export function resolvePushoverDeliveryTarget(
   return null;
 }
 
-/** True when this Firestore row maps to a live Pushover device. */
+/** True when this device record maps to a live Pushover device. */
 export function isValidDeviceRegistration(
   deviceName: string,
   platform: string | undefined,

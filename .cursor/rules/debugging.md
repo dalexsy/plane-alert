@@ -29,12 +29,12 @@
 - Quiet hours = **22:00–07:00** Berlin — not daytime mute
 - Kiosk MP3 uses `plane.isMilitary` (DB or prefix); interrupt in-flight audio
 - Remove speechSynthesis — MP3 only
-- Never deploy non-`main` / Cloud Functions for planes-api
+- Never deploy non-`main` bundles; planes-api is Pi Express only (not Firebase)
 - Do not restore per-device cooldown or a second API send. One account, one `device=galaxys24,pixel10` send. A “missed phone” story is not the bug and doubles the inbox (`5cc5b90`)
 - Do not loop `notifyForDevice` per phone and rely on cooldown — one notify pass per userKey (2026-08-14 still doubled)
 - Do not treat `/health` ok as a unique inbox. 30 min TTL re-sent `43C39D` the same Berlin day; Daryl is not the sensor — fail `verifyPlanesPushDedup` on the send ledger
 - Do not treat a unique **prod** send ledger as proof. dryl-staging planes-api was active with the same Pushover account (2026-08-16) so every alert hit phones twice
-- Do not restore FCM `/sw.js` or a caching SPA worker. Receive-side firebasejs white-screens `/`; alerts are Pushover only
+- Do not restore FCM `/sw.js` or firebasejs in the SPA. Automatic server alerts: optional Pushover via planes-api; PWA Web Notifications for in-app path
 - After Pi split: do not treat local `pw-play` on dryl-prod as the house speaker. POST the `.74` listener; missing prod player is not success if that trigger fails
 - Do not re-enable leftover `planes-api` on magicmirror `.74` (disabled/inactive; API is `.79` only)
 - `.74` audio: `wpctl` default Jabra SPEAK 510 Analog Stereo vol 1.00 — not HDMI, not `pactl get-default-sink` (empty)

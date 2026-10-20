@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-time patch live planes bundle to use Pi /api/planes/ instead of Cloud Functions."""
+"""One-time patch: rewrite cloudfunctions.net URLs in a deployed bundle to /api/planes/."""
 from __future__ import annotations
 
 import sys

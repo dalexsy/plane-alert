@@ -81,12 +81,11 @@ export class ClockComponent implements OnInit, OnDestroy, AfterViewInit {
       day: 'numeric',
       month: 'long',
     });
-    // Use default locale, only hour and minute, strip AM/PM
-    let timeString = locationTime.toLocaleTimeString([], {
+    this.currentTime = this.locationContext.formatTimeForLocation({
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
     });
-    timeString = timeString.replace(/\s*AM|\s*PM|\s*a\.m\.|\s*p\.m\./gi, '');
-    this.currentTime = timeString.trim();
   }
 }

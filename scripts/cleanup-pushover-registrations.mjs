@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-/** One-shot: remove Firestore device registrations that do not match Pushover. */
-const endpoint =
-  'https://europe-west3-plane-alert-800ff.cloudfunctions.net/unsubscribeDevice';
+/** One-shot device cleanup; uses planes-api (not legacy cloudfunctions.net). */
+const endpoint = 'https://planes.dryl.io/api/planes/unsubscribeDevice';
 
 const removeIds = [
   'u4h7b5hnvdgvozqd5yzm86i474fs4g__browser-macintel',

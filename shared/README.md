@@ -1,27 +1,21 @@
 # @plane-alert/shared
 
-Shared aircraft detection and classification logic for the Plane Alert project.
+Shared aircraft detection and classification logic for Plane Alert.
 
 ## Overview
 
-This package contains pure TypeScript functions for:
+Pure TypeScript helpers for:
 
-- **Country Detection**: Determining aircraft origin from ICAO hex codes and registration prefixes
-- **Military Detection**: Identifying military aircraft while filtering out boring types (trainers, business jets)
-- **Geographic Utilities**: Distance and bearing calculations
+- **Country detection** — ICAO hex and registration prefixes
+- **Military detection** — interesting military aircraft (filters trainers / generic GA)
+- **Geographic utilities** — distance, bearing, formatting
+- **Pushover device matching** — server-side delivery target resolution (optional legacy alerts)
 
-## Why This Exists
+## Why this exists
 
-The Plane Alert project has two separate codebases that need identical aircraft detection logic:
-
-1. **Angular Frontend** (runs in browser) - displays aircraft with flags and classifications
-2. **Cloud Functions Backend** (runs on Google Cloud) - sends push notifications for military aircraft
-
-Rather than duplicating code, this shared library provides a single source of truth for all aircraft detection logic.
+The **Angular PWA** and **planes-api** (`functions/` on dryl-prod) must classify aircraft the same way. This package is the single source of truth.
 
 ## Installation
-
-From the monorepo root:
 
 ```bash
 cd shared
@@ -29,102 +23,48 @@ npm install
 npm run build
 ```
 
+The app runs `npm run build:shared` in `prebuild`. planes-api copies the build via `shared-package/`.
+
 ## Usage
 
-### In Cloud Functions (Node.js)
+### In planes-api (Node.js)
 
 ```typescript
 import { looksMilitary, getAircraftCountry } from "@plane-alert/shared";
 
-const plane = {
-  hex: "3f717c",
-  flight: "GAF013",
-  dbFlags: 1,
-  t: "A400",
-};
+const plane = { hex: "3f717c", flight: "GAF013", dbFlags: 1, t: "A400" };
 
-// Check if aircraft is interesting military
 if (looksMilitary(plane)) {
-  // Get country
-  const country = getAircraftCountry(
-    plane.r, // registration
-    plane.hex, // ICAO hex
-    undefined, // API country
-    true // is military
-  );
-
-  console.log(country.countryCode); // 'DE'
+  const country = getAircraftCountry(plane.r, plane.hex, undefined, true);
+  console.log(country.countryCode);
 }
 ```
 
-### In Angular Frontend
+### In the Angular app
 
 ```typescript
 import { getCountryFromIcaoHex, looksMilitary } from "@plane-alert/shared";
 
-// Use in services
 const result = getCountryFromIcaoHex("3f717c");
-console.log(result.countryCode); // 'DE'
-console.log(result.confidence); // 'high'
-console.log(result.source); // 'icao-hex'
 ```
 
-## Build Outputs
+## Build outputs
 
-The package builds to three formats:
+- `dist/esm/` — Angular / modern bundlers
+- `dist/cjs/` — Node (planes-api)
+- `dist/types/` — Type definitions
 
-- **ESM** (`dist/esm/`) - For Angular and modern bundlers
-- **CommonJS** (`dist/cjs/`) - For Node.js Cloud Functions
-- **TypeScript Types** (`dist/types/`) - Type definitions for both
+## Data files
 
-## Data Files
+Under `data/`:
 
-Located in `data/`:
+- `icao-country-ranges.json`
+- `registration-country-prefix.json`
 
-- `icao-country-ranges.json` - Comprehensive ICAO hex allocation ranges
-- `registration-country-prefix.json` - Aircraft registration prefix to country mappings
+## Key functions
 
-## Key Functions
-
-### Country Detection
-
-- `getAircraftCountry(registration?, icaoHex?, apiCountry?, isMilitary?)` - Main country detection with priority system
-- `getCountryFromIcaoHex(icaoHex)` - Country from ICAO hex code
-- `getCountryFromRegistration(registration)` - Country from registration prefix
-
-### Military Detection
-
-- `looksMilitary(plane)` - Determines if aircraft is interesting military (excludes trainers/business jets)
-- `isMilitaryCallsign(callsign)` - Checks callsign against known military prefixes
-- `normalizeCallsign(callsign)` - Cleans callsign for comparison
-
-### Geographic Utilities
-
-- `haversineDistanceKm(lat1, lon1, lat2, lon2)` - Distance between two points
-- `computeBearing(lat1, lon1, lat2, lon2)` - Bearing from point A to point B
-- `bearingToCardinal(bearing)` - Converts bearing to cardinal direction (N, NE, etc.)
-- `formatDistance(km, unit)` - Formats distance with proper unit
+See source exports in `src/index.ts` — country helpers, `looksMilitary`, `haversineDistanceKm`, Pushover matching helpers, etc.
 
 ## Maintenance
 
-### Updating ICAO Ranges
-
-When ICAO allocations change, update `data/icao-country-ranges.json`, rebuild, and redeploy both frontend and backend.
-
-### Adding Aircraft Types
-
-To add aircraft types to the "boring" list:
-
-1. Edit `src/military-detection.ts` → `BORING_AIRCRAFT_TYPES`
-2. Rebuild library
-3. Redeploy both systems
-
-## Version Management
-
-This library uses semantic versioning:
-
-- **Major**: Breaking API changes
-- **Minor**: New features, backward compatible
-- **Patch**: Bug fixes
-
-Both frontend and backend should pin to the same version to ensure consistency.
+After changing detection rules or data files: rebuild shared, rebuild planes-api, redeploy SPA and API so both sides stay aligned.
