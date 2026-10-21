@@ -45,12 +45,7 @@
               }
             ],
             "styles": [
-              "src/styles.scss",
-              {
-                "input": "public/dryl-bug-report.css",
-                "inject": false,
-                "bundleName": "dryl-bug-report"
-              }
+              "src/styles.scss"
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [
