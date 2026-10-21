@@ -51,7 +51,8 @@
             "allowedCommonJsDependencies": [
               "leaflet",
               "suncalc"
-            ]
+            ],
+            "preserveSymlinks": true
           },
           "configurations": {
             "production": {

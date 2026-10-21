@@ -11,11 +11,6 @@
       "Accept": "application/json"
     }
   },
-  "/api/client-errors": {
-    "target": "http://192.168.178.80:3905",
-    "secure": false,
-    "changeOrigin": true
-  },
   "/nominatim": {
     "target": "https://nominatim.openstreetmap.org",
     "secure": true,
