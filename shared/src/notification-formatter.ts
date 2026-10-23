@@ -122,13 +122,12 @@ export function getCountryFlagEmoji(countryCode: string): string {
 }
 
 /**
- * Notification title (no flags or decorative emoji).
+ * Notification title: country flag + compact identifier (no directional arrow emoji).
  * Model + operator when both exist; else model, callsign, operator, or ICAO; else fallback.
  * Operator is shown in the title only alongside a model (not with callsign-only titles).
- * @param _flagEmoji Ignored (kept for call-site compatibility).
  */
 export function formatNotificationTitle(
-  _flagEmoji?: string,
+  flagEmoji?: string,
   model?: string,
   callsign?: string,
   icao?: string,
@@ -139,11 +138,15 @@ export function formatNotificationTitle(
   const cs = cleanNotificationField(callsign);
   const hex = icao?.trim().toUpperCase();
 
-  if (m) return op ? joinNotificationParts([m, op]) : m;
-  if (cs) return cs;
-  if (op) return op;
-  if (hex) return hex;
-  return 'Aircraft nearby';
+  let title: string;
+  if (m) title = op ? joinNotificationParts([m, op]) : m;
+  else if (cs) title = cs;
+  else if (op) title = op;
+  else if (hex) title = hex;
+  else title = 'Aircraft nearby';
+
+  const flag = flagEmoji?.trim();
+  return flag ? `${flag} ${title}` : title;
 }
 
 function cleanNotificationField(value?: string | null): string | undefined {
