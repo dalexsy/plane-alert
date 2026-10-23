@@ -23,8 +23,7 @@ const registration = {
 
 function assertPlainNotificationText(text, label) {
   assert.ok(text && !/\bundefined\b/i.test(text), `${label}: empty or undefined`);
-  assert.ok(!/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(text), `${label}: flag emoji`);
-  assert.ok(!/[🦜🛸🏳️]/.test(text), `${label}: decorative emoji`);
+  assert.ok(!/[🦜🛸]/.test(text), `${label}: decorative emoji`);
   assert.ok(!/[↗↘↖↙]/.test(text), `${label}: diagonal arrow`);
 }
 
@@ -60,7 +59,7 @@ const modelOp = await preview(
   },
   "model+operator",
 );
-assert.equal(modelOp.title, "Airbus A400M · Luftwaffe");
+assert.match(modelOp.title, /^[\u{1F1E6}-\u{1F1FF}]{2} Airbus A400M · Luftwaffe$/u);
 assert.match(modelOp.body, /E-bound/);
 assert.match(modelOp.body, /↑/);
 
@@ -78,7 +77,7 @@ const callsignOnly = await preview(
   },
   "callsign-only",
 );
-assert.equal(callsignOnly.title, "GAF871");
+assert.match(callsignOnly.title, /^[\u{1F1E6}-\u{1F1FF}]{2} GAF871$/u);
 assert.ok(!callsignOnly.title.includes("Luftwaffe"));
 assert.ok(!callsignOnly.body.includes("↑"));
 assert.ok(!callsignOnly.body.includes("↓"));

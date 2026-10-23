@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SettingsService } from '../settings/settings.service';
-import { formatNotificationTitle } from '@plane-alert/shared';
+import { formatNotificationTitle, getCountryFlagEmoji } from '@plane-alert/shared';
 import {
   buildMilitaryNotificationBody,
   evaluateNotificationStatus,
@@ -31,8 +31,11 @@ export class NotificationService {
 
   showMilitaryPlaneNotification(planeInfo: MilitaryPlaneInfo): void {
     if (Notification.permission !== 'granted') return;
+    const flagEmoji = planeInfo.countryCode
+      ? getCountryFlagEmoji(planeInfo.countryCode)
+      : undefined;
     const title = formatNotificationTitle(
-      undefined,
+      flagEmoji,
       planeInfo.model,
       planeInfo.callsign,
       planeInfo.icao,

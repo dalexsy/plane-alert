@@ -104,13 +104,13 @@ Pushover messages use a **title** and **body**. The installed PWA uses the same 
 
 | Case | Title | Body |
 |------|-------|------|
-| Model + operator | `Airbus A400M · Luftwaffe` | `Rudow SE · E-bound · 7,600 m ↑` |
-| Model only | `Airbus A400M` | `Rudow SE · E-bound · 7,600 m` |
-| Callsign only | `GAF871` | `Rudow SE · E-bound · 7,600 m` |
+| Model + operator | `🇩🇪 Airbus A400M · Luftwaffe` | `Rudow SE · E-bound · 7,600 m ↑` |
+| Model only | `🇩🇪 Airbus A400M` | `Rudow SE · E-bound · 7,600 m` |
+| Callsign only | `🇩🇪 GAF871` | `Rudow SE · E-bound · 7,600 m` |
 
 Map link (unchanged): `https://planes.dryl.io/?icao=3F717C&follow=1` (“View on Map”).
 
-Title priority: **model** (with **operator** appended only when both exist), else **callsign**, else **operator**, else **ICAO**, else `Aircraft nearby`. The body always leads with place + bearing from home when known, then `[cardinal]-bound`, then altitude (`↑` / `↓` only for meaningful climb or descent). No speed, flags, or filler words.
+Title priority: **country flag** (from registration / ICAO allocation), then **model** (with **operator** appended only when both exist), else **callsign**, else **operator**, else **ICAO**, else `Aircraft nearby`. The body always leads with place + bearing from home when known, then `[cardinal]-bound`, then altitude (`↑` / `↓` only for meaningful climb or descent). No speed or filler words; no directional arrow emoji in title or body.
 
 ### How the body is built
 

@@ -39,12 +39,11 @@ export declare function formatHeadingBound(planeHeading: number): string;
  */
 export declare function getCountryFlagEmoji(countryCode: string): string;
 /**
- * Notification title (no flags or decorative emoji).
+ * Notification title: country flag + compact identifier (no directional arrow emoji).
  * Model + operator when both exist; else model, callsign, operator, or ICAO; else fallback.
  * Operator is shown in the title only alongside a model (not with callsign-only titles).
- * @param _flagEmoji Ignored (kept for call-site compatibility).
  */
-export declare function formatNotificationTitle(_flagEmoji?: string, model?: string, callsign?: string, icao?: string, operator?: string): string;
+export declare function formatNotificationTitle(flagEmoji?: string, model?: string, callsign?: string, icao?: string, operator?: string): string;
 /**
  * Compact notification body for phone lock screens.
  * Format: `Rudow SE · E-bound · 7,600 m ↑` (omits missing fields).

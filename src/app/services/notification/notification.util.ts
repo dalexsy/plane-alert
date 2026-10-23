@@ -7,6 +7,8 @@ export type MilitaryPlaneInfo = {
   callsign?: string;
   model?: string;
   operator?: string;
+  /** ISO 3166-1 alpha-2 — used for the title flag emoji */
+  countryCode?: string;
   altitude?: number;
   speed?: number;
   direction?: string;

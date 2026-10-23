@@ -18,6 +18,14 @@ test('formatNotificationTitle — model and operator', () => {
   );
 });
 
+test('formatNotificationTitle — prefixes country flag when provided', () => {
+  assert.equal(
+    formatNotificationTitle('🇩🇪', 'Airbus A400M', 'GAF871', '3F717C', 'Luftwaffe'),
+    '🇩🇪 Airbus A400M · Luftwaffe'
+  );
+  assert.equal(formatNotificationTitle('🇩🇪', undefined, 'GAF871', '3F717C'), '🇩🇪 GAF871');
+});
+
 test('formatNotificationTitle — model without operator', () => {
   assert.equal(
     formatNotificationTitle(undefined, 'Airbus A400M', 'GAF871', '3F717C'),

@@ -67,8 +67,8 @@ function getCountryFromIcaoHex(icaoHex) {
             }
         }
     }
-    catch (error) {
-        console.warn('Error parsing ICAO hex:', icaoHex, error);
+    catch {
+        // Shared browser/server code returns the explicit unknown result below.
     }
     return {
         countryCode: 'Unknown',

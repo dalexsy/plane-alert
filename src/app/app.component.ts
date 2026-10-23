@@ -78,7 +78,7 @@ export class AppComponent implements OnInit {
           speed: 500,
           direction: 'NW',
           distanceKm: 4.2,
-          origin: 'US',
+          countryCode: 'US',
           verticalRate: 128,
         });
       }, 1500);
@@ -109,7 +109,7 @@ export class AppComponent implements OnInit {
         speed: 500,
         direction: 'NW',
         distanceKm: 4.2,
-        origin: 'US',
+        countryCode: 'US',
         verticalRate: 128,
       });
       alert('Test notification sent! Check your notifications.');
