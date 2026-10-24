@@ -4,7 +4,7 @@
   "description": "Plane Alert Pi API (local JSON store only)",
   "main": "lib/pi-server.js",
   "scripts": {
-    "build": "tsc && node scripts/write-build-info.mjs",
+    "build": "tsc",
     "gcp-build": "npm run build",
     "clean": "rimraf lib",
     "lint": "eslint --ext .ts src",
