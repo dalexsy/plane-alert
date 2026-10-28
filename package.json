@@ -21,6 +21,7 @@
     "errors:probe:planes-api-env": "python3 scripts/probe-planes-api-env.py",
     "errors:probe:planes-kiosk-alert": "npm run verify:kiosk-alert",
     "verify:planes-api-env": "python3 scripts/pi-install-planes-api.py --self-test",
+    "verify:prod-formatter": "python scripts/prove-prod-notification-formatter.py",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
