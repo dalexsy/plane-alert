@@ -68,60 +68,12 @@ def is_leftover_kiosk_api_host(host: str) -> bool:
 
 
 def build_functions() -> None:
-    shared = REPO_ROOT / "shared"
-    print("[build] shared package")
-    run_local(["npm", "run", "build"], shared, "[fail] shared build")
-
-    print("[build] prepare functions shared-package")
+    gate_tool = REPO_ROOT / "tools" / "planes-api-build-gate"
+    print("[build] planes-api gates (Go orchestrator — no fleet MJS)")
     run_local(
-        ["node", str(REPO_ROOT / "scripts" / "prepare-functions-shared.js")],
-        REPO_ROOT,
-        "[fail] prepare-functions-shared",
-    )
-
-    print("[build] functions TypeScript")
-    run_local(["npm", "run", "build"], FUNCTIONS_DIR, "[fail] functions build")
-
-    print("[gate] planes-api .env preserve")
-    run_local(
-        [sys.executable, str(SCRIPT_DIR / "planes_api_env.py")],
-        REPO_ROOT,
-        "[fail] planes-api .env preserve gate",
-    )
-
-    print("[gate] local transaction cooldown")
-    run_local(
-        ["node", str(FUNCTIONS_DIR / "scripts" / "test-local-transaction.mjs")],
-        FUNCTIONS_DIR,
-        "[fail] local transaction cooldown gate",
-    )
-
-    print("[gate] pushover send gate")
-    run_local(
-        ["node", str(FUNCTIONS_DIR / "scripts" / "test-pushover-send-gate.mjs")],
-        FUNCTIONS_DIR,
-        "[fail] pushover send gate",
-    )
-
-    print("[gate] row session pushover")
-    run_local(
-        ["node", str(FUNCTIONS_DIR / "scripts" / "test-row-session-push.mjs")],
-        FUNCTIONS_DIR,
-        "[fail] row session pushover",
-    )
-
-    print("[gate] kiosk alert remote play")
-    run_local(
-        ["node", str(FUNCTIONS_DIR / "scripts" / "test-kiosk-alert-sound.mjs")],
-        FUNCTIONS_DIR,
-        "[fail] kiosk alert remote play",
-    )
-
-    print("[gate] antenna sightings upsert")
-    run_local(
-        ["node", str(FUNCTIONS_DIR / "scripts" / "test-antenna-sightings.mjs")],
-        FUNCTIONS_DIR,
-        "[fail] antenna sightings upsert",
+        ["go", "run", "."],
+        gate_tool,
+        "[fail] planes-api build gates",
     )
 
 
