@@ -2,10 +2,63 @@
  * Shared notification formatting logic used by both frontend and backend
  */
 
-import { bearingToCardinal } from './geo-utils';
-
 const NOTIFICATION_PART_SEP = ' · ';
 const VERTICAL_RATE_THRESHOLD_FT_MIN = 64;
+
+/** Quadrant fill symbols for where the aircraft sits relative to home (bearing 0° = N). */
+const QUADRANT_SECTORS: ReadonlyArray<{ symbol: string; centerDeg: number }> = [
+  { symbol: '◴', centerDeg: 285 }, // N, NW, W
+  { symbol: '◵', centerDeg: 225 }, // W, SW, S
+  { symbol: '◶', centerDeg: 135 }, // S, SE, E
+  { symbol: '◷', centerDeg: 45 }, // E, NE, N
+];
+
+/** Supplemental Arrows-C (U+2B60–U+2B67), clockwise from north. */
+const TRACK_ARROW_BY_CARDINAL8: Record<string, string> = {
+  N: '\u2B60',
+  NE: '\u2B61',
+  E: '\u2B62',
+  SE: '\u2B63',
+  S: '\u2B64',
+  SW: '\u2B65',
+  NW: '\u2B66',
+  W: '\u2B67',
+};
+
+const CARDINAL8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+
+function normalizeBearingDegrees(bearing: number): number {
+  return ((bearing % 360) + 360) % 360;
+}
+
+function angularDistanceDeg(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+/** Pick ◴ ◵ ◶ ◷ from bearing; overlaps resolve to the nearest sector center. */
+export function getQuadrantSymbolForBearing(bearing: number): string {
+  const b = normalizeBearingDegrees(bearing);
+  let best = QUADRANT_SECTORS[0];
+  let bestDist = Infinity;
+  for (const sector of QUADRANT_SECTORS) {
+    const dist = angularDistanceDeg(b, sector.centerDeg);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = sector;
+    }
+  }
+  return best.symbol;
+}
+
+export function bearingToCardinal8(bearing: number): string {
+  const index = Math.round(normalizeBearingDegrees(bearing) / 45) % 8;
+  return CARDINAL8[index];
+}
+
+export function getTrackArrowForCardinal(cardinal8: string): string {
+  return TRACK_ARROW_BY_CARDINAL8[cardinal8.toUpperCase()] ?? '';
+}
 
 export interface NotificationData {
   callsign?: string;
@@ -84,23 +137,33 @@ export function joinNotificationParts(parts: Array<string | undefined | null>): 
     .join(NOTIFICATION_PART_SEP);
 }
 
-/** Nearby place plus bearing from home, e.g. `Rudow SE`. */
+/** Nearby place plus bearing from home, e.g. `Rudow ◶ SE`. */
 export function formatPlaceAndBearingFromHome(
   location?: string,
-  direction?: string
+  direction?: string,
+  bearing?: number
 ): string | undefined {
   const place = humanReadableLocation(location);
   const dir = direction?.trim().toUpperCase();
+  const quadrant =
+    bearing != null && Number.isFinite(bearing)
+      ? getQuadrantSymbolForBearing(bearing)
+      : undefined;
+  if (place && dir && quadrant) return `${place} ${quadrant} ${dir}`;
   if (place && dir) return `${place} ${dir}`;
+  if (place && quadrant) return `${place} ${quadrant}`;
   if (place) return place;
+  if (dir && quadrant) return `${quadrant} ${dir}`;
   if (dir) return dir;
+  if (quadrant) return quadrant;
   return undefined;
 }
 
-/** Aircraft track as compact heading text, e.g. `E-bound`. */
+/** Aircraft track, e.g. `⭢ E`. */
 export function formatHeadingBound(planeHeading: number): string {
-  const cardinal = bearingToCardinal(planeHeading);
-  return `${cardinal}-bound`;
+  const cardinal = bearingToCardinal8(planeHeading);
+  const arrow = getTrackArrowForCardinal(cardinal);
+  return arrow ? `${arrow} ${cardinal}` : cardinal;
 }
 
 /**
@@ -159,14 +222,18 @@ function cleanNotificationField(value?: string | null): string | undefined {
 
 /**
  * Compact notification body for phone lock screens.
- * Format: `Rudow SE · E-bound · 7,600 m ↑` (omits missing fields).
+ * Format: `Rudow ◶ SE · ⭢ E · 7,600 m ↑` (omits missing fields).
  * @param _skipCallsignInBody Ignored (callsign lives in the title when needed).
  */
 export function formatNotificationBody(
   data: NotificationData,
   _skipCallsignInBody = false
 ): string {
-  const placeBearing = formatPlaceAndBearingFromHome(data.location, data.direction);
+  const placeBearing = formatPlaceAndBearingFromHome(
+    data.location,
+    data.direction,
+    data.bearing
+  );
 
   const headingPart =
     data.planeHeading !== undefined && Number.isFinite(data.planeHeading)
