@@ -12,6 +12,7 @@ export type MilitaryPlaneInfo = {
   altitude?: number;
   speed?: number;
   direction?: string;
+  bearing?: number;
   distanceKm?: number;
   origin?: string;
   verticalRate?: number;
@@ -45,6 +46,7 @@ export function buildMilitaryNotificationBody(
     callsign,
     icao: planeInfo.icao,
     direction: planeInfo.direction,
+    bearing: planeInfo.bearing,
     planeHeading: planeInfo.planeHeading,
     location: planeInfo.location,
     speed,

@@ -104,13 +104,13 @@ Pushover messages use a **title** and **body**. The installed PWA uses the same 
 
 | Case | Title | Body |
 |------|-------|------|
-| Model + operator | `🇩🇪 Airbus A400M · Luftwaffe` | `Rudow SE · E-bound · 7,600 m ↑` |
-| Model only | `🇩🇪 Airbus A400M` | `Rudow SE · E-bound · 7,600 m` |
-| Callsign only | `🇩🇪 GAF871` | `Rudow SE · E-bound · 7,600 m` |
+| Model + operator | `🇩🇪 Airbus A400M · Luftwaffe` | `Rudow ◶ SE · ⭢ E · 7,600 m ↑` |
+| Model only | `🇩🇪 Airbus A400M` | `Rudow ◶ SE · ⭢ E · 7,600 m` |
+| Callsign only | `🇩🇪 GAF871` | `Rudow ◶ SE · ⭢ E · 7,600 m` |
 
 Map link (unchanged): `https://planes.dryl.io/?icao=3F717C&follow=1` (“View on Map”).
 
-Title priority: **country flag** (from registration / ICAO allocation), then **model** (with **operator** appended only when both exist), else **callsign**, else **operator**, else **ICAO**, else `Aircraft nearby`. The body always leads with place + bearing from home when known, then `[cardinal]-bound`, then altitude (`↑` / `↓` only for meaningful climb or descent). No speed or filler words; no directional arrow emoji in title or body.
+Title priority: **country flag** (from registration / ICAO allocation), then **model** (with **operator** appended only when both exist), else **callsign**, else **operator**, else **ICAO**, else `Aircraft nearby`. The body leads with place + quadrant symbol (◴◵◶◷ from bearing) + cardinal from home when known, then track arrow + 8-point cardinal (e.g. `⭦ NW`), then altitude (`↑` / `↓` only for meaningful climb or descent). No speed or filler words; title stays free of direction glyphs.
 
 ### How the body is built
 
@@ -122,7 +122,7 @@ One shared function formats the text for **planes-api Pushover** and the **brows
 2. For each registered home location, aircraft inside the user’s radius that pass the military/special gate are candidates.
 3. `buildMilitaryPendingNotification` (`functions/src/services/build-military-notification.ts`) computes bearing from home → plane, cardinal direction, operator from callsign prefixes, and title via `formatNotificationTitle`.
 4. `buildNotificationBody` (`functions/src/services/notification-builder.ts`) adds altitude from ADS-B (`alt_baro`, `baro_rate`), track as heading, and optional place name from `reverseGeocode` (never raw lat/lon in the body).
-5. `formatNotificationBody` joins up to three segments with ` · `: `[place] [bearing from home]`, `[cardinal]-bound`, `[altitude] [↑|↓]`. Missing fields are omitted with no extra separators.
+5. `formatNotificationBody` joins up to three segments with ` · `: `[place] [quadrant] [bearing from home]`, `[track arrow] [cardinal]`, `[altitude] [↑|↓]`. Missing fields are omitted with no extra separators.
 
 **Browser path (PWA):** `notification.service` → `buildMilitaryNotificationBody` in `src/app/services/notification/notification.util.ts` calls the same `formatNotificationBody` with units from your distance setting (km vs miles).
 
