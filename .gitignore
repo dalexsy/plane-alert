@@ -14,6 +14,8 @@ shared/dist
 npm-debug.log
 yarn-error.log
 functions/lib
+functions/shared-package/
+functions/build-info.json
 
 # IDEs and editors
 .idea/
