@@ -17,7 +17,7 @@
     "install:kiosk-watch": "python scripts/pi-install-planes-kiosk.py",
     "verify:kiosk-motion": "python scripts/verify-planes-kiosk-motion.py",
     "verify:kiosk-recovery": "python scripts/verify-planes-kiosk-recovery.py",
-    "verify:kiosk-alert": "python3 scripts/pi-install-planes-api.py --self-test && python3 scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test",
+    "verify:kiosk-alert": "python scripts/pi-install-planes-api.py --self-test && python scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test",
     "errors:probe:planes-api-env": "python3 scripts/probe-planes-api-env.py",
     "errors:probe:planes-kiosk-alert": "npm run verify:kiosk-alert",
     "verify:planes-api-env": "python3 scripts/pi-install-planes-api.py --self-test",
