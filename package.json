@@ -17,7 +17,7 @@
     "install:kiosk-watch": "python scripts/pi-install-planes-kiosk.py",
     "verify:kiosk-motion": "python scripts/verify-planes-kiosk-motion.py",
     "verify:kiosk-recovery": "python scripts/verify-planes-kiosk-recovery.py",
-    "verify:kiosk-alert": "python scripts/pi-install-planes-api.py --self-test && python scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test",
+    "verify:kiosk-alert": "python scripts/pi-install-planes-api.py --self-test && python scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test && python scripts/verify-planes-kiosk-alert-chain.py",
     "errors:probe:planes-api-env": "python3 scripts/probe-planes-api-env.py",
     "errors:probe:planes-kiosk-alert": "npm run verify:kiosk-alert",
     "verify:planes-api-env": "python3 scripts/pi-install-planes-api.py --self-test",
@@ -29,14 +29,14 @@
   "dependencies": {
     "@dryl/ui": "file:../dryl/ui/dist/dryl/ui",
     "@plane-alert/shared": "file:./shared",
-    "@angular/animations": "^19.2.5",
-    "@angular/common": "^19.2.0",
-    "@angular/compiler": "^19.2.0",
-    "@angular/core": "^19.2.0",
-    "@angular/forms": "^19.2.0",
-    "@angular/platform-browser": "^19.2.0",
-    "@angular/platform-browser-dynamic": "^19.2.0",
-    "@angular/router": "^19.2.0",
+    "@angular/animations": "^19.2.25",
+    "@angular/common": "^19.2.25",
+    "@angular/compiler": "^19.2.25",
+    "@angular/core": "^19.2.25",
+    "@angular/forms": "^19.2.25",
+    "@angular/platform-browser": "^19.2.25",
+    "@angular/platform-browser-dynamic": "^19.2.25",
+    "@angular/router": "^19.2.25",
     "@types/leaflet": "^1.9.17",
     "aircodes": "^1.3.16",
     "cheerio": "^1.0.0-rc.12",
@@ -51,9 +51,9 @@
     "@dryl/storage": "file:../dryl/storage"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.2.6",
-    "@angular/cli": "^19.2.6",
-    "@angular/compiler-cli": "^19.2.0",
+    "@angular-devkit/build-angular": "^19.2.25",
+    "@angular/cli": "^19.2.25",
+    "@angular/compiler-cli": "^19.2.25",
     "@types/jasmine": "~5.1.0",
     "concurrently": "^9.2.1",
     "cors": "^2.8.5",
@@ -67,6 +67,15 @@
     "typescript": "~5.7.2"
   },
   "packageManager": "npm@11.17.0",
+  "overrides": {
+    "body-parser": ">=2.3.1",
+    "minimist": ">=1.2.8",
+    "proxy-addr": ">=2.0.7",
+    "qs": ">=6.15.4",
+    "shell-quote": ">=1.8.3",
+    "tar": ">=7.5.4",
+    "websocket-driver": ">=0.7.4"
+  },
   "dryl": {
     "packages": {
       "@dryl/ui": "0.6.13",
