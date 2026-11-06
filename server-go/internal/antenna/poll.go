@@ -2,7 +2,6 @@ package antenna
 
 import (
 	"context"
-	"dryl-planes/internal/diskstore"
 	"encoding/json"
 	"errors"
 	"io"
@@ -97,7 +96,7 @@ func (e *Engine) Poll(ctx context.Context) error {
 	e.dirty = e.dirty || changed
 	e.lastError = ""
 	if e.dirty && time.Since(e.lastPersist) >= time.Minute {
-		if err = diskstore.Persist(e.path, e.diskRaw, e.raw); err != nil {
+		if err = e.persist(); err != nil {
 			set(e.state, "lastPollOk", false)
 			e.lastError = "Antenna state persistence failed"
 			set(e.state, "lastPollError", "Antenna state persistence failed")
