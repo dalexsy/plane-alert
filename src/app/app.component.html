@@ -1,2 +1,9 @@
-<app-antenna-sightings-page *ngIf="sightings"></app-antenna-sightings-page>
-<app-map *ngIf="!sightings"></app-map>
+@if (sightings) {
+  @defer (on immediate) {
+    <app-antenna-sightings-page></app-antenna-sightings-page>
+  }
+} @else {
+  @defer (on immediate) {
+    <app-map></app-map>
+  }
+}
