@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MapComponent } from './map/map.component';
 import { AntennaSightingsPage } from './pages/antenna-sightings/antenna-sightings.page';
-import { NoonRefreshService } from './services/noon-refresh/noon-refresh.service';
 import {
   NotificationService,
   NotificationStatusInfo,
@@ -26,13 +25,11 @@ export class AppComponent implements OnInit {
   readonly sightings = isSightingsPath();
 
   constructor(
-    private noonRefreshService: NoonRefreshService,
     private notificationService: NotificationService,
     private pushRegistration: PushRegistrationService
   ) {}
 
   ngOnInit() {
-    this.noonRefreshService.start();
     // Pushover alerts are server-side — re-register whenever we have a stored key.
     setTimeout(() => this.syncPushoverRegistration(), 2000);
     setTimeout(() => this.checkNotificationSupport(), 2000);

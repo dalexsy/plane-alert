@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
-import { NoonRefreshService } from './services/noon-refresh/noon-refresh.service';
 import { NotificationService } from './services/notification/notification.service';
 import { PushRegistrationService } from './services/push-registration/push-registration.service';
 
@@ -9,7 +8,6 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        { provide: NoonRefreshService, useValue: { start: () => undefined } },
         {
           provide: NotificationService,
           useValue: { evaluateStatus: () => Promise.resolve() },
