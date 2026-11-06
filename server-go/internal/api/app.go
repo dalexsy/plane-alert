@@ -19,7 +19,12 @@ type App struct {
 	Root, Revision string
 	Aircraft       aircraft.Fetcher
 	Push           push.Client
-	slots          chan struct{}
+	Antenna        interface {
+		Snapshot() (Object, error)
+		Polling() bool
+		PollMs() int
+	}
+	slots chan struct{}
 }
 
 func JSON(w http.ResponseWriter, status int, value any) {
@@ -58,7 +63,7 @@ func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	a.slots = make(chan struct{}, 4)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		JSON(w, 200, map[string]any{"ok": true, "backend": "go-planes", "revision": a.Revision, "notificationProcessingEnabled": false, "antennaPollingEnabled": false})
+		JSON(w, 200, map[string]any{"ok": true, "backend": "go-planes", "revision": a.Revision, "notificationProcessingEnabled": false, "antennaPollingEnabled": a.Antenna != nil && a.Antenna.Polling()})
 	})
 	mux.HandleFunc("GET /adsbPointProxy", func(w http.ResponseWriter, r *http.Request) {
 		lat, e1 := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
