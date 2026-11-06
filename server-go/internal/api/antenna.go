@@ -11,7 +11,13 @@ import (
 )
 
 func (a *App) antenna(w http.ResponseWriter, r *http.Request) {
-	blob, err := Read(a.path("antenna-sightings.json"))
+	var blob Object
+	var err error
+	if a.Antenna != nil {
+		blob, err = a.Antenna.Snapshot()
+	} else {
+		blob, err = Read(a.path("antenna-sightings.json"))
+	}
 	if err != nil {
 		JSON(w, 503, map[string]string{"error": "Saved antenna sightings unavailable"})
 		return
@@ -75,6 +81,11 @@ func (a *App) antenna(w http.ResponseWriter, r *http.Request) {
 		rows = rows[:limit]
 	}
 	result := map[string]any{"ok": true, "enabled": false, "pollMs": 12000, "uniqueHexes": len(sightings), "matched": matched, "returned": len(rows), "sightings": rows, "pollerHeld": true}
+	if a.Antenna != nil {
+		result["enabled"] = a.Antenna.Polling()
+		result["pollerHeld"] = !a.Antenna.Polling()
+		result["pollMs"] = a.Antenna.PollMs()
+	}
 	for _, k := range []string{"feedUrl", "lastPollAt", "lastPollOk", "lastPollError", "lastAircraft"} {
 		if v, ok := blob[k]; ok {
 			result[k] = v

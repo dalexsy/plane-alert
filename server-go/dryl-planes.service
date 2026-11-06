@@ -22,8 +22,10 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
+ReadWritePaths=/home/pi/planes-api/data
+ReadOnlyPaths=/home/pi/planes-api/data/planes-api-store.json
 UMask=0077
-TimeoutStopSec=30
+TimeoutStopSec=45
 
 [Install]
 WantedBy=multi-user.target

@@ -20,7 +20,9 @@ func TestActualPlanesBinary(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, "antenna-sightings.json", `{"sightings":{"abc123":{"hex":"abc123","lastFlight":"ISOLATED","flights":[],"lastSeen":100,"closestNm":2}}}`)
 	write(t, root, "planes-api-store.json", `{"deviceTokens":{}}`)
-	if out, err := exec.Command(binary, "-data", root, "-check-data").CombinedOutput(); err != nil {
+	preflight := exec.Command(binary, "-data", root, "-check-data")
+	preflight.Env = append(os.Environ(), "PLANES_ANTENNA_ENABLED=0")
+	if out, err := preflight.CombinedOutput(); err != nil {
 		t.Fatalf("actual binary preflight: %v %s", err, out)
 	}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -32,6 +34,7 @@ func TestActualPlanesBinary(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, binary, "-data", root, "-listen", address)
+	cmd.Env = append(os.Environ(), "PLANES_ANTENNA_ENABLED=0")
 	if err = cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
