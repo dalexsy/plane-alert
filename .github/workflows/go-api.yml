@@ -1,0 +1,32 @@
+name: Go Plane API
+on:
+  pull_request:
+    branches: [main]
+    paths: ["server-go/**", ".github/workflows/go-api.yml"]
+  push:
+    branches: [main]
+    paths: ["server-go/**", ".github/workflows/go-api.yml"]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: [self-hosted, Linux, ARM64, household-gate]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - run: go -C server-go test ./...
+      - run: go -C server-go vet ./...
+  race:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - run: go -C server-go test -race ./...
