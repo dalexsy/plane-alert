@@ -22,6 +22,7 @@ func main() {
 	root := flag.String("data", "/home/pi/planes-api/data", "existing Plane Alert data directory")
 	listen := flag.String("listen", "127.0.0.1:8795", "loopback listener")
 	version := flag.Bool("version", false, "print revision")
+	check := flag.Bool("check-data", false, "validate existing stores without network or writes")
 	flag.Parse()
 	if *version {
 		fmt.Println(revision)
@@ -33,6 +34,13 @@ func main() {
 	}
 	runtime.GOMAXPROCS(2)
 	debug.SetMemoryLimit(128 << 20)
+	if *check {
+		if err := api.CheckData(*root); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("existing Plane stores valid")
+		return
+	}
 	app := &api.App{Root: *root, Revision: revision}
 	app.Push.Token = os.Getenv("PUSHOVER_API_TOKEN")
 	server := &http.Server{Addr: *listen, Handler: app.Handler(), ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 20 * time.Second, MaxHeaderBytes: 16 << 10}
