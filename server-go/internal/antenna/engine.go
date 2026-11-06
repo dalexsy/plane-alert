@@ -123,7 +123,7 @@ func (e *Engine) Flush() error {
 	if !e.dirty {
 		return nil
 	}
-	if err := diskstore.Persist(e.path, e.diskRaw, e.raw); err != nil {
+	if err := e.persist(); err != nil {
 		return err
 	}
 	e.diskRaw = e.raw

@@ -12,6 +12,17 @@ import (
 
 type Object = map[string]json.RawMessage
 
+// CommitError means rename completed, but directory durability is uncertain.
+type CommitError struct {
+	Path string
+	Err  error
+}
+
+func (e *CommitError) Error() string {
+	return "store renamed but directory sync failed: " + e.Err.Error()
+}
+func (e *CommitError) Unwrap() error { return e.Err }
+
 func Read(path string) (Object, error) {
 	raw, err := Bytes(path)
 	if err != nil {
@@ -59,6 +70,9 @@ func syncDir(path string) error {
 	return f.Sync()
 }
 func Atomic(path string, raw []byte) error {
+	return atomic(path, raw, syncDir)
+}
+func atomic(path string, raw []byte, syncDirectory func(string) error) error {
 	if len(raw) > 16<<20 || !json.Valid(raw) {
 		return errors.New("invalid store update")
 	}
@@ -82,7 +96,10 @@ func Atomic(path string, raw []byte) error {
 	if err = os.Rename(f.Name(), path); err != nil {
 		return err
 	}
-	return syncDir(dir)
+	if err = syncDirectory(dir); err != nil {
+		return &CommitError{Path: path, Err: err}
+	}
+	return nil
 }
 
 // Keep one original and one previous generation; never prune household rows.
