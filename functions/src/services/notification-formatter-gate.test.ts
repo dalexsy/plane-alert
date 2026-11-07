@@ -16,20 +16,21 @@ describe('shared notification formatter (push copy)', () => {
     );
   });
 
-  it('place bearing uses quadrant symbol from bearing degrees', () => {
-    assert.equal(formatPlaceAndBearingFromHome('Rudow', 'SE', 135), 'Rudow ◶ SE');
+  it('place bearing uses clock emoji from bearing degrees', () => {
+    assert.equal(formatPlaceAndBearingFromHome('Rudow', 'SE', 135), 'Rudow 🕔 SE');
+    assert.equal(formatPlaceAndBearingFromHome('Rudow', 'W', 270), 'Rudow 🕘 W');
     assert.equal(formatPlaceAndBearingFromHome('Rudow', 'SE'), 'Rudow SE');
   });
 
-  it('heading uses track arrow and 8-point cardinal', () => {
-    assert.equal(formatHeadingBound(90), '⭢ E');
-    assert.equal(formatHeadingBound(315), '⭦ NW');
+  it('heading uses clock emoji and 8-point cardinal', () => {
+    assert.equal(formatHeadingBound(90), '🕒 E');
+    assert.equal(formatHeadingBound(315), '🕚 NW');
   });
 
   it('joinNotificationParts skips empty segments', () => {
     assert.equal(
-      joinNotificationParts(['Rudow ◶ SE', undefined, '7,600 m']),
-      'Rudow ◶ SE · 7,600 m',
+      joinNotificationParts(['Rudow 🕔 SE', undefined, '7,600 m']),
+      'Rudow 🕔 SE · 7,600 m',
     );
   });
 
@@ -48,7 +49,7 @@ describe('shared notification formatter (push copy)', () => {
       speedUnit: 'km/h',
       operator: 'Luftwaffe',
     });
-    assert.equal(body, 'Rudow ◶ SE · ⭢ E · 7,600 m ↑');
+    assert.equal(body, 'Rudow 🕔 SE · 🕒 E · 7,600 m ⬆️');
   });
 
   it('drops coordinate-like locations', () => {
@@ -62,6 +63,6 @@ describe('shared notification formatter (push copy)', () => {
       altitudeUnit: 'm',
       speedUnit: 'km/h',
     });
-    assert.equal(body, '◶ E · ⭢ E · 5,000 m');
+    assert.equal(body, '🕒 E · 🕒 E · 5,000 m');
   });
 });

@@ -71,6 +71,7 @@ export {
   formatPlaceAndBearingFromHome,
   joinNotificationParts,
   getQuadrantSymbolForBearing,
+  getClockEmojiForBearing,
   bearingToCardinal8,
   getTrackArrowForCardinal,
   getArrowForDirection,

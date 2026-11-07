@@ -5,11 +5,13 @@ export function isWebPushConfigured(): boolean {
 }
 
 /** Prod sends when VAPID is configured; staging stays muted unless explicitly armed. */
-export function isWebPushSendEnabled(): boolean {
+export function isWebPushSendEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
   if (!isWebPushConfigured()) return false;
-  if (process.env.PLANES_API_WEB_PUSH_ENABLED === '0') return false;
-  if (process.env.DRYL_ENV === 'staging') {
-    return process.env.PLANES_API_WEB_PUSH_ENABLED === '1';
+  if (env.PLANES_API_WEB_PUSH_ENABLED === '0') return false;
+  if (env.DRYL_ENV === 'staging') {
+    return env.PLANES_API_WEB_PUSH_ENABLED === '1';
   }
   return true;
 }

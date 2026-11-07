@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-shot: prove planes-api on Pi ships quadrant formatter."""
+"""One-shot: prove planes-api on Pi ships clock-emoji formatter."""
 from __future__ import annotations
 
 import sys
@@ -47,7 +47,7 @@ def main() -> None:
             raise SystemExit(f"[fail] missing {PATH}")
         sym = run_remote(
             client,
-            f"grep -c getQuadrantSymbolForBearing {PATH} || true",
+            f"grep -c getClockEmojiForBearing {PATH} || true",
         ).strip()
         arrow = run_remote(
             client,
@@ -58,20 +58,20 @@ def main() -> None:
             f"cd /home/pi/planes-api && node -e \"const f=require('./node_modules/@plane-alert/shared/dist/cjs/notification-formatter.js'); console.log(f.formatNotificationBody({{icao:'T',location:'Rudow',direction:'SE',bearing:135,planeHeading:90,altitude:7600,altitudeUnit:'m',verticalRate:800,speedUnit:'km/h'}}));\"",
             timeout=30,
         ).strip()
-        print(f"[ok] formatter on Pi: getQuadrantSymbolForBearing hits={sym} formatHeadingBound hits={arrow}")
+        print(f"[ok] formatter on Pi: getClockEmojiForBearing hits={sym} formatHeadingBound hits={arrow}")
         print(f"[ok] Pi sample body: {sample}")
-        if "◶" not in sample or "⭢" not in sample:
-            raise SystemExit("[fail] Pi sample missing quadrant or track arrow glyphs")
+        if "🕔" not in sample or "🕒" not in sample:
+            raise SystemExit("[fail] Pi sample missing clock emojis for place/track")
         pwa = run_remote(
             client,
             f"cd /home/pi/planes-api && node -e \"const f=require('./node_modules/@plane-alert/shared/dist/cjs/notification-formatter.js'); console.log(f.formatNotificationBody({{icao:'TEST123',callsign:'TESTFLIGHT',direction:'NW',bearing:315,planeHeading:90,altitude:10000,altitudeUnit:'m',speed:500,speedUnit:'km/h',verticalRate:128}}));\"",
             timeout=30,
         ).strip()
         print(f"[ok] Pi PWA test-params body: {pwa}")
-        if "◴" not in pwa and "⭦" not in pwa and "NW" not in pwa:
-            raise SystemExit("[fail] PWA sample missing NW quadrant/arrow pattern")
-        if "⭢" not in pwa:
-            raise SystemExit("[fail] PWA sample missing track arrow")
+        if "🕚" not in pwa and "NW" not in pwa:
+            raise SystemExit("[fail] PWA sample missing NW clock pattern")
+        if "🕒" not in pwa:
+            raise SystemExit("[fail] PWA sample missing track clock emoji")
     finally:
         client.close()
 

@@ -5,24 +5,23 @@
 const NOTIFICATION_PART_SEP = ' · ';
 const VERTICAL_RATE_THRESHOLD_FT_MIN = 64;
 
-/** Quadrant fill symbols for where the aircraft sits relative to home (bearing 0° = N). */
-const QUADRANT_SECTORS: ReadonlyArray<{ symbol: string; centerDeg: number }> = [
-  { symbol: '◴', centerDeg: 285 }, // N, NW, W
-  { symbol: '◵', centerDeg: 225 }, // W, SW, S
-  { symbol: '◶', centerDeg: 135 }, // S, SE, E
-  { symbol: '◷', centerDeg: 45 }, // E, NE, N
-];
-
-/** Supplemental Arrows-C (U+2B60–U+2B67), clockwise from north. */
-const TRACK_ARROW_BY_CARDINAL8: Record<string, string> = {
-  N: '\u2B60',
-  NE: '\u2B61',
-  E: '\u2B62',
-  SE: '\u2B63',
-  S: '\u2B64',
-  SW: '\u2B65',
-  NW: '\u2B66',
-  W: '\u2B67',
+/**
+ * Clock-face emojis (1–12 o'clock). Hour hand points toward that compass bearing
+ * when the clock is read with 12 o'clock = north, 3 = east, 6 = south, 9 = west.
+ */
+const CLOCK_FACE_BY_HOUR: Record<number, string> = {
+  1: '🕐',
+  2: '🕑',
+  3: '🕒',
+  4: '🕓',
+  5: '🕔',
+  6: '🕕',
+  7: '🕖',
+  8: '🕗',
+  9: '🕘',
+  10: '🕙',
+  11: '🕚',
+  12: '🕛',
 };
 
 const CARDINAL8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
@@ -31,24 +30,17 @@ function normalizeBearingDegrees(bearing: number): number {
   return ((bearing % 360) + 360) % 360;
 }
 
-function angularDistanceDeg(a: number, b: number): number {
-  const d = Math.abs(a - b) % 360;
-  return d > 180 ? 360 - d : d;
+/** Map bearing/track (0° = north) to the nearest clock-face emoji for push readability. */
+export function getClockEmojiForBearing(bearing: number): string {
+  const b = normalizeBearingDegrees(bearing);
+  let hour = Math.round(b / 30) % 12;
+  if (hour === 0) hour = 12;
+  return CLOCK_FACE_BY_HOUR[hour] ?? '';
 }
 
-/** Pick ◴ ◵ ◶ ◷ from bearing; overlaps resolve to the nearest sector center. */
+/** @deprecated Prefer getClockEmojiForBearing — kept for callers/tests that still import it. */
 export function getQuadrantSymbolForBearing(bearing: number): string {
-  const b = normalizeBearingDegrees(bearing);
-  let best = QUADRANT_SECTORS[0];
-  let bestDist = Infinity;
-  for (const sector of QUADRANT_SECTORS) {
-    const dist = angularDistanceDeg(b, sector.centerDeg);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = sector;
-    }
-  }
-  return best.symbol;
+  return getClockEmojiForBearing(bearing);
 }
 
 export function bearingToCardinal8(bearing: number): string {
@@ -56,8 +48,20 @@ export function bearingToCardinal8(bearing: number): string {
   return CARDINAL8[index];
 }
 
+/** Clock emoji for an 8-point cardinal (derived from sector center bearing). */
 export function getTrackArrowForCardinal(cardinal8: string): string {
-  return TRACK_ARROW_BY_CARDINAL8[cardinal8.toUpperCase()] ?? '';
+  const centers: Record<string, number> = {
+    N: 0,
+    NE: 45,
+    E: 90,
+    SE: 135,
+    S: 180,
+    SW: 225,
+    W: 270,
+    NW: 315,
+  };
+  const deg = centers[cardinal8.toUpperCase()];
+  return deg != null ? getClockEmojiForBearing(deg) : '';
 }
 
 export interface NotificationData {
@@ -137,7 +141,7 @@ export function joinNotificationParts(parts: Array<string | undefined | null>): 
     .join(NOTIFICATION_PART_SEP);
 }
 
-/** Nearby place plus bearing from home, e.g. `Rudow ◶ SE`. */
+/** Nearby place plus bearing from home, e.g. `Rudow 🕔 SE`. */
 export function formatPlaceAndBearingFromHome(
   location?: string,
   direction?: string,
@@ -145,25 +149,25 @@ export function formatPlaceAndBearingFromHome(
 ): string | undefined {
   const place = humanReadableLocation(location);
   const dir = direction?.trim().toUpperCase();
-  const quadrant =
+  const clock =
     bearing != null && Number.isFinite(bearing)
-      ? getQuadrantSymbolForBearing(bearing)
+      ? getClockEmojiForBearing(bearing)
       : undefined;
-  if (place && dir && quadrant) return `${place} ${quadrant} ${dir}`;
+  if (place && dir && clock) return `${place} ${clock} ${dir}`;
   if (place && dir) return `${place} ${dir}`;
-  if (place && quadrant) return `${place} ${quadrant}`;
+  if (place && clock) return `${place} ${clock}`;
   if (place) return place;
-  if (dir && quadrant) return `${quadrant} ${dir}`;
+  if (dir && clock) return `${clock} ${dir}`;
   if (dir) return dir;
-  if (quadrant) return quadrant;
+  if (clock) return clock;
   return undefined;
 }
 
-/** Aircraft track, e.g. `⭢ E`. */
+/** Aircraft track, e.g. `🕒 E`. */
 export function formatHeadingBound(planeHeading: number): string {
   const cardinal = bearingToCardinal8(planeHeading);
-  const arrow = getTrackArrowForCardinal(cardinal);
-  return arrow ? `${arrow} ${cardinal}` : cardinal;
+  const clock = getClockEmojiForBearing(planeHeading);
+  return clock ? `${clock} ${cardinal}` : cardinal;
 }
 
 /**
@@ -222,7 +226,7 @@ function cleanNotificationField(value?: string | null): string | undefined {
 
 /**
  * Compact notification body for phone lock screens.
- * Format: `Rudow ◶ SE · ⭢ E · 7,600 m ↑` (omits missing fields).
+ * Format: `Rudow 🕔 SE · 🕒 E · 7,600 m ↑` (omits missing fields).
  * @param _skipCallsignInBody Ignored (callsign lives in the title when needed).
  */
 export function formatNotificationBody(
@@ -245,7 +249,7 @@ export function formatNotificationBody(
     const formattedAlt = Math.round(data.altitude).toLocaleString('en-US');
     let altitudeText = `${formattedAlt} ${data.altitudeUnit}`;
     if (data.verticalRate && Math.abs(data.verticalRate) > VERTICAL_RATE_THRESHOLD_FT_MIN) {
-      altitudeText += data.verticalRate > 0 ? ' ↑' : ' ↓';
+      altitudeText += data.verticalRate > 0 ? ' ⬆️' : ' ⬇️';
     }
     altitudePart = altitudeText;
   }
