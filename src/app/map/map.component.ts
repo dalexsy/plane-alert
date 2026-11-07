@@ -22,6 +22,7 @@ import { MapContainerComponent } from './container/map-container.component';
 import { MapOverlaysComponent } from './overlays/map-overlays.component';
 import { MapInfoStackComponent } from './info-stack/map-info-stack.component';
 import { BootCoverComponent } from '../components/boot-cover/boot-cover.component';
+import { MapSessionService } from '../services/map/map-session.service';
 import type { ViewConeConfig } from '../services/settings/settings.service';
 
 @Component({
@@ -51,8 +52,10 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     public cdr: ChangeDetectorRef,
     private bootstrap: MapBootstrapService,
     private bootstrapSubs: MapBootstrapSubscriptionsService,
-    private eventRegistration: MapEventRegistrationService
+    private eventRegistration: MapEventRegistrationService,
+    private session: MapSessionService,
   ) {
+    this.session.start();
     this.runtime.globalTooltipClickHandler = () => undefined;
     this.eventRegistration.registerOnConstruct(this.cdr);
   }
