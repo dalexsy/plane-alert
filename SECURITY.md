@@ -40,7 +40,7 @@ Some third-party keys are **visible in the browser** (weather, image search). Th
 
 1. Rotate the credential at the provider (Pushover, etc.).
 2. Update `/home/pi/planes-api/.env` on dryl-prod (or your local `.env` for dev).
-3. Redeploy planes-api if needed: `python scripts/pi-install-planes-api.py`
+3. Redeploy planes-api if needed with `fleetctl release-go`.
 
 ## Historical note
 

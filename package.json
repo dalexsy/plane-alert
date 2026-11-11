@@ -9,7 +9,6 @@
     "build:shared": "npm run build --prefix shared",
     "build": "ng build && node scripts/post-build.js",
     "deploy:dryl": "python scripts/deploy-dryl.py",
-    "deploy:pi-api": "python scripts/pi-install-planes-api.py --skip-nginx",
     "lint:notification-delivery": "node scripts/check-notification-delivery.js",
     "lint:no-fcm-sw": "node scripts/check-no-fcm-sw.js",
     "kiosk:planes": "python scripts/pi-install-planes-kiosk.py --launch",
@@ -17,11 +16,8 @@
     "install:kiosk-watch": "python scripts/pi-install-planes-kiosk.py",
     "verify:kiosk-motion": "python scripts/verify-planes-kiosk-motion.py",
     "verify:kiosk-recovery": "python scripts/verify-planes-kiosk-recovery.py",
-    "verify:kiosk-alert": "python scripts/pi-install-planes-api.py --self-test && python scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test",
-    "errors:probe:planes-api-env": "python3 scripts/probe-planes-api-env.py",
+    "verify:kiosk-alert": "python scripts/mirror-kiosk/planes-kiosk-alert-listen.py --self-test",
     "errors:probe:planes-kiosk-alert": "npm run verify:kiosk-alert",
-    "verify:planes-api-env": "python3 scripts/pi-install-planes-api.py --self-test",
-    "verify:prod-formatter": "python scripts/prove-prod-notification-formatter.py",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -75,9 +71,8 @@
       "@dryl/storage": "0.3.1"
     },
     "maintain": {
-      "owner": "verify:planes-api-env",
+      "owner": "verify:kiosk-alert",
       "scripts": [
-        "verify:planes-api-env",
         "verify:kiosk-alert"
       ]
     }

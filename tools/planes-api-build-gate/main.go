@@ -50,11 +50,6 @@ func main() {
 		dir   string
 		cmd   []string
 	}{
-		{
-			"planes-api .env preserve",
-			repo,
-			[]string{"python", filepath.Join(repo, "scripts", "planes_api_env.py")},
-		},
 		{"functions gates (node:test)", filepath.Join(repo, "functions"), []string{"npm", "run", "test:gates"}},
 	}
 	for _, step := range steps {

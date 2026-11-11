@@ -60,13 +60,7 @@ Settings and overlay toggles live in the left toolbar and results panel. Kiosk m
 
 ## planes-api
 
-Built from `functions/` (`npm run build --prefix functions`). Installed on dryl-prod with:
-
-```bash
-python scripts/pi-install-planes-api.py
-```
-
-Nginx exposes the app under **`/api/planes/`** (see `src/app/config/planes-api.config.ts`).
+The live planes API is Go and ships with `fleetctl release-go`. Nginx exposes the app under **`/api/planes/`** (see `src/app/config/planes-api.config.ts`).
 
 | Route | Purpose |
 |-------|---------|
