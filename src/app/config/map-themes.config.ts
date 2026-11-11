@@ -1,20 +1,26 @@
-// Map themes with satellite imagery for better visibility
+import { rasterProviders } from '@dryl/maps';
+
+// Domain-specific layer grouping; provider configuration is fleet-owned.
 export const MAP_THEMES = {
   day: {
     // Esri World Imagery + Places labels only (cleaner, no road clutter)
     imagery: {
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+      url: rasterProviders.esriImagery.url,
+      attribution: rasterProviders.esriImagery.attribution,
     },
     labels: {
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-      attribution:
-        '&copy; Esri, HERE, Garmin, FAO, NOAA, USGS, © OpenStreetMap contributors',
+      url: rasterProviders.esriLabels.url,
+      attribution: rasterProviders.esriLabels.attribution,
     },
   },
   night: {
-    // CARTO Dark Matter tiles for night mode
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    imagery: {
+      url: rasterProviders.esriDarkBase.url,
+      attribution: rasterProviders.esriDarkBase.attribution,
+    },
+    labels: {
+      url: rasterProviders.esriDarkReference.url,
+      attribution: rasterProviders.esriDarkReference.attribution,
+    },
   },
 };

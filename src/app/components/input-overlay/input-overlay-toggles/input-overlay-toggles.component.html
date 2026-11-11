@@ -5,7 +5,7 @@
     type="tertiary"
     size="medium"
     [ariaLabel]="facade.otherControlsHidden ? 'Show controls' : 'Hide controls'"
-    [appTooltip]="facade.otherControlsHidden ? 'Show controls' : 'Hide controls'"
+    [attr.data-tooltip]="facade.otherControlsHidden ? 'Show controls' : 'Hide controls'"
     (click)="toggleOtherControls.emit()"
   ></app-button>
   <!-- Full icon stack whenever the options panel is open; hide only when
@@ -17,8 +17,7 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="collapseTooltip"
-      [appTooltip]="collapseTooltip"
-      tooltipPosition="right"
+      [attr.data-tooltip]="collapseTooltip"
       (click)="toggleCollapsed.emit()"
     ></app-button>
     <app-button
@@ -27,27 +26,25 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="dateTimeTooltip"
-      [appTooltip]="dateTimeTooltip"
+      [attr.data-tooltip]="dateTimeTooltip"
       (click)="toggleDateTimeOverlays.emit()"
     ></app-button>
-    <div class="brightness-button-wrapper" [class.auto]="brightnessState?.mode === 'auto'">
-      <app-button
-        class="toggle-brightness"
-        [icon]="brightnessIcon"
-        type="tertiary"
-        size="medium"
-        [ariaLabel]="sunStatusTooltip"
-        [appTooltip]="sunStatusTooltip"
-        (click)="brightnessToggle.emit()"
-      ></app-button>
-    </div>
+    <app-button
+      class="toggle-brightness"
+      [icon]="brightnessIcon"
+      type="tertiary"
+      size="medium"
+      [ariaLabel]="sunStatusTooltip"
+      [attr.data-tooltip]="sunStatusTooltip"
+      (click)="brightnessToggle.emit()"
+    ></app-button>
     <app-button
       class="toggle-airport-labels"
       [icon]="showAirportLabels ? 'label' : 'label_off'"
       type="tertiary"
       size="medium"
       [ariaLabel]="airportLabelsTooltip"
-      [appTooltip]="airportLabelsTooltip"
+      [attr.data-tooltip]="airportLabelsTooltip"
       (click)="toggleAirportLabels.emit()"
     ></app-button>
     <app-button
@@ -56,7 +53,7 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="cloudCoverTooltip"
-      [appTooltip]="cloudCoverTooltip"
+      [attr.data-tooltip]="cloudCoverTooltip"
       (click)="cloudToggleChange.emit(!showCloudCover)"
     ></app-button>
     <app-button
@@ -65,7 +62,7 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="rainCoverTooltip"
-      [appTooltip]="rainCoverTooltip"
+      [attr.data-tooltip]="rainCoverTooltip"
       (click)="rainToggleChange.emit(!showRainCover)"
     ></app-button>
     <app-button
@@ -74,7 +71,7 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="viewAxesTooltip"
-      [appTooltip]="viewAxesTooltip"
+      [attr.data-tooltip]="viewAxesTooltip"
       (click)="coneVisibilityChange.emit(!showViewAxes)"
     ></app-button>
     <app-button
@@ -83,7 +80,7 @@
       type="tertiary"
       size="medium"
       ariaLabel="Configure view cones"
-      appTooltip="Configure view cones"
+      attr.data-tooltip="Configure view cones"
       (click)="coneConfigChange.emit()"
     ></app-button>
     <app-button
@@ -93,7 +90,7 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="animationsTooltip"
-      [appTooltip]="animationsTooltip"
+      [attr.data-tooltip]="animationsTooltip"
       (click)="onToggleAnimations()"
     ></app-button>
     <app-button
@@ -103,7 +100,7 @@
       type="tertiary"
       size="medium"
       [ariaLabel]="ghostPositionTooltip"
-      [appTooltip]="ghostPositionTooltip"
+      [attr.data-tooltip]="ghostPositionTooltip"
       (click)="onToggleGhostPosition()"
     ></app-button>
     <app-button
@@ -112,7 +109,7 @@
       type="tertiary"
       size="medium"
       ariaLabel="Go to home"
-      appTooltip="Go to home"
+      attr.data-tooltip="Go to home"
       (click)="goToHome.emit()"
     ></app-button>
     <app-button
@@ -121,7 +118,7 @@
       type="tertiary"
       size="medium"
       ariaLabel="Force scan now"
-      appTooltip="Force scan now"
+      attr.data-tooltip="Force scan now"
       (click)="resolveAndUpdate.emit($event)"
     ></app-button>
     <app-button
@@ -130,7 +127,7 @@
       type="tertiary"
       size="medium"
       ariaLabel="Zoom in"
-      appTooltip="Zoom in"
+      attr.data-tooltip="Zoom in"
       (click)="zoomIn.emit()"
     ></app-button>
     <app-button
@@ -139,7 +136,7 @@
       type="tertiary"
       size="medium"
       ariaLabel="Zoom out"
-      appTooltip="Zoom out"
+      attr.data-tooltip="Zoom out"
       (click)="zoomOut.emit()"
     ></app-button>
   </ng-container>

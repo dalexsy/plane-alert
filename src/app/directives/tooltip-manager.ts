@@ -2,6 +2,41 @@ export interface TooltipHost {
   hideTooltip(immediate?: boolean): void;
 }
 
+let touchTooltipGuardRegistered = false;
+let lastTouchAt = 0;
+
+function ensureTouchTooltipGuard(): void {
+  if (touchTooltipGuardRegistered || typeof document === 'undefined') {
+    return;
+  }
+  touchTooltipGuardRegistered = true;
+  document.addEventListener(
+    'touchstart',
+    () => {
+      lastTouchAt = Date.now();
+    },
+    { passive: true, capture: true },
+  );
+}
+
+/** Desktop pointers with real hover — not touch-first phones/tablets. */
+export function hoverTooltipsEnabled(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return true;
+  }
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+/** Tap synthesizes mouseenter on iOS/Android; ignore hover tooltips right after touch. */
+export function recentTouchForTooltip(): boolean {
+  ensureTouchTooltipGuard();
+  return Date.now() - lastTouchAt < 800;
+}
+
+export function tooltipsFromHoverAllowed(): boolean {
+  return hoverTooltipsEnabled() && !recentTouchForTooltip();
+}
+
 export class TooltipManager {
   private static instance: TooltipManager;
   private currentTooltip: HTMLElement | null = null;

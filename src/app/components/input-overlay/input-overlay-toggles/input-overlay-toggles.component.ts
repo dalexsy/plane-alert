@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../ui/button/button.component';
 import { TabComponent } from '../../ui/tab/tab.component';
-import { TooltipDirective } from '../../../directives/tooltip.directive';
 import { BrightnessState } from '../../../services/brightness/brightness.service';
 import { InputOverlayFacadeService } from '../../../services/input-overlay/input-overlay-facade.service';
 import {
@@ -14,7 +13,7 @@ import { isKioskMode } from '../../../utils/kiosk-mode/kiosk-mode.util';
 @Component({
   selector: 'app-input-overlay-toggles',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TabComponent, TooltipDirective],
+  imports: [CommonModule, ButtonComponent, TabComponent],
   templateUrl: './input-overlay-toggles.component.html',
   styleUrls: ['./input-overlay-toggles.component.scss'],
 })
