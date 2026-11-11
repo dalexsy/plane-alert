@@ -74,7 +74,7 @@ export class PushRegistrationService {
         })
       );
 
-      if (!result.success) {
+      if (!result?.success || result?.skipped) {
         return false;
       }
 
@@ -83,7 +83,8 @@ export class PushRegistrationService {
         this.storePushoverDeviceName(result.deviceName);
       }
       return true;
-    } catch {
+    } catch (error) {
+      console.warn('Pushover registration sync failed:', error);
       return false;
     }
   }
@@ -93,8 +94,10 @@ export class PushRegistrationService {
       return null;
     }
     try {
-      return await firstValueFrom(
+      const result = await firstValueFrom(
         this.http.post<{
+          success?: boolean;
+          skipped?: boolean;
           availableDevices: string[];
         }>(
           pushCheckDeviceEndpoint,
@@ -102,7 +105,12 @@ export class PushRegistrationService {
           { headers: { 'Content-Type': 'application/json' } }
         )
       );
-    } catch {
+      if (result?.skipped || result?.success === false) {
+        return null;
+      }
+      return result;
+    } catch (error) {
+      console.warn('Pushover device check failed:', error);
       return null;
     }
   }

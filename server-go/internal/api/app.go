@@ -88,6 +88,9 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /reverseGeocode", geocode.Handler)
 	mux.HandleFunc("GET /getMilitaryHistory", a.history)
 	mux.HandleFunc("POST /getMilitaryHistory", a.history)
+	mux.HandleFunc("POST /registerDevice", notificationsOff)
+	mux.HandleFunc("GET /checkDevice", notificationsOff)
+	mux.HandleFunc("POST /checkDevice", notificationsOff)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		JSON(w, 503, map[string]string{"error": "This Plane Alert API is being restored in Go"})
 	})
