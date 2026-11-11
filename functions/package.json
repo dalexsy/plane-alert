@@ -10,7 +10,7 @@
     "lint": "eslint --ext .ts src",
     "serve": "echo Use npm run start:pi (local planes API)",
     "start:pi": "node lib/pi-server.js",
-    "deploy": "echo Use python scripts/pi-install-planes-api.py from plane-alert repo",
+    "deploy": "echo Live planes API is Go via fleetctl release-go",
     "test": "npm run test:gates",
     "test:gates": "npm run build && node --test lib/services/notification-delivery.test.js lib/services/device-registration-dedup.test.js lib/services/pushover-send-gate.test.js lib/services/notification-formatter-gate.test.js"
   },

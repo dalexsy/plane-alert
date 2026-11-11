@@ -15,11 +15,7 @@ Default listen: `127.0.0.1:8795`. Use `.env` for `PUSHOVER_API_TOKEN`, store pat
 
 ## Deploy
 
-From the plane-alert repo root:
-
-```bash
-python scripts/pi-install-planes-api.py
-```
+The live planes API is Go and ships with `fleetctl release-go`.
 
 Nginx on dryl-prod proxies `https://planes.dryl.io/api/planes/*` to this service.
 
@@ -34,4 +30,4 @@ Shared aircraft logic: `@plane-alert/shared` (built into `shared-package/` for t
 
 ## Legacy Firebase tooling
 
-`scripts/export-device-tokens.cjs` was a **one-time** Firestore export when migrating to the Pi JSON store. Do not use it for normal operations; new installs do not need Firebase credentials.
+The one-time Firestore device-token export was removed with the old Pi Python installer. New installs do not need Firebase credentials.
