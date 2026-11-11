@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../ui/button/button.component';
 import { TabComponent } from '../ui/tab/tab.component';
-import { TooltipDirective } from '../../directives/tooltip.directive';
 import { SettingsService } from '../../services/settings/settings.service';
 import { ResultsOverlayFacadeService } from '../../services/results/results-overlay-facade.service';
 import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
@@ -10,7 +9,7 @@ import { isKioskMode } from '../../utils/kiosk-mode/kiosk-mode.util';
 @Component({
   selector: 'app-results-toolbar',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, TabComponent, TooltipDirective],
+  imports: [CommonModule, ButtonComponent, TabComponent],
   templateUrl: './results-toolbar.component.html',
   styleUrls: ['./results-toolbar.component.scss'],
 })

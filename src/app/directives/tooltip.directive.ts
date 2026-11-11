@@ -7,7 +7,12 @@ import {
   OnChanges,
   SimpleChanges,
 } from '@angular/core';
-import { TooltipManager, positionTooltipElement } from './tooltip-manager';
+import {
+  TooltipManager,
+  hoverTooltipsEnabled,
+  positionTooltipElement,
+  tooltipsFromHoverAllowed,
+} from './tooltip-manager';
 
 @Directive({
   selector: '[appTooltip]',
@@ -27,7 +32,7 @@ export class TooltipDirective implements OnDestroy, OnChanges {
 
   @HostListener('mouseover', ['$event'])
   onMouseOver(_event: MouseEvent) {
-    if (!this.text) return;
+    if (!this.text || !tooltipsFromHoverAllowed()) return;
 
     if (this.hideTimeout) {
       clearTimeout(this.hideTimeout);
@@ -39,6 +44,20 @@ export class TooltipDirective implements OnDestroy, OnChanges {
     }
 
     this.createTooltip();
+  }
+
+  @HostListener('touchstart')
+  onTouchStart() {
+    if (!hoverTooltipsEnabled()) {
+      this.hideTooltip(true);
+    }
+  }
+
+  @HostListener('click')
+  onClick() {
+    if (!hoverTooltipsEnabled()) {
+      this.hideTooltip(true);
+    }
   }
 
   @HostListener('mouseout', ['$event'])

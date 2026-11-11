@@ -40,13 +40,19 @@ export class MapThemeService {
 
     if (mode === 'night') {
       const nightTheme = MAP_THEMES.night;
-      const tileLayer = L.tileLayer(nightTheme.url, {
-        attribution: nightTheme.attribution,
+      const baseLayer = L.tileLayer(nightTheme.imagery.url, {
+        attribution: nightTheme.imagery.attribution,
         maxZoom: 18,
         minZoom: 1,
       });
-      this.currentTileLayers.push(tileLayer);
-      tileLayer.addTo(this.map);
+      const labelsLayer = L.tileLayer(nightTheme.labels.url, {
+        attribution: nightTheme.labels.attribution,
+        maxZoom: 18,
+        minZoom: 1,
+      });
+      this.currentTileLayers.push(baseLayer, labelsLayer);
+      baseLayer.addTo(this.map);
+      labelsLayer.addTo(this.map);
     } else {
       const dayTheme = MAP_THEMES.day;
       const imageryLayer = L.tileLayer(dayTheme.imagery.url, {
