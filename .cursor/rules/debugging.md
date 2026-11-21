@@ -22,7 +22,7 @@
 
 ## Failed experiments (do not repeat)
 
-- Do not reinstall Python kiosk helpers (`page-heal` / `session` / `alert-listen` / `pi-install`) — Go under `tools/planes-kiosk` + page-heal (2026-11-21)
+- Do not reinstall Python kiosk helpers (`page-heal` / `session` / `alert-listen` / `pi-install` / verify / capture / probe / deploy wrapper) — Go under `tools/planes-kiosk` + page-heal (2026-11-21)
 - Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` (user unit)
 - Kiosk: force animations off; solid label bg; treat mlat/unknown as junk
 - Do not blame plane-motion alone for CPU — tooltips/blur/drop-shadow + dual RAF

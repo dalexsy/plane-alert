@@ -1,21 +1,6 @@
-#!/usr/bin/env python3
-"""Live Pi probe: planes kiosk paint budget + motion flags.
+package probe
 
-Reports Chromium CPU/RSS, permanent tooltip/blur/drop-shadow counts, longtasks,
-and whether product motion vs decorative FX are configured correctly.
-"""
-from __future__ import annotations
-
-import json
-import sys
-import time
-from pathlib import Path
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SCRIPT_DIR.parent.parent / "directory" / "scripts"))
-from pi_dryl_common import connect_pi, kiosk_settings, run_remote  # noqa: E402
-
-PROBE_JS = r"""
+const ProbeJS = `
 (async () => {
   const longTasks = [];
   try {
@@ -78,61 +63,4 @@ PROBE_JS = r"""
     domNodes: document.getElementsByTagName('*').length,
   };
 })()
-"""
-
-
-def main() -> int:
-    host, user = kiosk_settings()
-    client = connect_pi(host, user)
-
-    print("=== chromium cpu (top 6) ===")
-    print(
-        run_remote(
-            client,
-            "ps -C chromium -o pid=,pcpu=,pmem=,rss= --sort=-pcpu | sed -n '1,6p'; "
-            "echo LOAD; cat /proc/loadavg",
-        )
-    )
-
-    b64 = __import__("base64").b64encode(PROBE_JS.encode()).decode()
-    runner = f"""
-node -e '
-const http=require("http");
-const WebSocket=require("ws");
-const probe=Buffer.from("{b64}","base64").toString();
-http.get("http://127.0.0.1:9222/json",(res)=>{{
-  let d=""; res.on("data",c=>d+=c); res.on("end",()=>{{
-    const page=JSON.parse(d).find(t=>t.type==="page");
-    if(!page){{ console.error("no page"); process.exit(1); }}
-    const ws=new WebSocket(page.webSocketDebuggerUrl);
-    let id=0;
-    const call=(method,params)=>new Promise((resolve,reject)=>{{
-      const mid=++id;
-      const onMsg=(raw)=>{{ const msg=JSON.parse(raw); if(msg.id===mid){{ ws.off("message",onMsg); resolve(msg); }} }};
-      ws.on("message",onMsg);
-      ws.send(JSON.stringify({{id:mid,method,params}}));
-      setTimeout(()=>reject(new Error("timeout "+method)),20000);
-    }});
-    ws.on("open", async ()=>{{
-      try {{
-        await call("Runtime.enable");
-        const res=await call("Runtime.evaluate",{{expression:probe,returnByValue:true,awaitPromise:true}});
-        console.log(JSON.stringify(res.result.result.value,null,2));
-        ws.close(); process.exit(0);
-      }} catch(e) {{ console.error(e); process.exit(1); }}
-    }});
-  }});
-}}).on("error",e=>{{ console.error(e); process.exit(1); }});
-'
-"""
-    print("=== cdp probe ===")
-    print(run_remote(client, runner))
-    return 0
-
-
-if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except Exception as exc:  # noqa: BLE001
-        print(f"probe failed: {exc}", file=sys.stderr)
-        raise SystemExit(1)
+`
