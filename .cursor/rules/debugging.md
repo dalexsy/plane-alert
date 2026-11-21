@@ -12,7 +12,7 @@
 | Overlay type-scale blowup (peeped heading, bulky address buttons, off-center radius) | Rename `.section-title` (reserved by `@dryl/ui` h2 scale); zero `app-button` padding vs dryl global `button`; range track height = thumb | Do not put `.section-title` on map chrome |
 | Balloons show Cessna silhouettes | Balloon check (B2 / BALL / German D-O) before 5-letter GA fallback | Do not map every 5-letter callsign to Cessna first |
 | Blank black first load, no spinner | Boot shell in index.html; boot Angular immediately; first ADS-B scan before 114MB aircraft DB | Do not await ensureFreshShell or aircraft-db before first paint |
-| Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `python scripts/pi-install-planes-kiosk.py --launch` | Treat system-bus `planes-kiosk` as truth |
+| Kiosk blank overnight / Chromium gone | `planes-kiosk.service` is **user** unit; watch resurrects via `chromium-missing`. `npm run kiosk:planes` (Go install) | Treat system-bus `planes-kiosk` as truth |
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
 | Kiosk speaker silent after Pi split | API on `.79` POSTs `.74:8796`; listener `pw-play --volume=0.7` to **wpctl** default **Jabra SPEAK 510** | Treat prod `pw-play` as audible (`.79` has aplay only); `pactl`; HDMI sink; re-enable leftover `planes-api` on `.74` |
@@ -22,7 +22,7 @@
 
 ## Failed experiments (do not repeat)
 
-- Do not reinstall Python `planes-kiosk-page-heal.py` or night-basemap injectors — Go binary at `/usr/local/sbin/planes-kiosk-page-heal` (2026-11-21)
+- Do not reinstall Python kiosk helpers (`page-heal` / `session` / `alert-listen` / `pi-install`) — Go under `tools/planes-kiosk` + page-heal (2026-11-21)
 - Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` (user unit)
 - Kiosk: force animations off; solid label bg; treat mlat/unknown as junk
 - Do not blame plane-motion alone for CPU — tooltips/blur/drop-shadow + dual RAF

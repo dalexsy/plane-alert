@@ -238,7 +238,7 @@ kiosk_on_admin_hub() {
 
 session_valid() {
   [ -f /home/pi/.config/planes-kiosk/credentials.env ] || return 0
-  python3 /home/pi/bin/planes-kiosk-session.py --verify-only
+  /home/pi/bin/planes-kiosk-session --verify-only
 }
 
 plane_data_valid() {
@@ -403,7 +403,7 @@ if [ "${internet_up}" -eq 1 ] && [ -f /home/pi/.config/planes-kiosk/credentials.
     strikes=$((strikes + 1))
     echo "${strikes}" >"${SESSION_STRIKES_FILE}"
     log "session verify failed (strike ${strikes}/${SESSION_STRIKES_NEEDED}) — refreshing cookie"
-    python3 /home/pi/bin/planes-kiosk-session.py >/dev/null 2>&1 || true
+    /home/pi/bin/planes-kiosk-session >/dev/null 2>&1 || true
     if [ "${strikes}" -ge "${SESSION_STRIKES_NEEDED}" ]; then
       log "session stale after ${strikes} strikes — cookie refreshed; no Chromium reload"
       echo 0 >"${SESSION_STRIKES_FILE}" 2>/dev/null || true

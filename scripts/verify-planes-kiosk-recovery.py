@@ -102,7 +102,7 @@ def main() -> int:
 
         session = run_remote(
             client,
-            "set +e; sudo -u pi python3 /home/pi/bin/planes-kiosk-session.py --verify-only; "
+            "set +e; sudo -u pi /home/pi/bin/planes-kiosk-session --verify-only; "
             "echo EXIT:$?",
             timeout=45,
         ) or ""

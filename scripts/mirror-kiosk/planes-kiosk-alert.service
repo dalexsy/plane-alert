@@ -5,7 +5,7 @@ After=default.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/pi/bin/planes-kiosk-alert-listen.py
+ExecStart=/home/pi/bin/planes-kiosk-alert-listen
 Restart=always
 RestartSec=5
 Environment=XDG_RUNTIME_DIR=/run/user/1000

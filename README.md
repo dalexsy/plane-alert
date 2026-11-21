@@ -56,7 +56,7 @@ Physical host names and IPs live in fleet docs (`directory/docs/INFRASTRUCTURE.m
 - **Military / special**: shared detection rules (`@plane-alert/shared`); history API backed by planes-api.
 - **Sightings**: separate `/sightings` page (toolbar cell-tower icon on the main map). Kiosk stays on `/`.
 
-Settings and overlay toggles live in the left toolbar and results panel. Kiosk mode trims chrome via `kiosk` query / install profile (see `scripts/pi-install-planes-kiosk.py`).
+Settings and overlay toggles live in the left toolbar and results panel. Kiosk mode trims chrome via `kiosk` query / install profile (see `tools/planes-kiosk`).
 
 ## planes-api
 
@@ -183,7 +183,7 @@ Backend-only or kiosk:
 
 ```bash
 npm run deploy:backend          # planes-api on prod Pi
-python scripts/pi-install-planes-kiosk.py   # kitchen Kallax kiosk + watchdog
+npm run kiosk:planes   # kitchen Kallax kiosk + watchdog (Go install)
 ```
 
 Ops symptoms and failed experiments: `.cursor/rules/debugging.md`. Fleet agent entry: `AGENTS.md` (pointer to `speculation/AGENTS.md`).
