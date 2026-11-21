@@ -45,9 +45,9 @@ export class MapInfrastructureService {
       attributionControl: false,
     });
 
-    // Add base tile layer
+    // Add base tile layer (attribution control stays off — kiosk must not show OSM chrome)
     L.tileLayer(config.tileLayer, {
-      attribution: '© OpenStreetMap contributors',
+      attribution: '',
     }).addTo(this.map);
 
     this.setupCustomPanes();
