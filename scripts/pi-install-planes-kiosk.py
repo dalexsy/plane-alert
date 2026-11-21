@@ -25,7 +25,6 @@ DIRECTORY_SCRIPTS = SCRIPT_DIR.parent.parent / "directory" / "scripts"
 FILES = {
     "planes-kiosk.sh": Path("/home/pi/bin/planes-kiosk.sh"),
     "planes-kiosk-session.py": Path("/home/pi/bin/planes-kiosk-session.py"),
-    "planes-kiosk-page-heal.py": Path("/usr/local/sbin/planes-kiosk-page-heal.py"),
     "planes-kiosk-restart.sh": Path("/usr/local/sbin/planes-kiosk-restart.sh"),
     "planes-kiosk-watch.sh": Path("/usr/local/sbin/planes-kiosk-watch.sh"),
     "planes-kiosk-alert-listen.py": Path("/home/pi/bin/planes-kiosk-alert-listen.py"),
@@ -375,6 +374,21 @@ def main() -> None:
             sftp.put(str(local), tmp)
             if name.endswith(".sh") or name.endswith(".py"):
                 run_remote(client, f"chmod +x {tmp}", sudo=False)
+        page_heal_bin = (
+            SCRIPT_DIR.parent
+            / "tools"
+            / "planes-kiosk-page-heal"
+            / "dist"
+            / "planes-kiosk-page-heal-linux-arm64"
+        )
+        if page_heal_bin.is_file():
+            sftp.put(str(page_heal_bin), "/tmp/planes-kiosk-page-heal")
+            run_remote(client, "chmod +x /tmp/planes-kiosk-page-heal", sudo=False)
+        else:
+            print(
+                "[warn] missing Go page-heal binary; run: "
+                "go run -C tools/planes-kiosk-page-heal ./cmd/install"
+            )
         sftp.close()
 
         alerts_src = SCRIPT_DIR.parent / "src" / "assets" / "alerts"
@@ -391,16 +405,20 @@ def main() -> None:
         install_cmds = """
 set -euo pipefail
 mkdir -p /home/pi/bin /home/pi/.config/autostart /home/pi/.config/systemd/user /home/pi/.config/planes-kiosk/alerts
-for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-page-heal.py planes-kiosk-restart.sh planes-kiosk-watch.sh planes-kiosk-alert-listen.py planes-kiosk-alert-play.sh kiosk-watchdog.sh; do
+for f in planes-kiosk.sh planes-kiosk-session.py planes-kiosk-restart.sh planes-kiosk-watch.sh planes-kiosk-alert-listen.py planes-kiosk-alert-play.sh kiosk-watchdog.sh; do
   sed -i 's/\\r$//' /tmp/$f
 done
 install -m 755 /tmp/planes-kiosk.sh /home/pi/bin/planes-kiosk.sh
 install -m 755 /tmp/planes-kiosk-session.py /home/pi/bin/planes-kiosk-session.py
 install -m 755 /tmp/planes-kiosk-alert-listen.py /home/pi/bin/planes-kiosk-alert-listen.py
 install -m 755 /tmp/planes-kiosk-alert-play.sh /home/pi/bin/planes-kiosk-alert-play.sh
-sudo install -m 755 /tmp/planes-kiosk-page-heal.py /usr/local/sbin/planes-kiosk-page-heal.py
 sudo install -m 755 /tmp/planes-kiosk-restart.sh /usr/local/sbin/planes-kiosk-restart.sh
 sudo install -m 755 /tmp/planes-kiosk-watch.sh /usr/local/sbin/planes-kiosk-watch.sh
+# Page heal is the Go binary (tools/planes-kiosk-page-heal); never reinstall the retired .py.
+sudo rm -f /usr/local/sbin/planes-kiosk-page-heal.py /home/pi/bin/planes-kiosk-page-heal.py
+if [ -f /tmp/planes-kiosk-page-heal ]; then
+  sudo install -m 755 /tmp/planes-kiosk-page-heal /usr/local/sbin/planes-kiosk-page-heal
+fi
 # Live path is /home/pi/kiosk-watchdog.sh (user service); keep that path.
 install -m 755 /tmp/kiosk-watchdog.sh /home/pi/kiosk-watchdog.sh
 install -m 644 /tmp/kiosk-watchdog.service /home/pi/.config/systemd/user/kiosk-watchdog.service
