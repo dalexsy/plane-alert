@@ -18,6 +18,7 @@
 | Kiosk speaker silent after Pi split | API on `.79` POSTs `.74:8796`; listener `pw-play --volume=0.7` to **wpctl** default **Jabra SPEAK 510** | Treat prod `pw-play` as audible (`.79` has aplay only); `pactl`; HDMI sink; re-enable leftover `planes-api` on `.74` |
 | Same plane twice in one Pushover inbox | Prod-only send. Staging hostname/`PLANES_API_PUSHOVER_ENABLED=0` mute. `verifyPlanesPushDedup` checks ledger **and** staging `pushoverSendEnabled:false` | Treat prod `/health` unique ledger as proof; copy prod `.env` to staging |
 | deploy:fast drops kiosk play token | Leave Pi `/home/pi/planes-api/.env` in place; restore after `cp -a` staging | `sftp.put` local `functions/.env` over prod |
+| `deploy:dryl` rsync “Too many levels of symbolic links” on `/var/www/dryl/planes` | Replace symlink with real dir (`cp -a` current `.planes-releases/…` → `/var/www/dryl/planes`), then redeploy | Leave site as release symlink for static rsync deploys |
 
 ## Failed experiments (do not repeat)
 
