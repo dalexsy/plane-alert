@@ -27,12 +27,14 @@ export class MapService {
     // initial radii can be added after initialization via service methods
     onDblClick: (lat: number, lon: number) => void
   ): L.Map {
-    this.map = L.map(mapId, { doubleClickZoom: false }).setView([lat, lon], 12);
+    this.map = L.map(mapId, {
+      doubleClickZoom: false,
+      attributionControl: false,
+    }).setView([lat, lon], 12);
     // SVG renderer is managed by MapComponent
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: '',
     }).addTo(this.map);
 
     const materialIcon = L.divIcon({

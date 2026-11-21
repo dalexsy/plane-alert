@@ -79,6 +79,13 @@ body.kiosk-mode {
     // Prefer cheap transforms; never leave will-change promoted idle layers.
     will-change: auto;
   }
+
+  // Night-basemap injector (Pi-only) used to append #planes-night-basemap-credit;
+  // keep it and Leaflet attribution off the always-on display even if reinstalled.
+  #planes-night-basemap-credit,
+  .leaflet-control-attribution {
+    display: none;
+  }
 }
 
 // Bug-hunter FAB sits in bottom-right; when the window view strip is open it must
