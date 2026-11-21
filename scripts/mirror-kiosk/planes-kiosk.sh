@@ -33,7 +33,7 @@ if [ ! -S "${WAYLAND_SOCK}" ]; then
 fi
 
 if [[ "${QUICK_START}" != "1" && -f "${CONFIG_DIR}/credentials.env" ]]; then
-  if ! python3 /home/pi/bin/planes-kiosk-session.py; then
+  if ! /home/pi/bin/planes-kiosk-session; then
     echo "planes-kiosk: session bootstrap failed — continuing anyway" >&2
   fi
 fi
