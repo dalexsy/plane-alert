@@ -425,8 +425,8 @@ if ! plane_data_valid; then
   if [ "${strikes}" -ge 3 ]; then
     # Soft-reload the tab (page-heal) — API may be fine while SPA is stuck empty.
     log "aircraft API returned no JSON data (${strikes}/3) — soft page heal"
-    if [ -x /usr/local/sbin/planes-kiosk-page-heal.py ]; then
-      PLANES_KIOSK_PAGE_HEAL_FORCE=1 python3 /usr/local/sbin/planes-kiosk-page-heal.py 2>&1 \
+    if [ -x /usr/local/sbin/planes-kiosk-page-heal ]; then
+      PLANES_KIOSK_PAGE_HEAL_FORCE=1 /usr/local/sbin/planes-kiosk-page-heal 2>&1 \
         | logger -t planes-kiosk-watch || true
     fi
     echo 0 >"${DATA_STRIKES_FILE}" 2>/dev/null || true
@@ -455,10 +455,8 @@ else
 fi
 
 # Soft-heal about:blank / empty app-root without killing Chromium (no bedroom flash).
-if [ "${internet_up}" -eq 1 ] && [ -x /usr/local/sbin/planes-kiosk-page-heal.py ]; then
-  python3 /usr/local/sbin/planes-kiosk-page-heal.py 2>&1 | logger -t planes-kiosk-watch || true
-elif [ "${internet_up}" -eq 1 ] && [ -x /home/pi/bin/planes-kiosk-page-heal.py ]; then
-  python3 /home/pi/bin/planes-kiosk-page-heal.py 2>&1 | logger -t planes-kiosk-watch || true
+if [ "${internet_up}" -eq 1 ] && [ -x /usr/local/sbin/planes-kiosk-page-heal ]; then
+  /usr/local/sbin/planes-kiosk-page-heal 2>&1 | logger -t planes-kiosk-watch || true
 fi
 
 yield_kiosk_to_balcony

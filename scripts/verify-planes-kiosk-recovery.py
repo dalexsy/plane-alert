@@ -80,15 +80,23 @@ def main() -> int:
             fails,
         )
 
-        heal_src = run_remote(
+        heal_bin = run_remote(
             client,
-            "grep -E 'empty-stuck|markerCount|PLANES_KIOSK_PAGE_HEAL_FORCE' "
-            "/usr/local/sbin/planes-kiosk-page-heal.py || true",
+            "test -x /usr/local/sbin/planes-kiosk-page-heal && "
+            "test ! -e /usr/local/sbin/planes-kiosk-page-heal.py && "
+            "strings /usr/local/sbin/planes-kiosk-page-heal | "
+            "grep -E 'empty-stuck|markerCount' | head -5 || true",
             timeout=30,
         ) or ""
         _must(
-            "empty-stuck" in heal_src and "markerCount" in heal_src,
-            "page-heal detects empty-stuck (markers=0 vs ADS-B)",
+            "empty-stuck" in heal_bin and "markerCount" in heal_bin,
+            "Go page-heal binary detects empty-stuck (no legacy .py)",
+            fails,
+        )
+        _must(
+            "/usr/local/sbin/planes-kiosk-page-heal" in watch
+            and "planes-kiosk-page-heal.py" not in watch,
+            "watch invokes Go page-heal binary",
             fails,
         )
 
@@ -136,7 +144,7 @@ def main() -> int:
 
         heal_out = run_remote(
             client,
-            "python3 /usr/local/sbin/planes-kiosk-page-heal.py 2>&1 || true",
+            "/usr/local/sbin/planes-kiosk-page-heal 2>&1 || true",
             timeout=45,
         ) or ""
         print(heal_out.strip())

@@ -13,6 +13,7 @@
     "lint:no-fcm-sw": "node scripts/check-no-fcm-sw.js",
     "kiosk:planes": "python scripts/pi-install-planes-kiosk.py --launch",
     "kiosk:restart": "python scripts/pi-restart-planes-kiosk.py",
+    "install:kiosk-page-heal": "go run -C tools/planes-kiosk-page-heal ./cmd/install",
     "install:kiosk-watch": "python scripts/pi-install-planes-kiosk.py",
     "verify:kiosk-motion": "python scripts/verify-planes-kiosk-motion.py",
     "verify:kiosk-recovery": "python scripts/verify-planes-kiosk-recovery.py",

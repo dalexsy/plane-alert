@@ -8,7 +8,7 @@
 
 | Symptom | Fix path | Do not |
 |---------|----------|--------|
-| Kiosk shows © OpenStreetMap credit (`#planes-night-basemap-credit`) | Restore main `planes-kiosk-page-heal.py` (no night-basemap inject); remove `/usr/local/sbin/planes-kiosk-night-basemap.js` + `planes_kiosk_map_provider.py`; SPA `body.kiosk-mode` hides credit + `.leaflet-control-attribution` | Do not reinstall feature-branch night-basemap injector that appends OSM credit |
+| Kiosk shows © OpenStreetMap credit (`#planes-night-basemap-credit`) | Go page-heal only (`npm run install:kiosk-page-heal`); remove night-basemap.js / map_provider.py; SPA `body.kiosk-mode` hides credit + attribution | Do not reinstall Python page-heal or night-basemap injector |
 | Overlay type-scale blowup (peeped heading, bulky address buttons, off-center radius) | Rename `.section-title` (reserved by `@dryl/ui` h2 scale); zero `app-button` padding vs dryl global `button`; range track height = thumb | Do not put `.section-title` on map chrome |
 | Balloons show Cessna silhouettes | Balloon check (B2 / BALL / German D-O) before 5-letter GA fallback | Do not map every 5-letter callsign to Cessna first |
 | Blank black first load, no spinner | Boot shell in index.html; boot Angular immediately; first ADS-B scan before 114MB aircraft DB | Do not await ensureFreshShell or aircraft-db before first paint |
@@ -22,7 +22,7 @@
 
 ## Failed experiments (do not repeat)
 
-- Do not reinstall `planes-kiosk-night-basemap.js` / `apply_night_basemap` into page-heal — it appends a fixed OSM copyright link on the kiosk (2026-11-21)
+- Do not reinstall Python `planes-kiosk-page-heal.py` or night-basemap injectors — Go binary at `/usr/local/sbin/planes-kiosk-page-heal` (2026-11-21)
 - Do not gate `planes-kiosk-watch` on system `planes-kiosk.service` (user unit)
 - Kiosk: force animations off; solid label bg; treat mlat/unknown as junk
 - Do not blame plane-motion alone for CPU — tooltips/blur/drop-shadow + dual RAF
