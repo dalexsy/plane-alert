@@ -16,6 +16,7 @@
 | SPA “No planes” while traffic exists | Skip empty `adsb.lol` 200; add `opendata.adsb.fi`; OpenSky last-resort for live map. Prove `/api/planes/adsbPointProxy` | Page-heal when ADS-B empty; treat `ac=[]` as healthy |
 | Kiosk empty after Pi split | Auth/API on dryl-prod `.79`; install kiosk on `.74` only — not via `magicmirror_settings()` (.79) | Require dryl-auth on kiosk; install kiosk via prod helper |
 | Kiosk speaker silent after Pi split | API on `.79` POSTs `.74:8796`; listener `pw-play --volume=0.7` to **wpctl** default **Jabra SPEAK 510** | Treat prod `pw-play` as audible (`.79` has aplay only); `pactl`; HDMI sink; re-enable leftover `planes-api` on `.74` |
+| Kiosk silent while `.74:8796` healthy (2026-11-27) | Go `dryl-planes` `notificationProcessingEnabled:false` — no military-in-range POST. Interim: SPA MP3 on `?kiosk=1` again. Listener/Jabra OK (forced play + prod→8796 200) | Blame token/Jabra/pw-play when `/health` ok + manual `/play` audible; treat Node `functions/` chime as live |
 | Same plane twice in one Pushover inbox | Prod-only send. Staging hostname/`PLANES_API_PUSHOVER_ENABLED=0` mute. `verifyPlanesPushDedup` checks ledger **and** staging `pushoverSendEnabled:false` | Treat prod `/health` unique ledger as proof; copy prod `.env` to staging |
 | deploy:fast drops kiosk play token | Leave Pi `/home/pi/planes-api/.env` in place; restore after `cp -a` staging | `sftp.put` local `functions/.env` over prod |
 | `deploy:dryl` rsync “Too many levels of symbolic links” on `/var/www/dryl/planes` | Replace symlink with real dir (`cp -a` current `.planes-releases/…` → `/var/www/dryl/planes`), then redeploy | Leave site as release symlink for static rsync deploys |
@@ -43,6 +44,8 @@
 - `.74` audio: `wpctl` default Jabra SPEAK 510 Analog Stereo vol 1.00 — not HDMI, not `pactl get-default-sink` (empty)
 - Do not `sftp.put` local `functions/.env` onto dryl-prod — `deploy:fast` dropped `PLANES_KIOSK_PLAY_TOKEN` (2026-08-20)
 - Do not snapshot-then-merge only missing kiosk keys after upload (`2c12bb5`) — a laptop `.env` that already has `PLANES_KIOSK_PLAY_TOKEN` keeps the laptop value
+- Do not close “kiosk silent” on `.74` listener/`pw-play` alone while Go `/health` reports `notificationProcessingEnabled:false` (2026-11-27) — no process posts `/play`
+- When re-enabling Go kiosk chime, mute SPA MP3 on `?kiosk=1` again (dual Jabra play)
 
 Older: `.cursor/rules/debugging-archive.md`
 

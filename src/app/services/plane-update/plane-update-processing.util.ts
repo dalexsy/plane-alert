@@ -67,27 +67,23 @@ export function playAlertsForNewPlanes(
       : hasA400
         ? 'a400'
         : 'mil-or-special';
-    // Magicmirror: Pi PipeWire owns the speaker. SPA + Pi both firing caused
-    // A400/Hercules then the generic mil chime back-to-back on the same Jabra.
-    if (isKioskMode()) {
-      console.info('[plane-alert] SPA MP3 skipped (kiosk — Pi chime)', {
-        reason,
-        count: alertable.length,
-        sample,
-      });
+    // Magicmirror used to skip SPA MP3 because planes-api POSTed .74:8796
+    // (pw-play → Jabra). Go dryl-planes still holds that loop
+    // (notificationProcessingEnabled:false), so kiosk must play here or the
+    // house speaker stays silent. Re-mute SPA when Go kiosk chime returns —
+    // dual play caused A400/Hercules then generic mil back-to-back.
+    console.info('[plane-alert] SPA MP3', {
+      reason,
+      count: alertable.length,
+      sample,
+      kiosk: isKioskMode(),
+    });
+    if (hasHercules) {
+      playHerculesAlert();
+    } else if (hasA400) {
+      playA400Alert();
     } else {
-      console.info('[plane-alert] SPA MP3', {
-        reason,
-        count: alertable.length,
-        sample,
-      });
-      if (hasHercules) {
-        playHerculesAlert();
-      } else if (hasA400) {
-        playA400Alert();
-      } else {
-        playAlertSound();
-      }
+      playAlertSound();
     }
   }
 
